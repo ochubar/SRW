@@ -1,0 +1,3286 @@
+/************************************************************************//**
+ * File: srwlpy.cpp
+ * Description: Python binding
+ * Project: Synchrotron Radiation Workshop Library (SRWLib)
+ * First release: October 2010
+ *
+ * SRW is Copyright (c) European Synchrotron Radiation Facility, Grenoble, France
+ * SRW C/C++ API (SRWLIB) is Copyright (c) European XFEL, Hamburg, Germany
+ * All Rights Reserved
+ *
+ * @author O.Chubar, G.Geloni, L.Samoylova
+ * @version 0.066
+ ***************************************************************************/
+
+#if defined(_DEBUG) //without this Python.h will enforce usage of python**_d.lib, which may not be always existing
+#undef _DEBUG
+#include "Python.h"
+#define _DEBUG
+#else
+#include "Python.h"
+#endif
+
+#include "srwlib.h"
+#include <vector>
+#include <map>
+using namespace std;
+
+/************************************************************************//**
+ * Error messages related to Python interface
+ ***************************************************************************/
+static const char strEr_NoObj[] = "No objects were submitted for parsing";
+static const char strEr_BadList[] = "Incorrect or no Python List structure";
+static const char strEr_BadArray[] = "Incorrect or no Python Array structure";
+static const char strEr_BadListArray[] = "Incorrect or no Python List or Array structure";
+static const char strEr_BadStr[] = "Error at parsing / converting Python string";
+static const char strEr_BadClassName[] = "Error at retrieving Python class name";
+static const char strEr_BadNum[] = "Incorrect or no Python number";
+static const char strEr_BadTrj[] = "Incorrect Trajectory structure";
+static const char strEr_BadPrt[] = "Incorrect Particle structure";
+static const char strEr_BadPrtBm[] = "Incorrect Particle Beam structure";
+static const char strEr_BadGsnBm[] = "Incorrect Gaussian Beam structure";
+static const char strEr_BadMagC[] = "Incorrect Magnetic Field Container structure";
+static const char strEr_BadMag3D[] = "Incorrect 3D Magnetic Field structure";
+static const char strEr_BadMagM[] = "Incorrect Multipole Magnet structure";
+static const char strEr_BadMagS[] = "Incorrect Solenoid structure";
+static const char strEr_BadMagU[] = "Incorrect Undulator structure";
+static const char strEr_BadMagH[] = "Incorrect Undulator Harmonic structure";
+static const char strEr_BadKickM[] = "Incorrect Kick Matrix structure";
+static const char strEr_BadRadMesh[] = "Incorrect Radiation Mesh structure";
+static const char strEr_BadWfr[] = "Incorrect Wavefront structure";
+static const char strEr_BadStokes[] = "Incorrect Stokes parameters structure";
+static const char strEr_BadOptC[] = "Incorrect Optical Element Container structure";
+static const char strEr_BadOptD[] = "Incorrect Optical Drift structure";
+static const char strEr_BadOptA[] = "Incorrect Optical Aperture / Obstacle structure";
+static const char strEr_BadOptL[] = "Incorrect Optical Lens structure";
+static const char strEr_BadOptZP[] = "Incorrect Optical Zone Plate structure";
+static const char strEr_BadOptWG[] = "Incorrect Optical Waveguide structure";
+static const char strEr_BadOptG[] = "Incorrect Optical Grating structure";
+static const char strEr_BadOptT[] = "Incorrect Optical Generic Transmission structure";
+static const char strEr_BadOptMir[] = "Incorrect Optical Mirror structure";
+
+static const char strEr_BadArg_CalcMagnField[] = "Incorrect arguments for magnetic field calculation/tabulation function";
+static const char strEr_BadArg_CalcPartTraj[] = "Incorrect arguments for trajectory calculation function";
+static const char strEr_BadArg_CalcPartTrajFromKickMatr[] = "Incorrect arguments for trajectory calculation function from kick matrices";
+static const char strEr_BadArg_CalcElecFieldSR[] = "Incorrect arguments for SR electric field calculation function";
+static const char strEr_BadPrec_CalcElecFieldSR[] = "Incorrect precision parameters for SR electric field calculation";
+static const char strEr_BadArg_CalcStokesUR[] = "Incorrect arguments for UR Stokes parameters calculation function";
+static const char strEr_BadArg_CalcPowDenSR[] = "Incorrect arguments for SR power density calculation function";
+static const char strEr_BadArg_CalcElecFieldGaussian[] = "Incorrect precision parameters for Gaussian beam electric field calculation";
+static const char strEr_BadArg_CalcIntFromElecField[] = "Incorrect arguments for intensity extraction function";
+static const char strEr_BadArg_ResizeElecField[] = "Incorrect arguments for electric field resizing function";
+static const char strEr_BadArg_SetRepresElecField[] = "Incorrect arguments for changing electric field representation function";
+static const char strEr_BadArg_PropagElecField[] = "Incorrect arguments for electric field wavefront propagation function";
+
+/************************************************************************//**
+ * Global objects to be used across different function calls
+ ***************************************************************************/
+struct AuxStructPyObjectPtrs {
+	PyObject *o_wfr;
+	Py_buffer pbEx, pbEy, pbMomX, pbMomY;
+	vector<Py_buffer> *pv_buf;
+};
+static map<SRWLWfr*, AuxStructPyObjectPtrs> gmWfrPyPtr;
+
+/************************************************************************//**
+ * Auxiliary function dedicated to process errors reported by Library
+ ***************************************************************************/
+void ProcRes(int er) //throw(...) 
+{
+	char ErrorBuf[2048];
+
+	if(er == 0) return;
+	else
+	{
+		srwlUtiGetErrText(ErrorBuf, er);
+		if(er < 0) 
+		{//Print Warning:
+			PyErr_SetString(PyExc_Warning, ErrorBuf);
+			PyErr_PrintEx(1); //?
+		}
+		else throw ErrorBuf;
+	}
+}
+
+/************************************************************************//**
+ * Auxiliary function to erase element from map if key found
+ ***************************************************************************/
+//template<class Tkey, class T> void EraseElementFromMap(Tkey key, map<Tkey, T>& m) //GCC doesn't support this for some reason
+void EraseElementFromMap(SRWLWfr* key, map<SRWLWfr*, AuxStructPyObjectPtrs>& m)
+{
+	map<SRWLWfr*, AuxStructPyObjectPtrs>::iterator iter = m.find(key);
+	if(iter == m.end()) return;
+	m.erase(iter);
+}
+
+/************************************************************************//**
+ * Gets access to Py array buffer
+ ***************************************************************************/
+//char* GetPyArrayBuf(PyObject* obj, vector<Py_buffer>& vBuf, int bufFlag, Py_ssize_t* pSizeBuf) //sizeBuf is out
+char* GetPyArrayBuf(PyObject* obj, vector<Py_buffer>* pvBuf, Py_ssize_t* pSizeBuf) //sizeBuf is out
+{//for simplicity and uniformity of treatment in Py3 and Py2, only writable buffers are supported
+	if(obj == 0) return 0;
+	if(PyObject_CheckBuffer(obj))
+	{
+		Py_buffer pb_tmp;
+		//if(PyObject_GetBuffer(obj, &pb_tmp, bufFlag)) return 0;
+		if(PyObject_GetBuffer(obj, &pb_tmp, PyBUF_WRITABLE)) return 0;
+		if(pSizeBuf != 0) *pSizeBuf = pb_tmp.len;
+		if(pvBuf != 0) pvBuf->push_back(pb_tmp);
+		return (char*)pb_tmp.buf;
+	}
+#if PY_MAJOR_VERSION < 3
+	//else if(PyBuffer_Check(obj))
+	else
+	{
+		//if(bufFlag != PyBUF_WRITABLE) return 0;
+		PyObject *pOldBuf = PyBuffer_FromReadWriteObject(obj, 0, Py_END_OF_BUFFER);
+		if(pOldBuf == 0) return 0;
+
+		void *pVoidBuffer = 0;
+		Py_ssize_t sizeBuf;
+		char *pRes = 0;
+		if(!PyObject_AsWriteBuffer(pOldBuf, &pVoidBuffer, &sizeBuf))
+		{
+			if(pVoidBuffer != 0) pRes = (char*)pVoidBuffer;
+		}
+		Py_DECREF(pOldBuf);
+		if(pSizeBuf != 0) *pSizeBuf = sizeBuf;
+		return pRes;
+	}
+#endif
+	return 0;
+}
+
+/************************************************************************//**
+ * Copies elements of Py list or array to a numerical array
+ * ATTENTION: it can allocate T *ar !
+ * arType can be 'i', 'f' or 'd'
+ * Supports both Py lists and arrays
+ * If obj is neither List nor Array - returns without thowing error
+ ***************************************************************************/
+template<class T> void CopyPyListElemsToNumArray(PyObject* obj, char arType, T*& ar, int& nElem) //throw(...)
+{
+	if(obj == 0) return;
+	if(!((arType == 'i') || (arType == 'l') || (arType == 'f') || (arType == 'd'))) return;
+	//if(!PyList_Check(obj)) throw strEr_BadList;
+	bool isList = PyList_Check(obj);
+	bool isArray = false;
+	if(!isList) isArray = PyObject_CheckBuffer(obj);
+
+#if PY_MAJOR_VERSION >= 3
+	//if(!(isList || isArray)) throw strEr_BadListArray;
+	if(!(isList || isArray)) return;
+#endif
+
+	Py_buffer pb;
+	PyObject *pOldBuf=0;
+	int *pIntAr=0;
+	long *pLongAr=0;
+	float *pFloatAr=0;
+	double *pDoubleAr=0;
+
+	int nElemInList = 0;
+	if(isList) nElemInList = (int)PyList_Size(obj);
+	else
+	{
+		void *pVoidBuffer = 0;
+		Py_ssize_t sizeBuf = 0;
+
+		if(isArray)
+		{
+			if(PyObject_GetBuffer(obj, &pb, PyBUF_SIMPLE)) throw strEr_BadArray;
+			pVoidBuffer = pb.buf;
+			sizeBuf = pb.len;
+		}
+#if PY_MAJOR_VERSION < 3
+		else
+		{
+			//if(PyBuffer_Check(obj))
+			//{
+			pOldBuf = PyBuffer_FromReadWriteObject(obj, 0, Py_END_OF_BUFFER);
+			if(pOldBuf != 0)
+			{
+				if(PyObject_AsWriteBuffer(pOldBuf, &pVoidBuffer, &sizeBuf)) throw strEr_BadArray;
+				isArray = true;
+				//if((pVoidBuffer == 0) || (sizeBuf <= 0)) throw strEr_BadArray;
+				//Py_DECREF(pOldBuf);
+			}
+			else
+			{
+				PyErr_Clear();
+				return;
+			}
+			//}
+			//else return; //obj is neither List nor Array
+		}
+#endif
+
+		if(arType == 'i') 
+		{
+			//nElemInList = (int)pb.len/sizeof(int);
+			//pIntAr = (int*)pb.buf;
+			nElemInList = (int)(sizeBuf/sizeof(int));
+			pIntAr = (int*)pVoidBuffer;
+		}
+		else if(arType == 'l') 
+		{
+			//nElemInList = (int)pb.len/sizeof(long);
+			//pLongAr = (long*)pb.buf;
+			nElemInList = (int)(sizeBuf/sizeof(long));
+			pLongAr = (long*)pVoidBuffer;
+		}
+		else if(arType == 'f') 
+		{
+			//nElemInList = (int)pb.len/sizeof(float);
+			//pFloatAr = (float*)pb.buf;
+			nElemInList = (int)(sizeBuf/sizeof(float));
+			pFloatAr = (float*)pVoidBuffer;
+		}
+		else if(arType == 'd') 
+		{
+			nElemInList = (int)(sizeBuf/sizeof(double));
+			pDoubleAr = (double*)pVoidBuffer;
+		}
+	}
+	if(nElemInList <=  0) throw strEr_BadListArray;
+
+	if(ar == 0)
+	{
+		ar = new T[nElemInList];
+		nElem = nElemInList;
+	}
+	else
+	{
+		if(nElem > nElemInList) nElem = nElemInList;
+	}
+
+	T *t_ar = ar;
+	for(int i=0; i<nElem; i++)
+	{
+		if(isList)
+		{
+			PyObject *o = PyList_GetItem(obj, (Py_ssize_t)i);
+			if(o == 0) throw strEr_BadNum;
+			if(!PyNumber_Check(o)) throw strEr_BadNum;
+
+			if((arType == 'i') || (arType == 'l')) *t_ar = (T)PyLong_AsLong(o);
+			else if((arType == 'f') || (arType == 'd')) *t_ar = (T)PyFloat_AsDouble(o);
+		}
+		else if(isArray)
+		{
+			if(arType == 'i') *t_ar = (T)(*(pIntAr++));
+			else if(arType == 'l') *t_ar = (T)(*(pLongAr++));
+			else if(arType == 'f') *t_ar = (T)(*(pFloatAr++));
+			else if(arType == 'd') *t_ar = (T)(*(pDoubleAr++));
+		}
+		t_ar++;
+	}
+	if(pOldBuf != 0) Py_DECREF(pOldBuf);
+}
+
+/************************************************************************//**
+ * Copies elements of Py string to a C string (assumed to be allocated outside)
+ ***************************************************************************/
+void CopyPyStringToC(PyObject* pObj, char* c_str, int maxLenStr)
+{
+	if((pObj == 0) || (c_str == 0)) throw strEr_BadStr;
+
+	int len = 0;
+	char *pStr = 0;
+	PyObject *pObjStr = 0;
+
+	if(PyUnicode_Check(pObj))
+	{
+		pObjStr = PyUnicode_AsUTF8String(pObj);
+		if(pObjStr != 0)
+		{//usually works with Py3
+			if(!PyBytes_Check(pObjStr)) throw strEr_BadStr;
+			len = (int)PyBytes_Size(pObjStr);
+			pStr = PyBytes_AsString(pObjStr); 
+		}
+	}
+	else
+	{//seems to work with Py2.7 and maybe earlier versions
+		//pStr = PyString_AsString(pObj);
+		Py_ssize_t lenLoc = 0;
+#if PY_MAJOR_VERSION < 3
+		int res = PyString_AsStringAndSize(pObj, &pStr, &lenLoc);
+#else
+		int res = PyBytes_AsStringAndSize(pObj, &pStr, &lenLoc);
+#endif
+		if(res < 0) throw strEr_BadStr;
+		len = (int)lenLoc;
+	}
+
+	if((len > 0) && (pStr != 0))
+	{
+		if(len > maxLenStr) len = maxLenStr;
+		strncpy(c_str, pStr, len);
+		c_str[len] = '\0';
+	}
+
+	if(pObjStr != 0) Py_DECREF(pObjStr);
+}
+
+/************************************************************************//**
+ * Copies elements of Py string to a C string (assumed to be allocated outside)
+ ***************************************************************************/
+void CopyPyClassNameToC(PyObject* pObj, char* c_str, int maxLenStr)
+{
+	if((pObj == 0) || (c_str == 0)) throw strEr_BadClassName;
+
+	PyTypeObject *pTypeO = pObj->ob_type;
+	if(pTypeO != 0)
+	{
+		const char *sTypeName = pTypeO->tp_name;
+		if(sTypeName != 0)
+		{
+			if(strcmp(sTypeName, "instance") != 0)
+			{
+				int len = (int)strlen(sTypeName);
+				if(len > maxLenStr) len = maxLenStr;
+				strncpy(c_str, sTypeName, len);
+				c_str[len] = '\0';
+				return;
+			}
+		}
+	}
+
+#if PY_MAJOR_VERSION < 3
+	PyObject *pStrReprO = PyObject_Repr(pObj);
+	if(pStrReprO != 0)
+	{
+		char *sRepr = PyString_AsString(pStrReprO);
+		if(sRepr != 0)
+		{
+			char *pFirstDot = strchr(sRepr, '.');
+			if(pFirstDot != 0)
+			{
+				char *pEndName = strchr(pFirstDot, ' ');
+				if(pEndName != 0) 
+				{
+					long len = (long)(pEndName - (pFirstDot + 1));
+					if(len > 0)
+					{
+						if(len > maxLenStr) len = maxLenStr;
+						strncpy(c_str, pFirstDot + 1, len);
+						c_str[len] = '\0';
+					}
+				}
+			}
+		}
+		Py_DECREF(pStrReprO);
+	}
+#endif
+}
+
+/************************************************************************//**
+ * Parses PyObject* to SRWLParticle*
+ ***************************************************************************/
+void ParseSructSRWLParticle(SRWLParticle* pPrt, PyObject* oPrt) //throw(...) 
+{
+	if((pPrt == 0) || (oPrt == 0)) throw strEr_NoObj;
+	PyObject *o_tmp = 0;
+
+	o_tmp = PyObject_GetAttrString(oPrt, "x");
+	if(o_tmp == 0) throw strEr_BadPrt;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadPrt;
+	pPrt->x = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oPrt, "y");
+	if(o_tmp == 0) throw strEr_BadPrt;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadPrt;
+	pPrt->y = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oPrt, "z");
+	if(o_tmp == 0) throw strEr_BadPrt;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadPrt;
+	pPrt->z = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oPrt, "xp");
+	if(o_tmp == 0) throw strEr_BadPrt;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadPrt;
+	pPrt->xp = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oPrt, "yp");
+	if(o_tmp == 0) throw strEr_BadPrt;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadPrt;
+	pPrt->yp = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oPrt, "gamma");
+	if(o_tmp == 0) throw strEr_BadPrt;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadPrt;
+	pPrt->gamma = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oPrt, "relE0");
+	if(o_tmp == 0) throw strEr_BadPrt;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadPrt;
+	pPrt->relE0 = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oPrt, "nq");
+	if(o_tmp == 0) throw strEr_BadTrj;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadTrj;
+	pPrt->nq = PyLong_AsLong(o_tmp);
+	Py_DECREF(o_tmp);
+}
+
+/************************************************************************//**
+ * Parses PyObject* to SRWLPartBeam*
+ ***************************************************************************/
+void ParseSructSRWLPartBeam(SRWLPartBeam* pPrtBm, PyObject* oPrtBm, vector<Py_buffer>& vBuf)
+{
+	if((pPrtBm == 0) || (oPrtBm == 0)) throw strEr_NoObj;
+	PyObject *o_tmp = 0;
+	//Py_buffer pb_tmp;
+
+	o_tmp = PyObject_GetAttrString(oPrtBm, "Iavg");
+	if(o_tmp == 0) throw strEr_BadPrtBm;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadPrtBm;
+	pPrtBm->Iavg = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oPrtBm, "nPart");
+	if(o_tmp == 0) throw strEr_BadPrtBm;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadPrtBm;
+	pPrtBm->nPart = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oPrtBm, "partStatMom1");
+	if(o_tmp == 0) throw strEr_BadPrtBm;
+	ParseSructSRWLParticle(&(pPrtBm->partStatMom1), o_tmp);
+	Py_DECREF(o_tmp);
+
+	//pPrtBm->arStatMom2 = 0;
+	o_tmp = PyObject_GetAttrString(oPrtBm, "arStatMom2");
+	//if(o_tmp != 0)
+	//{
+	//	if(PyObject_CheckBuffer(o_tmp))
+	//	{
+	//		if(!PyObject_GetBuffer(o_tmp, &pb_tmp, PyBUF_SIMPLE))
+	//		{
+	//			vBuf.push_back(pb_tmp);
+	//			pPrtBm->arStatMom2 = (double*)pb_tmp.buf;
+	//		}
+	//	}
+	//}
+	double *pStatMom2 = pPrtBm->arStatMom2;
+	int nMom2 = 21;
+	CopyPyListElemsToNumArray(o_tmp, 'd', pStatMom2, nMom2);
+	Py_DECREF(o_tmp);
+}
+
+/************************************************************************//**
+ * Parses PyObject* to SRWLPrtTrj*
+ * It fills-in pointers of SRWLPrtTrj without allocating memory and copying data
+ * vector<Py_buffer>& vBuf is required to store and release all buffers after the execution
+ ***************************************************************************/
+void ParseSructSRWLPrtTrj(SRWLPrtTrj* pTrj, PyObject* oTrj, vector<Py_buffer>* pvBuf) //throw(...) 
+{
+	if((pTrj == 0) || (oTrj == 0)) throw strEr_NoObj;
+	PyObject *o_tmp = 0;
+	//Py_buffer pb_tmp;
+
+	o_tmp = PyObject_GetAttrString(oTrj, "arX");
+	if(o_tmp == 0) throw strEr_BadTrj;
+	//if(!PyObject_CheckBuffer(o_tmp)) throw strEr_BadTrj;
+	//if(PyObject_GetBuffer(o_tmp, &pb_tmp, PyBUF_WRITABLE)) throw strEr_BadTrj;
+	//vBuf.push_back(pb_tmp);
+	//pTrj->arX = (double*)pb_tmp.buf;
+	//if(!(pTrj->arX = (double*)GetPyArrayBuf(o_tmp, vBuf, PyBUF_WRITABLE, 0))) throw strEr_BadTrj;
+	if(!(pTrj->arX = (double*)GetPyArrayBuf(o_tmp, pvBuf, 0))) throw strEr_BadTrj;
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oTrj, "arXp");
+	if(o_tmp == 0) throw strEr_BadTrj;
+	//if(!PyObject_CheckBuffer(o_tmp)) throw strEr_BadTrj;
+	//if(PyObject_GetBuffer(o_tmp, &pb_tmp, PyBUF_WRITABLE)) throw strEr_BadTrj;
+	//vBuf.push_back(pb_tmp);
+	//pTrj->arXp = (double*)pb_tmp.buf;
+	//if(!(pTrj->arXp = (double*)GetPyArrayBuf(o_tmp, vBuf, PyBUF_WRITABLE, 0))) throw strEr_BadTrj;
+	if(!(pTrj->arXp = (double*)GetPyArrayBuf(o_tmp, pvBuf, 0))) throw strEr_BadTrj;
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oTrj, "arY");
+	if(o_tmp == 0) throw strEr_BadTrj;
+	//if(!PyObject_CheckBuffer(o_tmp)) throw strEr_BadTrj;
+	//if(PyObject_GetBuffer(o_tmp, &pb_tmp, PyBUF_WRITABLE)) throw strEr_BadTrj;
+	//vBuf.push_back(pb_tmp);
+	//pTrj->arY = (double*)pb_tmp.buf;
+	//if(!(pTrj->arY = (double*)GetPyArrayBuf(o_tmp, vBuf, PyBUF_WRITABLE, 0))) throw strEr_BadTrj;
+	if(!(pTrj->arY = (double*)GetPyArrayBuf(o_tmp, pvBuf, 0))) throw strEr_BadTrj;
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oTrj, "arYp");
+	if(o_tmp == 0) throw strEr_BadTrj;
+	//if(!PyObject_CheckBuffer(o_tmp)) throw strEr_BadTrj;
+	//if(PyObject_GetBuffer(o_tmp, &pb_tmp, PyBUF_WRITABLE)) throw strEr_BadTrj;
+	//vBuf.push_back(pb_tmp);
+	//pTrj->arYp = (double*)pb_tmp.buf;
+	//if(!(pTrj->arYp = (double*)GetPyArrayBuf(o_tmp, vBuf, PyBUF_WRITABLE, 0))) throw strEr_BadTrj;
+	if(!(pTrj->arYp = (double*)GetPyArrayBuf(o_tmp, pvBuf, 0))) throw strEr_BadTrj;
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oTrj, "arZ");
+	if(o_tmp == 0) throw strEr_BadTrj;
+	//if(!PyObject_CheckBuffer(o_tmp)) throw strEr_BadTrj;
+	//if(PyObject_GetBuffer(o_tmp, &pb_tmp, PyBUF_WRITABLE)) throw strEr_BadTrj;
+	//vBuf.push_back(pb_tmp);
+	//pTrj->arZ = (double*)pb_tmp.buf;
+	//if(!(pTrj->arZ = (double*)GetPyArrayBuf(o_tmp, vBuf, PyBUF_WRITABLE, 0))) throw strEr_BadTrj;
+	if(!(pTrj->arZ = (double*)GetPyArrayBuf(o_tmp, pvBuf, 0))) throw strEr_BadTrj;
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oTrj, "arZp");
+	if(o_tmp == 0) throw strEr_BadTrj;
+	//if(!PyObject_CheckBuffer(o_tmp)) throw strEr_BadTrj;
+	//if(PyObject_GetBuffer(o_tmp, &pb_tmp, PyBUF_WRITABLE)) throw strEr_BadTrj;
+	//vBuf.push_back(pb_tmp);
+	//pTrj->arZp = (double*)pb_tmp.buf;
+	//if(!(pTrj->arZp = (double*)GetPyArrayBuf(o_tmp, vBuf, PyBUF_WRITABLE, 0))) throw strEr_BadTrj;
+	if(!(pTrj->arZp = (double*)GetPyArrayBuf(o_tmp, pvBuf, 0))) throw strEr_BadTrj;
+	Py_DECREF(o_tmp);
+
+	pTrj->arBx = 0;
+	if(PyObject_HasAttrString(oTrj, "arBx"))
+	{
+		o_tmp = PyObject_GetAttrString(oTrj, "arBx");
+		if(o_tmp != 0)
+		{
+			if(!(pTrj->arBx = (double*)GetPyArrayBuf(o_tmp, pvBuf, 0))) throw strEr_BadTrj;
+			Py_DECREF(o_tmp);
+		}
+	}
+
+	pTrj->arBy = 0;
+	if(PyObject_HasAttrString(oTrj, "arBy"))
+	{
+		o_tmp = PyObject_GetAttrString(oTrj, "arBy");
+		if(o_tmp != 0)
+		{
+			if(!(pTrj->arBy = (double*)GetPyArrayBuf(o_tmp, pvBuf, 0))) throw strEr_BadTrj;
+			Py_DECREF(o_tmp);
+		}
+	}
+
+	pTrj->arBz = 0;
+	if(PyObject_HasAttrString(oTrj, "arBz"))
+	{
+		o_tmp = PyObject_GetAttrString(oTrj, "arBz");
+		if(o_tmp != 0)
+		{
+			if(!(pTrj->arBz = (double*)GetPyArrayBuf(o_tmp, pvBuf, 0))) throw strEr_BadTrj;
+			Py_DECREF(o_tmp);
+		}
+	}
+
+	o_tmp = PyObject_GetAttrString(oTrj, "np");
+	if(o_tmp == 0) throw strEr_BadTrj;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadTrj;
+	pTrj->np = PyLong_AsLong(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oTrj, "ctStart");
+	if(o_tmp == 0) throw strEr_BadTrj;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadTrj;
+	pTrj->ctStart = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oTrj, "ctEnd");
+	if(o_tmp == 0) throw strEr_BadTrj;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadTrj;
+	pTrj->ctEnd = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oTrj, "partInitCond");
+	if(o_tmp == 0) throw strEr_BadTrj;
+	ParseSructSRWLParticle(&(pTrj->partInitCond), o_tmp);
+	Py_DECREF(o_tmp);
+}
+
+/************************************************************************//**
+ * Parses PyObject* to SRWLKickM*
+ ***************************************************************************/
+void ParseSructSRWLKickM(SRWLKickM* pKickM, PyObject* oKickM, vector<Py_buffer>* pvBuf) //throw(...) 
+{
+	if((pKickM == 0) || (oKickM == 0)) throw strEr_NoObj;
+	PyObject *o_tmp = 0;
+	//Py_buffer pb_tmp;
+
+	o_tmp = PyObject_GetAttrString(oKickM, "nx");
+	if(o_tmp == 0) throw strEr_BadKickM;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadKickM;
+	pKickM->nx = PyLong_AsLong(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oKickM, "ny");
+	if(o_tmp == 0) throw strEr_BadKickM;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadKickM;
+	pKickM->ny = PyLong_AsLong(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oKickM, "nz");
+	if(o_tmp == 0) throw strEr_BadKickM;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadKickM;
+	pKickM->nz = PyLong_AsLong(o_tmp);
+	Py_DECREF(o_tmp);
+
+	long npTot = long(pKickM->nx)*long(pKickM->ny);
+
+	o_tmp = PyObject_GetAttrString(oKickM, "rx");
+	if(o_tmp == 0) throw strEr_BadMag3D;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadKickM;
+	pKickM->rx = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oKickM, "ry");
+	if(o_tmp == 0) throw strEr_BadMag3D;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadKickM;
+	pKickM->ry = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oKickM, "rz");
+	if(o_tmp == 0) throw strEr_BadMag3D;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadKickM;
+	pKickM->rz = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oKickM, "x");
+	if(o_tmp == 0) throw strEr_BadMag3D;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadKickM;
+	pKickM->x = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oKickM, "y");
+	if(o_tmp == 0) throw strEr_BadMag3D;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadKickM;
+	pKickM->y = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oKickM, "z");
+	if(o_tmp == 0) throw strEr_BadMag3D;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadKickM;
+	pKickM->z = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oKickM, "order");
+	if(o_tmp == 0) throw strEr_BadKickM;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadKickM;
+	pKickM->order = (char)PyLong_AsLong(o_tmp);
+	Py_DECREF(o_tmp);
+
+	Py_ssize_t sizeBuf = 0;
+	o_tmp = PyObject_GetAttrString(oKickM, "arKickMx");
+	if(o_tmp == 0) throw strEr_BadKickM;
+	//if(!PyObject_CheckBuffer(o_tmp)) throw strEr_BadKickM;
+	//if(PyObject_GetBuffer(o_tmp, &pb_tmp, PyBUF_SIMPLE)) throw strEr_BadKickM;
+	//if(pb_tmp.len <= 0) pKickM->arKickMx = 0; 
+	//else
+	//{
+	//	vBuf.push_back(pb_tmp);
+	//	pKickM->arKickMx = (double*)pb_tmp.buf;
+	//}
+	//char *cpBuf = GetPyArrayBuf(o_tmp, vBuf, PyBUF_WRITABLE, &sizeBuf);
+	char *cpBuf = GetPyArrayBuf(o_tmp, pvBuf, &sizeBuf);
+	if((cpBuf == 0) || (sizeBuf <= 0)) pKickM->arKickMx = 0;
+	else
+	{
+		if(sizeBuf != npTot*sizeof(double)) throw strEr_BadKickM;
+		pKickM->arKickMx = (double*)cpBuf;
+	}
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oKickM, "arKickMy");
+	if(o_tmp == 0) throw strEr_BadKickM;
+	//if(!PyObject_CheckBuffer(o_tmp)) throw strEr_BadKickM;
+	//if(PyObject_GetBuffer(o_tmp, &pb_tmp, PyBUF_SIMPLE)) throw strEr_BadKickM;
+	//if(pb_tmp.len <= 0) pKickM->arKickMy = 0; 
+	//else
+	//{
+	//	vBuf.push_back(pb_tmp);
+	//	pKickM->arKickMy = (double*)pb_tmp.buf;
+	//}
+	//cpBuf = GetPyArrayBuf(o_tmp, vBuf, PyBUF_WRITABLE, &sizeBuf);
+	cpBuf = GetPyArrayBuf(o_tmp, pvBuf, &sizeBuf);
+	if((cpBuf == 0) || (sizeBuf <= 0)) pKickM->arKickMy = 0;
+	else
+	{
+		if(sizeBuf != npTot*sizeof(double)) throw strEr_BadKickM;
+		pKickM->arKickMy = (double*)cpBuf;
+	}
+	Py_DECREF(o_tmp);
+}
+
+/************************************************************************//**
+ * Parses PyObject* to SRWLMagFld3D*
+ * May allocate memory!
+ ***************************************************************************/
+void ParseSructSRWLMagFld3D(SRWLMagFld3D* pMag, PyObject* oMag, vector<Py_buffer>* pvBuf) //throw(...) 
+{
+	if((pMag == 0) || (oMag == 0)) throw strEr_NoObj;
+	PyObject *o_tmp = 0;
+	//Py_buffer pb_tmp;
+
+	o_tmp = PyObject_GetAttrString(oMag, "nx");
+	if(o_tmp == 0) throw strEr_BadMag3D;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadMag3D;
+	pMag->nx = PyLong_AsLong(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oMag, "ny");
+	if(o_tmp == 0) throw strEr_BadMag3D;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadMag3D;
+	pMag->ny = PyLong_AsLong(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oMag, "nz");
+	if(o_tmp == 0) throw strEr_BadMag3D;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadMag3D;
+	pMag->nz = PyLong_AsLong(o_tmp);
+	Py_DECREF(o_tmp);
+
+	long npTot = long(pMag->nx)*long(pMag->ny)*long(pMag->nz);
+
+	o_tmp = PyObject_GetAttrString(oMag, "rx");
+	if(o_tmp == 0) throw strEr_BadMag3D;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadMag3D;
+	pMag->rx = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oMag, "ry");
+	if(o_tmp == 0) throw strEr_BadMag3D;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadMag3D;
+	pMag->ry = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oMag, "rz");
+	if(o_tmp == 0) throw strEr_BadMag3D;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadMag3D;
+	pMag->rz = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oMag, "nRep");
+	if(o_tmp == 0) throw strEr_BadMag3D;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadMag3D;
+	pMag->nRep = PyLong_AsLong(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oMag, "interp");
+	if(o_tmp == 0) throw strEr_BadMag3D;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadMag3D;
+	pMag->interp = PyLong_AsLong(o_tmp);
+	Py_DECREF(o_tmp);
+
+	Py_ssize_t sizeBuf = 0;
+	o_tmp = PyObject_GetAttrString(oMag, "arBx");
+	if(o_tmp == 0) throw strEr_BadMag3D;
+	//if(!PyObject_CheckBuffer(o_tmp)) throw strEr_BadMag3D;
+	//if(PyObject_GetBuffer(o_tmp, &pb_tmp, PyBUF_SIMPLE)) throw strEr_BadMag3D;
+	//if(pb_tmp.len <= 0) pMag->arBx = 0; 
+	//else
+	//{
+	//	vBuf.push_back(pb_tmp);
+	//	pMag->arBx = (double*)pb_tmp.buf;
+	//}
+	//char *cpBuf = GetPyArrayBuf(o_tmp, vBuf, PyBUF_WRITABLE, &sizeBuf);
+	char *cpBuf = GetPyArrayBuf(o_tmp, pvBuf, &sizeBuf);
+	if((cpBuf == 0) || (sizeBuf <= 0)) pMag->arBx = 0;
+	else
+	{
+		if(sizeBuf != npTot*sizeof(double)) throw strEr_BadMag3D;
+		pMag->arBx = (double*)cpBuf;
+	}
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oMag, "arBy");
+	if(o_tmp == 0) throw strEr_BadMag3D;
+	//if(!PyObject_CheckBuffer(o_tmp)) throw strEr_BadMag3D;
+	//if(PyObject_GetBuffer(o_tmp, &pb_tmp, PyBUF_SIMPLE)) throw strEr_BadMag3D;
+	//if(pb_tmp.len <= 0) pMag->arBy = 0; 
+	//else
+	//{
+	//	vBuf.push_back(pb_tmp);
+	//	pMag->arBy = (double*)pb_tmp.buf;
+	//}
+	//cpBuf = GetPyArrayBuf(o_tmp, vBuf, PyBUF_WRITABLE, &sizeBuf);
+	cpBuf = GetPyArrayBuf(o_tmp, pvBuf, &sizeBuf);
+	if((cpBuf == 0) || (sizeBuf <= 0)) pMag->arBy = 0;
+	else
+	{
+		if(sizeBuf != npTot*sizeof(double)) throw strEr_BadMag3D;
+		pMag->arBy = (double*)cpBuf;
+	}
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oMag, "arBz");
+	if(o_tmp == 0) throw strEr_BadMag3D;
+	//if(!PyObject_CheckBuffer(o_tmp)) throw strEr_BadMag3D;
+	//if(PyObject_GetBuffer(o_tmp, &pb_tmp, PyBUF_SIMPLE)) throw strEr_BadMag3D;
+	//if(pb_tmp.len <= 0) pMag->arBz = 0; 
+	//else
+	//{
+	//	vBuf.push_back(pb_tmp);
+	//	pMag->arBz = (double*)pb_tmp.buf;
+	//}
+	//cpBuf = GetPyArrayBuf(o_tmp, vBuf, PyBUF_WRITABLE, &sizeBuf);
+	cpBuf = GetPyArrayBuf(o_tmp, pvBuf, &sizeBuf);
+	if((cpBuf == 0) || (sizeBuf <= 0)) pMag->arBz = 0;
+	else
+	{
+		if(sizeBuf != npTot*sizeof(double)) throw strEr_BadMag3D;
+		pMag->arBz = (double*)cpBuf;
+	}
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oMag, "arX");
+	if(o_tmp == 0) throw strEr_BadMag3D;
+	pMag->arX = 0;
+	//if(PyObject_CheckBuffer(o_tmp))
+	//{
+	//	if(PyObject_GetBuffer(o_tmp, &pb_tmp, PyBUF_SIMPLE)) throw strEr_BadMag3D;
+	//	if(pb_tmp.len > 0)
+	//	{
+	//		vBuf.push_back(pb_tmp);
+	//		pMag->arX = (double*)pb_tmp.buf;
+	//	}
+	//}
+	//cpBuf = GetPyArrayBuf(o_tmp, vBuf, PyBUF_WRITABLE, &sizeBuf);
+	cpBuf = GetPyArrayBuf(o_tmp, pvBuf, &sizeBuf);
+	if((cpBuf != 0) && (sizeBuf > 0)) pMag->arX = (double*)cpBuf;
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oMag, "arY");
+	if(o_tmp == 0) throw strEr_BadMag3D;
+	pMag->arY = 0;
+	//if(PyObject_CheckBuffer(o_tmp))
+	//{
+	//	if(PyObject_GetBuffer(o_tmp, &pb_tmp, PyBUF_SIMPLE)) throw strEr_BadMag3D;
+	//	if(pb_tmp.len > 0)
+	//	{
+	//		vBuf.push_back(pb_tmp);
+	//		pMag->arY = (double*)pb_tmp.buf;
+	//	}
+	//}
+	//cpBuf = GetPyArrayBuf(o_tmp, vBuf, PyBUF_WRITABLE, &sizeBuf);
+	cpBuf = GetPyArrayBuf(o_tmp, pvBuf, &sizeBuf);
+	if((cpBuf != 0) && (sizeBuf > 0)) pMag->arY = (double*)cpBuf;
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oMag, "arZ");
+	if(o_tmp == 0) throw strEr_BadMag3D;
+	pMag->arZ = 0;
+	//if(PyObject_CheckBuffer(o_tmp))
+	//{
+	//	if(PyObject_GetBuffer(o_tmp, &pb_tmp, PyBUF_SIMPLE)) throw strEr_BadMag3D;
+	//	if(pb_tmp.len > 0)
+	//	{
+	//		vBuf.push_back(pb_tmp);
+	//		pMag->arZ = (double*)pb_tmp.buf;
+	//	}
+	//}
+	//cpBuf = GetPyArrayBuf(o_tmp, vBuf, PyBUF_WRITABLE, &sizeBuf);
+	cpBuf = GetPyArrayBuf(o_tmp, pvBuf, &sizeBuf);
+	if((cpBuf != 0) && (sizeBuf > 0)) pMag->arZ = (double*)cpBuf;
+	Py_DECREF(o_tmp);
+}
+
+/************************************************************************//**
+ * Parses PyObject* to SRWLMagFldQ*
+ ***************************************************************************/
+void ParseSructSRWLMagFldM(SRWLMagFldM* pMag, PyObject* oMag) //throw(...) 
+{
+	if((pMag == 0) || (oMag == 0)) throw strEr_NoObj;
+	PyObject *o_tmp = 0;
+
+	o_tmp = PyObject_GetAttrString(oMag, "G");
+	if(o_tmp == 0) throw strEr_BadMagM;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadMagM;
+	pMag->G = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oMag, "m");
+	if(o_tmp == 0) throw strEr_BadMagM;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadMagM;
+	pMag->m = (char)PyLong_AsLong(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oMag, "n_or_s");
+	if(o_tmp == 0) throw strEr_BadMagM;
+	//PyObject *o_str = PyUnicode_AsUTF8String(o_tmp);
+	//if(!PyBytes_Check(o_str)) throw strEr_BadMagM;
+	//pMag->n_or_s = *PyBytes_AsString(o_str);
+	char cStrBuf[2];
+	CopyPyStringToC(o_tmp, cStrBuf, 1);
+	pMag->n_or_s = *cStrBuf;
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oMag, "Leff");
+	if(o_tmp == 0) throw strEr_BadMagM;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadMagM;
+	pMag->Leff = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oMag, "Ledge");
+	if(o_tmp == 0) throw strEr_BadMagM;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadMagM;
+	pMag->Ledge = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+}
+
+/************************************************************************//**
+ * Parses PyObject* to SRWLMagFldS*
+ ***************************************************************************/
+void ParseSructSRWLMagFldS(SRWLMagFldS* pMag, PyObject* oMag) //throw(...) 
+{
+	if((pMag == 0) || (oMag == 0)) throw strEr_NoObj;
+	PyObject *o_tmp = 0;
+
+	o_tmp = PyObject_GetAttrString(oMag, "B");
+	if(o_tmp == 0) throw strEr_BadMagS;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadMagS;
+	pMag->B = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oMag, "Leff");
+	if(o_tmp == 0) throw strEr_BadMagS;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadMagS;
+	pMag->Leff = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+}
+
+/************************************************************************//**
+ * Parses PyObject* to SRWLMagFldS*
+ ***************************************************************************/
+void ParseSructSRWLMagFldH(SRWLMagFldH* pMag, PyObject* oMag) //throw(...) 
+{
+	if((pMag == 0) || (oMag == 0)) throw strEr_NoObj;
+	PyObject *o_tmp = 0;
+
+	o_tmp = PyObject_GetAttrString(oMag, "n");
+	if(o_tmp == 0) throw strEr_BadMagH;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadMagH;
+	pMag->n = PyLong_AsLong(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oMag, "h_or_v");
+	if(o_tmp == 0) throw strEr_BadMagH;
+	//PyObject *o_str = PyUnicode_AsUTF8String(o_tmp);
+	//if(o_str != 0)
+	//{//usually works with Py3
+	//	if(!PyBytes_Check(o_str)) throw strEr_BadMagH;
+	//	pMag->h_or_v = *PyBytes_AsString(o_str); 
+	//}
+	char cStrBuf[2];
+	CopyPyStringToC(o_tmp, cStrBuf, 1);
+	pMag->h_or_v = *cStrBuf;
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oMag, "B");
+	if(o_tmp == 0) throw strEr_BadMagH;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadMagH;
+	pMag->B = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oMag, "ph");
+	if(o_tmp == 0) throw strEr_BadMagH;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadMagH;
+	pMag->ph = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oMag, "s");
+	if(o_tmp == 0) throw strEr_BadMagH;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadMagH;
+	pMag->s = PyLong_AsLong(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oMag, "a");
+	if(o_tmp == 0) throw strEr_BadMagH;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadMagH;
+	pMag->a = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+}
+
+/************************************************************************//**
+ * Parses PyObject* to SRWLMagFldU*
+ * ATTENTION: allocates SRWLMagFldH *arHarm and its elements and char *arMagFldTypes
+ ***************************************************************************/
+void ParseSructSRWLMagFldU(SRWLMagFldU* pMag, PyObject* oMag) //throw(...) 
+{
+	if((pMag == 0) || (oMag == 0)) throw strEr_NoObj;
+	PyObject *o_tmp = 0;
+
+	pMag->nHarm = 0;
+	pMag->arHarm = 0;
+
+	o_tmp = PyObject_GetAttrString(oMag, "per");
+	if(o_tmp == 0) throw strEr_BadMagU;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadMagU;
+	pMag->per = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oMag, "nPer");
+	if(o_tmp == 0) throw strEr_BadMagU;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadMagU;
+	pMag->nPer = PyLong_AsLong(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oMag, "arHarm");
+	if(o_tmp == 0) throw strEr_BadMagU;
+	if(!PyList_Check(o_tmp)) throw strEr_BadMagU;
+	//PyObject *o_List = o_tmp;
+	int nHarm = (int)PyList_Size(o_tmp);
+	if(nHarm <=  0) throw strEr_NoObj;
+	pMag->nHarm = nHarm;
+	pMag->arHarm = new SRWLMagFldH[nHarm];
+	for(int i=0; i<nHarm; i++)
+	{
+		//PyObject *o = PyList_GetItem(o_List, (Py_ssize_t)i);
+		PyObject *o = PyList_GetItem(o_tmp, (Py_ssize_t)i);
+		ParseSructSRWLMagFldH(pMag->arHarm + i, o);
+	}
+	Py_DECREF(o_tmp);
+}
+
+/************************************************************************//**
+ * Parses PyObject* to SRWLWfr*
+ * vector<Py_buffer>& vBuf is required to release all buffers after the end of execution
+ ***************************************************************************/
+void ParseSructSRWLRadMesh(SRWLRadMesh* pRadMesh, PyObject* oRadMesh)
+{
+	if((pRadMesh == 0) || (oRadMesh == 0)) throw strEr_NoObj;
+
+	PyObject *o_tmp = 0;
+
+	o_tmp = PyObject_GetAttrString(oRadMesh, "eStart");
+	if(o_tmp == 0) throw strEr_BadRadMesh;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadRadMesh;
+	pRadMesh->eStart = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oRadMesh, "eFin");
+	if(o_tmp == 0) throw strEr_BadRadMesh;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadRadMesh;
+	pRadMesh->eFin = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oRadMesh, "xStart");
+	if(o_tmp == 0) throw strEr_BadRadMesh;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadRadMesh;
+	pRadMesh->xStart = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oRadMesh, "xFin");
+	if(o_tmp == 0) throw strEr_BadRadMesh;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadRadMesh;
+	pRadMesh->xFin = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oRadMesh, "yStart");
+	if(o_tmp == 0) throw strEr_BadRadMesh;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadRadMesh;
+	pRadMesh->yStart = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oRadMesh, "yFin");
+	if(o_tmp == 0) throw strEr_BadRadMesh;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadRadMesh;
+	pRadMesh->yFin = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oRadMesh, "zStart");
+	if(o_tmp == 0) throw strEr_BadRadMesh;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadRadMesh;
+	pRadMesh->zStart = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oRadMesh, "ne");
+	if(o_tmp == 0) throw strEr_BadRadMesh;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadRadMesh;
+	pRadMesh->ne = PyLong_AsLong(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oRadMesh, "nx");
+	if(o_tmp == 0) throw strEr_BadRadMesh;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadRadMesh;
+	pRadMesh->nx = PyLong_AsLong(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oRadMesh, "ny");
+	if(o_tmp == 0) throw strEr_BadRadMesh;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadRadMesh;
+	pRadMesh->ny = PyLong_AsLong(o_tmp);
+	Py_DECREF(o_tmp);
+}
+
+/************************************************************************//**
+ * Parses PyObject* to SRWLMagFldCnt*
+ * ATTENTION: allocates void **arMagFld and its elements and char *arMagFldTypes
+ * vector<Py_buffer>& vBuf is required to store and release all buffers after the execution
+ ***************************************************************************/
+void ParseSructSRWLMagFldC(SRWLMagFldC* pMag, PyObject* oMag, vector<Py_buffer>* pvBuf) //throw(...) 
+{
+	if((pMag == 0) || (oMag == 0)) throw strEr_NoObj;
+	PyObject *o_tmp = 0;
+	//Py_buffer pb_tmp;
+	Py_ssize_t sizeBuf = 0;
+
+	o_tmp = PyObject_GetAttrString(oMag, "arMagFld");
+	if(o_tmp == 0) throw strEr_BadMagC;
+	if(!PyList_Check(o_tmp)) throw strEr_BadMagC;
+
+	PyObject *o_List = o_tmp;
+	//int nElem = (int)PyList_Size(o_tmp);
+	int nElem = (int)PyList_Size(o_List);
+	if(nElem <=  0) throw strEr_NoObj;
+	//pMag->nElem = nElem;
+
+	o_tmp = PyObject_GetAttrString(oMag, "arXc");
+	if(o_tmp == 0) throw strEr_BadMagC;
+	//if(!PyObject_CheckBuffer(o_tmp)) throw strEr_BadMagC;
+	//if(PyObject_GetBuffer(o_tmp, &pb_tmp, PyBUF_SIMPLE)) throw strEr_BadMagC;
+	//if(pb_tmp.len != nElem*sizeof(double)) throw strEr_BadMagC;
+	//vBuf.push_back(pb_tmp);
+	//pMag->arXc = (double*)pb_tmp.buf;
+	//if(!(pMag->arXc = (double*)GetPyArrayBuf(o_tmp, vBuf, PyBUF_WRITABLE, &sizeBuf))) throw strEr_BadMagC;
+	if(!(pMag->arXc = (double*)GetPyArrayBuf(o_tmp, pvBuf, &sizeBuf))) throw strEr_BadMagC;
+	if(sizeBuf != nElem*sizeof(double)) throw strEr_BadMagC;
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oMag, "arYc");
+	if(o_tmp == 0) throw strEr_BadMagC;
+	//if(!PyObject_CheckBuffer(o_tmp)) throw strEr_BadMagC;
+	//if(PyObject_GetBuffer(o_tmp, &pb_tmp, PyBUF_SIMPLE)) throw strEr_BadMagC;
+	//if(pb_tmp.len != nElem*sizeof(double)) throw strEr_BadMagC;
+	//vBuf.push_back(pb_tmp);
+	//pMag->arYc = (double*)pb_tmp.buf;
+	//if(!(pMag->arYc = (double*)GetPyArrayBuf(o_tmp, vBuf, PyBUF_WRITABLE, &sizeBuf))) throw strEr_BadMagC;
+	if(!(pMag->arYc = (double*)GetPyArrayBuf(o_tmp, pvBuf, &sizeBuf))) throw strEr_BadMagC;
+	if(sizeBuf != nElem*sizeof(double)) throw strEr_BadMagC;
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oMag, "arZc");
+	if(o_tmp == 0) throw strEr_BadMagC;
+	//if(!PyObject_CheckBuffer(o_tmp)) throw strEr_BadMagC;
+	//if(PyObject_GetBuffer(o_tmp, &pb_tmp, PyBUF_SIMPLE)) throw strEr_BadMagC;
+	//if(pb_tmp.len != nElem*sizeof(double)) throw strEr_BadMagC;
+	//vBuf.push_back(pb_tmp);
+	//pMag->arZc = (double*)pb_tmp.buf;
+	//if(!(pMag->arZc = (double*)GetPyArrayBuf(o_tmp, vBuf, PyBUF_WRITABLE, &sizeBuf))) throw strEr_BadMagC;
+	if(!(pMag->arZc = (double*)GetPyArrayBuf(o_tmp, pvBuf, &sizeBuf))) throw strEr_BadMagC;
+	if(sizeBuf != nElem*sizeof(double)) throw strEr_BadMagC;
+	Py_DECREF(o_tmp);
+
+	pMag->arMagFld = new void*[nElem];
+	pMag->arMagFldTypes = new char[nElem + 1];
+	pMag->arMagFldTypes[nElem] = '\0';
+
+	pMag->nElem = 0; //in case if there will be reding error
+	for(int i=0; i<nElem; i++)
+	{
+		PyObject *o = PyList_GetItem(o_List, (Py_ssize_t)i);
+		
+//		PyTypeObject *pTypeO = o->ob_type;
+//		const char* sTypeName = pTypeO->tp_name;
+		char sTypeName[1025];
+		CopyPyClassNameToC(o, sTypeName, 1024);
+
+		//if((strcmp(sTypeName, "SRWLMagFldC") == 0) || (cFldTypeID == 'c'))
+		if(strcmp(sTypeName, "SRWLMagFldC") == 0)
+		{
+			SRWLMagFldC *pMagElem = new SRWLMagFldC();
+			pMag->arMagFldTypes[i] = 'c';
+			pMag->arMagFld[i] = (void*)pMagElem;
+			ParseSructSRWLMagFldC(pMagElem, o, pvBuf);
+		}
+		//else if((strcmp(sTypeName, "SRWLMagFld3D") == 0) || (cFldTypeID == 'a'))
+		else if(strcmp(sTypeName, "SRWLMagFld3D") == 0)
+		{
+			SRWLMagFld3D *pMagElem = new SRWLMagFld3D();
+			pMag->arMagFldTypes[i] = 'a';
+			pMag->arMagFld[i] = (void*)pMagElem;
+			ParseSructSRWLMagFld3D(pMagElem, o, pvBuf);
+		}
+		//else if((strcmp(sTypeName, "SRWLMagFldM") == 0) || (cFldTypeID == 'm'))
+		else if(strcmp(sTypeName, "SRWLMagFldM") == 0)
+		{
+			SRWLMagFldM *pMagElem = new SRWLMagFldM();
+			pMag->arMagFldTypes[i] = 'm';
+			pMag->arMagFld[i] = (void*)pMagElem;
+			ParseSructSRWLMagFldM(pMagElem, o);
+		}
+		//else if((strcmp(sTypeName, "SRWLMagFldS") == 0) || (cFldTypeID == 's'))
+		else if(strcmp(sTypeName, "SRWLMagFldS") == 0)
+		{
+			SRWLMagFldS *pMagElem = new SRWLMagFldS();
+			pMag->arMagFldTypes[i] = 's';
+			pMag->arMagFld[i] = (void*)pMagElem;
+			ParseSructSRWLMagFldS(pMagElem, o);
+		}
+		//else if((strcmp(sTypeName, "SRWLMagFldU") == 0) || (cFldTypeID == 'u'))
+		else if(strcmp(sTypeName, "SRWLMagFldU") == 0)
+		{
+			SRWLMagFldU *pMagElem = new SRWLMagFldU();
+			pMag->arMagFldTypes[i] = 'u';
+			pMag->arMagFld[i] = (void*)pMagElem;
+			ParseSructSRWLMagFldU(pMagElem, o);
+		}
+		//to add more magnetic elements
+
+		(pMag->nElem)++; //in case if there will be reading error
+	}
+	Py_DECREF(o_List);
+}
+
+/************************************************************************//**
+ * Parses PyObject* to SRWLOptD*
+ ***************************************************************************/
+void ParseSructSRWLOptD(SRWLOptD* pOpt, PyObject* oOpt) //throw(...) 
+{
+	if((pOpt == 0) || (oOpt == 0)) throw strEr_NoObj;
+
+	PyObject *o_tmp = PyObject_GetAttrString(oOpt, "L");
+	if(o_tmp == 0) throw strEr_BadOptD;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptD;
+	pOpt->L = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+}
+
+/************************************************************************//**
+ * Parses PyObject* to SRWLOptA*
+ ***************************************************************************/
+void ParseSructSRWLOptA(SRWLOptA* pOpt, PyObject* oOpt) //throw(...) 
+{
+	if((pOpt == 0) || (oOpt == 0)) throw strEr_NoObj;
+	PyObject *o_tmp = 0;
+
+	o_tmp = PyObject_GetAttrString(oOpt, "shape");
+	if(o_tmp == 0) throw strEr_BadOptA;
+	//PyObject *o_str = PyUnicode_AsUTF8String(o_tmp);
+	//if(!PyBytes_Check(o_str)) throw strEr_BadOptA;
+	//pOpt->shape = *PyBytes_AsString(o_str); 
+	char cStrBuf[2];
+	CopyPyStringToC(o_tmp, cStrBuf, 1);
+	pOpt->shape = *cStrBuf;
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "ap_or_ob");
+	if(o_tmp == 0) throw strEr_BadOptA;
+	//o_str = PyUnicode_AsUTF8String(o_tmp);
+	//if(!PyBytes_Check(o_str)) throw strEr_BadOptA;
+	//pOpt->ap_or_ob = *PyBytes_AsString(o_str); 
+	CopyPyStringToC(o_tmp, cStrBuf, 1);
+	pOpt->ap_or_ob = *cStrBuf;
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "Dx");
+	if(o_tmp == 0) throw strEr_BadOptA;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptA;
+	pOpt->Dx = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "Dy");
+	if(o_tmp == 0) throw strEr_BadOptA;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptA;
+	pOpt->Dy = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "x");
+	if(o_tmp == 0) throw strEr_BadOptA;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptA;
+	pOpt->x = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "y");
+	if(o_tmp == 0) throw strEr_BadOptA;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptA;
+	pOpt->y = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+}
+
+/************************************************************************//**
+ * Parses PyObject* to SRWLOptL*
+ ***************************************************************************/
+void ParseSructSRWLOptL(SRWLOptL* pOpt, PyObject* oOpt) //throw(...) 
+{
+	if((pOpt == 0) || (oOpt == 0)) throw strEr_NoObj;
+	PyObject *o_tmp = 0;
+
+	o_tmp = PyObject_GetAttrString(oOpt, "Fx");
+	if(o_tmp == 0) throw strEr_BadOptL;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptL;
+	pOpt->Fx = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "Fy");
+	if(o_tmp == 0) throw strEr_BadOptL;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptL;
+	pOpt->Fy = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "x");
+	if(o_tmp == 0) throw strEr_BadOptL;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptL;
+	pOpt->x = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "y");
+	if(o_tmp == 0) throw strEr_BadOptL;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptL;
+	pOpt->y = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+}
+
+/************************************************************************//**
+ * Parses PyObject* to SRWLOptZP*
+ ***************************************************************************/
+void ParseSructSRWLOptZP(SRWLOptZP* pOpt, PyObject* oOpt) //throw(...) 
+{
+	if((pOpt == 0) || (oOpt == 0)) throw strEr_NoObj;
+	PyObject *o_tmp = 0;
+
+	o_tmp = PyObject_GetAttrString(oOpt, "nZones");
+	if(o_tmp == 0) throw strEr_BadOptZP;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptZP;
+	pOpt->nZones = PyLong_AsLong(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "rn");
+	if(o_tmp == 0) throw strEr_BadOptZP;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptZP;
+	pOpt->rn = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "thick");
+	if(o_tmp == 0) throw strEr_BadOptZP;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptZP;
+	pOpt->thick = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "delta1");
+	if(o_tmp == 0) throw strEr_BadOptZP;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptZP;
+	pOpt->delta1 = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "delta2");
+	if(o_tmp == 0) throw strEr_BadOptZP;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptZP;
+	pOpt->delta2 = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "atLen1");
+	if(o_tmp == 0) throw strEr_BadOptZP;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptZP;
+	pOpt->atLen1 = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "atLen2");
+	if(o_tmp == 0) throw strEr_BadOptZP;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptZP;
+	pOpt->atLen2 = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "x");
+	if(o_tmp == 0) throw strEr_BadOptZP;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptZP;
+	pOpt->x = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "y");
+	if(o_tmp == 0) throw strEr_BadOptZP;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptZP;
+	pOpt->y = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+}
+
+/************************************************************************//**
+ * Parses PyObject* to SRWLOptWG*
+ ***************************************************************************/
+void ParseSructSRWLOptWG(SRWLOptWG* pOpt, PyObject* oOpt) //throw(...) 
+{
+	if((pOpt == 0) || (oOpt == 0)) throw strEr_NoObj;
+	PyObject *o_tmp = 0;
+
+	o_tmp = PyObject_GetAttrString(oOpt, "L");
+	if(o_tmp == 0) throw strEr_BadOptWG;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptWG;
+	pOpt->L = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "Dx");
+	if(o_tmp == 0) throw strEr_BadOptWG;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptWG;
+	pOpt->Dx = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "Dy");
+	if(o_tmp == 0) throw strEr_BadOptWG;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptWG;
+	pOpt->Dy = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "x");
+	if(o_tmp == 0) throw strEr_BadOptWG;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptWG;
+	pOpt->x = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "y");
+	if(o_tmp == 0) throw strEr_BadOptWG;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptWG;
+	pOpt->y = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+}
+
+/************************************************************************//**
+ * Parses PyObject* to SRWLOptG*
+ ***************************************************************************/
+void ParseSructSRWLOptG(SRWLOptG* pOpt, PyObject* oOpt) //throw(...) 
+{
+	if((pOpt == 0) || (oOpt == 0)) throw strEr_NoObj;
+	PyObject *o_tmp = 0;
+
+	o_tmp = PyObject_GetAttrString(oOpt, "grDen");
+	if(o_tmp == 0) throw strEr_BadOptG;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptG;
+	pOpt->grDen = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "disPl");
+	if(o_tmp == 0) throw strEr_BadOptG;
+	//PyObject *o_str = PyUnicode_AsUTF8String(o_tmp);
+	//if(!PyBytes_Check(o_str)) throw strEr_BadOptG;
+	//pOpt->disPl = *PyBytes_AsString(o_str); 
+	char cStrBuf[2];
+	CopyPyStringToC(o_tmp, cStrBuf, 1);
+	pOpt->disPl = *cStrBuf;
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "ang");
+	if(o_tmp == 0) throw strEr_BadOptG;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptG;
+	pOpt->ang = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "m");
+	if(o_tmp == 0) throw strEr_BadOptG;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptG;
+	pOpt->ang = PyLong_AsLong(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "refl");
+	if(o_tmp == 0) throw strEr_BadOptG;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptG;
+	pOpt->refl = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+}
+
+/************************************************************************//**
+ * Parses PyObject* to SRWLOptT*
+ ***************************************************************************/
+void ParseSructSRWLOptT(SRWLOptT* pOpt, PyObject* oOpt, vector<Py_buffer>* pvBuf) //throw(...) 
+{
+	if((pOpt == 0) || (oOpt == 0)) throw strEr_NoObj;
+
+	PyObject *o_tmp = PyObject_GetAttrString(oOpt, "arTr");
+	//pOpt->arTr = (double*)GetPyArrayBuf(o_tmp, vBuf, PyBUF_SIMPLE);
+	//pOpt->arTr = (double*)GetPyArrayBuf(o_tmp, vBuf, PyBUF_WRITABLE, 0);
+	pOpt->arTr = (double*)GetPyArrayBuf(o_tmp, pvBuf, 0);
+	if(pOpt->arTr == 0) throw strEr_BadOptT;
+	Py_DECREF(o_tmp);
+
+	//o_tmp = PyObject_GetAttrString(oOpt, "nx");
+	//if(o_tmp == 0) throw strEr_BadOptT;
+	//if(!PyNumber_Check(o_tmp)) throw strEr_BadOptT;
+	//pOpt->nx = PyLong_AsLong(o_tmp);
+	//Py_DECREF(o_tmp);
+
+	//o_tmp = PyObject_GetAttrString(oOpt, "ny");
+	//if(o_tmp == 0) throw strEr_BadOptT;
+	//if(!PyNumber_Check(o_tmp)) throw strEr_BadOptT;
+	//pOpt->ny = PyLong_AsLong(o_tmp);
+	//Py_DECREF(o_tmp);
+
+	//o_tmp = PyObject_GetAttrString(oOpt, "rx");
+	//if(o_tmp == 0) throw strEr_BadOptT;
+	//if(!PyNumber_Check(o_tmp)) throw strEr_BadOptT;
+	//pOpt->rx = PyFloat_AsDouble(o_tmp);
+	//Py_DECREF(o_tmp);
+
+	//o_tmp = PyObject_GetAttrString(oOpt, "ry");
+	//if(o_tmp == 0) throw strEr_BadOptT;
+	//if(!PyNumber_Check(o_tmp)) throw strEr_BadOptT;
+	//pOpt->ry = PyFloat_AsDouble(o_tmp);
+	//Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "mesh");
+	if(o_tmp == 0) throw strEr_BadOptT;
+	ParseSructSRWLRadMesh(&(pOpt->mesh), o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "extTr");
+	if(o_tmp == 0) throw strEr_BadOptT;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptT;
+	pOpt->extTr = (char)PyLong_AsLong(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "Fx");
+	if(o_tmp == 0) throw strEr_BadOptT;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptT;
+	pOpt->Fx = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "Fy");
+	if(o_tmp == 0) throw strEr_BadOptT;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptT;
+	pOpt->Fy = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	//o_tmp = PyObject_GetAttrString(oOpt, "x");
+	//if(o_tmp == 0) throw strEr_BadOptT;
+	//if(!PyNumber_Check(o_tmp)) throw strEr_BadOptT;
+	//pOpt->x = PyFloat_AsDouble(o_tmp);
+	//Py_DECREF(o_tmp);
+
+	//o_tmp = PyObject_GetAttrString(oOpt, "y");
+	//if(o_tmp == 0) throw strEr_BadOptT;
+	//if(!PyNumber_Check(o_tmp)) throw strEr_BadOptT;
+	//pOpt->y = PyFloat_AsDouble(o_tmp);
+	//Py_DECREF(o_tmp);
+}
+
+/************************************************************************//**
+ * Parses PyObject* to SRWLOptMirEl*
+ ***************************************************************************/
+void ParseSructSRWLOptMir(SRWLOptMir* pOpt, PyObject* oOpt, vector<Py_buffer>* pvBuf) //throw(...) 
+{
+	if((pOpt == 0) || (oOpt == 0)) throw strEr_NoObj;
+	
+	PyObject *o_tmp = PyObject_GetAttrString(oOpt, "arRefl");
+	pOpt->arRefl = (double*)GetPyArrayBuf(o_tmp, pvBuf, 0);
+	if(pOpt->arRefl == 0) throw strEr_BadOptMir;
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "reflNumPhEn");
+	if(o_tmp == 0) throw strEr_BadOptMir;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptMir;
+	pOpt->reflNumPhEn = PyLong_AsLong(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "reflNumAng");
+	if(o_tmp == 0) throw strEr_BadOptMir;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptMir;
+	pOpt->reflNumAng = PyLong_AsLong(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "reflNumComp");
+	if(o_tmp == 0) throw strEr_BadOptMir;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptMir;
+	pOpt->reflNumComp = PyLong_AsLong(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "reflPhEnScaleType");
+	if(o_tmp == 0) throw strEr_BadOptMir;
+	CopyPyStringToC(o_tmp, pOpt->reflPhEnScaleType, 3);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "reflAngScaleType");
+	if(o_tmp == 0) throw strEr_BadOptMir;
+	CopyPyStringToC(o_tmp, pOpt->reflAngScaleType, 3);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "reflPhEnStart");
+	if(o_tmp == 0) throw strEr_BadOptMir;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptMir;
+	pOpt->reflPhEnStart = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "reflPhEnFin");
+	if(o_tmp == 0) throw strEr_BadOptMir;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptMir;
+	pOpt->reflPhEnFin = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "reflAngStart");
+	if(o_tmp == 0) throw strEr_BadOptMir;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptMir;
+	pOpt->reflAngStart = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "reflAngFin");
+	if(o_tmp == 0) throw strEr_BadOptMir;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptMir;
+	pOpt->reflAngFin = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "dt");
+	if(o_tmp == 0) throw strEr_BadOptMir;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptMir;
+	pOpt->dt = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "ds");
+	if(o_tmp == 0) throw strEr_BadOptMir;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptMir;
+	pOpt->ds = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "apShape");
+	if(o_tmp == 0) throw strEr_BadOptMir;
+	char cStrBuf[2];
+	CopyPyStringToC(o_tmp, cStrBuf, 1);
+	pOpt->apShape = *cStrBuf;
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "meth");
+	if(o_tmp == 0) throw strEr_BadOptMir;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptMir;
+	pOpt->meth = (char)PyLong_AsLong(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "npt");
+	if(o_tmp == 0) throw strEr_BadOptMir;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptMir;
+	pOpt->npt = (int)PyLong_AsLong(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "nps");
+	if(o_tmp == 0) throw strEr_BadOptMir;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptMir;
+	pOpt->nps = (int)PyLong_AsLong(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "treatInOut");
+	if(o_tmp == 0) throw strEr_BadOptMir;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptMir;
+	pOpt->treatInOut = (char)PyLong_AsLong(o_tmp);
+	Py_DECREF(o_tmp);
+
+	//o_tmp = PyObject_GetAttrString(oOpt, "treatOut");
+	//if(o_tmp == 0) throw strEr_BadOptMir;
+	//if(!PyNumber_Check(o_tmp)) throw strEr_BadOptMir;
+	//pOpt->treatOut = (char)PyLong_AsLong(o_tmp);
+	//Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "extIn");
+	if(o_tmp == 0) throw strEr_BadOptMir;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptMir;
+	pOpt->extIn = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "extOut");
+	if(o_tmp == 0) throw strEr_BadOptMir;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptMir;
+	pOpt->extOut = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "nvx");
+	if(o_tmp == 0) throw strEr_BadOptMir;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptMir;
+	pOpt->nvx = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "nvy");
+	if(o_tmp == 0) throw strEr_BadOptMir;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptMir;
+	pOpt->nvy = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "nvz");
+	if(o_tmp == 0) throw strEr_BadOptMir;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptMir;
+	pOpt->nvz = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "tvx");
+	if(o_tmp == 0) throw strEr_BadOptMir;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptMir;
+	pOpt->tvx = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "tvy");
+	if(o_tmp == 0) throw strEr_BadOptMir;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptMir;
+	pOpt->tvy = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "x");
+	if(o_tmp == 0) throw strEr_BadOptMir;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptMir;
+	pOpt->x = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "y");
+	if(o_tmp == 0) throw strEr_BadOptMir;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptMir;
+	pOpt->y = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "Fx");
+	if(o_tmp == 0) throw strEr_BadOptMir;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptMir;
+	pOpt->Fx = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "Fy");
+	if(o_tmp == 0) throw strEr_BadOptMir;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptMir;
+	pOpt->Fy = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+}
+
+/************************************************************************//**
+ * Parses PyObject* to SRWLOptMirEl*
+ ***************************************************************************/
+void ParseSructSRWLOptMirEl(SRWLOptMirEl* pOpt, PyObject* oOpt, vector<Py_buffer>* pvBuf) //throw(...) 
+{
+	if((pOpt == 0) || (oOpt == 0)) throw strEr_NoObj;
+
+	ParseSructSRWLOptMir(&(pOpt->baseMir), oOpt, pvBuf);
+
+	PyObject *o_tmp = PyObject_GetAttrString(oOpt, "p");
+	if(o_tmp == 0) throw strEr_BadOptMir;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptMir;
+	pOpt->p = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "q");
+	if(o_tmp == 0) throw strEr_BadOptMir;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptMir;
+	pOpt->q = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "angGraz");
+	if(o_tmp == 0) throw strEr_BadOptMir;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptMir;
+	pOpt->angGraz = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "radSag");
+	if(o_tmp == 0) throw strEr_BadOptMir;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptMir;
+	pOpt->radSag = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+}
+
+/************************************************************************//**
+ * Parses PyObject* to SRWLOptMirEl*
+ ***************************************************************************/
+void ParseSructSRWLOptMirTor(SRWLOptMirTor* pOpt, PyObject* oOpt, vector<Py_buffer>* pvBuf) //throw(...) 
+{
+	if((pOpt == 0) || (oOpt == 0)) throw strEr_NoObj;
+
+	ParseSructSRWLOptMir(&(pOpt->baseMir), oOpt, pvBuf);
+
+	PyObject *o_tmp = PyObject_GetAttrString(oOpt, "radTan");
+	if(o_tmp == 0) throw strEr_BadOptMir;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptMir;
+	pOpt->radTan = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "radSag");
+	if(o_tmp == 0) throw strEr_BadOptMir;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptMir;
+	pOpt->radSag = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+}
+
+/************************************************************************//**
+ * Parses PyObject* to SRWLOptC*
+ * ATTENTION: allocates void **arOpt and its elements and char **arOptTypes and double **arProp
+ * vector<Py_buffer>& vBuf is required to store and release all buffers after the execution
+ ***************************************************************************/
+void ParseSructSRWLOptC(SRWLOptC* pOpt, PyObject* oOpt, vector<Py_buffer>* pvBuf) //throw(...) 
+{
+	if((pOpt == 0) || (oOpt == 0)) throw strEr_NoObj;
+	PyObject *o_tmp = 0;
+
+	o_tmp = PyObject_GetAttrString(oOpt, "arOpt");
+	if(o_tmp == 0) throw strEr_BadOptC;
+	if(!PyList_Check(o_tmp)) throw strEr_BadOptC;
+	PyObject *o_List = o_tmp;
+	//int nElem = (int)PyList_Size(o_tmp);
+	int nElem = (int)PyList_Size(o_List);
+	if(nElem <=  0) throw strEr_NoObj;
+
+	o_tmp = PyObject_GetAttrString(oOpt, "arProp");
+	if(o_tmp == 0) throw strEr_BadOptC;
+	if(!PyList_Check(o_tmp)) throw strEr_BadOptC;
+	int nElemProp = (int)PyList_Size(o_tmp);
+	if(nElemProp > 0)
+	{
+		pOpt->arProp = new double*[nElemProp];
+		double **t_arProp = pOpt->arProp;
+		for(int i=0; i<nElemProp; i++)
+		{
+			*t_arProp = 0;
+			PyObject *o = PyList_GetItem(o_tmp, (Py_ssize_t)i);
+			if(o != 0)
+			{
+				if(PyList_Check(o))
+				{
+					int nElemSub = 0;
+					CopyPyListElemsToNumArray(o, 'd', *t_arProp, nElemSub);
+				}
+			}
+			t_arProp++;
+		}
+	}
+	Py_DECREF(o_tmp);
+	pOpt->nProp = nElemProp;
+
+	pOpt->arOpt = new void*[nElem];
+	pOpt->arOptTypes = new char*[nElem];
+	pOpt->nElem = 0; //in case if there will be reading error
+	for(int i=0; i<nElem; i++)
+	{
+		PyObject *o = PyList_GetItem(o_List, (Py_ssize_t)i);
+
+		//PyTypeObject *pTypeO = o->ob_type;
+		//const char* sTypeName = pTypeO->tp_name;
+		char sTypeName[1025];
+		CopyPyClassNameToC(o, sTypeName, 1024);
+
+		void *pOptElem=0;
+		char *sOptType = new char[256];
+		pOpt->arOptTypes[i] = 0;
+
+		if(strcmp(sTypeName, "SRWLOptC") == 0)
+		{
+			pOptElem = new SRWLOptC();
+			strcpy(sOptType, "container\0");
+			ParseSructSRWLOptC((SRWLOptC*)pOptElem, o, pvBuf);
+		}
+		else if(strcmp(sTypeName, "SRWLOptD") == 0)
+		{
+			pOptElem = new SRWLOptD();
+			strcpy(sOptType, "drift\0");
+			ParseSructSRWLOptD((SRWLOptD*)pOptElem, o);
+		}
+		else if(strcmp(sTypeName, "SRWLOptA") == 0)
+		{
+			pOptElem = new SRWLOptA();
+			strcpy(sOptType, "aperture\0");
+			ParseSructSRWLOptA((SRWLOptA*)pOptElem, o);
+		}
+		else if(strcmp(sTypeName, "SRWLOptL") == 0)
+		{
+			pOptElem = new SRWLOptL();
+			strcpy(sOptType, "lens\0");
+			ParseSructSRWLOptL((SRWLOptL*)pOptElem, o);
+		}
+		else if(strcmp(sTypeName, "SRWLOptZP") == 0)
+		{
+			pOptElem = new SRWLOptZP();
+			strcpy(sOptType, "zp\0");
+			ParseSructSRWLOptZP((SRWLOptZP*)pOptElem, o);
+		}
+		else if(strcmp(sTypeName, "SRWLOptWG") == 0)
+		{
+			pOptElem = new SRWLOptWG();
+			strcpy(sOptType, "waveguide\0");
+			ParseSructSRWLOptWG((SRWLOptWG*)pOptElem, o);
+		}
+		else if(strcmp(sTypeName, "SRWLOptG") == 0)
+		{
+			pOptElem = new SRWLOptG();
+			strcpy(sOptType, "grating\0");
+			ParseSructSRWLOptG((SRWLOptG*)pOptElem, o);
+		}
+		else if(strcmp(sTypeName, "SRWLOptT") == 0)
+		{
+			pOptElem = new SRWLOptT();
+			strcpy(sOptType, "transmission\0");
+			ParseSructSRWLOptT((SRWLOptT*)pOptElem, o, pvBuf);
+		}
+		else if(strcmp(sTypeName, "SRWLOptMirEl") == 0)
+		{
+			pOptElem = new SRWLOptMirEl();
+			strcpy(sOptType, "mirror: ellipsoid\0");
+			ParseSructSRWLOptMirEl((SRWLOptMirEl*)pOptElem, o, pvBuf);
+		}
+		else if(strcmp(sTypeName, "SRWLOptMirTor") == 0)
+		{
+			pOptElem = new SRWLOptMirTor();
+			strcpy(sOptType, "mirror: toroid\0");
+			ParseSructSRWLOptMirTor((SRWLOptMirTor*)pOptElem, o, pvBuf);
+		}
+
+		//to add more optical elements here
+		if(pOptElem != 0) 
+		{
+			pOpt->arOpt[i] = pOptElem;
+			pOpt->arOptTypes[i] = sOptType;
+			(pOpt->nElem)++; //in case if there will be reading error
+		}
+		else
+		{
+			if(sOptType != 0) delete[] sOptType;
+		}
+	}
+	Py_DECREF(o_List);
+}
+
+/************************************************************************//**
+ * Parses PyObject* to SRWLGsnBm*
+ ***************************************************************************/
+void ParseSructSRWLGsnBm(SRWLGsnBm* pGsnBm, PyObject* oGsnBm) //throw(...) 
+{
+	if((pGsnBm == 0) || (oGsnBm == 0)) throw strEr_NoObj;
+	PyObject *o_tmp = 0;
+
+	o_tmp = PyObject_GetAttrString(oGsnBm, "x");
+	if(o_tmp == 0) throw strEr_BadGsnBm;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadGsnBm;
+	pGsnBm->x = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oGsnBm, "y");
+	if(o_tmp == 0) throw strEr_BadGsnBm;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadGsnBm;
+	pGsnBm->y = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oGsnBm, "z");
+	if(o_tmp == 0) throw strEr_BadGsnBm;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadGsnBm;
+	pGsnBm->z = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oGsnBm, "xp");
+	if(o_tmp == 0) throw strEr_BadGsnBm;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadGsnBm;
+	pGsnBm->xp = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oGsnBm, "yp");
+	if(o_tmp == 0) throw strEr_BadGsnBm;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadGsnBm;
+	pGsnBm->yp = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oGsnBm, "avgPhotEn");
+	if(o_tmp == 0) throw strEr_BadGsnBm;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadGsnBm;
+	pGsnBm->avgPhotEn = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oGsnBm, "pulseEn");
+	if(o_tmp == 0) throw strEr_BadGsnBm;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadGsnBm;
+	pGsnBm->pulseEn = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oGsnBm, "repRate");
+	if(o_tmp == 0) throw strEr_BadGsnBm;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadGsnBm;
+	pGsnBm->repRate = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oGsnBm, "repRate");
+	if(o_tmp == 0) throw strEr_BadGsnBm;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadGsnBm;
+	pGsnBm->repRate = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oGsnBm, "polar");
+	if(o_tmp == 0) throw strEr_BadGsnBm;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadGsnBm;
+	pGsnBm->polar = (char)PyLong_AsLong(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oGsnBm, "sigX");
+	if(o_tmp == 0) throw strEr_BadGsnBm;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadGsnBm;
+	pGsnBm->sigX = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oGsnBm, "sigY");
+	if(o_tmp == 0) throw strEr_BadGsnBm;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadGsnBm;
+	pGsnBm->sigY = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oGsnBm, "sigT");
+	if(o_tmp == 0) throw strEr_BadGsnBm;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadGsnBm;
+	pGsnBm->sigT = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oGsnBm, "mx");
+	if(o_tmp == 0) throw strEr_BadGsnBm;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadGsnBm;
+	pGsnBm->mx = (char)PyLong_AsLong(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oGsnBm, "my");
+	if(o_tmp == 0) throw strEr_BadGsnBm;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadGsnBm;
+	pGsnBm->my = (char)PyLong_AsLong(o_tmp);
+	Py_DECREF(o_tmp);
+}
+
+/************************************************************************//**
+ * Parses PyObject* to SRWLWfr*
+ * vector<Py_buffer>& vBuf is required to release all buffers after the end of execution
+ ***************************************************************************/
+void ParseSructSRWLWfr(SRWLWfr* pWfr, PyObject* oWfr, vector<Py_buffer>* pvBuf, map<SRWLWfr*, AuxStructPyObjectPtrs>& mWfrPyPtr)
+{
+	if((pWfr == 0) || (oWfr == 0)) throw strEr_NoObj;
+
+	AuxStructPyObjectPtrs sPyObjectPtrs;
+	sPyObjectPtrs.o_wfr = oWfr;
+	sPyObjectPtrs.pv_buf = pvBuf;
+
+	//Py_INCREF(oWfr); //??
+
+	PyObject *o_tmp = 0;
+	//Py_buffer pb_tmp;
+
+	pWfr->arEx = pWfr->arEy = 0;
+	o_tmp = PyObject_GetAttrString(oWfr, "arEx");
+	if(o_tmp == 0) throw strEr_BadWfr;
+	//if(PyObject_CheckBuffer(o_tmp))
+	//{
+	//	if(PyObject_GetBuffer(o_tmp, &pb_tmp, PyBUF_WRITABLE)) throw strEr_BadWfr;
+	//	pvBuf->push_back(pb_tmp);
+	//	pWfr->arEx = (char*)pb_tmp.buf;
+	//	sPyObjectPtrs.pbEx = pb_tmp;
+	//}
+	//else pWfr->arEx = 0;
+	int sizeVectBuf = (int)pvBuf->size();
+	if(!(pWfr->arEx = GetPyArrayBuf(o_tmp, pvBuf, 0))) throw strEr_BadWfr;
+	if((int)pvBuf->size() > sizeVectBuf) sPyObjectPtrs.pbEx = (*pvBuf)[sizeVectBuf];
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oWfr, "arEy");
+	if(o_tmp == 0) throw strEr_BadWfr;
+	//if(PyObject_CheckBuffer(o_tmp))
+	//{
+	//	if(PyObject_GetBuffer(o_tmp, &pb_tmp, PyBUF_WRITABLE)) throw strEr_BadWfr;
+	//	pvBuf->push_back(pb_tmp);
+	//	pWfr->arEy = (char*)pb_tmp.buf;
+	//	sPyObjectPtrs.pbEy = pb_tmp;
+	//}
+	//else pWfr->arEy = 0;
+	sizeVectBuf = (int)pvBuf->size();
+	if(!(pWfr->arEy = GetPyArrayBuf(o_tmp, pvBuf, 0))) throw strEr_BadWfr;
+	if((int)pvBuf->size() > sizeVectBuf) sPyObjectPtrs.pbEy = (*pvBuf)[sizeVectBuf];
+	Py_DECREF(o_tmp);
+
+	if((pWfr->arEx == 0) && (pWfr->arEy == 0)) throw strEr_BadWfr;
+
+	//o_tmp = PyObject_GetAttrString(oWfr, "eStart");
+	//if(o_tmp == 0) throw strEr_BadWfr;
+	//if(!PyNumber_Check(o_tmp)) throw strEr_BadWfr;
+	//pWfr->eStart = PyFloat_AsDouble(o_tmp);
+	//Py_DECREF(o_tmp);
+
+	//o_tmp = PyObject_GetAttrString(oWfr, "eFin");
+	//if(o_tmp == 0) throw strEr_BadWfr;
+	//if(!PyNumber_Check(o_tmp)) throw strEr_BadWfr;
+	//pWfr->eFin = PyFloat_AsDouble(o_tmp);
+	//Py_DECREF(o_tmp);
+
+	//o_tmp = PyObject_GetAttrString(oWfr, "xStart");
+	//if(o_tmp == 0) throw strEr_BadWfr;
+	//if(!PyNumber_Check(o_tmp)) throw strEr_BadWfr;
+	//pWfr->xStart = PyFloat_AsDouble(o_tmp);
+	//Py_DECREF(o_tmp);
+
+	//o_tmp = PyObject_GetAttrString(oWfr, "xFin");
+	//if(o_tmp == 0) throw strEr_BadWfr;
+	//if(!PyNumber_Check(o_tmp)) throw strEr_BadWfr;
+	//pWfr->xFin = PyFloat_AsDouble(o_tmp);
+	//Py_DECREF(o_tmp);
+
+	//o_tmp = PyObject_GetAttrString(oWfr, "yStart");
+	//if(o_tmp == 0) throw strEr_BadWfr;
+	//if(!PyNumber_Check(o_tmp)) throw strEr_BadWfr;
+	//pWfr->yStart = PyFloat_AsDouble(o_tmp);
+	//Py_DECREF(o_tmp);
+
+	//o_tmp = PyObject_GetAttrString(oWfr, "yFin");
+	//if(o_tmp == 0) throw strEr_BadWfr;
+	//if(!PyNumber_Check(o_tmp)) throw strEr_BadWfr;
+	//pWfr->yFin = PyFloat_AsDouble(o_tmp);
+	//Py_DECREF(o_tmp);
+
+	//o_tmp = PyObject_GetAttrString(oWfr, "zStart");
+	//if(o_tmp == 0) throw strEr_BadWfr;
+	//if(!PyNumber_Check(o_tmp)) throw strEr_BadWfr;
+	//pWfr->zStart = PyFloat_AsDouble(o_tmp);
+	//Py_DECREF(o_tmp);
+
+	//o_tmp = PyObject_GetAttrString(oWfr, "ne");
+	//if(o_tmp == 0) throw strEr_BadWfr;
+	//if(!PyNumber_Check(o_tmp)) throw strEr_BadWfr;
+	//pWfr->ne = PyLong_AsLong(o_tmp);
+	//Py_DECREF(o_tmp);
+
+	//o_tmp = PyObject_GetAttrString(oWfr, "nx");
+	//if(o_tmp == 0) throw strEr_BadWfr;
+	//if(!PyNumber_Check(o_tmp)) throw strEr_BadWfr;
+	//pWfr->nx = PyLong_AsLong(o_tmp);
+	//Py_DECREF(o_tmp);
+
+	//o_tmp = PyObject_GetAttrString(oWfr, "ny");
+	//if(o_tmp == 0) throw strEr_BadWfr;
+	//if(!PyNumber_Check(o_tmp)) throw strEr_BadWfr;
+	//pWfr->ny = PyLong_AsLong(o_tmp);
+	//Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oWfr, "mesh");
+	if(o_tmp == 0) throw strEr_BadWfr;
+	ParseSructSRWLRadMesh(&(pWfr->mesh), o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oWfr, "Rx");
+	if(o_tmp == 0) throw strEr_BadWfr;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadWfr;
+	pWfr->Rx = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oWfr, "Ry");
+	if(o_tmp == 0) throw strEr_BadWfr;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadWfr;
+	pWfr->Ry = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oWfr, "dRx");
+	if(o_tmp == 0) throw strEr_BadWfr;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadWfr;
+	pWfr->dRx = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oWfr, "dRy");
+	if(o_tmp == 0) throw strEr_BadWfr;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadWfr;
+	pWfr->dRy = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oWfr, "xc");
+	if(o_tmp == 0) throw strEr_BadWfr;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadWfr;
+	pWfr->xc = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oWfr, "yc");
+	if(o_tmp == 0) throw strEr_BadWfr;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadWfr;
+	pWfr->yc = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oWfr, "avgPhotEn");
+	if(o_tmp == 0) throw strEr_BadWfr;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadWfr;
+	pWfr->avgPhotEn = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oWfr, "presCA");
+	if(o_tmp == 0) throw strEr_BadWfr;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadWfr;
+	pWfr->presCA = (char)PyLong_AsLong(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oWfr, "presFT");
+	if(o_tmp == 0) throw strEr_BadWfr;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadWfr;
+	pWfr->presFT = (char)PyLong_AsLong(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oWfr, "numTypeElFld");
+	if(o_tmp == 0) throw strEr_BadWfr;
+	//PyObject *o_str = PyUnicode_AsUTF8String(o_tmp);
+	//if(!PyBytes_Check(o_str)) throw strEr_BadWfr;
+	//pWfr->numTypeElFld = *PyBytes_AsString(o_str);
+	char cStrBuf[2];
+	CopyPyStringToC(o_tmp, cStrBuf, 1);
+	pWfr->numTypeElFld = *cStrBuf;
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oWfr, "unitElFld");
+	if(o_tmp == 0) throw strEr_BadWfr;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadWfr;
+	pWfr->unitElFld = (char)PyLong_AsLong(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oWfr, "partBeam");
+	if(o_tmp == 0) throw strEr_BadWfr;
+	ParseSructSRWLPartBeam(&(pWfr->partBeam), o_tmp, *pvBuf);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oWfr, "arElecPropMatr");
+	if(o_tmp == 0) throw strEr_BadWfr;
+	//if(!PyObject_CheckBuffer(o_tmp)) throw strEr_BadWfr;
+	//if(PyObject_GetBuffer(o_tmp, &pb_tmp, PyBUF_SIMPLE)) throw strEr_BadWfr;
+	//pvBuf->push_back(pb_tmp);
+	//pWfr->arElecPropMatr = (double*)pb_tmp.buf;
+	if(!(pWfr->arElecPropMatr = (double*)GetPyArrayBuf(o_tmp, pvBuf, 0))) throw strEr_BadWfr;
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oWfr, "arMomX");
+	if(o_tmp == 0) throw strEr_BadWfr;
+	//if(!PyObject_CheckBuffer(o_tmp)) throw strEr_BadWfr;
+	//if(PyObject_GetBuffer(o_tmp, &pb_tmp, PyBUF_SIMPLE)) throw strEr_BadWfr;
+	//pvBuf->push_back(pb_tmp);
+	//pWfr->arMomX = (double*)pb_tmp.buf;
+	//sPyObjectPtrs.pbMomX = pb_tmp;
+	sizeVectBuf = (int)pvBuf->size();
+	if(!(pWfr->arMomX = (double*)GetPyArrayBuf(o_tmp, pvBuf, 0))) throw strEr_BadWfr;
+	if((int)pvBuf->size() > sizeVectBuf) sPyObjectPtrs.pbMomX = (*pvBuf)[sizeVectBuf];
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oWfr, "arMomY");
+	if(o_tmp == 0) throw strEr_BadWfr;
+	//if(!PyObject_CheckBuffer(o_tmp)) throw strEr_BadWfr;
+	//if(PyObject_GetBuffer(o_tmp, &pb_tmp, PyBUF_SIMPLE)) throw strEr_BadWfr;
+	//pvBuf->push_back(pb_tmp);
+	//pWfr->arMomY = (double*)pb_tmp.buf;
+	//sPyObjectPtrs.pbMomY = pb_tmp;
+	sizeVectBuf = (int)pvBuf->size();
+	if(!(pWfr->arMomY = (double*)GetPyArrayBuf(o_tmp, pvBuf, 0))) throw strEr_BadWfr;
+	if((int)pvBuf->size() > sizeVectBuf) sPyObjectPtrs.pbMomY = (*pvBuf)[sizeVectBuf];
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oWfr, "arWfrAuxData");
+	if(o_tmp == 0) throw strEr_BadWfr;
+	//if(!PyObject_CheckBuffer(o_tmp)) throw strEr_BadWfr;
+	//if(PyObject_GetBuffer(o_tmp, &pb_tmp, PyBUF_SIMPLE)) throw strEr_BadWfr;
+	//pvBuf->push_back(pb_tmp);
+	//pWfr->arWfrAuxData = (double*)pb_tmp.buf;
+	if(!(pWfr->arWfrAuxData = (double*)GetPyArrayBuf(o_tmp, pvBuf, 0))) throw strEr_BadWfr;
+	Py_DECREF(o_tmp);
+
+	mWfrPyPtr[pWfr] = sPyObjectPtrs;
+}
+
+/************************************************************************//**
+ * Parses PyObject* to SRWLStokes*
+ * vector<Py_buffer>& vBuf is required to release all buffers after the end of execution
+ ***************************************************************************/
+void ParseSructSRWLStokes(SRWLStokes* pStokes, PyObject* oStokes, vector<Py_buffer>* pvBuf)
+{
+	if((pStokes == 0) || (oStokes == 0)) throw strEr_NoObj;
+
+	//Py_INCREF(oStokes); //??
+	PyObject *o_tmp = 0;
+	//Py_buffer pb_tmp;
+
+	pStokes->arS0 = pStokes->arS1 = pStokes->arS2 = pStokes->arS3 = 0;
+
+	o_tmp = PyObject_GetAttrString(oStokes, "arS");
+	//o_tmp = PyObject_GetAttrString(oStokes, "arS0");
+	if(o_tmp == 0) throw strEr_BadStokes;
+	if(!(pStokes->arS0 = GetPyArrayBuf(o_tmp, pvBuf, 0))) throw strEr_BadStokes;
+	Py_DECREF(o_tmp);
+
+	//o_tmp = PyObject_GetAttrString(oStokes, "arS1");
+	//if(o_tmp == 0) throw strEr_BadStokes;
+	//if(!(pStokes->arS1 = GetPyArrayBuf(o_tmp, pvBuf, 0))) throw strEr_BadStokes;
+	//Py_DECREF(o_tmp);
+
+	//o_tmp = PyObject_GetAttrString(oStokes, "arS2");
+	//if(o_tmp == 0) throw strEr_BadStokes;
+	//if(!(pStokes->arS2 = GetPyArrayBuf(o_tmp, pvBuf, 0))) throw strEr_BadStokes;
+	//Py_DECREF(o_tmp);
+
+	//o_tmp = PyObject_GetAttrString(oStokes, "arS3");
+	//if(o_tmp == 0) throw strEr_BadStokes;
+	//if(!(pStokes->arS3 = GetPyArrayBuf(o_tmp, pvBuf, 0))) throw strEr_BadStokes;
+	//Py_DECREF(o_tmp);
+
+	//if((pStokes->arS0 == 0) && (pStokes->arS1 == 0) && (pStokes->arS2 == 0) && (pStokes->arS3 == 0)) throw strEr_BadStokes;
+
+	o_tmp = PyObject_GetAttrString(oStokes, "mesh");
+	if(o_tmp == 0) throw strEr_BadStokes;
+	ParseSructSRWLRadMesh(&(pStokes->mesh), o_tmp);
+	Py_DECREF(o_tmp);
+
+	long npTotS0 = (pStokes->mesh.ne)*(pStokes->mesh.nx)*(pStokes->mesh.ny);
+	pStokes->arS1 = (char*)(((float*)(pStokes->arS0)) + npTotS0);
+	pStokes->arS2 = (char*)(((float*)(pStokes->arS1)) + npTotS0);
+	pStokes->arS3 = (char*)(((float*)(pStokes->arS2)) + npTotS0);
+
+	o_tmp = PyObject_GetAttrString(oStokes, "avgPhotEn");
+	if(o_tmp == 0) throw strEr_BadStokes;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadStokes;
+	pStokes->avgPhotEn = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oStokes, "presCA");
+	if(o_tmp == 0) throw strEr_BadStokes;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadStokes;
+	pStokes->presCA = (char)PyLong_AsLong(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oStokes, "presFT");
+	if(o_tmp == 0) throw strEr_BadStokes;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadStokes;
+	pStokes->presFT = (char)PyLong_AsLong(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oStokes, "numTypeStokes");
+	if(o_tmp == 0) throw strEr_BadStokes;
+	//PyObject *o_str = PyUnicode_AsUTF8String(o_tmp);
+	//if(!PyBytes_Check(o_str)) throw strEr_BadStokes;
+	//pStokes->numTypeStokes = *PyBytes_AsString(o_str);
+	char cStrBuf[2];
+	CopyPyStringToC(o_tmp, cStrBuf, 1);
+	pStokes->numTypeStokes = *cStrBuf;
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oStokes, "unitStokes");
+	if(o_tmp == 0) throw strEr_BadStokes;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadStokes;
+	pStokes->unitStokes = (char)PyLong_AsLong(o_tmp);
+	Py_DECREF(o_tmp);
+}
+
+/************************************************************************//**
+ * Updates Electric Field Wavefront structure in Py (excluding buffers)
+ ***************************************************************************/
+void UpdatePyWfr(PyObject* oWfr, SRWLWfr* pWfr)
+{
+	if((pWfr == 0) || (oWfr == 0)) throw strEr_NoObj;
+
+	//if(PyObject_SetAttrString(oWfr, "eStart", Py_BuildValue("d", pWfr->eStart))) throw strEr_BadWfr;
+	//if(PyObject_SetAttrString(oWfr, "eFin", Py_BuildValue("d", pWfr->eFin))) throw strEr_BadWfr;
+	//if(PyObject_SetAttrString(oWfr, "xStart", Py_BuildValue("d", pWfr->xStart))) throw strEr_BadWfr;
+	//if(PyObject_SetAttrString(oWfr, "xFin", Py_BuildValue("d", pWfr->xFin))) throw strEr_BadWfr;
+	//if(PyObject_SetAttrString(oWfr, "yStart", Py_BuildValue("d", pWfr->yStart))) throw strEr_BadWfr;
+	//if(PyObject_SetAttrString(oWfr, "yFin", Py_BuildValue("d", pWfr->yFin))) throw strEr_BadWfr;
+	//if(PyObject_SetAttrString(oWfr, "zStart", Py_BuildValue("d", pWfr->zStart))) throw strEr_BadWfr;
+	//if(PyObject_SetAttrString(oWfr, "ne", Py_BuildValue("i", pWfr->ne))) throw strEr_BadWfr;
+	//if(PyObject_SetAttrString(oWfr, "nx", Py_BuildValue("i", pWfr->nx))) throw strEr_BadWfr;
+	//if(PyObject_SetAttrString(oWfr, "ny", Py_BuildValue("i", pWfr->ny))) throw strEr_BadWfr;
+
+	PyObject *oRadMesh = PyObject_GetAttrString(oWfr, "mesh");
+	if(oRadMesh == 0) throw strEr_BadWfr;
+	SRWLRadMesh &mesh = pWfr->mesh;
+	if(PyObject_SetAttrString(oRadMesh, "eStart", Py_BuildValue("d", mesh.eStart))) throw strEr_BadWfr;
+	if(PyObject_SetAttrString(oRadMesh, "eFin", Py_BuildValue("d", mesh.eFin))) throw strEr_BadWfr;
+	if(PyObject_SetAttrString(oRadMesh, "xStart", Py_BuildValue("d", mesh.xStart))) throw strEr_BadWfr;
+	if(PyObject_SetAttrString(oRadMesh, "xFin", Py_BuildValue("d", mesh.xFin))) throw strEr_BadWfr;
+	if(PyObject_SetAttrString(oRadMesh, "yStart", Py_BuildValue("d", mesh.yStart))) throw strEr_BadWfr;
+	if(PyObject_SetAttrString(oRadMesh, "yFin", Py_BuildValue("d", mesh.yFin))) throw strEr_BadWfr;
+	if(PyObject_SetAttrString(oRadMesh, "zStart", Py_BuildValue("d", mesh.zStart))) throw strEr_BadWfr;
+	if(PyObject_SetAttrString(oRadMesh, "ne", Py_BuildValue("i", mesh.ne))) throw strEr_BadWfr;
+	if(PyObject_SetAttrString(oRadMesh, "nx", Py_BuildValue("i", mesh.nx))) throw strEr_BadWfr;
+	if(PyObject_SetAttrString(oRadMesh, "ny", Py_BuildValue("i", mesh.ny))) throw strEr_BadWfr;
+	Py_DECREF(oRadMesh);
+
+	if(PyObject_SetAttrString(oWfr, "Rx", Py_BuildValue("d", pWfr->Rx))) throw strEr_BadWfr;
+	if(PyObject_SetAttrString(oWfr, "Ry", Py_BuildValue("d", pWfr->Ry))) throw strEr_BadWfr;
+	if(PyObject_SetAttrString(oWfr, "dRx", Py_BuildValue("d", pWfr->dRx))) throw strEr_BadWfr;
+	if(PyObject_SetAttrString(oWfr, "dRy", Py_BuildValue("d", pWfr->dRy))) throw strEr_BadWfr;
+	if(PyObject_SetAttrString(oWfr, "xc", Py_BuildValue("d", pWfr->xc))) throw strEr_BadWfr;
+	if(PyObject_SetAttrString(oWfr, "yc", Py_BuildValue("d", pWfr->yc))) throw strEr_BadWfr;
+	if(PyObject_SetAttrString(oWfr, "avgPhotEn", Py_BuildValue("d", pWfr->avgPhotEn))) throw strEr_BadWfr;
+	if(PyObject_SetAttrString(oWfr, "presCA", Py_BuildValue("i", pWfr->presCA))) throw strEr_BadWfr;
+	if(PyObject_SetAttrString(oWfr, "presFT", Py_BuildValue("i", pWfr->presFT))) throw strEr_BadWfr;
+	//if(PyObject_SetAttrString(oWfr, "numTypeElFld", Py_BuildValue("C", pWfr->numTypeElFld))) throw strEr_BadWfr; //doesn't work with Py2.7
+	if(PyObject_SetAttrString(oWfr, "numTypeElFld", Py_BuildValue("c", pWfr->numTypeElFld))) throw strEr_BadWfr;
+	if(PyObject_SetAttrString(oWfr, "unitElFld", Py_BuildValue("i", pWfr->unitElFld))) throw strEr_BadWfr;
+}
+
+/************************************************************************//**
+ * Updates Stokes parameters structure in Py (excluding buffers)
+ ***************************************************************************/
+void UpdatePyStokes(PyObject* oStk, SRWLStokes* pStk)
+{
+	if((pStk == 0) || (oStk == 0)) throw strEr_NoObj;
+
+	//if(PyObject_SetAttrString(oStk, "eStart", Py_BuildValue("d", pStk->eStart))) throw strEr_BadStokes;
+	//if(PyObject_SetAttrString(oStk, "eFin", Py_BuildValue("d", pStk->eFin))) throw strEr_BadStokes;
+	//if(PyObject_SetAttrString(oStk, "xStart", Py_BuildValue("d", pStk->xStart))) throw strEr_BadStokes;
+	//if(PyObject_SetAttrString(oStk, "xFin", Py_BuildValue("d", pStk->xFin))) throw strEr_BadStokes;
+	//if(PyObject_SetAttrString(oStk, "yStart", Py_BuildValue("d", pStk->yStart))) throw strEr_BadStokes;
+	//if(PyObject_SetAttrString(oStk, "yFin", Py_BuildValue("d", pStk->yFin))) throw strEr_BadStokes;
+	//if(PyObject_SetAttrString(oStk, "zStart", Py_BuildValue("d", pStk->zStart))) throw strEr_BadStokes;
+	//if(PyObject_SetAttrString(oStk, "ne", Py_BuildValue("i", pStk->ne))) throw strEr_BadStokes;
+	//if(PyObject_SetAttrString(oStk, "nx", Py_BuildValue("i", pStk->nx))) throw strEr_BadStokes;
+	//if(PyObject_SetAttrString(oStk, "ny", Py_BuildValue("i", pStk->ny))) throw strEr_BadStokes;
+
+	PyObject *oRadMesh = PyObject_GetAttrString(oStk, "mesh");
+	if(oRadMesh == 0) throw strEr_BadStokes;
+	SRWLRadMesh &mesh = pStk->mesh;
+	if(PyObject_SetAttrString(oRadMesh, "eStart", Py_BuildValue("d", mesh.eStart))) throw strEr_BadStokes;
+	if(PyObject_SetAttrString(oRadMesh, "eFin", Py_BuildValue("d", mesh.eFin))) throw strEr_BadStokes;
+	if(PyObject_SetAttrString(oRadMesh, "xStart", Py_BuildValue("d", mesh.xStart))) throw strEr_BadStokes;
+	if(PyObject_SetAttrString(oRadMesh, "xFin", Py_BuildValue("d", mesh.xFin))) throw strEr_BadStokes;
+	if(PyObject_SetAttrString(oRadMesh, "yStart", Py_BuildValue("d", mesh.yStart))) throw strEr_BadStokes;
+	if(PyObject_SetAttrString(oRadMesh, "yFin", Py_BuildValue("d", mesh.yFin))) throw strEr_BadStokes;
+	if(PyObject_SetAttrString(oRadMesh, "zStart", Py_BuildValue("d", mesh.zStart))) throw strEr_BadStokes;
+	if(PyObject_SetAttrString(oRadMesh, "ne", Py_BuildValue("i", mesh.ne))) throw strEr_BadStokes;
+	if(PyObject_SetAttrString(oRadMesh, "nx", Py_BuildValue("i", mesh.nx))) throw strEr_BadStokes;
+	if(PyObject_SetAttrString(oRadMesh, "ny", Py_BuildValue("i", mesh.ny))) throw strEr_BadStokes;
+	Py_DECREF(oRadMesh);
+
+	if(PyObject_SetAttrString(oStk, "avgPhotEn", Py_BuildValue("d", pStk->avgPhotEn))) throw strEr_BadStokes;
+	if(PyObject_SetAttrString(oStk, "presCA", Py_BuildValue("i", pStk->presCA))) throw strEr_BadStokes;
+	if(PyObject_SetAttrString(oStk, "presFT", Py_BuildValue("i", pStk->presFT))) throw strEr_BadStokes;
+	//if(PyObject_SetAttrString(oStk, "numTypeStokes", Py_BuildValue("C", pStk->numTypeStokes))) throw strEr_BadStokes; //doesn't work with Py2.7
+	if(PyObject_SetAttrString(oStk, "numTypeStokes", Py_BuildValue("c", pStk->numTypeStokes))) throw strEr_BadStokes;
+	if(PyObject_SetAttrString(oStk, "unitStokes", Py_BuildValue("i", pStk->unitStokes))) throw strEr_BadStokes;
+}
+
+/************************************************************************//**
+ * Auxiliary function: releases Python buffers
+ ***************************************************************************/
+void ReleasePyBuffers(vector<Py_buffer>& vBuf)
+{
+	if(vBuf.empty()) return;
+	int nBuf = (int)vBuf.size();
+	for(int i=0; i<nBuf; i++) 
+	{
+		PyBuffer_Release(&(vBuf[i]));
+	}
+	vBuf.erase(vBuf.begin(), vBuf.end());
+}
+
+/************************************************************************//**
+ * Auxiliary function: deallocates arrays of magnetic field elements (which were allocated at parsing)
+ ***************************************************************************/
+void DeallocMagCntArrays(SRWLMagFldC* pMagCnt)
+{
+	if(pMagCnt == 0) return;
+	if((pMagCnt->arMagFld != 0) && (pMagCnt->arMagFldTypes != 0) && (pMagCnt->nElem > 0))
+	{
+		void **t_arMagFld = pMagCnt->arMagFld;
+		for(int i=0; i<pMagCnt->nElem; i++)
+		{
+			char cType = pMagCnt->arMagFldTypes[i];
+			if(cType == 'a')
+			{
+				SRWLMagFld3D *pFld3D = (SRWLMagFld3D*)(*t_arMagFld);
+				//arBx, arBy, arBz, arX, arY, arZ were not allocated (read via buffer)
+				delete pFld3D;
+			}
+			else if(cType == 'm') delete (SRWLMagFldM*)(*t_arMagFld);
+			else if(cType == 's') delete (SRWLMagFldS*)(*t_arMagFld);
+			else if(cType == 'h') delete (SRWLMagFldH*)(*t_arMagFld);
+			else if(cType == 'u')
+			{
+				SRWLMagFldU *pUnd = (SRWLMagFldU*)(*t_arMagFld);
+				if(pUnd->arHarm != 0) delete[] pUnd->arHarm;
+				delete pUnd;
+			}
+			else if(cType == 'c')
+			{
+				SRWLMagFldC *pFldC = (SRWLMagFldC*)(*t_arMagFld);
+				DeallocMagCntArrays(pFldC);
+				delete pFldC;
+			}
+			//to add new magnetic field types here
+			//delete *t_arMagFld;
+
+			*t_arMagFld = 0;
+			t_arMagFld++;
+		}
+		delete[] pMagCnt->arMagFld; pMagCnt->arMagFld = 0;
+		delete[] pMagCnt->arMagFldTypes; pMagCnt->arMagFldTypes = 0;
+		//arXc, arYc, arZc were not allocated (read via buffer)
+	}
+	else if(pMagCnt->arMagFld != 0) { delete[] pMagCnt->arMagFld; pMagCnt->arMagFld = 0;}
+	else if(pMagCnt->arMagFldTypes != 0) { delete[] pMagCnt->arMagFldTypes; pMagCnt->arMagFldTypes = 0;}
+}
+
+/************************************************************************//**
+ * Auxiliary function: deallocates arrays of optical elements (which were allocated at parsing)
+ ***************************************************************************/
+void DeallocOptCntArrays(SRWLOptC* pOptCnt)
+{
+	if(pOptCnt == 0) return;
+
+	for(int i=0; i<pOptCnt->nElem; i++)
+	{
+		if(pOptCnt->arOpt != 0)
+		{
+			if(pOptCnt->arOpt[i] != 0)
+			{
+				if(pOptCnt->arOptTypes != 0)
+				{
+					char *sType = pOptCnt->arOptTypes[i];
+					if(sType != 0)
+					{
+						if(strcmp(sType, "drift") == 0) delete (SRWLOptD*)(pOptCnt->arOpt[i]);
+						else if((strcmp(sType, "aperture") == 0) || (strcmp(sType, "obstacle") == 0)) delete (SRWLOptA*)(pOptCnt->arOpt[i]);
+						else if(strcmp(sType, "lens") == 0) delete (SRWLOptL*)(pOptCnt->arOpt[i]);
+						else if(strcmp(sType, "zp") == 0) delete (SRWLOptZP*)(pOptCnt->arOpt[i]);
+						else if(strcmp(sType, "waveguide") == 0) delete (SRWLOptWG*)(pOptCnt->arOpt[i]);
+						else if(strcmp(sType, "grating") == 0) delete (SRWLOptG*)(pOptCnt->arOpt[i]);
+						else if(strcmp(sType, "transmission") == 0) delete (SRWLOptT*)(pOptCnt->arOpt[i]);
+						//{
+						//	SRWLOptT *pT = (SRWLOptT*)(pOptCnt->arOpt[i]);
+						//	if(pT->arTr != 0) delete[] (pT->arTr);
+						//}
+						else if(strcmp(sType, "container") == 0)
+						{
+							DeallocOptCntArrays((SRWLOptC*)(pOptCnt->arOpt[i]));
+						}
+					}
+				}
+				//delete pOptCnt->arOpt[i];
+				pOptCnt->arOpt[i] = 0;
+			}
+		}
+		if(pOptCnt->arOptTypes != 0)
+		{
+			if(pOptCnt->arOptTypes[i] != 0)
+			{
+				delete[] pOptCnt->arOptTypes[i];
+			}
+		}
+	}
+	if(pOptCnt->arOpt != 0) { delete[] pOptCnt->arOpt; pOptCnt->arOpt = 0;}
+	if(pOptCnt->arOptTypes != 0) { delete[] pOptCnt->arOptTypes; pOptCnt->arOptTypes = 0;}
+	
+	if(pOptCnt->arProp != 0)
+	{
+		for(int i=0; i<pOptCnt->nProp; i++)
+		{
+			if(pOptCnt->arProp[i] != 0) delete[] pOptCnt->arProp[i];
+		}
+		delete[] pOptCnt->arProp; pOptCnt->arProp = 0;
+	}
+}
+
+/************************************************************************//**
+ * Wavefront modification (re-allocation) function; to be called by pointer from SRWLIB
+ ***************************************************************************/
+int ModifySRWLWfr(int action, SRWLWfr* pWfr, char pol)
+{
+	if(pWfr == 0) return -1; //returning non-zero means Wfr modification did not succeed; no throwing allowed here
+	if((action < 0) || (action > 2)) return -1;
+
+	map<SRWLWfr*, AuxStructPyObjectPtrs>::iterator it = gmWfrPyPtr.find(pWfr);
+	if(it == gmWfrPyPtr.end()) return -1;
+	PyObject *oWfr = it->second.o_wfr;
+	if(oWfr == 0) return -1;
+
+	PyObject *oFunc = PyObject_GetAttrString(oWfr, "allocate");
+	if(oFunc == 0) return -1;
+	if(!PyCallable_Check(oFunc)) return -1;
+	PyObject *argList=0;
+
+	//We probably need to release Py buffers of Ex, Ey (?):
+	//PyBuffer_Release(&(it->second.pbEx));
+	//PyBuffer_Release(&(it->second.pbEy));
+	//PyBuffer_Release(&(it->second.pbMomX));
+	//PyBuffer_Release(&(it->second.pbMomY));
+
+	if(action == 0)
+	{//delete existing wavefront data
+	 //trying to call an equivalent of allocate(ne, nx, ny) in Py
+#if PY_MAJOR_VERSION >= 3
+		argList = Py_BuildValue("(i,i,i,i,i,C)", 0, 0, 0, 1, 1, pWfr->numTypeElFld); //doesn't work with Py2.7
+#else
+		argList = Py_BuildValue("(i,i,i,i,i,c)", 0, 0, 0, 1, 1, pWfr->numTypeElFld);
+#endif
+	}
+	//else if(action == 1)
+	//{//allocate new wavefront data (without checking/deleting any existing data)
+	//}
+	//else if(action == 2)
+	//{//modify wavefront size (numbers of points vs photon energy, horizontal or vertical position)
+	//}
+	else
+	{
+		int ExNeeded = ((pol == 0) || (pol == 'x') || (pol == 'X'))? 1 : 0;
+		int EyNeeded = ((pol == 0) || (pol == 'y') || (pol == 'Y') || (pol == 'z') || (pol == 'Z'))? 1 : 0;
+#if PY_MAJOR_VERSION >= 3
+		//argList = Py_BuildValue("(i,i,i,i,i,C)", pWfr->ne, pWfr->nx, pWfr->ny, ExNeeded, EyNeeded, pWfr->numTypeElFld); //doesn't work with Py2.7
+		argList = Py_BuildValue("(i,i,i,i,i,C)", pWfr->mesh.ne, pWfr->mesh.nx, pWfr->mesh.ny, ExNeeded, EyNeeded, pWfr->numTypeElFld); //doesn't work with Py2.7
+#else
+		//argList = Py_BuildValue("(i,i,i,i,i,c)", pWfr->ne, pWfr->nx, pWfr->ny, ExNeeded, EyNeeded, pWfr->numTypeElFld);
+		argList = Py_BuildValue("(i,i,i,i,i,c)", pWfr->mesh.ne, pWfr->mesh.nx, pWfr->mesh.ny, ExNeeded, EyNeeded, pWfr->numTypeElFld);
+#endif
+	}
+
+	if(argList == 0) return -1;
+
+	PyObject *res = PyObject_CallObject(oFunc, argList); //re-allocate in Py
+	Py_DECREF(argList);
+
+	Py_DECREF(oFunc);
+	if(res == 0) return -1;
+	Py_DECREF(res);
+
+	PyObject *o_tmp = 0;
+	//Py_buffer pb_tmp;
+	pWfr->arEx = pWfr->arEy = 0;
+
+	o_tmp = PyObject_GetAttrString(oWfr, "arEx");
+	if(o_tmp == 0) return -1;
+	//if(PyObject_CheckBuffer(o_tmp))
+	//{
+	//	if(PyObject_GetBuffer(o_tmp, &pb_tmp, PyBUF_WRITABLE)) return -1;
+	//	it->second.pv_buf->push_back(pb_tmp);
+	//	pWfr->arEx = (char*)pb_tmp.buf;
+	//	it->second.pbEx = pb_tmp;
+	//}
+	int sizeVectBuf = 0;
+	if(it->second.pv_buf != 0) sizeVectBuf = (int)it->second.pv_buf->size();
+	if(!(pWfr->arEx = GetPyArrayBuf(o_tmp, it->second.pv_buf, 0))) return -1;
+	if((int)it->second.pv_buf->size() > sizeVectBuf) it->second.pbEx = (*it->second.pv_buf)[sizeVectBuf];
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oWfr, "arEy");
+	if(o_tmp == 0) return -1;
+	//if(PyObject_CheckBuffer(o_tmp))
+	//{
+	//	if(PyObject_GetBuffer(o_tmp, &pb_tmp, PyBUF_WRITABLE)) return -1;
+	//	it->second.pv_buf->push_back(pb_tmp);
+	//	pWfr->arEy = (char*)pb_tmp.buf;
+	//	it->second.pbEy = pb_tmp;
+	//}
+	sizeVectBuf = 0;
+	if(it->second.pv_buf != 0) sizeVectBuf = (int)it->second.pv_buf->size();
+	if(!(pWfr->arEy = GetPyArrayBuf(o_tmp, it->second.pv_buf, 0))) return -1;
+	if((int)it->second.pv_buf->size() > sizeVectBuf) it->second.pbEy = (*it->second.pv_buf)[sizeVectBuf];
+	Py_DECREF(o_tmp);
+	
+	o_tmp = PyObject_GetAttrString(oWfr, "arMomX");
+	if(o_tmp == 0) return -1;
+	//if(PyObject_CheckBuffer(o_tmp))
+	//{
+	//	if(PyObject_GetBuffer(o_tmp, &pb_tmp, PyBUF_WRITABLE)) return -1;
+	//	it->second.pv_buf->push_back(pb_tmp);
+	//	pWfr->arMomX = (double*)pb_tmp.buf;
+	//	it->second.pbMomX = pb_tmp;
+	//}
+	sizeVectBuf = 0;
+	if(it->second.pv_buf != 0) sizeVectBuf = (int)it->second.pv_buf->size();
+	if(!(pWfr->arMomX = (double*)GetPyArrayBuf(o_tmp, it->second.pv_buf, 0))) return -1;
+	if((int)it->second.pv_buf->size() > sizeVectBuf) it->second.pbMomX = (*it->second.pv_buf)[sizeVectBuf];
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oWfr, "arMomY");
+	if(o_tmp == 0) return -1;
+	//if(PyObject_CheckBuffer(o_tmp))
+	//{
+	//	if(PyObject_GetBuffer(o_tmp, &pb_tmp, PyBUF_WRITABLE)) return -1;
+	//	it->second.pv_buf->push_back(pb_tmp);
+	//	pWfr->arMomY = (double*)pb_tmp.buf;
+	//	it->second.pbMomY = pb_tmp;
+	//}
+	sizeVectBuf = 0;
+	if(it->second.pv_buf != 0) sizeVectBuf = (int)it->second.pv_buf->size();
+	if(!(pWfr->arMomY = (double*)GetPyArrayBuf(o_tmp, it->second.pv_buf, 0))) return -1;
+	if((int)it->second.pv_buf->size() > sizeVectBuf) it->second.pbMomY = (*it->second.pv_buf)[sizeVectBuf];
+	Py_DECREF(o_tmp);
+	return 0;
+}
+
+/************************************************************************//**
+ * Tabulates 3D magnetic field (in Cartesian laboratory frame);
+ * see help to srwlCalcMagnField
+ ***************************************************************************/
+static PyObject* srwlpy_CalcMagnField(PyObject *self, PyObject *args)
+{
+	PyObject *oDispMagCnt=0, *oMagFldCnt=0;
+	vector<Py_buffer> vBuf;
+	SRWLMagFldC magCnt = {0,0,0,0,0,0}; //since SRWL structures are definied in C (no constructors)
+	SRWLMagFldC dispMagCnt = {0,0,0,0,0,0}; //since SRWL structures are definied in C (no constructors)
+
+	try
+	{
+		if(!PyArg_ParseTuple(args, "OO:CalcMagnField", &oDispMagCnt, &oMagFldCnt)) throw strEr_BadArg_CalcMagnField;
+		if((oDispMagCnt == 0) || (oMagFldCnt == 0)) throw strEr_BadArg_CalcMagnField;
+
+		ParseSructSRWLMagFldC(&dispMagCnt, oDispMagCnt, &vBuf);
+		if((dispMagCnt.nElem != 1) || (dispMagCnt.arMagFldTypes[0] != 'a')) throw strEr_BadArg_CalcMagnField;
+		//ParseSructSRWLMagFld3D(&magFld3D, oMagFld3D, &vBuf);
+		ParseSructSRWLMagFldC(&magCnt, oMagFldCnt, &vBuf);
+
+		ProcRes(srwlCalcMagFld(&dispMagCnt, &magCnt));
+
+	}
+	catch(const char* erText) 
+	{
+		PyErr_SetString(PyExc_RuntimeError, erText);
+		oDispMagCnt = 0;
+	}
+
+	DeallocMagCntArrays(&dispMagCnt);
+	DeallocMagCntArrays(&magCnt);
+	ReleasePyBuffers(vBuf);
+
+	if(oDispMagCnt) Py_XINCREF(oDispMagCnt);
+	return oDispMagCnt;
+}
+
+/************************************************************************//**
+ * Calculates charged particle trajectory in external 3D magnetic field (in Cartesian laboratory frame);
+ * see help to srwlCalcPartTraj
+ ***************************************************************************/
+static PyObject* srwlpy_CalcPartTraj(PyObject *self, PyObject *args)
+{
+	PyObject *oPartTraj=0, *oMagFldCnt=0, *oPrecPar=0;
+	vector<Py_buffer> vBuf;
+
+	SRWLMagFldC magCnt = {0,0,0,0,0,0}; //since SRWL structures are definied in C (no constructors)
+	//SRWLPrtTrj trj = {0,0,0,0,0,0}; //zero pointers
+	SRWLPrtTrj trj = {0,0,0,0,0,0,0,0,0}; //zero pointers
+	try
+	{
+		if(!PyArg_ParseTuple(args, "OOO:CalcPartTraj", &oPartTraj, &oMagFldCnt, &oPrecPar)) throw strEr_BadArg_CalcPartTraj;
+		if((oPartTraj == 0) || (oMagFldCnt == 0) || (oPrecPar == 0)) throw strEr_BadArg_CalcPartTraj;
+
+		ParseSructSRWLPrtTrj(&trj, oPartTraj, &vBuf);
+		ParseSructSRWLMagFldC(&magCnt, oMagFldCnt, &vBuf);
+
+		double arPrecPar[9]; //to increase if necessary
+		int nPrecPar = 1;
+		arPrecPar[1] = 1; //default integration method
+	
+		double *pPrecPar = arPrecPar + 1;
+		CopyPyListElemsToNumArray(oPrecPar, 'd', pPrecPar, nPrecPar);
+		arPrecPar[0] = nPrecPar; //!
+
+		ProcRes(srwlCalcPartTraj(&trj, &magCnt, arPrecPar));
+	}
+	catch(const char* erText) 
+	{
+		PyErr_SetString(PyExc_RuntimeError, erText);
+		//PyErr_PrintEx(1);
+		oPartTraj = 0;
+	}
+
+	DeallocMagCntArrays(&magCnt);
+	ReleasePyBuffers(vBuf);
+
+	if(oPartTraj) Py_XINCREF(oPartTraj);
+	return oPartTraj;
+}
+
+/************************************************************************//**
+ * Calculates charged particle trajectory from an array of kick matrices;
+ * see help to srwlCalcPartTrajFromKickMatr
+ ***************************************************************************/
+static PyObject* srwlpy_CalcPartTrajFromKickMatr(PyObject *self, PyObject *args)
+{
+	PyObject *oPartTraj=0, *oListKickMatr=0, *oPrecPar=0;
+	vector<Py_buffer> vBuf;
+
+	//SRWLPrtTrj trj = {0,0,0,0,0,0}; //zero pointers, since SRWL structures are definied in C (no constructors)
+	SRWLPrtTrj trj = {0,0,0,0,0,0,0,0,0}; //zero pointers, since SRWL structures are definied in C (no constructors)
+	SRWLKickM *arKickM = 0;
+
+	try
+	{
+		if(!PyArg_ParseTuple(args, "OOO:CalcPartTrajFromKickMatr", &oPartTraj, &oListKickMatr, &oPrecPar)) throw strEr_BadArg_CalcPartTrajFromKickMatr;
+		if((oPartTraj == 0) || (oListKickMatr == 0) || (oPrecPar == 0)) throw strEr_BadArg_CalcPartTrajFromKickMatr;
+		
+		ParseSructSRWLPrtTrj(&trj, oPartTraj, &vBuf);
+
+		int nKickM = 0;
+		if(PyList_Check(oListKickMatr))
+		{
+			nKickM = (int)PyList_Size(oListKickMatr);
+			if(nKickM <= 0) throw strEr_BadArg_CalcPartTrajFromKickMatr;
+
+			arKickM = new SRWLKickM[nKickM];
+
+			for(int i=0; i<nKickM; i++)
+			{
+				PyObject *oKickMatr = PyList_GetItem(oListKickMatr, (Py_ssize_t)i);
+				if(oKickMatr == 0) throw strEr_BadArg_CalcPartTrajFromKickMatr;
+
+				ParseSructSRWLKickM(arKickM + i, oKickMatr, &vBuf);
+			}
+		}
+		else 
+		{
+			nKickM = 1;
+			arKickM = new SRWLKickM[nKickM];
+			ParseSructSRWLKickM(arKickM, oListKickMatr, &vBuf);
+		}
+
+		double arPrecPar[9]; //to increase if necessary
+		int nPrecPar = 1;
+		double *pPrecPar = arPrecPar;
+		CopyPyListElemsToNumArray(oPrecPar, 'd', pPrecPar, nPrecPar);
+
+		ProcRes(srwlCalcPartTrajFromKickMatr(&trj, arKickM, nKickM, arPrecPar));
+	}
+	catch(const char* erText) 
+	{
+		PyErr_SetString(PyExc_RuntimeError, erText);
+		oPartTraj = 0;
+	}
+
+	if(arKickM != 0) delete[] arKickM;
+
+	//DeallocMagCntArrays(&magCnt);
+	ReleasePyBuffers(vBuf);
+
+	if(oPartTraj) Py_XINCREF(oPartTraj);
+	return oPartTraj;
+}
+
+/************************************************************************//**
+ * Calculates Wavefront (electric field) of Synchrotron Radiation 
+ * by a relativistic charged particle traveling in external (3D) magnetic field;
+ * see help to srwlCalcElecFieldSR
+ ***************************************************************************/
+static PyObject* srwlpy_CalcElecFieldSR(PyObject *self, PyObject *args)
+{
+	PyObject *oWfr=0, *oPartTraj=0, *oMagFldCnt=0, *oPrecPar=0;
+	vector<Py_buffer> vBuf;
+	SRWLMagFldC magCnt = {0,0,0,0,0,0}; //just zero pointers
+	SRWLMagFldC *pMagCnt = &magCnt;
+	//SRWLPrtTrj trj = {0,0,0,0,0,0};
+	SRWLPrtTrj trj = {0,0,0,0,0,0,0,0,0};
+	SRWLPrtTrj *pTrj = &trj;
+	SRWLWfr wfr;
+
+	try
+	{
+		if(!PyArg_ParseTuple(args, "OOOO:CalcElecFieldSR", &oWfr, &oPartTraj, &oMagFldCnt, &oPrecPar)) throw strEr_BadArg_CalcElecFieldSR;
+		if((oWfr == 0) || (oPartTraj == 0) || (oMagFldCnt == 0) || (oPrecPar == 0)) throw strEr_BadArg_CalcElecFieldSR;
+
+		ParseSructSRWLWfr(&wfr, oWfr, &vBuf, gmWfrPyPtr);
+
+		//if(strcmp(oPartTraj->ob_type->tp_name, "SRWLPrtTrj") == 0) ParseSructSRWLPrtTrj(pTrj, oPartTraj, &vBuf);
+		//else pTrj = 0;
+		char sTypeName[1025];
+		CopyPyClassNameToC(oPartTraj, sTypeName, 1024);
+		if(strcmp(sTypeName, "SRWLPrtTrj") == 0) ParseSructSRWLPrtTrj(pTrj, oPartTraj, &vBuf);
+		else pTrj = 0;
+
+		//if(strcmp(oMagFldCnt->ob_type->tp_name, "SRWLMagFldC") == 0) ParseSructSRWLMagFldC(pMagCnt, oMagFldCnt, &vBuf);
+		//else pMagCnt = 0;
+		CopyPyClassNameToC(oMagFldCnt, sTypeName, 1024);
+		if(strcmp(sTypeName, "SRWLMagFldC") == 0) ParseSructSRWLMagFldC(pMagCnt, oMagFldCnt, &vBuf);
+		else pMagCnt = 0;
+
+		if((pTrj == 0) && (pMagCnt == 0)) throw strEr_BadArg_CalcElecFieldSR;
+
+		//double *arPrecPar = (double*)GetPyArrayBuf(vBuf, oPrecPar, PyBUF_SIMPLE);
+		//if(arPrecPar == 0) throw strEr_BadPrec_CalcElecFieldSR;
+		double arPrecPar[7];
+		double *pPrecPar = arPrecPar;
+		int nPrecPar = 7;
+		CopyPyListElemsToNumArray(oPrecPar, 'd', pPrecPar, nPrecPar);
+
+		ProcRes(srwlCalcElecFieldSR(&wfr, pTrj, pMagCnt, arPrecPar, nPrecPar));
+		UpdatePyWfr(oWfr, &wfr);
+	}
+	catch(const char* erText) 
+	{
+		PyErr_SetString(PyExc_RuntimeError, erText);
+		//PyErr_PrintEx(1);
+		oWfr = 0;
+	}
+
+	if(pMagCnt != 0) DeallocMagCntArrays(pMagCnt);
+	ReleasePyBuffers(vBuf);
+	EraseElementFromMap(&wfr, gmWfrPyPtr);
+
+	if(oWfr) Py_XINCREF(oWfr);
+	return oWfr;
+}
+
+/************************************************************************//**
+ * Calculates Wavefront (electric field) of a Gaussian Beam;
+ * see help to srwlCalcElecFieldSR
+ ***************************************************************************/
+static PyObject* srwlpy_CalcElecFieldGaussian(PyObject *self, PyObject *args)
+{
+	PyObject *oWfr=0, *oGsnBm=0, *oPrecPar=0;
+	vector<Py_buffer> vBuf;
+	SRWLWfr wfr;
+	SRWLGsnBm gsnBm;
+
+	try
+	{
+		if(!PyArg_ParseTuple(args, "OOO:CalcElecFieldGaussian", &oWfr, &oGsnBm, &oPrecPar)) throw strEr_BadArg_CalcElecFieldGaussian;
+		if((oWfr == 0) || (oGsnBm == 0) || (oGsnBm == 0)) throw strEr_BadArg_CalcElecFieldGaussian;
+
+		ParseSructSRWLWfr(&wfr, oWfr, &vBuf, gmWfrPyPtr);
+		ParseSructSRWLGsnBm(&gsnBm, oGsnBm);
+
+		double arPrecPar[1];
+		double *pPrecPar = arPrecPar;
+		int nPrecPar = 1;
+		CopyPyListElemsToNumArray(oPrecPar, 'd', pPrecPar, nPrecPar);
+
+		ProcRes(srwlCalcElecFieldGaussian(&wfr, &gsnBm, arPrecPar));
+		UpdatePyWfr(oWfr, &wfr);
+	}
+	catch(const char* erText) 
+	{
+		PyErr_SetString(PyExc_RuntimeError, erText);
+		oWfr = 0;
+	}
+
+	ReleasePyBuffers(vBuf);
+	EraseElementFromMap(&wfr, gmWfrPyPtr);
+
+	if(oWfr) Py_XINCREF(oWfr);
+	return oWfr;
+}
+
+
+/************************************************************************//**
+ * Calculates Stokes parameters of Undulator Radiation by a relativistic 
+ * finite-emittance electron beam traveling in periodic magnetic field of an undulator;
+ * see help to srwlCalcStokesUR
+ ***************************************************************************/
+static PyObject* srwlpy_CalcStokesUR(PyObject *self, PyObject *args)
+{
+	PyObject *oStokes=0, *oElBeam=0, *oUnd=0, *oPrecPar=0;
+	vector<Py_buffer> vBuf;
+	SRWLStokes stokes;
+	SRWLPartBeam eBeam;
+	SRWLMagFldU und;
+
+	try
+	{
+		if(!PyArg_ParseTuple(args, "OOOO:CalcStokesUR", &oStokes, &oElBeam, &oUnd, &oPrecPar)) throw strEr_BadArg_CalcStokesUR;
+		if((oStokes == 0) || (oElBeam == 0) || (oUnd == 0) || (oPrecPar == 0)) throw strEr_BadArg_CalcStokesUR;
+
+		ParseSructSRWLStokes(&stokes, oStokes, &vBuf);
+		ParseSructSRWLPartBeam(&eBeam, oElBeam, vBuf);
+		ParseSructSRWLMagFldU(&und, oUnd);
+
+		double arPrecPar[5];
+		double *pPrecPar = arPrecPar;
+		int nPrecPar = 5;
+		CopyPyListElemsToNumArray(oPrecPar, 'd', pPrecPar, nPrecPar);
+
+		ProcRes(srwlCalcStokesUR(&stokes, &eBeam, &und, arPrecPar));
+		UpdatePyStokes(oStokes, &stokes);
+	}
+	catch(const char* erText) 
+	{
+		PyErr_SetString(PyExc_RuntimeError, erText);
+		//PyErr_PrintEx(1);
+		oStokes = 0;
+	}
+
+	if(und.arHarm != 0) delete[] und.arHarm;
+	ReleasePyBuffers(vBuf);
+
+	if(oStokes) Py_XINCREF(oStokes);
+	return oStokes;
+}
+
+/************************************************************************//**
+ * Calculates Power Density distribution of Synchrotron Radiation 
+ * by a relativistic finite-emittance electron beam traveling in arbitrary magnetic field;
+ * see help to srwlCalcStokesUR
+ ***************************************************************************/
+static PyObject* srwlpy_CalcPowDenSR(PyObject *self, PyObject *args)
+{
+	PyObject *oStokes=0, *oElBeam=0, *oPartTraj=0, *oMagFldCnt=0, *oPrecPar=0;
+	vector<Py_buffer> vBuf;
+	SRWLStokes stokes;
+	SRWLPartBeam eBeam;
+	SRWLMagFldC magCnt = {0,0,0,0,0,0}; //just zero pointers
+	SRWLMagFldC *pMagCnt = &magCnt;
+	//SRWLPrtTrj trj = {0,0,0,0,0,0};
+	SRWLPrtTrj trj = {0,0,0,0,0,0,0,0,0};
+	SRWLPrtTrj *pTrj = &trj;
+
+	try
+	{
+		if(!PyArg_ParseTuple(args, "OOOOO:CalcPowDenSR", &oStokes, &oElBeam, &oPartTraj, &oMagFldCnt, &oPrecPar)) throw strEr_BadArg_CalcPowDenSR;
+		if((oStokes == 0) || (oElBeam == 0) || ((oPartTraj == 0) && (oMagFldCnt == 0)) || (oPrecPar == 0)) throw strEr_BadArg_CalcPowDenSR;
+
+		ParseSructSRWLStokes(&stokes, oStokes, &vBuf);
+		ParseSructSRWLPartBeam(&eBeam, oElBeam, vBuf);
+
+		//if(strcmp(oPartTraj->ob_type->tp_name, "SRWLPrtTrj") == 0) ParseSructSRWLPrtTrj(pTrj, oPartTraj, &vBuf);
+		//else pTrj = 0;
+		char sTypeName[1025];
+		CopyPyClassNameToC(oPartTraj, sTypeName, 1024);
+		if(strcmp(sTypeName, "SRWLPrtTrj") == 0) ParseSructSRWLPrtTrj(pTrj, oPartTraj, &vBuf);
+		else pTrj = 0;
+
+		//if(strcmp(oMagFldCnt->ob_type->tp_name, "SRWLMagFldC") == 0) ParseSructSRWLMagFldC(pMagCnt, oMagFldCnt, &vBuf);
+		//else pMagCnt = 0;
+		CopyPyClassNameToC(oMagFldCnt, sTypeName, 1024);
+		if(strcmp(sTypeName, "SRWLMagFldC") == 0) ParseSructSRWLMagFldC(pMagCnt, oMagFldCnt, &vBuf);
+		else pMagCnt = 0;
+
+		if((pTrj == 0) && (pMagCnt == 0)) throw strEr_BadArg_CalcPowDenSR;
+
+		double arPrecPar[5];
+		double *pPrecPar = arPrecPar;
+		int nPrecPar = 5;
+		CopyPyListElemsToNumArray(oPrecPar, 'd', pPrecPar, nPrecPar);
+
+		ProcRes(srwlCalcPowDenSR(&stokes, &eBeam, pTrj, pMagCnt, arPrecPar));
+		UpdatePyStokes(oStokes, &stokes);
+	}
+	catch(const char* erText) 
+	{
+		PyErr_SetString(PyExc_RuntimeError, erText);
+		//PyErr_PrintEx(1);
+		oStokes = 0;
+	}
+
+	if(pMagCnt != 0) DeallocMagCntArrays(pMagCnt);
+	ReleasePyBuffers(vBuf);
+
+	if(oStokes) Py_XINCREF(oStokes);
+	return oStokes;
+}
+
+/************************************************************************//**
+ * Calculates/extracts Intensity and/or other characteristics from pre-calculated Electric Field
+ * see help to srwlCalcIntFromElecField
+ ***************************************************************************/
+static PyObject* srwlpy_CalcIntFromElecField(PyObject *self, PyObject *args)
+{
+	PyObject *oInt=0, *oWfr=0, *oPol=0, *oIntType=0, *oDepType=0, *oE=0, *oX=0, *oY=0;
+	vector<Py_buffer> vBuf;
+	SRWLWfr wfr;
+
+	try
+	{
+		if(!PyArg_ParseTuple(args, "OOOOOOOO:CalcIntFromElecField", &oInt, &oWfr, &oPol, &oIntType, &oDepType, &oE, &oX, &oY)) throw strEr_BadArg_CalcIntFromElecField;
+		if((oInt == 0) || (oWfr == 0) || (oPol == 0) || (oIntType == 0) || (oDepType == 0) || (oE == 0) || (oX == 0) || (oY == 0)) throw strEr_BadArg_CalcIntFromElecField;
+
+		//char *arInt = (char*)GetPyArrayBuf(oInt, vBuf, PyBUF_WRITABLE, 0);
+		char *arInt = (char*)GetPyArrayBuf(oInt, &vBuf, 0);
+
+		ParseSructSRWLWfr(&wfr, oWfr, &vBuf, gmWfrPyPtr);
+
+		if(!PyNumber_Check(oPol)) throw strEr_BadArg_CalcIntFromElecField;
+		char pol = (char)PyLong_AsLong(oPol);
+
+		if(!PyNumber_Check(oIntType)) throw strEr_BadArg_CalcIntFromElecField;
+		char intType = (char)PyLong_AsLong(oIntType);
+
+		if(!PyNumber_Check(oDepType)) throw strEr_BadArg_CalcIntFromElecField;
+		char depType = (char)PyLong_AsLong(oDepType);
+
+		if(!PyNumber_Check(oE)) throw strEr_BadArg_CalcIntFromElecField;
+		double e = PyFloat_AsDouble(oE);
+
+		if(!PyNumber_Check(oX)) throw strEr_BadArg_CalcIntFromElecField;
+		double x = PyFloat_AsDouble(oX);
+
+		if(!PyNumber_Check(oY)) throw strEr_BadArg_CalcIntFromElecField;
+		double y = PyFloat_AsDouble(oY);
+
+		ProcRes(srwlCalcIntFromElecField(arInt, &wfr, pol, intType, depType, e, x, y));
+	}
+	catch(const char* erText) 
+	{
+		PyErr_SetString(PyExc_RuntimeError, erText);
+		//PyErr_PrintEx(1);
+		oInt = 0;
+	}
+
+	ReleasePyBuffers(vBuf);
+	EraseElementFromMap(&wfr, gmWfrPyPtr);
+
+	if(oInt) Py_XINCREF(oInt);
+	return oInt;
+}
+
+/************************************************************************//**
+ * "Resizes" Electric Field Wavefront vs transverse positions / angles or photon energy / time
+ * see help to srwlResizeElecField
+ ***************************************************************************/
+static PyObject* srwlpy_ResizeElecField(PyObject *self, PyObject *args)
+{
+	PyObject *oWfr=0, *oType, *oPar;
+	vector<Py_buffer> vBuf;
+	SRWLWfr wfr;
+
+	try
+	{
+		if(!PyArg_ParseTuple(args, "OOO:ResizeElecField", &oWfr, &oType, &oPar)) throw strEr_BadArg_ResizeElecField;
+		if((oWfr == 0) || (oType == 0) || (oPar == 0)) throw strEr_BadArg_ResizeElecField;
+
+		ParseSructSRWLWfr(&wfr, oWfr, &vBuf, gmWfrPyPtr);
+
+		//PyObject *o_str = PyUnicode_AsUTF8String(oType);
+		//if(!PyBytes_Check(o_str)) throw strEr_BadArg_ResizeElecField;
+		//char typeRes = *PyBytes_AsString(o_str); 
+		//Py_INCREF(o_str);
+		char cTypeRes[2];
+		CopyPyStringToC(oType, cTypeRes, 1);
+
+		double arPar[] = {0.,1.,1.,1.,1.}; int nPar = 5; double *pPar = arPar;
+		CopyPyListElemsToNumArray(oPar, 'd', pPar, nPar);
+
+		ProcRes(srwlResizeElecField(&wfr, *cTypeRes, arPar));
+		UpdatePyWfr(oWfr, &wfr);
+	}
+	catch(const char* erText) 
+	{
+		PyErr_SetString(PyExc_RuntimeError, erText);
+		//PyErr_PrintEx(1);
+		oWfr = 0;
+	}
+
+	ReleasePyBuffers(vBuf);
+	EraseElementFromMap(&wfr, gmWfrPyPtr);
+
+	if(oWfr) Py_XINCREF(oWfr);
+	return oWfr;
+}
+
+/************************************************************************//**
+ * Changes Representation of Electric Field: coordinates<->angles, frequency<->time
+ * see help to srwlSetRepresElecField
+ ***************************************************************************/
+static PyObject* srwlpy_SetRepresElecField(PyObject *self, PyObject *args)
+{
+	PyObject *oWfr=0, *oRepr;
+	vector<Py_buffer> vBuf;
+	SRWLWfr wfr;
+
+	try
+	{
+		if(!PyArg_ParseTuple(args, "OO:SetRepresElecField", &oWfr, &oRepr)) throw strEr_BadArg_SetRepresElecField;
+		if((oWfr == 0) || (oRepr == 0)) throw strEr_BadArg_SetRepresElecField;
+
+		ParseSructSRWLWfr(&wfr, oWfr, &vBuf, gmWfrPyPtr);
+
+		//PyObject *o_str = PyUnicode_AsUTF8String(oRepr);
+		//if(!PyBytes_Check(o_str)) throw strEr_BadArg_SetRepresElecField;
+		//char repr = *PyBytes_AsString(o_str); 
+		//Py_INCREF(o_str);
+		char cRepr[2];
+		CopyPyStringToC(oRepr, cRepr, 1);
+
+		ProcRes(srwlSetRepresElecField(&wfr, *cRepr));
+		UpdatePyWfr(oWfr, &wfr);
+	}
+	catch(const char* erText) 
+	{
+		PyErr_SetString(PyExc_RuntimeError, erText);
+		//PyErr_PrintEx(1);
+		oWfr = 0;
+	}
+
+	ReleasePyBuffers(vBuf);
+	EraseElementFromMap(&wfr, gmWfrPyPtr);
+
+	if(oWfr) Py_XINCREF(oWfr);
+	return oWfr;
+}
+
+/************************************************************************//**
+ * "Propagates" Electric Field Wavefront through Optical Elements and free space
+ * see help to srwlPropagElecField
+ ***************************************************************************/
+static PyObject* srwlpy_PropagElecField(PyObject *self, PyObject *args)
+{
+	PyObject *oWfr=0, *oOptCnt;
+	vector<Py_buffer> vBuf;
+	SRWLWfr wfr;
+	SRWLOptC optCnt = {0,0,0,0,0}; //since SRWL structures are definied in C (no constructors)
+
+	try
+	{
+		if(!PyArg_ParseTuple(args, "OO:PropagElecField", &oWfr, &oOptCnt)) throw strEr_BadArg_PropagElecField;
+		if((oWfr == 0) || (oOptCnt == 0)) throw strEr_BadArg_PropagElecField;
+
+		ParseSructSRWLWfr(&wfr, oWfr, &vBuf, gmWfrPyPtr);
+		ParseSructSRWLOptC(&optCnt, oOptCnt, &vBuf);
+
+		ProcRes(srwlPropagElecField(&wfr, &optCnt));
+		UpdatePyWfr(oWfr, &wfr);
+	}
+	catch(const char* erText) 
+	{
+		PyErr_SetString(PyExc_RuntimeError, erText);
+		//PyErr_PrintEx(1);
+		oWfr = 0;
+	}
+
+	DeallocOptCntArrays(&optCnt);
+	ReleasePyBuffers(vBuf);
+	EraseElementFromMap(&wfr, gmWfrPyPtr);
+
+	if(oWfr) Py_XINCREF(oWfr);
+	return oWfr;
+}
+
+/************************************************************************//**
+ * Python C API stuff: module & method definition2, etc.
+ ***************************************************************************/
+
+//This is from Python C API docs (seems to be above strict minimum):
+//struct srwlpy_state {
+//    PyObject *error;
+//};
+//
+//#if PY_MAJOR_VERSION >= 3
+//#define GETSTATE(m) ((struct srwlpy_state*)PyModule_GetState(m))
+//#else
+//#define GETSTATE(m) (&_state)
+//static struct srwlpy_state _state;
+//#endif
+//
+//static PyObject* error_out(PyObject *m) 
+//{
+//    struct srwlpy_state *st = GETSTATE(m);
+//    PyErr_SetString(st->error, "something bad happened");
+//    return NULL;
+//}
+
+static PyMethodDef srwlpy_methods[] = {
+	{"CalcMagnField", srwlpy_CalcMagnField, METH_VARARGS, "CalcMagnField() Calculates (tabulates) 3D magnetic field created by multiple elements"},
+	{"CalcPartTraj", srwlpy_CalcPartTraj, METH_VARARGS, "CalcPartTraj() Calculates charged particle trajectory in external 3D magnetic field (in Cartesian laboratory frame)"},
+	{"CalcPartTrajFromKickMatr", srwlpy_CalcPartTrajFromKickMatr, METH_VARARGS, "CalcPartTrajFromKickMatr() Calculates charged particle trajectory from an array of kick matrices"},
+	{"CalcElecFieldSR", srwlpy_CalcElecFieldSR, METH_VARARGS, "CalcElecFieldSR() Calculates Electric Field (Wavefront) of Synchrotron Radiation by a relativistic charged particle traveling in external 3D magnetic field"},
+	{"CalcElecFieldGaussian", srwlpy_CalcElecFieldGaussian, METH_VARARGS, "CalcElecFieldGaussian() Calculates Electric Field (Wavefront) of a coherent Gaussian Beam"},
+	{"CalcStokesUR", srwlpy_CalcStokesUR, METH_VARARGS, "CalcStokesUR() Calculates Stokes parameters of Synchrotron Radiation by a relativistic finite-emittance electron beam traveling in periodic magnetic field of an undulator"},
+	{"CalcPowDenSR", srwlpy_CalcPowDenSR, METH_VARARGS, "CalcPowDenSR() Calculates Power Density distribution of Synchrotron Radiation by a relativistic finite-emittance electron beam traveling in arbitrary magnetic field"},
+	{"CalcIntFromElecField", srwlpy_CalcIntFromElecField, METH_VARARGS, "CalcIntFromElecField() Calculates/extracts Intensity from pre-calculated Electric Field"},
+	{"ResizeElecField", srwlpy_ResizeElecField, METH_VARARGS, "ResizeElecField() \"Resizes\" Electric Field Wavefront vs transverse positions / angles or photon energy / time"},
+	{"SetRepresElecField", srwlpy_SetRepresElecField, METH_VARARGS, "SetRepresElecField() Changes Representation of Electric Field: coordinates<->angles, frequency<->time"},
+	{"PropagElecField", srwlpy_PropagElecField, METH_VARARGS, "PropagElecField() \"Propagates\" Electric Field Wavefront through Optical Elements and free space"},
+	{NULL, NULL}
+};
+
+#if PY_MAJOR_VERSION >= 3
+
+static struct PyModuleDef srwlpymodule = {
+    PyModuleDef_HEAD_INIT,
+    "srwlpy",
+    "srwlpy module is Python binding of Synchrotron Radiation Workshop (SRW) Library",
+    -1,
+    srwlpy_methods,
+    NULL,
+    NULL,
+    NULL,
+    NULL
+};
+
+PyMODINIT_FUNC PyInit_srwlpy(void)
+{ 
+	//setting pointer to function to be eventually called from SRWLIB
+	srwlUtiSetWfrModifFunc(&ModifySRWLWfr);
+
+    return PyModule_Create(&srwlpymodule);
+}
+
+#else
+
+PyMODINIT_FUNC initsrwlpy(void)
+{
+	//setting pointer to function to be eventually called from SRWLIB
+	srwlUtiSetWfrModifFunc(&ModifySRWLWfr);
+
+	Py_InitModule("srwlpy", srwlpy_methods);
+}
+
+#endif

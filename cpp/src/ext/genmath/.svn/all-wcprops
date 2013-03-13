@@ -1,0 +1,137 @@
+K 25
+svn:wc:ra_dav:version-url
+V 59
+/desy/EuXFEL/WP73/!svn/ver/208/srwlib/trunk/src/ext/genmath
+END
+gmvectf.h
+K 25
+svn:wc:ra_dav:version-url
+V 68
+/desy/EuXFEL/WP73/!svn/ver/35/srwlib/trunk/src/ext/genmath/gmvectf.h
+END
+gmfft.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 69
+/desy/EuXFEL/WP73/!svn/ver/203/srwlib/trunk/src/ext/genmath/gmfft.cpp
+END
+gmfit.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 69
+/desy/EuXFEL/WP73/!svn/ver/206/srwlib/trunk/src/ext/genmath/gmfit.cpp
+END
+gmfft.h
+K 25
+svn:wc:ra_dav:version-url
+V 67
+/desy/EuXFEL/WP73/!svn/ver/203/srwlib/trunk/src/ext/genmath/gmfft.h
+END
+gmtrans.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 71
+/desy/EuXFEL/WP73/!svn/ver/203/srwlib/trunk/src/ext/genmath/gmtrans.cpp
+END
+fftw.h
+K 25
+svn:wc:ra_dav:version-url
+V 65
+/desy/EuXFEL/WP73/!svn/ver/35/srwlib/trunk/src/ext/genmath/fftw.h
+END
+gmfit.h
+K 25
+svn:wc:ra_dav:version-url
+V 67
+/desy/EuXFEL/WP73/!svn/ver/207/srwlib/trunk/src/ext/genmath/gmfit.h
+END
+gmrand.h
+K 25
+svn:wc:ra_dav:version-url
+V 68
+/desy/EuXFEL/WP73/!svn/ver/203/srwlib/trunk/src/ext/genmath/gmrand.h
+END
+f2c.h
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/desy/EuXFEL/WP73/!svn/ver/95/srwlib/trunk/src/ext/genmath/f2c.h
+END
+gmintrk.h
+K 25
+svn:wc:ra_dav:version-url
+V 69
+/desy/EuXFEL/WP73/!svn/ver/203/srwlib/trunk/src/ext/genmath/gmintrk.h
+END
+gminterf.h
+K 25
+svn:wc:ra_dav:version-url
+V 69
+/desy/EuXFEL/WP73/!svn/ver/35/srwlib/trunk/src/ext/genmath/gminterf.h
+END
+gmtrans.h
+K 25
+svn:wc:ra_dav:version-url
+V 69
+/desy/EuXFEL/WP73/!svn/ver/203/srwlib/trunk/src/ext/genmath/gmtrans.h
+END
+gmmeth.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 70
+/desy/EuXFEL/WP73/!svn/ver/203/srwlib/trunk/src/ext/genmath/gmmeth.cpp
+END
+gmfunc.h
+K 25
+svn:wc:ra_dav:version-url
+V 68
+/desy/EuXFEL/WP73/!svn/ver/208/srwlib/trunk/src/ext/genmath/gmfunc.h
+END
+gminterp.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/desy/EuXFEL/WP73/!svn/ver/203/srwlib/trunk/src/ext/genmath/gminterp.cpp
+END
+gmmeth.h
+K 25
+svn:wc:ra_dav:version-url
+V 68
+/desy/EuXFEL/WP73/!svn/ver/203/srwlib/trunk/src/ext/genmath/gmmeth.h
+END
+fftw.h.orig_win
+K 25
+svn:wc:ra_dav:version-url
+V 74
+/desy/EuXFEL/WP73/!svn/ver/35/srwlib/trunk/src/ext/genmath/fftw.h.orig_win
+END
+fftw.h.old
+K 25
+svn:wc:ra_dav:version-url
+V 69
+/desy/EuXFEL/WP73/!svn/ver/35/srwlib/trunk/src/ext/genmath/fftw.h.old
+END
+gminterp.h
+K 25
+svn:wc:ra_dav:version-url
+V 70
+/desy/EuXFEL/WP73/!svn/ver/203/srwlib/trunk/src/ext/genmath/gminterp.h
+END
+gmercode.h
+K 25
+svn:wc:ra_dav:version-url
+V 70
+/desy/EuXFEL/WP73/!svn/ver/203/srwlib/trunk/src/ext/genmath/gmercode.h
+END
+gmvect.h
+K 25
+svn:wc:ra_dav:version-url
+V 68
+/desy/EuXFEL/WP73/!svn/ver/203/srwlib/trunk/src/ext/genmath/gmvect.h
+END
+cmplxd.h
+K 25
+svn:wc:ra_dav:version-url
+V 68
+/desy/EuXFEL/WP73/!svn/ver/203/srwlib/trunk/src/ext/genmath/cmplxd.h
+END

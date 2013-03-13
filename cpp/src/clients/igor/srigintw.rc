@@ -1,0 +1,638 @@
+/*	
+	This file is compiled by the resource compiler and creates XOP-specific
+	resources that IGOR looks for in an XOP module.
+*/
+
+#include "XOPResources.h"			// Defines XOP-specific symbols.
+
+1100 STR# /* SRW Errors */
+BEGIN
+	"WaveAccess requires Igor Pro 2.0 or later.\0",	//#1	// OLD_IGOR
+	"Wave does not exist.\0",							// NON_EXISTENT_WAVE
+	"This function requires 3D wave(s).\0",				// NEEDS_3D_WAVE
+
+	"Incorrect Electron Beam Energy value. The Electron Beam Energy should be within 0 and 1 000 000 Gev.\0",
+	"This function requires wave(s) of type Single Float 32 bit.\0",
+	"Incorrect Electron Beam wave format.\0",
+	"Incorrect Magnetic Field wave format.\0",
+	"Memory allocation failure.\0",
+	"Inconsistent definition of Horizontal and Vertical Magnetic Field.\0",
+	"Incorrect Photon Energy or Wavelength value.\0", //#10
+	"Incorrect Observation wave format.\0",
+	"Incorrect Precision wave format.\0",
+	"Incorrect Integration Method number. The Integration Method number can be 0 (manual), 1 or 2 (automatic).\0",
+	"Incorrect Relative Precision or Integration Step value.\0",
+	"Radiation Integration limits are inconsistent with the Magnetic Field definition limits.\0",
+	"Incorrect Stokes Parameters wave format.\0",
+	"This function requires wave(s) of type Double Float 64 bit.\0",
+	"Incorrect Electric Field Fourier Components wave format.\0",
+	"This function requires wave(s) of type Complex 2 x 64 bit.\0",
+	"This function requires wave(s) of type Double Float 64 bit or Complex 2 x 32 bit.\0", //#20
+	"Incorrect dimensions of the Radiation output wave.\0",
+	"Computation aborted by user.\0",
+	"The amount of memory allowed for use by SRW is insufficient for SR computation with current input.\0",
+
+	"SRW can not compute this case. Try to modify Magnetic Field definition range and/or Longitudinal Integration limits.\0",
+	"SRW can not compute this case. Electron Trajectory passes too closely to the Observation Point.\0",
+	"SRW can not compute this case. Longitudinal position of the Observation Plane is within the Integration limits.\0",
+	"SRW can not compute this case. Electron Beam is not ultra-relativistic.\0",
+	"Initial Coordinates/Angles of the Electron Trajectory are specified for the Longitudinal position which is out of Magnetic Field limits.\0",
+	"SRW can not compute this case. The Wavelength is comparable with the Observation Distance.\0",
+	"SRW can not compute this case. Angle between instant Electron Velocity and direction to the Observation Point is too large.\0", //#30
+
+	"This function requires Text wave(s).\0",
+	"Incorrect wavefront structure.\0",
+	"The operation needs another presentation of the Radiation data.\0",
+
+	"This function requires Numeric wave(s).\0",
+	"This function requires 2D wave(s).\0",
+	"The wave dimensions should be even.\0",
+	"This function requires wave of type Complex 2 x 32 bit.\0",
+	"This function requires 1D Text wave.\0",
+	"Unknown Optical Element or incorrect Optical Element definition.\0",
+	"Internal error in FFT procedure.\0", //#40
+	"This function requires 1D or 2D wave(s).\0",
+	"This function requires waves of equal sizes.\0",
+	"Error in Optical Element definition.\0",
+	"This function requires 1D wave.\0",
+	"This operation requires more than one Observation Point in Hor. and Vert. directions.\0",
+	"This operation accepts no more than one Drift Space, which can be only the last component in a Container.\0",
+
+	"Error at reading a number from a text wave.\0",
+	"Can't find a harmonic wave of the Periodic Magnetic Field structure.\0",
+	"Improper or corrupt Stokes Parameters structure.\0",
+	"Improper or corrupt Periodic Magnetic Field Harmonic structure.\0", //#50
+	"Sorry, this kind of magnet structure is not supported yet.\0",
+
+	"Electron beam divergence and slit size should not be zero at the same time for this method of computation.\0",
+
+	"Internal error in linear fitting procedure.\0",
+	"Improper or corrupt Optical Component structure.\0",
+
+	"Incorrect Power Density structure.\0",
+	"SRW can not compute this case in that mode. Try to reduce Magnetic Field limits and/or Observation range and/or Precision level.\0",
+
+	"This function requires wave of type Complex 2 x 64 bit.\0",
+	"Propagation can not be performed correctly due to severe memory limitation.\0",
+	"For correct propagation, number of points of should be larger than 1 both in horizontal and vertical direction.\0",
+	"With this method, the propagation can not be done for several photon energies at once.\0", //#60
+
+	"For this material, the density value should be specified.\0",
+	"Material with this atomic number is not supported.\0",
+
+	"This function requires wave of type Single (32 bit) or Double Precision (64 bit).\0",
+	"This function requires 1D or 2D wave.\0",
+
+	"Thin electron beam parameters were not properly set up.\0",
+	"Thick electron beam parameters were not properly set up.\0",
+
+	"Number of integrations of Modified Bessel function can not be negative.\0",
+	"Magnetic field can not be zero for this mode of computation.\0",
+
+	"Incorrect Isotropic Source structure.\0",
+	"Source Power should be positive.\0", //#70
+	"Number of photons should be positive.\0",
+	"Improper or corrupt Gaussian Beam structure.\0",
+	"Gaussian beam waist size can not be negative.\0",
+	"The order of a Gaussian Beam mode can not be negative.\0",
+	"Number of photons should be positive.\0",
+	"Polarization component identifier should be an integer number from 1 to 6.\0",
+
+	"Incorrect Trajectory structure.\0",
+	"Incorrect Trajectory component wave.\0",
+	"Electron Beam Energy should be positive.\0",
+	"Trajectory components were not properly set up.\0", //#80
+	"Contradictory definition of trajectory components.\0",
+	"Initial longitudinal position is out of trajectory definition limits.\0",
+
+	"The number of magnetic field harmonics should not exceed 20.\0",
+	"Unknown magnet element.\0",
+
+	"***** No wiggler field\0",
+	"***** Invalid wiggler type\0",
+	"***** Wiggler period must be positive\0",
+	"***** Electron beam energy is too small\0",
+	"***** Number of particles is not multiple of 8\0",
+	"***** Radiation wavelength must be positive\0", //#90
+	"***** Radiation power must be positive. Set the initial power to small value for SASE.\0",
+	"***** Integration step (DELZ) must be 0.5 if field errors are included\0",
+	"***** Parameter ISCAN must be smaller than 7\0",
+	"***** Parameter scan not defined\0",
+	"***** Time dependency and parameter scan are selected simultaneously\0",
+	"***** Step size greater than slice separation\0",
+	"***** No module defined. NWIG must pe positive.\0",
+	"***** Focusing length is not an integer of step size\0",
+	"***** Defocusing length is not an integer of step size\0",
+	"***** Drift length is not an integer of step size\0", //#100
+	"***** Start of FODO lattice is not an integer of step size\0",
+	"***** Slice separation is not an integer of step size\0",
+	"***** Too many integration steps\0",
+	"***** Too many slices\0",
+	"***** Number of grid points of Cartesian mesh is not odd\0",
+
+	"Non-compatible Wavefront and Stokes structures.\0",
+	"Electron beam structure was not set up.\0",
+	"Distance from the Source to the Observation Plane should be positive.\0",
+	"Photon Energy should be positive.\0",
+	"Memory allocation failure. Please note that SASE computation may require a lot of RAM.\0", //#110
+
+	"Incorrect arguments for the 3D Viewing function.\0",
+	"Incorrect function arguments.\0",
+
+	"Function arguments: array is not defined correctly.\0",
+	"Object with this index does not exist.\0",
+	"Object with this index is not a magnetic field.\0",
+	"Object with this index is not an electron beam.\0",
+	"Object with this index is not a wave front sampling structure.\0",
+	"Incorrect parameters submitted to the SR computation function.\0",
+	"This type of SR computation is not implemented for given magnetic field.\0",
+	"Incorrect or no precision parameters were submitted to SR computation function.\0", //#120
+	"Object with this index is not a radiation wave front.\0",
+	"Incorrect parameters submitted to the wavefront component extraction function.\0",
+	"Periodic magnetic field harmonic number should be positive.\0",
+	"Magnetic field period should be positive.\0",
+	"Periodic magnetic field length should be positive.\0",
+	"Number of magnetic field harmonics should be more than 0.\0",
+	"Incorrect wavefront structure.\0",
+	"Object with this index is not a gaussian beam.\0",
+	"Drift space is expected. Object with this index is not a drift space.\0",
+	"Incorrect relative precision. The relative precision should be a real number between 0 and 1.\0", //#130
+	"Object with this index is not a transversely uniform magnetic field.\0",
+	"1D interpolating structure was not set up prperly.\0",
+	"Object with this index is not a periodic magnetic field.\0",
+	"Zero pointer is submitted in place of a pointer to an integer number.\0",
+	"Incorrect grid was specified for the wavefront.\0",
+	"Can not find magnetic field wave.\0",
+	"Empty magnetic field container encountered.\0",
+	"No non-zero magnetic field is defined.\0",
+	"No Stokes parameters structure found.\0",
+	"Overlapping magnet elements encountered.\0", //#140
+	"Incorrect longitudinal step or relative precision value.\0",
+	"Step of longitudinal integration is too large.\0",
+	"Incorrect limits of longitudinal integration for power density calculation.\0",
+	"Incorrect or incompatible data structures were supplied for integration of radiation components.\0",
+	"Incorrect definition of electron beam.\0",
+	"Failed to create wave.\0",
+	"Object with this index is not an optical element.\0",
+	"Can not extract transmission characteristic of this optical element.\0",
+	"Incorrect definition of parameters for transmission characteristic.\0",
+    "Number of points should be positive.\0", //#150
+	"Maximum number of step subdivisions reached at automatic Runge-Kutta integration.\0",
+	"Step size is too small in automatic Runge-Kutta integration routine.\0",
+	"Incorrect definition of Gaussian beam power (energy).\0",
+	"Time-domain radiation (wavefront) structure is required.\0",
+	"Character identifying electric field representation should be either 'F' (for frequency domain) or 'T' (for time domain) ot 'C' (for coordinate reperesentation) or 'A' (for angular representation)\0", //#155
+
+	"***** Specified number of slices and/or number of particles in slice is inconsistent with submitted electron distribution.\0",
+
+	"Incorrect definition of centers and RMS sizes of multi-dimensional Gaussians.\0",
+	"The submitted wave has too small number of elements.\0", //copied from IDB (+13)
+	"Incorrect (or inconsistent) definition of surface data in radiation sampling structure.\0",
+
+	"Incorrect or no data structures were supplied to function.\0",
+	"Magnetic field supplied is not supported in this type of calculation.\0",
+	"Incorrect trajectory structure / parameters were supplied to function.\0",
+	"Incorrect or insufficient parameters for trajectory calculation.\0",
+	"Incorrect or insufficient parameters for synchrotron radiation calculation.\0",
+	"Incorrect or insufficient parameters for Gaussian beam definition.\0",
+	"Incorrect or insufficient parameters for intensity extraction.\0",
+	"Incorrect or no wavefront structure.\0",
+	"External (callback) function falied to modify wavefront data.\0",
+	"Incorrect or insufficient parameters for electric field (wavefront) resizing.\0",
+	"Incorrect or insufficient parameters for changing electric field (wavefront) representation.\0",
+	"Incorrect or insufficient parameters for electric field (wavefront) propagation.\0",
+	"Pointer to external (callback) wavefront modification function is not defined.\0",
+
+	"Incorrect optical element orientation.\0",
+	"Incorrect optical element simulation method number.\0",
+
+	"Incorrect or insufficient parameters for synchrotron radiation power density calculation.\0",
+
+	"Incorrect ellipsoidal mirror parameters: p, q, grazing angle and sagital radius should be positive.\0", //#176
+	"Failed to determine optical axis after reflection from mirror.\0", //#177
+	"Failed to interpolate electric field.\0", //#178
+
+	"Incorrect or insufficient parameters for magnetic field calculation.\0", //#179
+
+	"\0"						// NOTE: NULL required to terminate the resource.
+END
+
+1200 STR# /* SRW Warnings */
+BEGIN
+	"Too large taper parameter. Resulting precision may be low.\0",
+	"Too large Optical Klystron phase shift parameter. Resulting precision may be low.\0",
+	"Too few periods in the undulator. Resulting precision may be low.\0",
+
+	"\0"
+END
+
+1100 XOPI						// XOPI - Describes general XOP properties to IGOR. 
+BEGIN
+	XOP_VERSION,				// Version number of host XOP system.
+	DEV_SYS_CODE,				// Code for development system used to make XOP
+	0,							// True if XOP requires hierarchical menus
+	0,							// True if XOP requires math coprocessor
+	0							// True if XOP requires MMU
+END
+
+1100 XOPF						// Describes functions that the XOP adds to IGOR.
+BEGIN
+	"srLoop\0",					// Function name.
+	F_WAVE | F_EXTERNAL,		// Function category,
+	NT_FP64,					// Return value type.
+		WAVE_TYPE,				// First parameter type.
+		WAVE_TYPE,
+		WAVE_TYPE,
+		WAVE_TYPE,
+		WAVE_TYPE,
+		WAVE_TYPE,
+		0,						// End of parameters.
+
+	"srWfrFromTrj\0",					// Function name.
+	F_WAVE | F_EXTERNAL,		// Function category,
+	NT_FP64,					// Return value type.
+		WAVE_TYPE,				// First parameter type.
+		WAVE_TYPE,
+		WAVE_TYPE,
+		WAVE_TYPE,
+		WAVE_TYPE,
+		0,						// End of parameters.
+
+	"srWfrIsotrSrc\0",					// Function name.
+	F_WAVE | F_EXTERNAL,		// Function category,
+	NT_FP64,					// Return value type.
+		WAVE_TYPE,				// First parameter type.
+		WAVE_TYPE,
+		WAVE_TYPE,
+		WAVE_TYPE,
+		WAVE_TYPE,
+		0,						// End of parameters.
+
+	"srWfrGsnBeam\0",					// Function name.
+	F_WAVE | F_EXTERNAL,		// Function category,
+	NT_FP64,					// Return value type.
+		WAVE_TYPE,				// First parameter type.
+		WAVE_TYPE,
+		WAVE_TYPE,
+		WAVE_TYPE,
+		0,						// End of parameters.
+
+	"srWfrSASE\0",				// Function name.
+	F_WAVE | F_EXTERNAL,		// Function category,
+	NT_FP64,					// Return value type.
+		WAVE_TYPE,				// First parameter type.
+		WAVE_TYPE,
+		WAVE_TYPE,
+		WAVE_TYPE,
+		WAVE_TYPE,
+		WAVE_TYPE,
+		WAVE_TYPE,
+		0,						// End of parameters.
+
+	"srTraj\0",					// Function name.
+	F_WAVE | F_EXTERNAL,		// Function category,
+	NT_FP64,					// Return value type.
+		WAVE_TYPE,				// First parameter type.
+		WAVE_TYPE,
+		WAVE_TYPE,
+		WAVE_TYPE,
+		WAVE_TYPE,
+		WAVE_TYPE,
+		0,						// End of parameters.
+
+	"srVerNo\0",
+	F_STR | F_EXTERNAL,			// Function category,
+	HSTRING_TYPE,				// Return value type.
+		0,						// NOTE: 0 required to terminate list of parameter types.
+
+	"srRadMom\0",
+	F_WAVE | F_EXTERNAL,		// Function category,
+	NT_FP64,					// Return value type.
+		WAVE_TYPE,				// First parameter type.
+		0,						// NOTE: 0 required to terminate list of parameter types.
+
+	"srFFT1D\0",
+	F_WAVE | F_EXTERNAL,		// Function category,
+	NT_FP64,					// Return value type.
+		WAVE_TYPE,				// First parameter type.
+		NT_FP64,
+		0,						// NOTE: 0 required to terminate list of parameter types.
+
+	"srFFT2D\0",
+	F_WAVE | F_EXTERNAL,		// Function category,
+	NT_FP64,					// Return value type.
+		WAVE_TYPE,				// First parameter type.
+		NT_FP64,
+		0,						// NOTE: 0 required to terminate list of parameter types.
+
+	"srRadResizeXZ\0",
+	F_WAVE | F_EXTERNAL,		// Function category,
+	NT_FP64,					// Return value type.
+		WAVE_TYPE,				// First parameter type.
+		NT_FP64,
+		NT_FP64,
+		NT_FP64,
+		NT_FP64,
+		NT_FP64,
+		0,						// NOTE: 0 required to terminate list of parameter types.
+
+	"srObsSetNxNz\0",
+	F_WAVE | F_EXTERNAL,		// Function category,
+	NT_FP64,					// Return value type.
+		WAVE_TYPE,				// First parameter type.
+		WAVE_TYPE,
+		WAVE_TYPE,
+		NT_FP64,
+		0,						// NOTE: 0 required to terminate list of parameter types.
+
+	"srRadPropag\0",
+	F_WAVE | F_EXTERNAL,		// Function category,
+	NT_FP64,					// Return value type.
+		WAVE_TYPE,				// First parameter type.
+		WAVE_TYPE,
+		NT_FP64,
+		NT_FP64,
+		0,						// NOTE: 0 required to terminate list of parameter types.
+
+	"srWfrPropag\0",
+	F_WAVE | F_EXTERNAL,		// Function category,
+	NT_FP64,					// Return value type.
+		WAVE_TYPE,				// First parameter type.
+		WAVE_TYPE,
+		WAVE_TYPE,
+		0,						// NOTE: 0 required to terminate list of parameter types.
+
+	"srRadExtract\0",
+	F_WAVE | F_EXTERNAL,		// Function category,
+	NT_FP64,					// Return value type.
+		WAVE_TYPE,				// First parameter type.
+		WAVE_TYPE,
+		WAVE_TYPE,
+		0,						// NOTE: 0 required to terminate list of parameter types.
+
+	"srStokesUnd\0",					// Function name.
+	F_WAVE | F_EXTERNAL,		// Function category,
+	NT_FP64,					// Return value type.
+		WAVE_TYPE,				// First parameter type.
+		WAVE_TYPE,
+		WAVE_TYPE,
+		WAVE_TYPE,
+		WAVE_TYPE,
+		0,						// End of parameters.
+
+	"srStokesWig\0",					// Function name.
+	F_WAVE | F_EXTERNAL,		// Function category,
+	NT_FP64,					// Return value type.
+		WAVE_TYPE,				// First parameter type.
+		WAVE_TYPE,
+		WAVE_TYPE,
+		WAVE_TYPE,
+		WAVE_TYPE,
+		0,						// End of parameters.
+
+	"srStokesConst\0",					// Function name.
+	F_WAVE | F_EXTERNAL,		// Function category,
+	NT_FP64,					// Return value type.
+		WAVE_TYPE,				// First parameter type.
+		WAVE_TYPE,
+		WAVE_TYPE,
+		WAVE_TYPE,
+		WAVE_TYPE,
+		0,						// End of parameters.
+
+	"srPowDens\0",					// Function name.
+	F_WAVE | F_EXTERNAL,		// Function category,
+	NT_FP64,					// Return value type.
+		WAVE_TYPE,				// First parameter type.
+		WAVE_TYPE,
+		WAVE_TYPE,
+		WAVE_TYPE,
+		WAVE_TYPE,
+		0,						// End of parameters.
+
+	"srUtiInterTime\0",					// Function name.
+	F_EXTERNAL,			// Function category,
+	NT_FP64,					// Return value type.
+		NT_FP64,
+		0,						// End of parameters.
+
+	"srOptElemSetup\0",
+	F_WAVE | F_EXTERNAL,		// Function category,
+	NT_FP64,					// Return value type.
+		WAVE_TYPE,				// First parameter type.
+		0,						// NOTE: 0 required to terminate list of parameter types.
+
+	"srOptMatConst\0",					// Function name.
+	F_CMPLX | F_EXTERNAL,			// Function category.
+	NT_FP64 | NT_CMPLX,				// Return value type: single precision complex.
+		NT_FP64,
+		NT_FP64,
+		NT_FP64,
+		NT_FP64,
+		0,						// End of parameters.
+
+	"srOptZonePlateSpecSetup\0",
+	F_WAVE | F_EXTERNAL,		// Function category,
+	NT_FP64,					// Return value type.
+		WAVE_TYPE,				// First parameter type.
+		WAVE_TYPE,
+		0,						// NOTE: 0 required to terminate list of parameter types.
+
+	"srUtiSpotInfo\0",
+	F_WAVE | F_EXTERNAL,		// Function category,
+	HSTRING_TYPE,					// Return value type.
+		WAVE_TYPE,				// First parameter type.
+		0,						// NOTE: 0 required to terminate list of parameter types.
+
+	"srUtiWfrLimits\0",
+	F_WAVE | F_EXTERNAL,		// Function category,
+	HSTRING_TYPE,					// Return value type.
+		WAVE_TYPE,				// First parameter type.
+		NT_FP64,
+		0,						// NOTE: 0 required to terminate list of parameter types.
+
+	"srUtiRemoveFlips\0",
+	F_WAVE | F_EXTERNAL,		// Function category,
+	NT_FP64,					// Return value type.
+		WAVE_TYPE,				// First parameter type.
+		0,						// NOTE: 0 required to terminate list of parameter types.
+
+	"srUtiMagRad\0",
+	F_EXTERNAL,		// Function category,
+	NT_FP64,					// Return value type.
+		NT_FP64,				// First parameter type.
+		NT_FP64,
+		NT_FP64,
+		0,						// NOTE: 0 required to terminate list of parameter types.
+
+	"srUtiMagCritPhotEn\0",
+	F_EXTERNAL,		// Function category,
+	NT_FP64,					// Return value type.
+		NT_FP64,				// First parameter type.
+		NT_FP64,
+		NT_FP64,
+		0,						// NOTE: 0 required to terminate list of parameter types.
+
+	"srUtiUndK\0",
+	F_EXTERNAL,		// Function category,
+	NT_FP64,					// Return value type.
+		NT_FP64,				// First parameter type.
+		NT_FP64,
+		0,						// NOTE: 0 required to terminate list of parameter types.
+
+	"srUtiUndFundPhotEn\0",
+	F_EXTERNAL,		// Function category,
+	NT_FP64,					// Return value type.
+		NT_FP64,				// First parameter type.
+		NT_FP64,
+		NT_FP64,
+		NT_FP64,
+		0,						// NOTE: 0 required to terminate list of parameter types.
+
+	"srKn\0",					// Function name.
+	F_EXTERNAL,					// Function category.
+	NT_FP64,					// Return value type
+		NT_FP64,
+		NT_FP64,
+		NT_FP64,
+		0,						// End of parameters.
+
+	"srElecBeamPropag\0",		// Function name.
+	F_WAVE | F_EXTERNAL,		// Function category,
+	NT_FP64,					// Return value type.
+		WAVE_TYPE,				// First parameter type.
+		WAVE_TYPE,
+		0,						// End of parameters.
+
+	"srMagArb2Per\0",		// Function name.
+	F_WAVE | F_EXTERNAL,		// Function category,
+	NT_FP64,					// Return value type.
+		WAVE_TYPE,				// First parameter type.
+		WAVE_TYPE,
+		WAVE_TYPE,
+		0,						// End of parameters.
+
+	"srStokesArb\0",			// Function name.
+	F_WAVE | F_EXTERNAL,		// Function category,
+	NT_FP64,					// Return value type.
+		WAVE_TYPE,				// First parameter type.
+		WAVE_TYPE,
+		WAVE_TYPE,
+		WAVE_TYPE,
+		WAVE_TYPE,
+		0,						// End of parameters.
+
+	"srUtiTrfOptMir\0",			// Function name.
+	F_WAVE | F_EXTERNAL,		// Function category,
+	NT_FP64,					// Return value type.
+		WAVE_TYPE,				// First parameter type.
+		WAVE_TYPE,
+		WAVE_TYPE,
+		0,						// End of parameters.
+
+	"srUti3DView\0",			// Function name.
+	F_WAVE | F_EXTERNAL,		// Function category,
+	NT_FP64,					// Return value type.
+		WAVE_TYPE,				// First parameter type.
+		WAVE_TYPE,
+		WAVE_TYPE,
+		WAVE_TYPE,
+		NT_FP64,
+		0,						// End of parameters.
+
+	"srRadPropagStokesMultiE\0",					// Function name.
+	F_WAVE | F_EXTERNAL,		// Function category,
+	NT_FP64,					// Return value type.
+		WAVE_TYPE,				// First parameter type.
+		WAVE_TYPE,
+		WAVE_TYPE,
+		WAVE_TYPE,
+		WAVE_TYPE,
+		0,						// End of parameters.
+
+	"srWfrEmitPropag\0",					// Function name.
+	F_WAVE | F_EXTERNAL,		// Function category,
+	NT_FP64,					// Return value type.
+		WAVE_TYPE,				// First parameter type.
+		WAVE_TYPE,
+		WAVE_TYPE,
+		WAVE_TYPE,
+		WAVE_TYPE,
+		WAVE_TYPE,
+		0,						// End of parameters.
+
+	"srWfrReflect\0",			// Function name.
+	F_WAVE | F_EXTERNAL,		// Function category,
+	NT_FP64,					// Return value type.
+		WAVE_TYPE,				// First parameter type.
+		WAVE_TYPE,
+		WAVE_TYPE,
+		0,						// End of parameters.
+		
+	"srWfrSetRepres\0",
+	F_WAVE | F_EXTERNAL,		// Function category,
+	NT_FP64,					// Return value type.
+		WAVE_TYPE,				// First parameter type.
+		HSTRING_TYPE,
+		0,						// NOTE: 0 required to terminate list of parameter types.
+
+	"srUtiIntKnXn\0",
+	F_EXTERNAL,		// Function category,
+	NT_FP64,					// Return value type.
+		NT_FP64,				// First parameter type.
+		NT_FP64,
+		NT_FP64,
+		NT_FP64,
+		0,						// NOTE: 0 required to terminate list of parameter types.
+
+	"srRadIntensInteg\0",			// Function name.
+	F_WAVE | F_EXTERNAL,		// Function category,
+	NT_FP64,					// Return value type.
+		WAVE_TYPE,				// First parameter type.
+		WAVE_TYPE,
+		WAVE_TYPE,
+		0,						// end of parameters
+
+	"srOptThinTransmCharExtract\0", //function name
+	F_WAVE | F_EXTERNAL, //function category
+	NT_FP64, //return value type
+		WAVE_TYPE, //first parameter type
+		WAVE_TYPE,
+		WAVE_TYPE,
+		0, //end of parameters
+
+	"srWfrCSR\0", //function name
+	F_WAVE | F_EXTERNAL,		// Function category
+	NT_FP64,					// Return value type
+		WAVE_TYPE, //first parameter type
+		WAVE_TYPE,
+		WAVE_TYPE,
+		WAVE_TYPE,
+		WAVE_TYPE,
+		0, //end of parameters
+
+	"srTraj3d\0",				// Function name.
+	F_WAVE | F_EXTERNAL,		// Function category,
+	NT_FP64,					// Return value type.
+		WAVE_TYPE,				// First parameter type.
+		WAVE_TYPE,
+		WAVE_TYPE,
+		WAVE_TYPE,
+		WAVE_TYPE,
+		WAVE_TYPE,
+		WAVE_TYPE,
+		WAVE_TYPE,
+		0,						// End of parameters.
+
+	"srUtiRandGsn\0",			// Function name.
+	F_WAVE | F_EXTERNAL,		// Function category,
+	NT_FP64,					// Return value type.
+		WAVE_TYPE,				// First parameter type.
+		NT_FP64,
+		NT_FP64,
+		NT_FP64,
+		WAVE_TYPE,
+		0,						// End of parameters.
+
+	"\0"							// NOTE: NULL required to terminate the resource.
+END
