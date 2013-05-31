@@ -37,11 +37,11 @@
 
 //*************************************************************************
 
-class CGenMathFFT {
+class CGenMathFFT //{
 #ifndef _GM_WITHOUT_BASE
 	: public CGenMathObj
 #endif
-
+{//OC01052013
 	double a2c, a4c, a6c, a8c, a10c, a12c;
 	double a3s, a5s, a7s, a9s, a11s, a13s;
 

@@ -573,9 +573,9 @@ void srTDriftSpace::SetupPropBufVars_AnalytTreatQuadPhaseTerm(srTSRWRadStructAcc
 	//testOC30092011
 	if(!PropBufVars.UseExactRxRzForAnalytTreatQuadPhaseTerm)
 	{
-		EstimateWfrRadToSub_AnalytTreatQuadPhaseTerm(pRadAccessData, trueRx, trueRz);
-		//OC15102011 -- under testing (disadvantage of the previous version is dependence of "trueR" on statistical moments)
-		//EstimateWfrRadToSub2_AnalytTreatQuadPhaseTerm(pRadAccessData, trueRx, trueRz);
+		if(PropBufVars.AnalytTreatSubType == 1) EstimateWfrRadToSub_AnalytTreatQuadPhaseTerm(pRadAccessData, trueRx, trueRz);
+		//OC15102011 -- under testing (disadvantage of the previous version is the dependence of "trueR" on statistical moments)
+		else if(PropBufVars.AnalytTreatSubType == 2) EstimateWfrRadToSub2_AnalytTreatQuadPhaseTerm(pRadAccessData, trueRx, trueRz); //OC22042013 (uncommented)
 	}
 
 	//if(pRadAccessData->RobsX != 0) 

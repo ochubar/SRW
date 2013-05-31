@@ -15,10 +15,10 @@ SRW_SRC_DEF=	-D_GNU_SOURCE -D__USE_XOPEN2K8 -DFFTW_ENABLE_FLOAT -D_GM_WITHOUT_BA
 CFLAGS=	-O3 -fPIC -I$(SRW_SRC_GEN_DIR) -I$(SRW_SRC_LIB_DIR) -I$(SH_SRC_PARSE_DIR) -I$(SH_SRC_GEN_MATH_DIR) $(SRW_SRC_DEF) 
 
 
-PYPATH=/nsls2/projects/bldev/general64
+PYPATH=/nsls2/projects/bldev/bldev-env
 #PYPATH=/usr
-PYFLAGS=-I$(PYPATH)/include/python3.2m -L$(PYPATH)/lib/python3.2
-#PYFLAGS=-I$(PYPATH)/include/python2.7 -L$(PYPATH)/lib/python2.7
+#PYFLAGS=-I$(PYPATH)/include/python3.2m -L$(PYPATH)/lib/python3.2
+PYFLAGS=-I$(PYPATH)/include/python2.7 -L$(PYPATH)/lib/python2.7
 #PYFLAGS=-I$(PYPATH)/include/python2.6 -L$(PYPATH)/lib/python2.6
 
 LDFLAGS=-L$(LIB_DIR) -lm -lfftw 

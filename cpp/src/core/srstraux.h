@@ -578,33 +578,39 @@ struct srTRadResize {
 
 	char useOtherSideFFT(int in=-1) 
 	{
-		if(in == 0)     ModeBits &= 30;//11110
-		else if(in > 0) ModeBits |= 1; //00001
+		if(in == 0)     ModeBits &= 126; //30;//1111110
+		else if(in > 0) ModeBits |= 1; //0000001
 		return (1 & ModeBits);
 	}
 	char doNotTreatSpherTerm(int in=-1) 
 	{ 
-		if(in == 0)     ModeBits &= 29;//11101
-		else if(in > 0) ModeBits |= 2; //00010
+		if(in == 0)     ModeBits &= 125; //29;//1111101
+		else if(in > 0) ModeBits |= 2; //0000010
 		return (2 & ModeBits) >> 1;
 	}
 	char propAutoResizeBefore(int in=-1) 
 	{ 
-		if(in == 0)     ModeBits &= 27;//11011
-		else if(in > 0) ModeBits |= 4; //00100
+		if(in == 0)     ModeBits &= 123; //27;//1111011
+		else if(in > 0) ModeBits |= 4; //0000100
 		return (4 & ModeBits) >> 2;
 	}
 	char propAutoResizeAfter(int in=-1) 
 	{
-		if(in == 0)     ModeBits &= 23;//10111
-		else if(in > 0) ModeBits |= 8; //01000
+		if(in == 0)     ModeBits &= 119; //23;//1110111
+		else if(in > 0) ModeBits |= 8; //0001000
 		return (8 & ModeBits) >> 3;
 	}
 	char propAllowUnderSamp(int in=-1) 
-	{ 
-		if(in == 0)     ModeBits &= 15;//01111
-		else if(in > 0) ModeBits |= 16;//10000
-		return (16 & ModeBits) >> 4;
+	{//uses bytes 4, 5 for encoding type of analytical treatment at propagation with resizing
+		if(in == 0)     ModeBits &= 15;//0001111
+		//else if(in > 0) ModeBits |= 16;//10000
+		//return (16 & ModeBits) >> 4;
+		else if(in > 0) 
+		{
+			in <<= 4;
+			ModeBits |= in;//XXX0000
+		}
+		return (112 & ModeBits) >> 4;
 	}
 };
 

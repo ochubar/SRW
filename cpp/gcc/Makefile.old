@@ -1,11 +1,11 @@
 SOFT_DEV_DIR=	../
 SRW_SRC_DIR=	$(SOFT_DEV_DIR)/src
-SRW_SRC_GEN_DIR=	$(SRW_SRC_DIR)/general
+SRW_SRC_GEN_DIR=	$(SRW_SRC_DIR)/core
 SRW_SRC_LIB_DIR=	$(SRW_SRC_DIR)/lib
 SRW_SRC_GENESIS_DIR=	$(SRW_SRC_DIR)/ext/genesis/genesis_july08
 SH_SRC_PARSE_DIR=	$(SRW_SRC_DIR)/ext/auxparse
 SH_SRC_GEN_MATH_DIR=	$(SRW_SRC_DIR)/ext/genmath
-LIB_DIR=	$(SOFT_DEV_DIR)/ext_lib
+LIB_DIR=	$(SOFT_DEV_DIR)/../ext_lib
 FFT_DIR = $(SOFT_DEV_DIR)
 
 CC  = gcc
@@ -17,9 +17,8 @@ CFLAGS=	-O3 -fPIC -I$(SRW_SRC_GEN_DIR) -I$(SRW_SRC_LIB_DIR) -I$(SH_SRC_PARSE_DIR
 
 PYPATH=/nsls2/projects/bldev/general64
 #PYPATH=/usr
-
-#PYFLAGS=-I$(PYPATH)/include/python3.2m -L$(PYPATH)/lib/python3.2
-PYFLAGS=-I$(PYPATH)/include/python2.7 -L$(PYPATH)/lib/python2.7
+PYFLAGS=-I$(PYPATH)/include/python3.2m -L$(PYPATH)/lib/python3.2
+#PYFLAGS=-I$(PYPATH)/include/python2.7 -L$(PYPATH)/lib/python2.7
 #PYFLAGS=-I$(PYPATH)/include/python2.6 -L$(PYPATH)/lib/python2.6
 
 LDFLAGS=-L$(LIB_DIR) -lm -lfftw 

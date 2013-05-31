@@ -235,25 +235,35 @@ int srTGsnBeam::CreateWavefrontElFieldFreqDomain(srTSRWRadStructAccessData& RadA
 	if(result = CheckInputConsistency()) return result;
 	SetupSourceConstantsFreqDomain();
 
+	//x0Prop = EbmDat.x0 + EbmDat.dxds0*LongDist;
+	//z0Prop = EbmDat.z0 + EbmDat.dzds0*LongDist;
+
 	double InvLongDist = 1./LongDist;
 
 	float* tRadX = RadAccessData.pBaseRadX;
 	float* tRadZ = RadAccessData.pBaseRadZ;
 
 	double z = RadAccessData.zStart - z0Prop;
+	double z_mi_z0 = RadAccessData.zStart - EbmDat.z0; //OC210413
+
 	for(int iz=0; iz<RadAccessData.nz; iz++)
 	{
 		double ze2 = z*z;
+		double z_mi_z0_e2 = z_mi_z0*z_mi_z0; //OC210413
+		double zz = z_mi_z0 + EbmDat.z0; //OC210413
 
 		double x = RadAccessData.xStart - x0Prop;
+		double x_mi_x0 = RadAccessData.xStart - EbmDat.x0; //OC210413
+
 		for(int ix=0; ix<RadAccessData.nx; ix++)
 		{
 			double xe2 = x*x;
+			double x_mi_x0_e2 = x_mi_x0*x_mi_x0; //OC210413
+			double xx = x_mi_x0 + EbmDat.x0; //OC210413
 
 			double en = RadAccessData.eStart;
 			for(int ie=0; ie<RadAccessData.ne; ie++)
 			{
-
 				double PropRatX = en*PropagMultX, PropRatZ = en*PropagMultZ;
 				double PropRatXe2 = PropRatX*PropRatX, PropRatZe2 = PropRatZ*PropRatZ;
 				double InvPropRatX = 1./PropRatX, InvPropRatZ = 1./PropRatZ;
@@ -265,9 +275,15 @@ int srTGsnBeam::CreateWavefrontElFieldFreqDomain(srTSRWRadStructAccessData& RadA
 				double PropInvSigX = sqrt(2.*PropInvTwoSigXe2), PropInvSigZ = sqrt(2.*PropInvTwoSigZe2);
 				double PropInvRx = InvLongDist/DisMultX, PropInvRz = InvLongDist/DisMultZ;
 
+				double xpMult = (1./PropInvRx - LongDist)*EbmDat.dxds0, zpMult = (1./PropInvRz - LongDist)*EbmDat.dzds0; //OC210413
+
 				double NuX = atan(InvPropRatX), NuZ = atan(InvPropRatZ);
 
-				double Phase = en*enMult*(xe2*PropInvRx + ze2*PropInvRz) + (mx + 0.5)*NuX + (mz + 0.5)*NuZ;
+				//double Phase = en*enMult*(xe2*PropInvRx + ze2*PropInvRz) + (mx + 0.5)*NuX + (mz + 0.5)*NuZ;
+				double Phase = en*enMult*((x_mi_x0_e2 + 2*LongDist*EbmDat.x0*EbmDat.dxds0 + xpMult*(2*xx - LongDist*EbmDat.dxds0))*PropInvRx 
+										+ (z_mi_z0_e2 + 2*LongDist*EbmDat.z0*EbmDat.dzds0 + zpMult*(2*zz - LongDist*EbmDat.dzds0))*PropInvRz) 
+							   + (mx + 0.5)*NuX + (mz + 0.5)*NuZ; //OC210413 //??
+
 				Phase -= TwoPI*long(Phase*InvTwoPI);
 				double CosPh = cos(Phase), SinPh = sin(Phase);
 
@@ -291,8 +307,10 @@ int srTGsnBeam::CreateWavefrontElFieldFreqDomain(srTSRWRadStructAccessData& RadA
 				en += RadAccessData.eStep;
 			}
 			x += RadAccessData.xStep;
+			x_mi_x0 += RadAccessData.xStep; //OC210413
 		}
 		z += RadAccessData.zStep;
+		z_mi_z0 += RadAccessData.zStep; //OC210413
 	}
 	RadAccessData.Pres = 0;
 	RadAccessData.PresT = 0;

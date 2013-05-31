@@ -39,11 +39,12 @@ struct srTDriftPropBufVars {
 	double TwoPiXc_d_LambdaMRx, TwoPiZc_d_LambdaMRz;
 	double UnderSamplingX, UnderSamplingZ;
 	bool UseExactRxRzForAnalytTreatQuadPhaseTerm;
-
+	char AnalytTreatSubType; //OC24042013
 	srTDriftPropBufVars()
 	{
 		UnderSamplingX = UnderSamplingZ = 1.;
 		UseExactRxRzForAnalytTreatQuadPhaseTerm = false;
+		AnalytTreatSubType = 0;
 	}
 };
 
@@ -155,6 +156,8 @@ public:
 			}
 			else LocPropToWaistCanBeApplied = 0; //test 03012007
 		}
+
+		PropBufVars.AnalytTreatSubType = ParPrecWfrPropag.AnalTreatment; //OC24042013
 
 		int GoodCondForPropWithoutQuadTerm = ((ParPrecWfrPropag.AnalTreatment != 0) && (!LocPropToWaistCanBeApplied)); // && //test 03012007
 			//(pRadAccessData->ThereIsUnderSamplingX() || pRadAccessData->ThereIsUnderSamplingZ() || 
