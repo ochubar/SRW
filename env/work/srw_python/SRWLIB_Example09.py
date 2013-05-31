@@ -1,6 +1,6 @@
 ###########################################################################
 # SRWLIB Example#9: Simulating propagation of a Gaussian X-ray beam through a Beamline containing an Imperfect Mirror
-# v 0.02 (based on input of L. Samoylova)
+# v 0.03 (based on input of L. Samoylova)
 #############################################################################
 
 from __future__ import print_function #Python 2.7 compatibility
@@ -10,10 +10,9 @@ import os
 import math
 
 print('SRWLIB Python Example # 9:')
-print('Simulating propagation of a Coherent Gaussian X-ray beam through a Beamline containing an Imperfect Mirror')
+print('Simulating propagation of a Coherent Gaussian X-ray beam through a Beamline containing Imperfect Mirrors')
 
 #**********************Auxiliary Functions
-
 #Read data comumns from ASCII file:
 def AuxReadInDataColumns(filePath, nCol, strSep):
     f = open(filePath, 'r')
@@ -32,48 +31,50 @@ def AuxReadInDataColumns(filePath, nCol, strSep):
     return resCols #attn: returns lists, not arrays!
 
 #Write tabulated resulting Intensity data to ASCII file:
-def AuxSaveIntData(arI, mesh, filePath):
-    f = open(filePath, 'w')
-    f.write('#C-aligned Intensity (inner loop is vs photon energy, outer loop vs vertical position)\n')
-    f.write('#' + repr(mesh.eStart) + ' #Initial Photon Energy [eV]\n')
-    f.write('#' + repr(mesh.eFin) + ' #Final Photon Energy [eV]\n')
-    f.write('#' + repr(mesh.ne) + ' #Number of points vs Photon Energy\n')
-    f.write('#' + repr(mesh.xStart) + ' #Initial Horizontal Position [m]\n')
-    f.write('#' + repr(mesh.xFin) + ' #Final Horizontal Position [m]\n')
-    f.write('#' + repr(mesh.nx) + ' #Number of points vs Horizontal Position\n')
-    f.write('#' + repr(mesh.yStart) + ' #Initial Vertical Position [m]\n')
-    f.write('#' + repr(mesh.yFin) + ' #Final Vertical Position [m]\n')
-    f.write('#' + repr(mesh.ny) + ' #Number of points vs Vertical Position\n')
-    for i in range(mesh.ne*mesh.nx*mesh.ny): #write all data into one column using "C-alignment" as a "flat" 1D array
-        f.write(' ' + repr(arI[i]) + '\n')
-    f.close()
+#replaced by srwlib.srwl_uti_save_intens_ascii
+#def AuxSaveIntData(arI, mesh, filePath):
+#    f = open(filePath, 'w')
+#    f.write('#C-aligned Intensity (inner loop is vs photon energy, outer loop vs vertical position)\n')
+#    f.write('#' + repr(mesh.eStart) + ' #Initial Photon Energy [eV]\n')
+#    f.write('#' + repr(mesh.eFin) + ' #Final Photon Energy [eV]\n')
+#    f.write('#' + repr(mesh.ne) + ' #Number of points vs Photon Energy\n')
+#    f.write('#' + repr(mesh.xStart) + ' #Initial Horizontal Position [m]\n')
+#    f.write('#' + repr(mesh.xFin) + ' #Final Horizontal Position [m]\n')
+#    f.write('#' + repr(mesh.nx) + ' #Number of points vs Horizontal Position\n')
+#    f.write('#' + repr(mesh.yStart) + ' #Initial Vertical Position [m]\n')
+#    f.write('#' + repr(mesh.yFin) + ' #Final Vertical Position [m]\n')
+#    f.write('#' + repr(mesh.ny) + ' #Number of points vs Vertical Position\n')
+#    for i in range(mesh.ne*mesh.nx*mesh.ny): #write all data into one column using "C-alignment" as a "flat" 1D array
+#        f.write(' ' + repr(arI[i]) + '\n')
+#    f.close()
 
 #Write Optical Transmission characteristic data to ASCII file:
-def AuxSaveOpTransmData(optTr, t, filePath):
-    f = open(filePath, 'w')
-    f.write('#C-aligned optical Transmission characteristic (inner loop is vs horizontal position, outer loop vs vertical position)\n')
-    f.write('#' + repr(optTr.mesh.eStart) + ' #Initial Photon Energy [eV]\n')
-    f.write('#' + repr(optTr.mesh.eFin) + ' #Final Photon Energy [eV]\n')
-    f.write('#' + repr(optTr.mesh.ne) + ' #Number of points vs Photon Energy\n')
-    f.write('#' + repr(optTr.mesh.xStart) + ' #Initial Horizontal Position [m]\n')
-    f.write('#' + repr(optTr.mesh.xFin) + ' #Final Horizontal Position [m]\n')
-    f.write('#' + repr(optTr.mesh.nx) + ' #Number of points vs Horizontal Position\n')
-    f.write('#' + repr(optTr.mesh.yStart) + ' #Initial Vertical Position [m]\n')
-    f.write('#' + repr(optTr.mesh.yFin) + ' #Final Vertical Position [m]\n')
-    f.write('#' + repr(optTr.mesh.ny) + ' #Number of points vs Vertical Position\n')
-    neLoc = 1
-    if(optTr.mesh.ne > 1):
-        neLoc = optTr.mesh.ne
-    for i in range(neLoc*optTr.mesh.nx*optTr.mesh.ny): #write all data into one column using "C-alignment" as a "flat" 1D array
-        tr = 0
-        if((t == 1) or (t == 2)): #amplitude or intensity transmission
-            tr = optTr.arTr[i*2]
-            if(t == 2): #intensity transmission
-                tr *= tr
-        else: #optical path difference
-            tr = optTr.arTr[i*2 + 1]
-        f.write(' ' + repr(tr) + '\n')
-    f.close()
+#replaced by srwlib.srwl_uti_save_intens_ascii
+#def AuxSaveOpTransmData(optTr, t, filePath):
+#    f = open(filePath, 'w')
+#    f.write('#C-aligned optical Transmission characteristic (inner loop is vs horizontal position, outer loop vs vertical position)\n')
+#    f.write('#' + repr(optTr.mesh.eStart) + ' #Initial Photon Energy [eV]\n')
+#    f.write('#' + repr(optTr.mesh.eFin) + ' #Final Photon Energy [eV]\n')
+#    f.write('#' + repr(optTr.mesh.ne) + ' #Number of points vs Photon Energy\n')
+#    f.write('#' + repr(optTr.mesh.xStart) + ' #Initial Horizontal Position [m]\n')
+#    f.write('#' + repr(optTr.mesh.xFin) + ' #Final Horizontal Position [m]\n')
+#    f.write('#' + repr(optTr.mesh.nx) + ' #Number of points vs Horizontal Position\n')
+#    f.write('#' + repr(optTr.mesh.yStart) + ' #Initial Vertical Position [m]\n')
+#    f.write('#' + repr(optTr.mesh.yFin) + ' #Final Vertical Position [m]\n')
+#    f.write('#' + repr(optTr.mesh.ny) + ' #Number of points vs Vertical Position\n')
+#    neLoc = 1
+#    if(optTr.mesh.ne > 1):
+#        neLoc = optTr.mesh.ne
+#    for i in range(neLoc*optTr.mesh.nx*optTr.mesh.ny): #write all data into one column using "C-alignment" as a "flat" 1D array
+#        tr = 0
+#        if((t == 1) or (t == 2)): #amplitude or intensity transmission
+#            tr = optTr.arTr[i*2]
+#            if(t == 2): #intensity transmission
+#                tr *= tr
+#        else: #optical path difference
+#            tr = optTr.arTr[i*2 + 1]
+#        f.write(' ' + repr(tr) + '\n')
+#    f.close()
 
 #Setup Transmission optical element with 1D heght profile data
 def AuxTransmAddSurfHeightProfile(optSlopeErr, heightProfData, dim, ang):
@@ -134,7 +135,7 @@ def AuxTransmAddSurfHeightProfile(optSlopeErr, heightProfData, dim, ang):
             x += xStep
         y += yStep
 
-#**********************Input Parameters and structures:
+#**********************Source and Initial Wavefront Input Parameters and Structures:
 
 strDataFolderName = 'data_example_09' #data sub-folder name
 
@@ -177,15 +178,23 @@ wfr.partBeam.partStatMom1.yp = GsnBm.yp
 
 #**********************Calculating Initial Wavefront and extracting Intensity:
 srwl.CalcElecFieldGaussian(wfr, GsnBm, arPrecPar)
-arI = array('f', [0]*wfr.mesh.nx*wfr.mesh.ny) #"flat" array to take 2D intensity data
-srwl.CalcIntFromElecField(arI, wfr, 6, 0, 3, wfr.mesh.eStart, 0, 0) #extracts intensity
-AuxSaveIntData(arI, wfr.mesh, os.path.join(os.getcwd(), strDataFolderName, "res_int_in.dat"))
+mesh0 = deepcopy(wfr.mesh)
+arI0 = array('f', [0]*mesh0.nx*mesh0.ny) #"flat" array to take 2D intensity data
+srwl.CalcIntFromElecField(arI0, wfr, 6, 0, 3, mesh0.eStart, 0, 0) #extracts intensity
+#AuxSaveIntData(arI, wfr.mesh, os.path.join(os.getcwd(), strDataFolderName, "ex09_res_int_in.dat"))
+srwl_uti_save_intens_ascii(arI0, mesh0, os.path.join(os.getcwd(), strDataFolderName, 'ex09_res_int_in.dat'), 0)
 
-arP = array('d', [0]*wfr.mesh.nx*wfr.mesh.ny) #"flat" array to take 2D phase data (note it should be 'd')
-srwl.CalcIntFromElecField(arP, wfr, 6, 4, 3, wfr.mesh.eStart, 0, 0) #extracts radiation phase
-AuxSaveIntData(arP, wfr.mesh, os.path.join(os.getcwd(), strDataFolderName, "res_phase_in.dat"))
+arI0x = array('f', [0]*mesh0.nx) #array to take 1D intensity data (for plotting)
+srwl.CalcIntFromElecField(arI0x, wfr, 6, 0, 1, mesh0.eStart, 0, 0) #extracts intensity
+arI0y = array('f', [0]*mesh0.ny) #array to take 1D intensity data
+srwl.CalcIntFromElecField(arI0y, wfr, 6, 0, 2, mesh0.eStart, 0, 0) #extracts intensity
 
-#***********Optical Elements
+arP0 = array('d', [0]*mesh0.nx*mesh0.ny) #"flat" array to take 2D phase data (note it should be 'd')
+srwl.CalcIntFromElecField(arP0, wfr, 6, 4, 3, mesh0.eStart, 0, 0) #extracts radiation phase
+#AuxSaveIntData(arP, wfr.mesh, os.path.join(os.getcwd(), strDataFolderName, "ex09_res_phase_in.dat"))
+srwl_uti_save_intens_ascii(arP0, mesh0, os.path.join(os.getcwd(), strDataFolderName, 'ex09_res_phase_in.dat'), 0, ['Photon Energy', 'Horizontal Position', 'Vertical Position', 'Phase'], _arUnits=['eV', 'm', 'm', 'rad'])
+
+#**********************Optical Elements and Propagation related Input Parameters and Structures:
 opDrM1_VFM = SRWLOptD(930 - 270 - 1.7) #Drift space from First Mirrors to KB
 
 #read mirror slope arror data from file and setup the corresponding optical element
@@ -195,7 +204,9 @@ heightProfData = AuxReadInDataColumns(os.path.join(os.getcwd(), strDataFolderNam
 AuxTransmAddSurfHeightProfile(opTrErM1, heightProfData, 'y', 1.8e-03)
 print('done')
 print('Saving optical path difference data to file (for viewing/debugging)...', end='')
-AuxSaveOpTransmData(opTrErM1, 3, os.path.join(os.getcwd(), strDataFolderName, "res_opt_path_dif_er_m1.dat"))
+#AuxSaveOpTransmData(opTrErM1, 3, os.path.join(os.getcwd(), strDataFolderName, "ex09_res_opt_path_dif_er_m1.dat"))
+opPathDifErM1 = opTrErM1.get_data(3, 3)
+srwl_uti_save_intens_ascii(opPathDifErM1, opTrErM1.mesh, os.path.join(os.getcwd(), strDataFolderName, 'ex09_res_opt_path_dif_er_m1.dat'), 0, ['', 'Horizontal Position', 'Vertical Position', 'Opt. Path Diff.'], _arUnits=['', 'm', 'm', 'm'])
 print('done')
 
 opApKB = SRWLOptA('r', 'a', 1.98e-03, 1.98e-03) #Aperture of KB system
@@ -206,7 +217,9 @@ opTrErVFM = SRWLOptT(100, 1500, 1.98e-03, 1.98e-03)
 AuxTransmAddSurfHeightProfile(opTrErVFM, heightProfData, 'y', 3.6e-3)
 print('done')
 print('Saving optical path difference data to file (for viewing/debugging)...', end='')
-AuxSaveOpTransmData(opTrErVFM, 3, os.path.join(os.getcwd(), strDataFolderName, "res_opt_path_dif_er_vfm.dat"))
+#AuxSaveOpTransmData(opTrErVFM, 3, os.path.join(os.getcwd(), strDataFolderName, "ex09_res_opt_path_dif_er_vfm.dat"))
+opPathDifErVFM = opTrErVFM.get_data(3, 3)
+srwl_uti_save_intens_ascii(opPathDifErVFM, opTrErVFM.mesh, os.path.join(os.getcwd(), strDataFolderName, 'ex09_res_opt_path_dif_er_vfm.dat'), 0, ['', 'Horizontal Position', 'Vertical Position', 'Opt. Path Diff.'], _arUnits=['', 'm', 'm', 'm'])
 print('done')
 
 opDrVFM_HFM = SRWLOptD(0.6) #Drift space between VFM and HFM
@@ -217,12 +230,14 @@ opTrErHFM = SRWLOptT(1500, 100, 1.98e-03, 1.98e-03)
 AuxTransmAddSurfHeightProfile(opTrErHFM, heightProfData, 'x', 3.6e-3)
 print('done')
 print('Saving optical path difference data to file (for viewing/debugging)...', end='')
-AuxSaveOpTransmData(opTrErHFM, 3, os.path.join(os.getcwd(), strDataFolderName, "res_opt_path_dif_er_hfm.dat"))
+#AuxSaveOpTransmData(opTrErHFM, 3, os.path.join(os.getcwd(), strDataFolderName, "ex09_res_opt_path_dif_er_hfm.dat"))
+opPathDifErHFM = opTrErHFM.get_data(3, 3)
+srwl_uti_save_intens_ascii(opPathDifErHFM, opTrErHFM.mesh, os.path.join(os.getcwd(), strDataFolderName, 'ex09_res_opt_path_dif_er_hfm.dat'), 0, ['', 'Horizontal Position', 'Vertical Position', 'Opt. Path Diff.'], _arUnits=['', 'm', 'm', 'm'])
 print('done')
 
 opDrHFM_Samp = SRWLOptD(1.1) #Drift space from First Mirrors to KB
 
-#***********Wavefront Propagation Parameters:
+#Wavefront Propagation Parameters:
 #[0]: Auto-Resize (1) or not (0) Before propagation
 #[1]: Auto-Resize (1) or not (0) After propagation
 #[2]: Relative Precision for propagation with Auto-Resizing (1. is nominal)
@@ -244,19 +259,44 @@ prParRes3 = [0, 0, 1., 1, 0, 0.04, 5.0, 0.04, 5.0, 0, 0, 0]
 optBL = SRWLOptC([opTrErM1, opDrM1_VFM, opApKB, opLenVFM, opTrErVFM, opDrVFM_HFM, opLenHFM, opTrErHFM, opDrHFM_Samp],
                  [prParRes1, prParRes0, prParRes2, prParRes0, prParRes0, prParRes0, prParRes0, prParRes0, prParRes0, prParRes3])
 
-#***********Wavefront Propagation
+#**********************Wavefront Propagation:
 print('Propagating wavefront...', end='')
 srwl.PropagElecField(wfr, optBL)
 print('done')
 
 print('Saving propagated wavefront intensity and phase to files...', end='')
-arI = array('f', [0]*wfr.mesh.nx*wfr.mesh.ny) #"flat" array to take 2D intensity data
-srwl.CalcIntFromElecField(arI, wfr, 6, 0, 3, wfr.mesh.eStart, 0, 0) #extracts intensity
-AuxSaveIntData(arI, wfr.mesh, os.path.join(os.getcwd(), strDataFolderName, "res_int_prop.dat"))
+mesh1 = deepcopy(wfr.mesh)
+arI1 = array('f', [0]*mesh1.nx*mesh1.ny) #"flat" array to take 2D intensity data
+srwl.CalcIntFromElecField(arI1, wfr, 6, 0, 3, mesh1.eStart, 0, 0) #extracts intensity
+#AuxSaveIntData(arI, wfr.mesh, os.path.join(os.getcwd(), strDataFolderName, "ex09_res_int_prop.dat"))
+srwl_uti_save_intens_ascii(arI1, mesh1, os.path.join(os.getcwd(), strDataFolderName, 'ex09_res_int_prop.dat'), 0)
 
-arP = array('d', [0]*wfr.mesh.nx*wfr.mesh.ny) #"flat" array to take 2D phase data (note it should be 'd')
-srwl.CalcIntFromElecField(arP, wfr, 6, 4, 3, wfr.mesh.eStart, 0, 0) #extracts radiation phase
-AuxSaveIntData(arP, wfr.mesh, os.path.join(os.getcwd(), strDataFolderName, "res_phase_prop.dat"))
+arI1x = array('f', [0]*mesh1.nx) #array to take 1D intensity data (for plotting)
+srwl.CalcIntFromElecField(arI1x, wfr, 6, 0, 1, mesh1.eStart, 0, 0) #extracts intensity
+arI1y = array('f', [0]*mesh1.ny) #array to take 1D intensity data
+srwl.CalcIntFromElecField(arI1y, wfr, 6, 0, 2, mesh1.eStart, 0, 0) #extracts intensity
+
+arP1 = array('d', [0]*mesh1.nx*mesh1.ny) #"flat" array to take 2D phase data (note it should be 'd')
+srwl.CalcIntFromElecField(arP1, wfr, 6, 4, 3, mesh1.eStart, 0, 0) #extracts radiation phase
+#AuxSaveIntData(arP, wfr.mesh, os.path.join(os.getcwd(), strDataFolderName, "ex09_res_phase_prop.dat"))
+srwl_uti_save_intens_ascii(arP1, mesh1, os.path.join(os.getcwd(), strDataFolderName, 'ex09_res_phase_prop.dat'), 0, ['Photon Energy', 'Horizontal Position', 'Vertical Position', 'Phase'], _arUnits=['eV', 'm', 'm', 'rad'])
 print('done')
 
+#**********************Plotting results (requires 3rd party graphics package)
+print('   Plotting the results (blocks script execution; close any graph windows to proceed) ... ', end='')
+plotMesh0x = [1000*mesh0.xStart, 1000*mesh0.xFin, mesh0.nx]
+plotMesh0y = [1000*mesh0.yStart, 1000*mesh0.yFin, mesh0.ny]
+uti_plot2d(arI0, plotMesh0x, plotMesh0y, ['Horizontal Position [mm]', 'Vertical Position [mm]', 'Intensity Before Propagation'])
+uti_plot1d(arI0x, plotMesh0x, ['Horizontal Position [mm]', 'Intensity [ph/s/.1%bw/mm^2]', 'Intensity (horizontal cut at y = 0)'])
+uti_plot1d(arI0y, plotMesh0y, ['Vertical Position [mm]', 'Intensity [ph/s/.1%bw/mm^2]', 'Intensity (vertical cut at x = 0)'])
+uti_plot2d(arP0, plotMesh0x, plotMesh0y, ['Horizontal Position [mm]', 'Vertical Position [mm]', 'Phase Before Propagation'])
 
+plotMesh1x = [1e+06*mesh1.xStart, 1e+06*mesh1.xFin, mesh1.nx]
+plotMesh1y = [1e+06*mesh1.yStart, 1e+06*mesh1.yFin, mesh1.ny]
+uti_plot2d(arI1, plotMesh1x, plotMesh1y, ['Horizontal Position [um]', 'Vertical Position [um]', 'Intensity After Propagation'])
+uti_plot1d(arI1x, plotMesh1x, ['Horizontal Position [um]', 'Intensity [ph/s/.1%bw/mm^2]', 'Intensity (horizontal cut at y = 0)'])
+uti_plot1d(arI1y, plotMesh1y, ['Vertical Position [um]', 'Intensity [ph/s/.1%bw/mm^2]', 'Intensity (vertical cut at x = 0)'])
+uti_plot2d(arP1, plotMesh1x, plotMesh1y, ['Horizontal Position [um]', 'Vertical Position [um]', 'Phase After Propagation'])
+
+uti_plot_show() #show all graphs (blocks script execution; close all graph windows to proceed)
+print('done')

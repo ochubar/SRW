@@ -2,7 +2,7 @@
 #############################################################################
 # SRWLIB Example # 10: Simulating emission and propagation of partially-coherent undulator radiation 
 # through a microscopy beamline with a secondary source aperture and ellopsoidal K-B mirrors used for final focusing
-# v 0.03
+# v 0.04
 #############################################################################
 
 from __future__ import print_function #Python 2.7 compatibility
@@ -27,9 +27,9 @@ print('')
 
 #**********************Input Parameters:
 strExDataFolderName = 'data_example_10' #example data sub-folder name
-strIntSE_OutFileName = 'res_int_se.dat' #file name for output initial single-electron SR intensity data
-strIntPropSE_OutFileName = 'res_int_prop_se.dat' #file name for output propagated single-electron SR intensity data
-strIntPropME_OutFileName = 'res_int_prop_me.dat' #file name for output propagated multi-electron SR intensity data
+strIntSE_OutFileName = 'ex10_res_int_se.dat' #file name for output initial single-electron SR intensity data
+strIntPropSE_OutFileName = 'ex10_res_int_prop_se.dat' #file name for output propagated single-electron SR intensity data
+strIntPropME_OutFileName = 'ex10_res_int_prop_me.dat' #file name for output propagated multi-electron SR intensity data
 
 #***********Undulator
 numPer = 71.5 #Number of ID Periods (without counting for terminations
@@ -106,17 +106,20 @@ Drift_HKB_Sample = SRWLOptD(0.5) #Drift from HKB Center to Sample
 
 #Wavefront Propagation Parameters:
 #                    [ 0] [1] [2]  [3] [4] [5]  [6]  [7]  [8]  [9] [10] [11] 
-ppDrift_Slits_HFM =  [ 0,  0, 1.0,  1,  0, 4.0, 4.0, 3.0, 4.0,  0,  0,   0]
+#ppDrift_Slits_HFM =  [ 0,  0, 1.0,  1,  0, 4.0, 4.0, 3.0, 4.0,  0,  0,   0]
+ppDrift_Slits_HFM =  [ 0,  0, 1.0,  1,  0, 4.0, 4.0, 3.0, 3.0,  0,  0,   0]
 ppHFM =              [ 0,  0, 1.0,  0,  0, 1.0, 1.0, 1.0, 1.0,  0,  0,   0]
 ppDrift_HFM_SSA =    [ 0,  0, 1.0,  1,  0, 1.0, 1.0, 1.0, 1.0,  0,  0,   0]
-ppSSA =              [ 0,  0, 1.0,  0,  0, 1.0, 3.0, 1.0, 4.0,  0,  0,   0]
+#ppSSA =              [ 0,  0, 1.0,  0,  0, 1.0, 3.0, 1.0, 4.0,  0,  0,   0]
+ppSSA =              [ 0,  0, 1.0,  0,  0, 1.0, 3.0, 1.0, 1.0,  0,  0,   0]
 ppDrift_SSA_VKB =    [ 0,  0, 1.0,  1,  0, 1.0, 1.0, 1.0, 1.0,  0,  0,   0]
 ppApKB =             [ 0,  0, 1.0,  0,  0, 1.0, 1.0, 1.0, 1.0,  0,  0,   0]
 ppVKB =              [ 0,  0, 1.0,  1,  0, 1.0, 1.0, 1.0, 1.0,  0,  0,   0]
 ppDrift_VKB_HKB =    [ 0,  0, 1.0,  1,  0, 1.0, 1.0, 1.0, 1.0,  0,  0,   0]
 ppHKB =              [ 0,  0, 1.0,  1,  0, 1.0, 1.0, 1.0, 1.0,  0,  0,   0]
 ppDrift_HKB_Sample = [ 0,  0, 1.0,  1,  0, 1.0, 1.0, 1.0, 1.0,  0,  0,   0]
-ppFinal =            [ 0,  0, 1.0,  0,  1, 0.2, 2.0, 0.2, 4.0,  0,  0,   0]
+#ppFinal =            [ 0,  0, 1.0,  0,  1, 0.2, 2.0, 0.2, 4.0,  0,  0,   0]
+ppFinal =            [ 0,  0, 1.0,  0,  1, 0.2, 1.0, 0.2, 4.0,  0,  0,   0]
 
 #[ 0]: Auto-Resize (1) or not (0) Before propagation
 #[ 1]: Auto-Resize (1) or not (0) After propagation
@@ -161,13 +164,15 @@ if(srwl_uti_proc_is_master()):
     srwl_uti_save_intens_ascii(arI1, wfr.mesh, os.path.join(os.getcwd(), strExDataFolderName, strIntPropSE_OutFileName))
     print('done')
 
-#sys.exit(0)
+#quit()
     
 print('   Starting simulation of Partially-Coherent Wavefront Propagation (takes a lot of time)... ')
 nMacroElec = 50000 #Total number of Macro-Electrons (Wavefronts)
 nMacroElecAvgOneProc = 5 #Number of Macro-Electrons (Wavefronts) to average on each node (for MPI calculations)
 nMacroElecSavePer = 5 #Saving periodicity (in terms of Macro-Electrons) for the Resulting Intensity
-radStokesProp = srwl_wfr_emit_prop_multi_e(elecBeam, magFldCnt, meshInitPartCoh, 1, 0.01, nMacroElec, nMacroElecAvgOneProc, nMacroElecSavePer, 
+srCalcMeth = 1 #SR calculation method (1- undulator)
+srCalcPrec = 0.01 #SR calculation rel. accuracy
+radStokesProp = srwl_wfr_emit_prop_multi_e(elecBeam, magFldCnt, meshInitPartCoh, srCalcMeth, srCalcPrec, nMacroElec, nMacroElecAvgOneProc, nMacroElecSavePer, 
                                            os.path.join(os.getcwd(), strExDataFolderName, strIntPropME_OutFileName), sampFactNxNyForProp, optBL)
 print('done')
 

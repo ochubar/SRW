@@ -1,6 +1,6 @@
 #############################################################################
 # SRWLIB Example#1: Calculating electron trajectory in 3D magnetic field of an APPLE-II undulator
-# v 0.03
+# v 0.04
 #############################################################################
 
 from __future__ import print_function #Python 2.7 compatibility
@@ -214,4 +214,20 @@ AuxSaveTrajData(partTraj, os.path.join(os.getcwd(), strExDataFolderName, strOffK
 srwl.CalcPartTraj(partTraj, magFldCnt, arPrecTrajFromField) #Calculate same Off-Axis Trajectory by Runge-Kutta integration in 3D Magnetic Field 
 AuxSaveTrajData(partTraj, os.path.join(os.getcwd(), strExDataFolderName, strOffTrajOutFileName))
 
+print('done')
+
+#**********************Plotting results
+print('   Plotting the results (close all graph windows to proceed with the script execution) ... ', end='')
+ctMesh = [partTraj.ctStart, partTraj.ctEnd, partTraj.np]
+for i in range(partTraj.np): #converting from [m] to [mm] and from [rad] to [mrad]
+    partTraj.arX[i] *= 1000
+    partTraj.arXp[i] *= 1000
+    partTraj.arY[i] *= 1000
+    partTraj.arYp[i] *= 1000
+
+uti_plot1d(partTraj.arX, ctMesh, ['ct [m]', 'Horizontal Position [m]m'])
+uti_plot1d(partTraj.arXp, ctMesh, ['ct [m]', 'Horizontal Angle [mrad]'])
+uti_plot1d(partTraj.arY, ctMesh, ['ct [m]', 'Vertical Position [mm]'])
+uti_plot1d(partTraj.arYp, ctMesh, ['ct [m]', 'Vertical Angle [mrad]'])
+uti_plot_show()
 print('done')

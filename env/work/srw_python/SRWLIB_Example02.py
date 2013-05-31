@@ -1,6 +1,6 @@
 #############################################################################
 # SRWLIB Example#2: Calculating electron trajectory in magnetic field of a segmented planar undulator
-# v 0.05
+# v 0.06
 #############################################################################
 
 from __future__ import print_function #Python 2.7 compatibility
@@ -70,7 +70,7 @@ print('done')
 partTraj = SRWLPrtTrj()
 partTraj.partInitCond = part
 #partTraj.allocate(npTraj)
-partTraj.allocate(npTraj, True) #True ensures that field along trajectory will be also extracted 
+partTraj.allocate(npTraj, True) #True ensures that field along trajectory will also be extracted 
 partTraj.ctStart = 0 #"Start Time" (c*t) for the calculation (0 corresponds to the time moment for which the initial conditions are defined)
 partTraj.ctEnd = partTraj.ctStart + 5*undLenExt #End Time
 
@@ -176,4 +176,21 @@ def AuxSaveTrajData(traj, filePath):
 print('   Saving trajectory data to a file ... ', end='')
 AuxSaveMagFldData(dispMagFld3D, 0, 0, 0, os.path.join(os.getcwd(), strExDataFolderName, strFldOutFileName))
 AuxSaveTrajData(partTraj, os.path.join(os.getcwd(), strExDataFolderName, strTrajOutFileName))
+print('done')
+
+#**********************Plotting results
+print('   Plotting the results (close all graph windows to proceed with the script execution) ... ', end='')
+ctMesh = [partTraj.ctStart, partTraj.ctEnd, partTraj.np]
+for i in range(partTraj.np): #converting from [m] to [mm] and from [rad] to [mrad]
+    partTraj.arXp[i] *= 1000
+    partTraj.arX[i] *= 1000
+    partTraj.arYp[i] *= 1000
+    partTraj.arY[i] *= 1000
+uti_plot1d(partTraj.arBy, ctMesh, ['ct [m]', 'Vertical Magnetic Field [T]'])
+uti_plot1d(partTraj.arXp, ctMesh, ['ct [m]', 'Horizontal Angle [mrad]'])
+uti_plot1d(partTraj.arX, ctMesh, ['ct [m]', 'Horizontal Position [mm]'])
+uti_plot1d(partTraj.arBx, ctMesh, ['ct [m]', 'Horizontal Magnetic Field [T]'])
+uti_plot1d(partTraj.arYp, ctMesh, ['ct [m]', 'Vertical Angle [mrad]'])
+uti_plot1d(partTraj.arY, ctMesh, ['ct [m]', 'Vertical Position [mm]'])
+uti_plot_show()
 print('done')

@@ -1,7 +1,7 @@
 ###########################################################################
 # SRWLIB Example#5: Calculating electron trajectory and spontaneous emission
 # from a very long segmented undulator (transversely-uniform magnetic field defined)
-# v 0.05 (based on tests of G. Geloni)
+# v 0.06 (based on tests of G. Geloni)
 #############################################################################
 
 from __future__ import print_function #Python 2.7 compatibility
@@ -77,21 +77,22 @@ def AuxSaveTrajData(traj, filePath):
     f.close()
 
 #**********************Auxiliary function to write tabulated resulting Intensity data to ASCII file:
-def AuxSaveIntData(arI, mesh, filePath):
-    f = open(filePath, 'w')
-    f.write('#C-aligned Intensity (inner loop is vs photon energy, outer loop vs vertical position)\n')
-    f.write('#' + repr(mesh.eStart) + ' #Initial Photon Energy [eV]\n')
-    f.write('#' + repr(mesh.eFin) + ' #Final Photon Energy [eV]\n')
-    f.write('#' + repr(mesh.ne) + ' #Number of points vs Photon Energy\n')
-    f.write('#' + repr(mesh.xStart) + ' #Initial Horizontal Position [m]\n')
-    f.write('#' + repr(mesh.xFin) + ' #Final Horizontal Position [m]\n')
-    f.write('#' + repr(mesh.nx) + ' #Number of points vs Horizontal Position\n')
-    f.write('#' + repr(mesh.yStart) + ' #Initial Vertical Position [m]\n')
-    f.write('#' + repr(mesh.yFin) + ' #Final Vertical Position [m]\n')
-    f.write('#' + repr(mesh.ny) + ' #Number of points vs Vertical Position\n')
-    for i in range(mesh.ne*mesh.nx*mesh.ny): #write all data into one column using "C-alignment" as a "flat" 1D array
-        f.write(' ' + repr(arI[i]) + '\n')
-    f.close()
+#replaced by srwlib.srwl_uti_save_intens_ascii
+#def AuxSaveIntData(arI, mesh, filePath):
+#    f = open(filePath, 'w')
+#    f.write('#C-aligned Intensity (inner loop is vs photon energy, outer loop vs vertical position)\n')
+#    f.write('#' + repr(mesh.eStart) + ' #Initial Photon Energy [eV]\n')
+#    f.write('#' + repr(mesh.eFin) + ' #Final Photon Energy [eV]\n')
+#    f.write('#' + repr(mesh.ne) + ' #Number of points vs Photon Energy\n')
+#    f.write('#' + repr(mesh.xStart) + ' #Initial Horizontal Position [m]\n')
+#    f.write('#' + repr(mesh.xFin) + ' #Final Horizontal Position [m]\n')
+#    f.write('#' + repr(mesh.nx) + ' #Number of points vs Horizontal Position\n')
+#    f.write('#' + repr(mesh.yStart) + ' #Initial Vertical Position [m]\n')
+#    f.write('#' + repr(mesh.yFin) + ' #Final Vertical Position [m]\n')
+#    f.write('#' + repr(mesh.ny) + ' #Number of points vs Vertical Position\n')
+#    for i in range(mesh.ne*mesh.nx*mesh.ny): #write all data into one column using "C-alignment" as a "flat" 1D array
+#        f.write(' ' + repr(arI[i]) + '\n')
+#    f.close()
 
 #**********************Defining Magnetic Field:
 xcID = 0 #Transverse Coordinates of ID Center [m]
@@ -109,7 +110,7 @@ magFldCnt.arYc[0] = ycID
 magFldCnt.arZc[0] = zcID
 magFldCnt.arMagFld[0].nRep = 1 #Entire ID
 
-#**********************Trajectory structure, where the results will be stored
+#**********************Trajectory structure (where the results will be stored)
 part = SRWLParticle()
 part.x = 0.0 #Initial Transverse Coordinates (initial Longitudinal Coordinate will be defined later on) [m]
 part.y = 0.0
@@ -195,7 +196,31 @@ print('done')
 
 #**********************Saving results
 print('   Saving intensity data to files ... ', end='')
-AuxSaveIntData(arI1, wfr1.mesh, os.path.join(os.getcwd(), strExDataFolderName, strIntOutFileName1))
-AuxSaveIntData(arI2, wfr2.mesh, os.path.join(os.getcwd(), strExDataFolderName, strIntOutFileName2))
+#AuxSaveIntData(arI1, wfr1.mesh, os.path.join(os.getcwd(), strExDataFolderName, strIntOutFileName1))
+srwl_uti_save_intens_ascii(arI1, wfr1.mesh, os.path.join(os.getcwd(), strExDataFolderName, strIntOutFileName1), 0)
+#AuxSaveIntData(arI2, wfr2.mesh, os.path.join(os.getcwd(), strExDataFolderName, strIntOutFileName2))
+srwl_uti_save_intens_ascii(arI2, wfr2.mesh, os.path.join(os.getcwd(), strExDataFolderName, strIntOutFileName2), 0)
 print('done')
 
+#**********************Plotting results (requires 3rd party graphics package)
+print('   Plotting the results (blocks script execution; close any graph windows to proceed) ... ', end='')
+ctMesh = [partTraj.ctStart, partTraj.ctEnd, partTraj.np]
+for i in range(partTraj.np): partTraj.arY[i] *= 1000
+uti_plot1d(partTraj.arY, ctMesh, ['ct [m]', 'Vertical Position [mm]', 'Electron Trajectory'])
+
+uti_plot1d(arI1, [wfr1.mesh.eStart, wfr1.mesh.eFin, wfr1.mesh.ne], ['Photon Energy [eV]', 'Intensity [ph/s/.1%bw/mm^2]', 'On-Axis Spectrum'])
+
+plotMeshX = [1000*wfr2.mesh.xStart, 1000*wfr2.mesh.xFin, wfr2.mesh.nx]
+plotMeshY = [1000*wfr2.mesh.yStart, 1000*wfr2.mesh.yFin, wfr2.mesh.ny]
+uti_plot2d(arI2, plotMeshX, plotMeshY, ['Horizontal Position [mm]', 'Vertical Position [mm]', 'Intensity at ' + str(wfr2.mesh.eStart) + ' eV'])
+
+arI2x = array('f', [0]*wfr2.mesh.nx) #array to take 1D intensity data
+srwl.CalcIntFromElecField(arI2x, wfr2, 6, 0, 1, wfr2.mesh.eStart, 0, 0)
+uti_plot1d(arI2x, plotMeshX, ['Horizontal Position [mm]', 'Intensity [ph/s/.1%bw/mm^2]', 'Intensity at ' + str(wfr2.mesh.eStart) + ' eV\n(horizontal cut at y = 0)'])
+
+arI2y = array('f', [0]*wfr2.mesh.ny) #array to take 1D intensity data
+srwl.CalcIntFromElecField(arI2y, wfr2, 6, 0, 2, wfr2.mesh.eStart, 0, 0)
+uti_plot1d(arI2y, plotMeshY, ['Horizontal Position [mm]', 'Intensity [ph/s/.1%bw/mm^2]', 'Intensity at ' + str(wfr2.mesh.eStart) + ' eV\n(vertical cut at x = 0)'])
+
+uti_plot_show() #show all graphs (blocks script execution; close all graph windows to proceed)
+print('done')
