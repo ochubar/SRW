@@ -250,7 +250,7 @@ CErrWarn::CErrWarn()
 	warning.push_back("Emission conditions do not match well the wiggler case. The resulting precision may be poor.");
 	warning.push_back("Unable to extract the Multi-electron radiation component. Single-electron component was extracted.");
 	warning.push_back("COMPUTATION WAS NOT PERFORMED and the result was set to 0 for some values of input parameters \r due to the following problem: Electron Trajectory passes too closely to the Observation Point.");
-	warning.push_back("Computation of terminating terms of radiation integrals WAS NOT PERFORMED for some values of input parameters \r due to the following problem: asymptotic expansion validity criterion is not satisfied. This may influence the final accuracy of the computation. \r One can try to fix the problem by modifying Magnetic Field definition range and/or Longitudinal Integration limits.");
+	warning.push_back("Computation of terminating terms of radiation integrals WAS NOT PERFORMED for some values of input parameters \r because asymptotic expansion validity criterion was not satisfied. This may influence the accuracy of the computation. \r One can try to fix the problem by modifying Magnetic Field definition range and/or Integration limits."); //don't make it longer!
 	warning.push_back("Too many particles requested. The number of particles was set to the default maximum value.");
 	warning.push_back("Same base for different loading. Variables are highly correlated.");
 	warning.push_back("Too many grid points. The number of grid points was set to the default maximum value.");

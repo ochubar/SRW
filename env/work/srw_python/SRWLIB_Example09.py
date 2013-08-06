@@ -30,52 +30,6 @@ def AuxReadInDataColumns(filePath, nCol, strSep):
     f.close()
     return resCols #attn: returns lists, not arrays!
 
-#Write tabulated resulting Intensity data to ASCII file:
-#replaced by srwlib.srwl_uti_save_intens_ascii
-#def AuxSaveIntData(arI, mesh, filePath):
-#    f = open(filePath, 'w')
-#    f.write('#C-aligned Intensity (inner loop is vs photon energy, outer loop vs vertical position)\n')
-#    f.write('#' + repr(mesh.eStart) + ' #Initial Photon Energy [eV]\n')
-#    f.write('#' + repr(mesh.eFin) + ' #Final Photon Energy [eV]\n')
-#    f.write('#' + repr(mesh.ne) + ' #Number of points vs Photon Energy\n')
-#    f.write('#' + repr(mesh.xStart) + ' #Initial Horizontal Position [m]\n')
-#    f.write('#' + repr(mesh.xFin) + ' #Final Horizontal Position [m]\n')
-#    f.write('#' + repr(mesh.nx) + ' #Number of points vs Horizontal Position\n')
-#    f.write('#' + repr(mesh.yStart) + ' #Initial Vertical Position [m]\n')
-#    f.write('#' + repr(mesh.yFin) + ' #Final Vertical Position [m]\n')
-#    f.write('#' + repr(mesh.ny) + ' #Number of points vs Vertical Position\n')
-#    for i in range(mesh.ne*mesh.nx*mesh.ny): #write all data into one column using "C-alignment" as a "flat" 1D array
-#        f.write(' ' + repr(arI[i]) + '\n')
-#    f.close()
-
-#Write Optical Transmission characteristic data to ASCII file:
-#replaced by srwlib.srwl_uti_save_intens_ascii
-#def AuxSaveOpTransmData(optTr, t, filePath):
-#    f = open(filePath, 'w')
-#    f.write('#C-aligned optical Transmission characteristic (inner loop is vs horizontal position, outer loop vs vertical position)\n')
-#    f.write('#' + repr(optTr.mesh.eStart) + ' #Initial Photon Energy [eV]\n')
-#    f.write('#' + repr(optTr.mesh.eFin) + ' #Final Photon Energy [eV]\n')
-#    f.write('#' + repr(optTr.mesh.ne) + ' #Number of points vs Photon Energy\n')
-#    f.write('#' + repr(optTr.mesh.xStart) + ' #Initial Horizontal Position [m]\n')
-#    f.write('#' + repr(optTr.mesh.xFin) + ' #Final Horizontal Position [m]\n')
-#    f.write('#' + repr(optTr.mesh.nx) + ' #Number of points vs Horizontal Position\n')
-#    f.write('#' + repr(optTr.mesh.yStart) + ' #Initial Vertical Position [m]\n')
-#    f.write('#' + repr(optTr.mesh.yFin) + ' #Final Vertical Position [m]\n')
-#    f.write('#' + repr(optTr.mesh.ny) + ' #Number of points vs Vertical Position\n')
-#    neLoc = 1
-#    if(optTr.mesh.ne > 1):
-#        neLoc = optTr.mesh.ne
-#    for i in range(neLoc*optTr.mesh.nx*optTr.mesh.ny): #write all data into one column using "C-alignment" as a "flat" 1D array
-#        tr = 0
-#        if((t == 1) or (t == 2)): #amplitude or intensity transmission
-#            tr = optTr.arTr[i*2]
-#            if(t == 2): #intensity transmission
-#                tr *= tr
-#        else: #optical path difference
-#            tr = optTr.arTr[i*2 + 1]
-#        f.write(' ' + repr(tr) + '\n')
-#    f.close()
-
 #Setup Transmission optical element with 1D heght profile data
 def AuxTransmAddSurfHeightProfile(optSlopeErr, heightProfData, dim, ang):
     argHeightProfData = heightProfData[0]
@@ -181,7 +135,6 @@ srwl.CalcElecFieldGaussian(wfr, GsnBm, arPrecPar)
 mesh0 = deepcopy(wfr.mesh)
 arI0 = array('f', [0]*mesh0.nx*mesh0.ny) #"flat" array to take 2D intensity data
 srwl.CalcIntFromElecField(arI0, wfr, 6, 0, 3, mesh0.eStart, 0, 0) #extracts intensity
-#AuxSaveIntData(arI, wfr.mesh, os.path.join(os.getcwd(), strDataFolderName, "ex09_res_int_in.dat"))
 srwl_uti_save_intens_ascii(arI0, mesh0, os.path.join(os.getcwd(), strDataFolderName, 'ex09_res_int_in.dat'), 0)
 
 arI0x = array('f', [0]*mesh0.nx) #array to take 1D intensity data (for plotting)
@@ -191,20 +144,19 @@ srwl.CalcIntFromElecField(arI0y, wfr, 6, 0, 2, mesh0.eStart, 0, 0) #extracts int
 
 arP0 = array('d', [0]*mesh0.nx*mesh0.ny) #"flat" array to take 2D phase data (note it should be 'd')
 srwl.CalcIntFromElecField(arP0, wfr, 6, 4, 3, mesh0.eStart, 0, 0) #extracts radiation phase
-#AuxSaveIntData(arP, wfr.mesh, os.path.join(os.getcwd(), strDataFolderName, "ex09_res_phase_in.dat"))
 srwl_uti_save_intens_ascii(arP0, mesh0, os.path.join(os.getcwd(), strDataFolderName, 'ex09_res_phase_in.dat'), 0, ['Photon Energy', 'Horizontal Position', 'Vertical Position', 'Phase'], _arUnits=['eV', 'm', 'm', 'rad'])
 
 #**********************Optical Elements and Propagation related Input Parameters and Structures:
+
 opDrM1_VFM = SRWLOptD(930 - 270 - 1.7) #Drift space from First Mirrors to KB
 
 #read mirror slope arror data from file and setup the corresponding optical element
-print('Defining Trnansmission element (to simulate mirror surface slope error)...', end='')
+print('Defining Transmission element (to simulate mirror surface slope error)...', end='')
 opTrErM1 = SRWLOptT(100, 1500, firstHorAp, firstVertAp)
 heightProfData = AuxReadInDataColumns(os.path.join(os.getcwd(), strDataFolderName, "mirror1.dat"), 2, '\t')
 AuxTransmAddSurfHeightProfile(opTrErM1, heightProfData, 'y', 1.8e-03)
 print('done')
 print('Saving optical path difference data to file (for viewing/debugging)...', end='')
-#AuxSaveOpTransmData(opTrErM1, 3, os.path.join(os.getcwd(), strDataFolderName, "ex09_res_opt_path_dif_er_m1.dat"))
 opPathDifErM1 = opTrErM1.get_data(3, 3)
 srwl_uti_save_intens_ascii(opPathDifErM1, opTrErM1.mesh, os.path.join(os.getcwd(), strDataFolderName, 'ex09_res_opt_path_dif_er_m1.dat'), 0, ['', 'Horizontal Position', 'Vertical Position', 'Opt. Path Diff.'], _arUnits=['', 'm', 'm', 'm'])
 print('done')
@@ -212,12 +164,11 @@ print('done')
 opApKB = SRWLOptA('r', 'a', 1.98e-03, 1.98e-03) #Aperture of KB system
 
 opLenVFM = SRWLOptL(1.e+20, 1.69689) #VFM simulated by Ideal Lens
-print('Defining Trnansmission element (to simulate mirror surface slope error)...', end='')
+print('Defining Transmission element (to simulate mirror surface slope error)...', end='')
 opTrErVFM = SRWLOptT(100, 1500, 1.98e-03, 1.98e-03)
 AuxTransmAddSurfHeightProfile(opTrErVFM, heightProfData, 'y', 3.6e-3)
 print('done')
 print('Saving optical path difference data to file (for viewing/debugging)...', end='')
-#AuxSaveOpTransmData(opTrErVFM, 3, os.path.join(os.getcwd(), strDataFolderName, "ex09_res_opt_path_dif_er_vfm.dat"))
 opPathDifErVFM = opTrErVFM.get_data(3, 3)
 srwl_uti_save_intens_ascii(opPathDifErVFM, opTrErVFM.mesh, os.path.join(os.getcwd(), strDataFolderName, 'ex09_res_opt_path_dif_er_vfm.dat'), 0, ['', 'Horizontal Position', 'Vertical Position', 'Opt. Path Diff.'], _arUnits=['', 'm', 'm', 'm'])
 print('done')
@@ -225,12 +176,11 @@ print('done')
 opDrVFM_HFM = SRWLOptD(0.6) #Drift space between VFM and HFM
 
 opLenHFM = SRWLOptL(1.0987, 1.e+20) #HFM simulated by Ideal Lens
-print('Defining Trnansmission element (to simulate mirror surface slope error)...', end='')
+print('Defining Transmission element (to simulate mirror surface slope error)...', end='')
 opTrErHFM = SRWLOptT(1500, 100, 1.98e-03, 1.98e-03)
 AuxTransmAddSurfHeightProfile(opTrErHFM, heightProfData, 'x', 3.6e-3)
 print('done')
 print('Saving optical path difference data to file (for viewing/debugging)...', end='')
-#AuxSaveOpTransmData(opTrErHFM, 3, os.path.join(os.getcwd(), strDataFolderName, "ex09_res_opt_path_dif_er_hfm.dat"))
 opPathDifErHFM = opTrErHFM.get_data(3, 3)
 srwl_uti_save_intens_ascii(opPathDifErHFM, opTrErHFM.mesh, os.path.join(os.getcwd(), strDataFolderName, 'ex09_res_opt_path_dif_er_hfm.dat'), 0, ['', 'Horizontal Position', 'Vertical Position', 'Opt. Path Diff.'], _arUnits=['', 'm', 'm', 'm'])
 print('done')
@@ -268,7 +218,6 @@ print('Saving propagated wavefront intensity and phase to files...', end='')
 mesh1 = deepcopy(wfr.mesh)
 arI1 = array('f', [0]*mesh1.nx*mesh1.ny) #"flat" array to take 2D intensity data
 srwl.CalcIntFromElecField(arI1, wfr, 6, 0, 3, mesh1.eStart, 0, 0) #extracts intensity
-#AuxSaveIntData(arI, wfr.mesh, os.path.join(os.getcwd(), strDataFolderName, "ex09_res_int_prop.dat"))
 srwl_uti_save_intens_ascii(arI1, mesh1, os.path.join(os.getcwd(), strDataFolderName, 'ex09_res_int_prop.dat'), 0)
 
 arI1x = array('f', [0]*mesh1.nx) #array to take 1D intensity data (for plotting)
@@ -278,7 +227,6 @@ srwl.CalcIntFromElecField(arI1y, wfr, 6, 0, 2, mesh1.eStart, 0, 0) #extracts int
 
 arP1 = array('d', [0]*mesh1.nx*mesh1.ny) #"flat" array to take 2D phase data (note it should be 'd')
 srwl.CalcIntFromElecField(arP1, wfr, 6, 4, 3, mesh1.eStart, 0, 0) #extracts radiation phase
-#AuxSaveIntData(arP, wfr.mesh, os.path.join(os.getcwd(), strDataFolderName, "ex09_res_phase_prop.dat"))
 srwl_uti_save_intens_ascii(arP1, mesh1, os.path.join(os.getcwd(), strDataFolderName, 'ex09_res_phase_prop.dat'), 0, ['Photon Energy', 'Horizontal Position', 'Vertical Position', 'Phase'], _arUnits=['eV', 'm', 'm', 'rad'])
 print('done')
 

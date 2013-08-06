@@ -53,6 +53,8 @@ static const char strEr_BadOptC[] = "Incorrect Optical Element Container structu
 static const char strEr_BadOptD[] = "Incorrect Optical Drift structure";
 static const char strEr_BadOptA[] = "Incorrect Optical Aperture / Obstacle structure";
 static const char strEr_BadOptL[] = "Incorrect Optical Lens structure";
+static const char strEr_BadOptAng[] = "Incorrect Optical Angle structure";
+static const char strEr_BadOptShift[] = "Incorrect Optical Shift structure";
 static const char strEr_BadOptZP[] = "Incorrect Optical Zone Plate structure";
 static const char strEr_BadOptWG[] = "Incorrect Optical Waveguide structure";
 static const char strEr_BadOptG[] = "Incorrect Optical Grating structure";
@@ -1250,6 +1252,15 @@ void ParseSructSRWLOptD(SRWLOptD* pOpt, PyObject* oOpt) //throw(...)
 	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptD;
 	pOpt->L = PyFloat_AsDouble(o_tmp);
 	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "treat");
+	if(o_tmp != 0)
+	{
+		if(!PyNumber_Check(o_tmp)) throw strEr_BadOptD;
+		pOpt->treat = (char)PyLong_AsLong(o_tmp);
+		Py_DECREF(o_tmp);
+	}
+
 }
 
 /************************************************************************//**
@@ -1334,6 +1345,48 @@ void ParseSructSRWLOptL(SRWLOptL* pOpt, PyObject* oOpt) //throw(...)
 	if(o_tmp == 0) throw strEr_BadOptL;
 	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptL;
 	pOpt->y = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+}
+
+/************************************************************************//**
+ * Parses PyObject* to SRWLOptAng*
+ ***************************************************************************/
+void ParseSructSRWLOptAng(SRWLOptAng* pOpt, PyObject* oOpt)
+{
+	if((pOpt == 0) || (oOpt == 0)) throw strEr_NoObj;
+	PyObject *o_tmp = 0;
+
+	o_tmp = PyObject_GetAttrString(oOpt, "AngX");
+	if(o_tmp == 0) throw strEr_BadOptAng;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptAng;
+	pOpt->AngX = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "AngY");
+	if(o_tmp == 0) throw strEr_BadOptAng;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptAng;
+	pOpt->AngY = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+}
+
+/************************************************************************//**
+ * Parses PyObject* to SRWLOptAng*
+ ***************************************************************************/
+void ParseSructSRWLOptShift(SRWLOptShift* pOpt, PyObject* oOpt)
+{
+	if((pOpt == 0) || (oOpt == 0)) throw strEr_NoObj;
+	PyObject *o_tmp = 0;
+
+	o_tmp = PyObject_GetAttrString(oOpt, "ShiftX");
+	if(o_tmp == 0) throw strEr_BadOptAng;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptShift;
+	pOpt->ShiftX = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "ShiftY");
+	if(o_tmp == 0) throw strEr_BadOptAng;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptShift;
+	pOpt->ShiftY = PyFloat_AsDouble(o_tmp);
 	Py_DECREF(o_tmp);
 }
 
@@ -1737,6 +1790,16 @@ void ParseSructSRWLOptMir(SRWLOptMir* pOpt, PyObject* oOpt, vector<Py_buffer>* p
 }
 
 /************************************************************************//**
+ * Parses PyObject* to SRWLOptMirPl*
+ ***************************************************************************/
+void ParseSructSRWLOptMirPl(SRWLOptMirPl* pOpt, PyObject* oOpt, vector<Py_buffer>* pvBuf) //throw(...) 
+{
+	if((pOpt == 0) || (oOpt == 0)) throw strEr_NoObj;
+
+	ParseSructSRWLOptMir(&(pOpt->baseMir), oOpt, pvBuf);
+}
+
+/************************************************************************//**
  * Parses PyObject* to SRWLOptMirEl*
  ***************************************************************************/
 void ParseSructSRWLOptMirEl(SRWLOptMirEl* pOpt, PyObject* oOpt, vector<Py_buffer>* pvBuf) //throw(...) 
@@ -1876,6 +1939,18 @@ void ParseSructSRWLOptC(SRWLOptC* pOpt, PyObject* oOpt, vector<Py_buffer>* pvBuf
 			strcpy(sOptType, "lens\0");
 			ParseSructSRWLOptL((SRWLOptL*)pOptElem, o);
 		}
+		else if(strcmp(sTypeName, "SRWLOptAng") == 0)
+		{
+			pOptElem = new SRWLOptAng();
+			strcpy(sOptType, "angle\0");
+			ParseSructSRWLOptAng((SRWLOptAng*)pOptElem, o);
+		}
+		else if(strcmp(sTypeName, "SRWLOptShift") == 0)
+		{
+			pOptElem = new SRWLOptShift();
+			strcpy(sOptType, "shift\0");
+			ParseSructSRWLOptShift((SRWLOptShift*)pOptElem, o);
+		}
 		else if(strcmp(sTypeName, "SRWLOptZP") == 0)
 		{
 			pOptElem = new SRWLOptZP();
@@ -1899,6 +1974,12 @@ void ParseSructSRWLOptC(SRWLOptC* pOpt, PyObject* oOpt, vector<Py_buffer>* pvBuf
 			pOptElem = new SRWLOptT();
 			strcpy(sOptType, "transmission\0");
 			ParseSructSRWLOptT((SRWLOptT*)pOptElem, o, pvBuf);
+		}
+		else if(strcmp(sTypeName, "SRWLOptMirPl") == 0)
+		{
+			pOptElem = new SRWLOptMirPl();
+			strcpy(sOptType, "mirror: plane\0");
+			ParseSructSRWLOptMirPl((SRWLOptMirPl*)pOptElem, o, pvBuf);
 		}
 		else if(strcmp(sTypeName, "SRWLOptMirEl") == 0)
 		{

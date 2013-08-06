@@ -20,6 +20,7 @@
 #include "sroptgrat.h"
 #include "sroptgtr.h"
 #include "sropthck.h"
+#include "sroptang.h"
 #include "auxparse.h"
 #include "srwlib.h"
 
@@ -97,7 +98,9 @@ srTCompositeOptElem::srTCompositeOptElem(const SRWLOptC& opt)
 			char *sType = *t_arOptTypes;
 			if(strcmp(sType, "drift") == 0)
 			{
-				pOptElem = new srTDriftSpace(((SRWLOptD*)(*t_arOpt))->L); 
+				//pOptElem = new srTDriftSpace(((SRWLOptD*)(*t_arOpt))->L); 
+				SRWLOptD *p = (SRWLOptD*)(*t_arOpt);
+				pOptElem = new srTDriftSpace(p->L, p->treat); 
 			}
 			else if((strcmp(sType, "aperture") == 0) || (strcmp(sType, "obstacle") == 0))
 			{
@@ -119,6 +122,16 @@ srTCompositeOptElem::srTCompositeOptElem(const SRWLOptC& opt)
 				SRWLOptL *p = (SRWLOptL*)(*t_arOpt);
 				pOptElem = new srTThinLens(p->Fx, p->Fy, p->x, p->y);
 			}
+			else if(strcmp(sType, "angle") == 0)
+			{
+				SRWLOptAng *p = (SRWLOptAng*)(*t_arOpt);
+				pOptElem = new srTOptAngle(p->AngX, p->AngY);
+			}
+			else if(strcmp(sType, "shift") == 0)
+			{
+				SRWLOptShift *p = (SRWLOptShift*)(*t_arOpt);
+				pOptElem = new srTOptShift(p->ShiftX, p->ShiftY);
+			}
 			else if((strcmp(sType, "zp") == 0) || (strcmp(sType, "ZP") == 0))
 			{
 				SRWLOptZP *p = (SRWLOptZP*)(*t_arOpt);
@@ -137,6 +150,10 @@ srTCompositeOptElem::srTCompositeOptElem(const SRWLOptC& opt)
 			else if(strcmp(sType, "transmission") == 0)
 			{
 				pOptElem = new srTGenTransmission(*((SRWLOptT*)(*t_arOpt)));
+			}
+			else if(strcmp(sType, "mirror: plane") == 0)
+			{
+				pOptElem = new srTMirrorPlane(*((SRWLOptMirPl*)(*t_arOpt)));
 			}
 			else if(strcmp(sType, "mirror: ellipsoid") == 0)
 			{

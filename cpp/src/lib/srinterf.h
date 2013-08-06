@@ -52,14 +52,16 @@ struct srTParPrecStokesPer {
 	double PrecS;
 	double PrecPhi;
 	char IntOrFlux;
+	double MinPhotEnExtRight; //OC170713
 
-	srTParPrecStokesPer(int In_InitHarm, int In_FinHarm, double In_PrecS, double In_PrecPhi, char In_IntOrFlux)
+	srTParPrecStokesPer(int In_InitHarm, int In_FinHarm, double In_PrecS, double In_PrecPhi, char In_IntOrFlux, double In_MinPhotEnExtRight=1)
 	{
         InitHarm = In_InitHarm;
 		FinHarm = In_FinHarm;
 		PrecS = In_PrecS;
 		PrecPhi = In_PrecPhi;
 		IntOrFlux = In_IntOrFlux;
+		MinPhotEnExtRight = In_MinPhotEnExtRight;
 	}
 };
 

@@ -30,6 +30,7 @@ struct srTRadIntPerStoPrec {
 	int InitHarm, FinHarm;
 	double Kns, Knphi;
 	char IntensityOrFlux;
+	double MinPhotEnExtRight; //OC170713
 
 	//srTRadIntPerStoPrec(int InInitHarm, int InFinHarm, double InKns, double InKnphi, char InIntensityOrFlux)
 	//{

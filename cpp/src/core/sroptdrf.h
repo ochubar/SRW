@@ -60,14 +60,16 @@ class srTDriftSpace : public srTGenOptElem {
 						// 2- prop. from waist
 						// 3- prop. without quad. phase term
 	//srTDriftPropBufVars PropBufVars;
+	char TreatPath; // switch specifying whether the absolute optical path should be taken into account in radiation phase (=1) or not (=0, default)
 
 public:
 	double Length;
 	srTDriftPropBufVars PropBufVars;
 
-	srTDriftSpace(double InLength =0.) 
+	srTDriftSpace(double InLength =0., char InTreatPath =0) 
 	{ 
 		Length = InLength;
+		TreatPath = InTreatPath; //OC010813
 		AllowPropToWaist = 1; // To switch
 	}
 	srTDriftSpace(srTStringVect* pElemInfo) 
@@ -121,7 +123,7 @@ public:
 
 	//int PropagateRadiationMeth_0(srTSRWRadStructAccessData* pRadAccessData)
 	int PropagateRadiationSingleE_Meth_0(srTSRWRadStructAccessData* pRadAccessData, srTSRWRadStructAccessData* pPrevRadAccessData)
-	{//it may work for many photon energies too
+	{//it works for many photon energies too!
 		int result;
 		if(result = PropagateRadiationSimple(pRadAccessData)) return result;
 		if(result = PropagateRadMoments(pRadAccessData, 0)) return result;
@@ -131,7 +133,7 @@ public:
 	}
 
 	int PropagateRadiationMeth_0(srTSRWRadStructAccessData* pRadAccessData) //virtual in srTGenOptElem
-	{
+	{//because for the Drift, the following works for many photon energies too!
 		return PropagateRadiationSingleE_Meth_0(pRadAccessData, 0);
 	}
 
@@ -372,6 +374,11 @@ public:
 
 		////double ConstPhaseShift = 6.2831853071795*Length/Lambda_m;
 		////PhaseShift += ConstPhaseShift; //may be necessary for 3D wavefronts?
+		if(TreatPath == 1) //OC010813
+		{//??
+			PhaseShift += (5.067730652e+06)*Length*EXZ.e;
+			//+= 6.2831853072*Length/Lambda_m;
+		}
 
 		float CosPh, SinPh;
 		CosAndSin(PhaseShift, CosPh, SinPh);
@@ -399,6 +406,12 @@ public:
 		if(PropBufVars.PassNo == 1) 
 		{
 			PhaseShift += PropBufVars.TwoPiXc_d_LambdaMRx*rx + PropBufVars.TwoPiZc_d_LambdaMRz*rz;
+
+			if(TreatPath == 1) //OC010813
+			{//??
+				PhaseShift += (5.067730652e+06)*Length*EXZ.e;
+				//+= 6.2831853072*Length/Lambda_m;
+			}
 		}
 		////else if(PropBufVars.PassNo == 2)
 		////{
@@ -434,6 +447,15 @@ public:
 		////double Lambda_m = 1.239842e-06/EXZ.e;
 		////double ConstPhaseShift = 6.2831853071795*Length/Lambda_m;
 		////PhaseShift += ConstPhaseShift; //may be necessary for 3D wavefronts?
+
+		if(TreatPath == 1) //OC010813
+		{
+			if(PropBufVars.PassNo == 2)//??
+			{
+				PhaseShift += (5.067730652e+06)*Length*EXZ.e;
+				//+= 6.2831853072*Length/Lambda_m;
+			}
+		}
 
 		float CosPh, SinPh; CosAndSin(PhaseShift, CosPh, SinPh);
 
@@ -484,7 +506,14 @@ public:
 			//double rx = EXZ.x /*- PropBufVars.xc*/, rz = EXZ.z; /*- PropBufVars.zc;*/
 			double Pi_d_Lambda_m = 3.1415926536/Lambda_m;
 			PhaseShift = Pi_d_Lambda_m*(PropBufVars.invRxL*rx*rx + PropBufVars.invRzL*rz*rz);
-			////PhaseShift += 2*Pi_d_Lambda_m*Length; //may be necessary for 3D wavefronts?
+
+			//OCTEST
+			//PhaseShift += 2*Pi_d_Lambda_m*Length; //may be necessary for 3D wavefronts?
+			//END OCTEST
+			if(TreatPath == 1) //OC010813
+			{
+				PhaseShift += 2*Pi_d_Lambda_m*Length;
+			}
 		}
 
 		float CosPh, SinPh; CosAndSin(PhaseShift, CosPh, SinPh);
@@ -525,6 +554,12 @@ public:
 		double ArgE2 = Arg*Arg;
 		double c1ArgE2 = c1*ArgE2;
 		double PhaseShift = c0*ArgE2*(1. + c1ArgE2 + c1ArgE2*c1ArgE2);
+		if(TreatPath == 1) //OC010813
+		{//??
+			PhaseShift += (5.067730652e+06)*Length*EXZ.e;
+			//+= 6.2831853072*Length/Lambda_m;
+		}
+
 		float CosPh, SinPh;
 		CosAndSin(PhaseShift, CosPh, SinPh);
 		float NewExRe = (*(EPtrs.pExRe))*CosPh - (*(EPtrs.pExIm))*SinPh;
@@ -543,6 +578,12 @@ public:
 		{
 			if(EXZ.VsXorZ == 'x') PhaseShift += PropBufVars.TwoPiXc_d_LambdaMRx*rx;
 			else PhaseShift += PropBufVars.TwoPiXc_d_LambdaMRx*rz;
+
+			if(TreatPath == 1) //OC010813
+			{//??
+				PhaseShift += (5.067730652e+06)*Length*EXZ.e;
+				//+= 6.2831853072*Length/Lambda_m;
+			}
 		}
 		float CosPh, SinPh; CosAndSin(PhaseShift, CosPh, SinPh);
 		float NewExRe = (*(EPtrs.pExRe))*CosPh - (*(EPtrs.pExIm))*SinPh;

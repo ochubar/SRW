@@ -226,6 +226,8 @@ public:
 	int ExtractSliceConstEorT(long ie, float*& pOutEx, float*& pOutEz);
 	int SetupSliceConstEorT(long ie, float* pInEx, float* pInEz);
 
+	int ShiftWfrByInterpolVsXZ(double shiftX, double shiftY);
+
 	int SetRepresCA(char CoordOrAng); //set Coordinate or Angular representation
 	int SetRepresFT(char FreqOrTime); //set Frequency or Time representation
 	int ComputeRadMoments();
@@ -691,6 +693,165 @@ public:
 			*(tOutEx++) = *tEx; *(tOutEx++) = *(tEx + 1);
 			*(tOutEz++) = *tEz; *(tOutEz++) = *(tEz + 1);
 			tEx += Per; tEz += Per;
+		}
+	}
+
+	bool QuadPhaseTermCanBeTreated()
+	{//Later treat X and Z fully separately here and at removing the corresponding terms from Phase !!!
+	 //same as srTGenOptElem::WaveFrontTermCanBeTreated(srTSRWRadStructAccessData& RadAccessData)
+		const double CritRatTransvLong = 0.1;
+		const double CritRelRobsErr = 0.2; //0.1; //0.2;
+		const double Pi = 3.14159265358979;
+
+		char RobsXErrIsSmall = ::fabs(RobsXAbsErr) < CritRelRobsErr*(::fabs(RobsX));
+		char RobsZErrIsSmall = ::fabs(RobsZAbsErr) < CritRelRobsErr*(::fabs(RobsZ));
+
+		if(Pres == 0) // Coord
+		{
+			double xMagn = ::fabs((nx - 1)*xStep);
+			double zMagn = ::fabs((nz - 1)*zStep);
+
+			char AnglesXAreSmall = (xMagn < CritRatTransvLong*(::fabs(RobsX)));
+			char AnglesZAreSmall = (zMagn < CritRatTransvLong*(::fabs(RobsZ)));
+
+			WfrQuadTermCanBeTreatedAtResizeX = (AnglesXAreSmall && RobsXErrIsSmall);
+			WfrQuadTermCanBeTreatedAtResizeZ = (AnglesZAreSmall && RobsZErrIsSmall);
+
+			return (WfrQuadTermCanBeTreatedAtResizeX || WfrQuadTermCanBeTreatedAtResizeZ);
+		}
+		else // Ang
+		{// Not sure about this...
+			double ePh = eStart;
+			double xRatMax = 1.E-23, zRatMax = 1.E-23, MaxPhaseChange = 1.E-23;
+			for(int ie=0; ie<ne; ie++)
+			{
+				double Lambda_m = 1.239842e-06/ePh;
+				double xTetMagn = ::fabs((nx - 1)*xStep*Lambda_m);
+				double zTetMagn = ::fabs((nz - 1)*zStep*Lambda_m);
+				double PhaseChange = ::fabs((Pi/Lambda_m)*(RobsX*xTetMagn*xTetMagn + RobsZ*zTetMagn*zTetMagn));
+
+				if(xTetMagn > xRatMax) xRatMax = xTetMagn;
+				if(zTetMagn > zRatMax) zRatMax = zTetMagn;
+				if(PhaseChange > MaxPhaseChange) MaxPhaseChange = PhaseChange;
+
+				ePh += eStep;
+			}
+
+			char AnglesXAreSmall = (xRatMax < CritRatTransvLong);
+			char AnglesZAreSmall = (zRatMax < CritRatTransvLong);
+			char PhaseChangeIsLarge = (MaxPhaseChange > 2.*Pi);
+
+			WfrQuadTermCanBeTreatedAtResizeX = (AnglesXAreSmall && RobsXErrIsSmall);
+			WfrQuadTermCanBeTreatedAtResizeZ = (AnglesZAreSmall && RobsZErrIsSmall);
+
+			return ((WfrQuadTermCanBeTreatedAtResizeX || WfrQuadTermCanBeTreatedAtResizeZ) && PhaseChangeIsLarge);
+		}
+	}
+
+	void TreatQuadPhaseTermTerm(char AddOrRem, char PolComp=0, int ieOnly=-1)
+	{//same as srTGenOptElem::TreatStronglyOscillatingTerm(srTSRWRadStructAccessData& RadAccessData, char AddOrRem, char PolComp, int ieOnly)
+		//Later treat X and Z coordinates separately here!!!
+
+		char TreatPolCompX = ((PolComp == 0) || (PolComp == 'x')) && (pBaseRadX != 0);
+		char TreatPolCompZ = ((PolComp == 0) || (PolComp == 'z')) && (pBaseRadZ != 0);
+
+		const double Pi = 3.14159265358979;
+		double Const = Pi*1.E+06/1.239854; // Assumes m and eV
+
+		double ConstRx = (Pres == 0)? Const/RobsX : -Const*RobsX;
+		double ConstRz = (Pres == 0)? Const/RobsZ : -Const*RobsZ;
+
+		if(AddOrRem == 'r') { ConstRx = -ConstRx; ConstRz = -ConstRz;}
+
+		double ConstRxE, ConstRzE;
+		double ePh = eStart, x, z, zE2;
+		double Phase;
+		float CosPh, SinPh;
+
+		float *pEX0 = 0, *pEZ0 = 0;
+		if(TreatPolCompX) pEX0 = pBaseRadX;
+		if(TreatPolCompZ) pEZ0 = pBaseRadZ;
+
+		long PerX = ne << 1;
+		long PerZ = PerX*nx;
+
+		int ieStart=0, ieBefEnd=ne;
+		if((ieOnly >= 0) && (ieOnly < ne))
+		{
+			ieStart = ieOnly; ieBefEnd = ieOnly + 1;
+		}
+
+		for(int ie=ieStart; ie<ieBefEnd; ie++)
+		{
+			if(PresT == 1)
+			{
+				ePh = avgPhotEn; //?? OC041108
+			}
+
+			long Two_ie = ie << 1;
+
+			ConstRxE = ConstRx*ePh;
+			ConstRzE = ConstRz*ePh;
+
+			if(Pres == 1)
+			{
+				double Lambda_m = 1.239842e-06/ePh;
+				if(PhotEnergyUnit == 1) Lambda_m *= 0.001; // if keV
+
+				double Lambda_me2 = Lambda_m*Lambda_m;
+				ConstRxE *= Lambda_me2;
+				ConstRzE *= Lambda_me2;
+			}
+
+			z = zStart - zc;
+
+			zE2 = z*z;
+			double PhaseAddZ = 0.;
+			if(WfrQuadTermCanBeTreatedAtResizeZ) PhaseAddZ = ConstRzE*zE2;
+
+			for(int iz=0; iz<nz; iz++)
+			{
+				long izPerZ = iz*PerZ;
+				float *pEX_StartForX = pEX0 + izPerZ;
+				float *pEZ_StartForX = pEZ0 + izPerZ;
+
+				x = xStart - xc;
+
+				for(int ix=0; ix<nx; ix++)
+				{
+					long ixPerX_p_Two_ie = ix*PerX + Two_ie;
+
+					//Phase = ConstRxE*x*x + ConstRzE*zE2;
+					Phase = PhaseAddZ;
+					if(WfrQuadTermCanBeTreatedAtResizeX) Phase += ConstRxE*x*x;
+
+					CosAndSin(Phase, CosPh, SinPh);
+
+					if(TreatPolCompX)
+					{
+						float *pExRe = pEX_StartForX + ixPerX_p_Two_ie;
+						float *pExIm = pExRe + 1;
+						double ExReNew = (*pExRe)*CosPh - (*pExIm)*SinPh;
+						double ExImNew = (*pExRe)*SinPh + (*pExIm)*CosPh;
+						*pExRe = (float)ExReNew; *pExIm = (float)ExImNew;
+					}
+					if(TreatPolCompZ)
+					{
+						float *pEzRe = pEZ_StartForX + ixPerX_p_Two_ie;
+						float *pEzIm = pEzRe + 1;
+						double EzReNew = (*pEzRe)*CosPh - (*pEzIm)*SinPh;
+						double EzImNew = (*pEzRe)*SinPh + (*pEzIm)*CosPh;
+						*pEzRe = (float)EzReNew; *pEzIm = (float)EzImNew;
+					}
+
+					x += xStep;
+				}
+				z += zStep;
+				zE2 = z*z;
+				PhaseAddZ = 0.;
+				if(WfrQuadTermCanBeTreatedAtResizeZ) PhaseAddZ = ConstRzE*zE2;
+			}
+			ePh += eStep;
 		}
 	}
 

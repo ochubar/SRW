@@ -166,8 +166,6 @@ public:
         if(PlnCf != 0) { delete[] PlnCf; PlnCf = 0;}
     }
 
-
-
 	static double Interp3dBilin(double* inP, double* inArrArgBounds, double* inArrFunc)
 	{
 	// The approach taken from Numerical Recipes (p. 104), extended to 3d
@@ -358,7 +356,7 @@ public:
 	}
 
 	static double Interp2dBiQuad5Rec(double xt, double yt, double* arF)
-	{//bi-quadratic interpolation on rectangular mesh, for normalized arguments (-1 <= xt <= 1, -1 <= yt <= 1)
+	{//bi-quadratic (5-point) interpolation on rectangular regular mesh, for normalized arguments (-1 <= xt <= 1, -1 <= yt <= 1)
 		//double *p = arF;
 		double f0m1 = *(arF++);
 		double fm10 = *(arF++);

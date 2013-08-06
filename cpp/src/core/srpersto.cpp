@@ -86,6 +86,7 @@ srTRadIntPeriodic::srTRadIntPeriodic(srTEbmDat* pElecBeam, srTMagFieldPeriodic* 
         IntPerStoPrec.Kns = pParPrecStokesPer->PrecS;
 		IntPerStoPrec.Knphi = pParPrecStokesPer->PrecPhi;
         IntPerStoPrec.IntensityOrFlux = pParPrecStokesPer->IntOrFlux;
+		IntPerStoPrec.MinPhotEnExtRight = pParPrecStokesPer->MinPhotEnExtRight; //OC170713
 
 		//if(IntPerStoPrec.IntensityOrFlux != 'f') DistrInfoDat.EnsureZeroTransverseRangesForSinglePoints();
 		//this leads to bug
@@ -1072,6 +1073,7 @@ int srTRadIntPeriodic::ConvStokesCompon(int StokesNo, srTEnergyAzimuthGrid& EnAz
 		for(i=0; i<EnAzGrid.Ne; i++) { *t = *tIn; t += 2; tIn += 4;}
 
 		if(result = FFT1D.Make1DFFT(FFT1DInfo)) return result;
+
 		if(AuxDataForSharpEdgeCorrGen.WasSetUp) FFT1D.MakeSharpEdgeCorr(FFT1DInfo, AuxDataForSharpEdgeCorrGen);
 	}
 	else
@@ -1098,7 +1100,9 @@ int srTRadIntPeriodic::ConvStokesCompon(int StokesNo, srTEnergyAzimuthGrid& EnAz
 
 		float ReRes = ReGen*Re - ImGen*Im;
 		float ImRes = ImGen*Re + ReGen*Im;
+
 		ReGen = ReRes; ImGen = ImRes;
+
 		tGen += 2; tCon += 2;
 	}
 
@@ -1622,6 +1626,12 @@ int srTRadIntPeriodic::DeduceGridOverPhotonEnergyAndAzimuth(int n, double& eStar
 {
 	double eMinEff, eMaxEff, PhiMinEff, PhiMaxEff;
 	EstimateEnergyAndPhiObsLimits(n, eMinEff, eMaxEff, PhiMinEff, PhiMaxEff);
+
+	//OCTEST 150713
+	//double eStartTot = eStart, eFinTot = eFin;
+	//if(eMinEff > eStartTot) eMinEff = eStartTot; //??
+	//END OCTEST
+
 	EnAzGrid.eMinEff = eMinEff;
 	EnAzGrid.eMaxEff = eMaxEff;
 	EnAzGrid.PhiMin = PhiMinEff;
@@ -1630,6 +1640,7 @@ int srTRadIntPeriodic::DeduceGridOverPhotonEnergyAndAzimuth(int n, double& eStar
 	const double c0 = 1.239854E-09;
 	double Buf0 = c0/(MagPer.PerLength*EbmDat.GammaEm2*(1. + MagPer.HalfKxE2pKzE2));
 	double CritEnergyForHarm = (n << 1)*Buf0;
+	double FundE = CritEnergyForHarm/double(n); //OC170713
 	EnAzGrid.eCritForHarm = CritEnergyForHarm;
 
 	double &PhiLenToResolve = EnAzGrid.PhiLenToResolve, &eStepToResolve = EnAzGrid.eStepToResolve;
@@ -1675,7 +1686,7 @@ int srTRadIntPeriodic::DeduceGridOverPhotonEnergyAndAzimuth(int n, double& eStar
 	{
 		FiniteNperContr = EstimateTaperResCurveWidth(n);
 
-		double FundE = CritEnergyForHarm/double(n);
+		//double FundE = CritEnergyForHarm/double(n); //OC170713
 		if(FiniteNperContr > 0.7*FundE) // To steer
 		{
 			VeryLargeEnergySpreadAndFinNperContr = 1;
@@ -1705,6 +1716,8 @@ int srTRadIntPeriodic::DeduceGridOverPhotonEnergyAndAzimuth(int n, double& eStar
 	else EnergySpreadAndFinNperContr = FiniteNperContr;
 
 	int AmOfExtraResWidths = 4; // To steer !
+	//int AmOfExtraResWidths = 6; //OCTEST To steer !
+
 	int MinAmOfPoints = 20; // To steer !
 
 	if(VeryLargeEnergySpreadAndFinNperContr)
@@ -1719,7 +1732,7 @@ int srTRadIntPeriodic::DeduceGridOverPhotonEnergyAndAzimuth(int n, double& eStar
 	{
 		ActuallyOnlyOnePointIsNeeded = 1;
 
-		MinAmOfPoints = 20; // To steer !
+		//MinAmOfPoints = 20; // To steer !
 		const int PointsPerFringe = 4; // To steer !
 		ne = (AmOfExtraResWidths*PointsPerFringe) << 1;
 		if(ne < MinAmOfPoints) ne = MinAmOfPoints;
@@ -1861,6 +1874,7 @@ int srTRadIntPeriodic::DeduceGridOverPhotonEnergyAndAzimuth(int n, double& eStar
 
 	double eExtraLocNewLeft = (PrevHarmPeak < eStart)? (eStart - PrevHarmPeak) : 0;
 	//if(eExtraLocNewLeft < eExtraLocNew) eExtraLocNewLeft = eExtraLocNew;
+
 	double eExtraLocNewRight = (eFin < NextHarmPeak)? (NextHarmPeak - eFin) : 0;
 	if(eExtraLocNewRight < eExtraLocNew) eExtraLocNewRight = eExtraLocNew;
 
@@ -1897,16 +1911,34 @@ int srTRadIntPeriodic::DeduceGridOverPhotonEnergyAndAzimuth(int n, double& eStar
 	//		if(neExtraRight < BufExtraRight) neExtraRight = BufExtraRight;
 	//	}
 	//}
-	if((eFin*1.00001 - EnAzGrid.eCritForHarm)*4. < (EnAzGrid.eCritForHarm - eStart)) //To steer
-	{// To make the sharp edge approximately in the middle
-		double AuxEmax = (2.*EnAzGrid.eCritForHarm - (eStart + neExtraLeft*eStep));
-		if(AuxEmax > eFin)
-		{
-			double AuxRat = (AuxEmax - eFin)/(eFin - eStart);
-			long BufExtraRight = long(AuxRat*EnAzGrid.Ne);
-			if(neExtraRight < BufExtraRight) neExtraRight = BufExtraRight;
-		}
+
+	//OCTEST 150713 (commented-out the section below)
+	//if((eFin*1.00001 - EnAzGrid.eCritForHarm)*4. < (EnAzGrid.eCritForHarm - eStart)) //To steer
+	//{// To make the sharp edge approximately in the middle
+	//	double AuxEmax = (2.*EnAzGrid.eCritForHarm - (eStart + neExtraLeft*eStep));
+	//	if(AuxEmax > eFin)
+	//	{
+	//		double AuxRat = (AuxEmax - eFin)/(eFin - eStart);
+	//		long BufExtraRight = long(AuxRat*EnAzGrid.Ne);
+	//		if(neExtraRight < BufExtraRight) neExtraRight = BufExtraRight;
+	//	}
+	//}
+
+	//OC170713
+	//Attempt to move artificial discontuinities (because of convolution of harmonics 
+	//for taking into account finite und. length and Nper) to higher photon energies
+	double eMaxExtentRight = CritEnergyForHarm + FundE*IntPerStoPrec.MinPhotEnExtRight;
+	if(EnAzGrid.eFin + neExtraRight*eStep < eMaxExtentRight)
+	{
+		neExtraRight = long((eMaxExtentRight - EnAzGrid.eFin)/eStep);
 	}
+
+	//OCTEST 150713
+	//if(EnAzGrid.eFin + neExtraRight*eStep < 3*eFinTot)
+	//{//To make sure that "sharp edge" (harmonic calculation cut-off) never happens
+	//	neExtraRight = long((3*eFinTot - EnAzGrid.eFin)/eStep);
+	//}
+	//END OCTEST
 
 	EnAzGrid.NeExtraRight = neExtraRight;
 

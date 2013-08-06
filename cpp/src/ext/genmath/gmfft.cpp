@@ -210,8 +210,8 @@ int CGenMathFFT2D::AuxDebug_TestFFT_Plans()
 }
 
 //*************************************************************************
-//Forward FFT: Int f(x,y)*exp(-i*2*Pi*(qx*x + qy*y)) dx dy
-//Backward FFT: Int f(qx,qy)*exp(i*2*Pi*(qx*x + qy*y)) dqx dqy
+//Forward FFT (FFT2DInfo.Dir = 1?): Int f(x,y)*exp(-i*2*Pi*(qx*x + qy*y)) dx dy
+//Backward FFT (FFT2DInfo.Dir = -1?): Int f(qx,qy)*exp(i*2*Pi*(qx*x + qy*y)) dqx dqy
 int CGenMathFFT2D::Make2DFFT(CGenMathFFT2DInfo& FFT2DInfo)
 {// Assumes Nx, Ny even !
 	const double RelShiftTol = 1.E-06;

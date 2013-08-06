@@ -276,6 +276,20 @@ struct TMatrix3d {
 	{
 		Str0+=AnotherMatrix.Str0; Str1+=AnotherMatrix.Str1; Str2+=AnotherMatrix.Str2; return *this;
 	}
+
+	TMatrix3d& operator -=(const TMatrix3d& AnotherMatrix)
+	{
+		Str0-=AnotherMatrix.Str0; Str1-=AnotherMatrix.Str1; Str2-=AnotherMatrix.Str2; return *this;
+	}
+	TMatrix3d& operator *=(double a)
+	{
+		Str0 *= a; Str1 *= a; Str2 *= a; return *this;
+	}
+	TMatrix3d& operator /=(double a)
+	{
+		Str0 /= a; Str1 /= a; Str2 /= a; return *this;
+	}
+
 	double det()
 	{
 		return Str0.x*Str1.y*Str2.z + Str0.y*Str1.z*Str2.x + Str0.z*Str1.x*Str2.y

@@ -296,7 +296,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				InlineFunctionExpansion="1"
+				InlineFunctionExpansion="0"
 				FavorSizeOrSpeed="1"
 				AdditionalIncludeDirectories="..\src\lib;..\src\core;..\src\ext\genmath;..\src\ext\auxparse"
 				PreprocessorDefinitions="NDEBUG;WIN32;_WINDOWS;_USRDLL;__VC__;SRWLIB_STATIC;_GM_WITHOUT_BASE;_CRT_SECURE_NO_WARNINGS"
@@ -310,6 +310,7 @@
 				ProgramDataBaseFileName="$(IntDir)\vc90.pdb"
 				WarningLevel="3"
 				SuppressStartupBanner="true"
+				DebugInformationFormat="0"
 				CompileAs="0"
 			/>
 			<Tool
@@ -526,6 +527,10 @@
 			</File>
 			<File
 				RelativePath="..\src\core\srobject.h"
+				>
+			</File>
+			<File
+				RelativePath="..\src\core\sroptang.h"
 				>
 			</File>
 			<File

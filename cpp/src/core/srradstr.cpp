@@ -14,12 +14,12 @@
 #include "srradstr.h"
 #include "srradind.h"
 #include "srstraux.h"
-#include "gmfft.h"
 #include "srmagfld.h"
 #include "srgsnbm.h"
-//#include "srmamet.h"
-#include "gmmeth.h"
 #include "sroptelm.h"
+#include "gmfft.h"
+#include "gmmeth.h"
+#include "gminterp.h"
 
 #ifdef __IGOR_PRO__
 #ifndef __SRSEND_H
@@ -3002,6 +3002,185 @@ void srTSRWRadStructAccessData::MakeWfrEdgeCorrection(float* pDataEx, float* pDa
 			tEx += 2; tEz += 2;
 		}
 	}
+}
+
+//*************************************************************************
+
+int srTSRWRadStructAccessData::ShiftWfrByInterpolVsXZ(double shiftX, double shiftZ)
+{//Shift the wavefront E-field data by interpolation, in whatever representation (coord. of ang.), keeping same mesh
+
+	long nTot = (ne << 1)*nx*nz;
+	float *pAuxBaseRadX = 0;
+	float *pAuxBaseRadZ = 0;
+	if(pBaseRadX != 0) 
+	{
+		pAuxBaseRadX = new float[nTot];
+		float *tAuxBaseRadX = pAuxBaseRadX;
+		for(long i=0; i<nTot; i++) *(tAuxBaseRadX++) = 0;
+	}
+	if(pBaseRadZ != 0)
+	{
+		pAuxBaseRadZ = new float[nTot];
+		float *tAuxBaseRadZ = pAuxBaseRadZ;
+		for(long i=0; i<nTot; i++) *(tAuxBaseRadZ++) = 0;
+	}
+
+	char PolComp = -1;
+	bool WaveFrontTermWasTreated = false;
+	if(QuadPhaseTermCanBeTreated())
+	{
+		if(pBaseRadX != 0)
+		{
+			if(pBaseRadZ != 0) PolComp = 0;
+			else PolComp = 'x';
+		}
+		else if(pBaseRadZ != 0) PolComp = 'z';
+		
+		TreatQuadPhaseTermTerm('r', PolComp);
+		WaveFrontTermWasTreated = true;
+	}
+
+	long PerX = ne << 1;
+	long PerZ = PerX*nx;
+	long nx_mi_1 = nx - 1;
+	long nz_mi_1 = nz - 1;
+	double arF[5];
+
+	for(long ie=0; ie<ne; ie++)
+	{
+		long Two_ie = ie << 1;
+		double z = zStart - shiftZ;
+
+		for(long iz=0; iz<nz; iz++)
+		{
+			long izPerZ = iz*PerZ;
+			float *pEX_NewStartForX = pAuxBaseRadX + izPerZ;
+			float *pEZ_NewStartForX = pAuxBaseRadZ + izPerZ;
+
+			double d_izOld = (z - zStart)/zStep;
+			if((d_izOld < 0) || (d_izOld > nz_mi_1)) 
+			{
+				z += zStep; continue;
+			}
+
+			long izOld = (long)d_izOld;
+			if((d_izOld - izOld) >= 0.5) izOld++;
+			if(izOld < 0) izOld = 0;
+			else if(izOld > nz_mi_1) izOld = nz_mi_1;
+
+			long izOld_mi_1 = izOld - 1;
+			if(izOld_mi_1 < 0) izOld_mi_1 = 0;
+			long izOld_pl_1 = izOld + 1;
+			if(izOld_pl_1 > nz_mi_1) izOld_pl_1 = nz_mi_1;
+
+			double rz = z - (zStart + izOld*zStep);
+			double zt = (zStep > 0)? rz/zStep : 0.;
+
+			long izOld_PerZ = izOld*PerZ;
+			long izOld_mi_1_PerZ = izOld_mi_1*PerZ;
+			long izOld_pl_1_PerZ = izOld_pl_1*PerZ;
+
+			double x = xStart - shiftX;
+
+			for(long ix=0; ix<nx; ix++)
+			{
+				long ixPerX_p_Two_ie = ix*PerX + Two_ie; //offset for the new data
+				float *pEX_New = pEX_NewStartForX + ixPerX_p_Two_ie;
+				float *pEZ_New = pEZ_NewStartForX + ixPerX_p_Two_ie;
+
+				double d_ixOld = (x - xStart)/xStep;
+				if((d_ixOld < 0) || (d_ixOld > nx_mi_1)) 
+				{
+					x += xStep; continue;
+				}
+
+				long ixOld = (long)d_ixOld;
+				if((d_ixOld - ixOld) >= 0.5) ixOld++;
+				if(ixOld < 0) ixOld = 0;
+				else if(ixOld > nx_mi_1) ixOld = nx_mi_1;
+
+				long ixOld_mi_1 = ixOld - 1;
+				if(ixOld_mi_1 < 0) ixOld_mi_1 = 0;
+				long ixOld_pl_1 = ixOld + 1;
+				if(ixOld_pl_1 > nx_mi_1) ixOld_pl_1 = nx_mi_1;
+
+				double rx = x - (xStart + ixOld*xStep);
+				double xt = (xStep > 0)? rx/xStep : 0.;
+
+				long ixOld_PerX = ixOld*PerX;
+				long ixOld_mi_1_PerX = ixOld_mi_1*PerX;
+				long ixOld_pl_1_PerX = ixOld_pl_1*PerX;
+				
+				long ofstOld_0m1 = ixOld_PerX + izOld_mi_1_PerZ + Two_ie; //offset for the new data
+				long ofstOld_m10 = ixOld_mi_1_PerX + izOld_PerZ + Two_ie;
+				long ofstOld_00 = ixOld_PerX + izOld_PerZ + Two_ie;
+				long ofstOld_10 = ixOld_pl_1_PerX + izOld_PerZ + Two_ie;
+				long ofstOld_01 = ixOld_PerX + izOld_pl_1_PerZ + Two_ie;
+
+				long ofstOld_0m1_p1 = ofstOld_0m1 + 1; //offset for the new data
+				long ofstOld_m10_p1 = ofstOld_m10 + 1;
+				long ofstOld_00_p1 = ofstOld_00 + 1;
+				long ofstOld_10_p1 = ofstOld_10 + 1;
+				long ofstOld_01_p1 = ofstOld_01 + 1;
+
+				if(pBaseRadX != 0)
+				{
+					double *t_arF = arF;
+					*(t_arF++) = pBaseRadX[ofstOld_0m1]; //double f0m1 = *(arF++);
+					*(t_arF++) = pBaseRadX[ofstOld_m10]; //double fm10 = *(arF++);
+					*(t_arF++) = pBaseRadX[ofstOld_00]; //double f00 = *(arF++);
+					*(t_arF++) = pBaseRadX[ofstOld_10]; //double f10 = *(arF++);
+					*(t_arF++) = pBaseRadX[ofstOld_01]; //double f01 = *arF;
+					*pEX_New = (float)CGenMathInterp::Interp2dBiQuad5Rec(xt, zt, arF);
+
+					t_arF = arF;
+					*(t_arF++) = pBaseRadX[ofstOld_0m1_p1]; //double f0m1 = *(arF++);
+					*(t_arF++) = pBaseRadX[ofstOld_m10_p1]; //double fm10 = *(arF++);
+					*(t_arF++) = pBaseRadX[ofstOld_00_p1]; //double f00 = *(arF++);
+					*(t_arF++) = pBaseRadX[ofstOld_10_p1]; //double f10 = *(arF++);
+					*(t_arF++) = pBaseRadX[ofstOld_01_p1]; //double f01 = *arF;
+					*(pEX_New + 1) = (float)CGenMathInterp::Interp2dBiQuad5Rec(xt, zt, arF);
+				}
+				if(pBaseRadZ != 0)
+				{
+					double *t_arF = arF;
+					*(t_arF++) = pBaseRadZ[ofstOld_0m1]; //double f0m1 = *(arF++);
+					*(t_arF++) = pBaseRadZ[ofstOld_m10]; //double fm10 = *(arF++);
+					*(t_arF++) = pBaseRadZ[ofstOld_00]; //double f00 = *(arF++);
+					*(t_arF++) = pBaseRadZ[ofstOld_10]; //double f10 = *(arF++);
+					*(t_arF++) = pBaseRadZ[ofstOld_01]; //double f01 = *arF;
+					*pEZ_New = (float)CGenMathInterp::Interp2dBiQuad5Rec(xt, zt, arF);
+
+					t_arF = arF;
+					*(t_arF++) = pBaseRadZ[ofstOld_0m1_p1]; //double f0m1 = *(arF++);
+					*(t_arF++) = pBaseRadZ[ofstOld_m10_p1]; //double fm10 = *(arF++);
+					*(t_arF++) = pBaseRadZ[ofstOld_00_p1]; //double f00 = *(arF++);
+					*(t_arF++) = pBaseRadZ[ofstOld_10_p1]; //double f10 = *(arF++);
+					*(t_arF++) = pBaseRadZ[ofstOld_01_p1]; //double f01 = *arF;
+					*(pEZ_New + 1) = (float)CGenMathInterp::Interp2dBiQuad5Rec(xt, zt, arF);
+				}
+				x += xStep;
+			}
+			z += zStep;
+		}
+	}
+
+	if(pBaseRadX != 0) 
+	{
+		float *tAuxRadX = pAuxBaseRadX, *tRadX = pBaseRadX;
+		for(long i=0; i<nTot; i++) *(tRadX++) = *(tAuxRadX++);
+	}
+	if(pBaseRadZ != 0) 
+	{
+		float *tAuxRadZ = pAuxBaseRadZ, *tRadZ = pBaseRadZ;
+		for(long i=0; i<nTot; i++) *(tRadZ++) = *(tAuxRadZ++);
+	}
+
+	if(WaveFrontTermWasTreated) TreatQuadPhaseTermTerm('a', PolComp);
+
+	if(pAuxBaseRadX != 0) delete[] pAuxBaseRadX;
+	if(pAuxBaseRadZ != 0) delete[] pAuxBaseRadZ;
+	return 0;
 }
 
 //*************************************************************************

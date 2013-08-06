@@ -275,6 +275,7 @@ typedef struct SRWLStructStokes SRWLStokes;
  */
 struct SRWLStructOpticsDrift {
 	double L; /* length [m] */
+	char treat; /* switch specifying whether the absolute optical path should be taken into account in radiation phase (=1) or not (=0, default) */
 };
 typedef struct SRWLStructOpticsDrift SRWLOptD;
 
@@ -299,6 +300,24 @@ struct SRWLStructOpticsLens {
 	double x, y; /* transverse coordinates of center [m] */
 };
 typedef struct SRWLStructOpticsLens SRWLOptL;
+
+/**
+ * Optical Element:
+ * Angle ("angle" type)
+ */
+struct SRWLStructOpticsAngle {
+	double AngX, AngY; /* horizontal and vertical angles [rad] */
+};
+typedef struct SRWLStructOpticsAngle SRWLOptAng;
+
+/**
+ * Optical Element:
+ * Shift ("shift" type)
+ */
+struct SRWLStructOpticsShift {
+	double ShiftX, ShiftY; /* horizontal and vertical shifts [m] */
+};
+typedef struct SRWLStructOpticsShift SRWLOptShift;
 
 /**
  * Optical Element:
@@ -383,6 +402,15 @@ struct SRWLStructOpticsMirror {
 	double x, y; /* transverse coordinates of center [m] */
 };
 typedef struct SRWLStructOpticsMirror SRWLOptMir;
+
+/**
+ * Optical Element:
+ * Plane Mirror
+ */
+struct SRWLStructOpticsMirrorPlane {
+	SRWLOptMir baseMir; /* general information about the mirror */
+};
+typedef struct SRWLStructOpticsMirrorPlane SRWLOptMirPl;
 
 /**
  * Optical Element:
@@ -499,17 +527,19 @@ EXP int CALL srwlCalcPartTrajFromKickMatr(SRWLPrtTrj* pTrj, SRWLKickM* arKickM, 
  * @param [in] pTrj pointer to pre-calculated particle trajectory structure; the initial conditions and particle type must be specified in pTrj->partInitCond; if the trajectory data arrays (pTrj->arX, pTrj->arXp, pTrj->arY, pTrj->arYp) are defined, the SR will be calculated from these data; if these arrays are not supplied (pointers are zero), the function will attempt to calculate the SR from the magnetic field data (pMagFld) which has to be supplied
  * @param [in] pMagFld optional pointer to input magnetic field (container) structure; to be taken into account only if particle trajectroy arrays (pTrj->arX, pTrj->arXp, pTrj->arY, pTrj->arYp) are not supplied
  * @param [in] precPar precision parameters: 
- *			   precPar[0]: method ID (0- "manual", 1- "auto-undulator", 2- "auto-wiggler")
+ *	   precPar[0]: method ID (0- "manual", 1- "auto-undulator", 2- "auto-wiggler")
  *			  [1]: step size or relative precision
  *			  [2]: longitudinal position to start integration
  *			  [3]: longitudinal position to finish integration
  *			  [4]: number of points to use for trajectory calculation 
- *			  [5]:...
+ *			  [5]: calculate terminating terms or not: 0- don't calculate two terms, 1- do calculate two terms, 2- calculate only upstream term, 3- calculate only downstream term 
  *			  [6]: sampling factor (for propagation, effective if > 0)
+ *			  [7]: ... 
+ * @param [in] nPrecPar number of precision parameters 
  * @return	integer error (>0) or warnig (<0) code
  * @see ...
  */
-EXP int CALL srwlCalcElecFieldSR(SRWLWfr* pWfr, SRWLPrtTrj* pTrj, SRWLMagFldC* pMagFld, double* precPar =0);
+EXP int CALL srwlCalcElecFieldSR(SRWLWfr* pWfr, SRWLPrtTrj* pTrj, SRWLMagFldC* pMagFld, double* precPar =0, int nPrecPar =0);
 
 /** 
  * Calculates Electric Field (Wavefront) of a coherent Gaussian Beam

@@ -219,6 +219,43 @@ public:
 
 //*************************************************************************
 
+class srTMirrorPlane : public srTMirror {
+	
+public:
+
+	//srTMirrorPlane(srTStringVect* pElemInfo, srTDataMD* pExtraData);
+	srTMirrorPlane(const SRWLOptMirPl& srwlMirPl) : srTMirror(srwlMirPl.baseMir) 
+	{
+		FocDistX = FocDistZ = 1.e+30;
+	}
+
+	bool FindRayIntersectWithSurfInLocFrame(TVector3d& inP, TVector3d& inV, TVector3d& resP, TVector3d* pResN=0) //virtual in srTMirror
+	{//Returns coordinates of the intersection point in the Local frame (resP), and, optionally, components of the surface normal at the intersection point (always in the Local frame)
+	 //inP and inV are respectively point and vector identifying the input ray
+	 //In the Local frame: tangential direction is X, saggital Y, mirror normal is along Z, and plane has equation: z = 0
+		
+		//test
+		//if(inV.z == 0.) inV.z = 1e-13;
+
+		double t = -inP.z/inV.z; //inV.z can't be 0 (!?)
+		resP.x = inP.x + t*inV.x;
+		resP.y = inP.y + t*inV.y;
+		resP.z = 0;
+
+		//resP.x = 0;
+		//resP.y = 0;
+		//resP.z = 0;
+
+		if(pResN != 0)
+		{
+			pResN->x = 0; pResN->y = 0; pResN->z = 1;
+		}
+		return true;
+	}
+};
+
+//*************************************************************************
+
 class srTMirrorEllipsoid : public srTMirror {
 	
 	double m_p, m_q, m_angGraz, m_radSag; //input
@@ -404,11 +441,11 @@ public:
 		}
 
 			//test: instant radius of curvature
-			double auxInvSqrt01 = 1./sqrt(1. - xi*xi/m_axE2);
-			double ziP = m_az*xi*auxInvSqrt01/m_axE2;
-			double auxSqrt = sqrt(1. + ziP*ziP);
-			double ziP2 = (m_az*auxInvSqrt01/m_axE2)*(1. + xi*xi*auxInvSqrt01*auxInvSqrt01/m_axE2);
-			double radCurv = auxSqrt*auxSqrt*auxSqrt/ziP2;
+			//double auxInvSqrt01 = 1./sqrt(1. - xi*xi/m_axE2);
+			//double ziP = m_az*xi*auxInvSqrt01/m_axE2;
+			//double auxSqrt = sqrt(1. + ziP*ziP);
+			//double ziP2 = (m_az*auxInvSqrt01/m_axE2)*(1. + xi*xi*auxInvSqrt01*auxInvSqrt01/m_axE2);
+			//double radCurv = auxSqrt*auxSqrt*auxSqrt/ziP2;
 
 		//Transforming coordinates back to the Local frame
 		double xi_mi_m_xcLocNorm = xi - m_xcLocNorm;
@@ -434,11 +471,11 @@ public:
 			pResN->Normalize();
 
 			//test
-			TVector3d inVaux = inV;
-			inVaux.Normalize();
-			double auxInstGrazAng = 1.5707963267948966 - acos(-((*pResN)*inVaux));
-			double instFocLen = 0.5*radCurv*sin(auxInstGrazAng);
-			int aha = 1;
+			//TVector3d inVaux = inV;
+			//inVaux.Normalize();
+			//double auxInstGrazAng = 1.5707963267948966 - acos(-((*pResN)*inVaux));
+			//double instFocLen = 0.5*radCurv*sin(auxInstGrazAng);
+			//int aha = 1;
 
 		}
 		return true;

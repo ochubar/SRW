@@ -143,7 +143,7 @@ srTMirror::srTMirror(const SRWLOptMir& srwlMir)
 	TransvCenPoint.x = srwlMir.x;
 	TransvCenPoint.y = srwlMir.y;
 
-	//This only calculates the transformation to the local framee
+	//This only calculates the transformation to the local frame
 	SetupNativeTransFromLocToBeamFrame(m_vCenNorm, m_vCenTang, TransvCenPoint);
 	//Other calculations (transformation of base vectors, finding extents of optical elements along optical axes, etc., will happen just before propagation)
 	//FindElemExtentsAlongOptAxes(*(TransHndl.rep), m_vCenNorm, m_halfDim1, m_halfDim2, m_extAlongOptAxIn, m_extAlongOptAxOut); //virtual
