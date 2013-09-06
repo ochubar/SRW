@@ -60,6 +60,7 @@ static const char strEr_BadOptWG[] = "Incorrect Optical Waveguide structure";
 static const char strEr_BadOptG[] = "Incorrect Optical Grating structure";
 static const char strEr_BadOptT[] = "Incorrect Optical Generic Transmission structure";
 static const char strEr_BadOptMir[] = "Incorrect Optical Mirror structure";
+static const char strEr_BadOptCryst[] = "Incorrect Optical Crystal structure";
 
 static const char strEr_BadArg_CalcMagnField[] = "Incorrect arguments for magnetic field calculation/tabulation function";
 static const char strEr_BadArg_CalcPartTraj[] = "Incorrect arguments for trajectory calculation function";
@@ -1856,6 +1857,104 @@ void ParseSructSRWLOptMirTor(SRWLOptMirTor* pOpt, PyObject* oOpt, vector<Py_buff
 }
 
 /************************************************************************//**
+ * Parses PyObject* to SRWLOptCryst*
+ ***************************************************************************/
+void ParseSructSRWLOptCryst(SRWLOptCryst* pOpt, PyObject* oOpt)
+{
+	if((pOpt == 0) || (oOpt == 0)) throw strEr_NoObj;
+
+	PyObject *o_tmp = PyObject_GetAttrString(oOpt, "dSp");
+	if(o_tmp == 0) throw strEr_BadOptCryst;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptCryst;
+	pOpt->dSp = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "psi0r");
+	if(o_tmp == 0) throw strEr_BadOptCryst;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptCryst;
+	pOpt->psi0r = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "psi0i");
+	if(o_tmp == 0) throw strEr_BadOptCryst;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptCryst;
+	pOpt->psi0i = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "psiHr");
+	if(o_tmp == 0) throw strEr_BadOptCryst;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptCryst;
+	pOpt->psiHr = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "psiHi");
+	if(o_tmp == 0) throw strEr_BadOptCryst;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptCryst;
+	pOpt->psiHi = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "h1");
+	if(o_tmp == 0) throw strEr_BadOptCryst;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptCryst;
+	pOpt->h1 = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "h2");
+	if(o_tmp == 0) throw strEr_BadOptCryst;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptCryst;
+	pOpt->h2 = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "h3");
+	if(o_tmp == 0) throw strEr_BadOptCryst;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptCryst;
+	pOpt->h3 = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "tc");
+	if(o_tmp == 0) throw strEr_BadOptCryst;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptCryst;
+	pOpt->tc = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "angAs");
+	if(o_tmp == 0) throw strEr_BadOptCryst;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptCryst;
+	pOpt->angAs = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "nvx");
+	if(o_tmp == 0) throw strEr_BadOptCryst;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptCryst;
+	pOpt->nvx = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "nvy");
+	if(o_tmp == 0) throw strEr_BadOptCryst;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptCryst;
+	pOpt->nvy = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "nvz");
+	if(o_tmp == 0) throw strEr_BadOptCryst;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptCryst;
+	pOpt->nvz = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "tvx");
+	if(o_tmp == 0) throw strEr_BadOptCryst;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptCryst;
+	pOpt->tvx = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "tvy");
+	if(o_tmp == 0) throw strEr_BadOptCryst;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptCryst;
+	pOpt->tvy = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+}
+
+/************************************************************************//**
  * Parses PyObject* to SRWLOptC*
  * ATTENTION: allocates void **arOpt and its elements and char **arOptTypes and double **arProp
  * vector<Py_buffer>& vBuf is required to store and release all buffers after the execution
@@ -1992,6 +2091,12 @@ void ParseSructSRWLOptC(SRWLOptC* pOpt, PyObject* oOpt, vector<Py_buffer>* pvBuf
 			pOptElem = new SRWLOptMirTor();
 			strcpy(sOptType, "mirror: toroid\0");
 			ParseSructSRWLOptMirTor((SRWLOptMirTor*)pOptElem, o, pvBuf);
+		}
+		else if(strcmp(sTypeName, "SRWLOptCryst") == 0)
+		{
+			pOptElem = new SRWLOptCryst();
+			strcpy(sOptType, "crystal\0");
+			ParseSructSRWLOptCryst((SRWLOptCryst*)pOptElem, o);
 		}
 
 		//to add more optical elements here

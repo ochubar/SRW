@@ -15,9 +15,7 @@
 #ifndef __SROPTANG_H
 #define __SROPTANG_H
 
-#ifndef __SROPTELM_H
 #include "sroptelm.h"
-#endif
 
 //*************************************************************************
 
@@ -34,7 +32,13 @@ public:
 
 	int PropagateRadiation(srTSRWRadStructAccessData* pRadAccessData, srTParPrecWfrPropag& ParPrecWfrPropag, srTRadResizeVect& ResBeforeAndAfterVect) //virtual
 	{
-		return PropagateRadiationMeth_0(pRadAccessData);
+		//return PropagateRadiationMeth_0(pRadAccessData);
+		int res = 0;
+		if(res = PropagateRadiationMeth_0(pRadAccessData)) return res;
+
+		if(res = PropagateWaveFrontRadius(pRadAccessData)) return res; //because this is the same for all E slices!
+		if(res = PropagateRadMoments(pRadAccessData, 0)) return res;
+		return 0;
 	}
 
 	int PropagateRadiationSingleE_Meth_0(srTSRWRadStructAccessData* pRadAccessData, srTSRWRadStructAccessData* pPrevRadAccessData)
@@ -45,7 +49,8 @@ public:
 		//consider programming Angle on angular side by simple change of limits
 		//however note potential problems for many photon energies!
 
-		if(result = PropagateRadMoments(pRadAccessData, 0)) return result;
+		//if(result = PropagateWaveFrontRadius(pRadAccessData)) return result;
+		//if(result = PropagateRadMoments(pRadAccessData, 0)) return result;
 		return 0;
 	}
 
@@ -76,6 +81,13 @@ public:
 			*(MomZ.pXP) += AngX; *(MomZ.pZP) += AngY; 
 			Offset += 11;
 		}
+		return 0;
+	}
+
+	int PropagateWaveFrontRadius(srTSRWRadStructAccessData* pRadAccessData)
+	{// Angle modifies xc, zc !?
+		//pRadAccessData->xc -= AngX*(pRadAccessData->RobsX);
+		//pRadAccessData->zc -= AngY*(pRadAccessData->RobsZ);
 		return 0;
 	}
 
@@ -118,7 +130,13 @@ public:
 
 	int PropagateRadiation(srTSRWRadStructAccessData* pRadAccessData, srTParPrecWfrPropag& ParPrecWfrPropag, srTRadResizeVect& ResBeforeAndAfterVect) //virtual
 	{
-		return PropagateRadiationMeth_0(pRadAccessData);
+		//return PropagateRadiationMeth_0(pRadAccessData);
+		int res = 0;
+		if(res = PropagateRadiationMeth_0(pRadAccessData)) return res;
+
+		if(res = PropagateWaveFrontRadius(pRadAccessData)) return res; //because this is the same for all E slices!
+		if(res = PropagateRadMoments(pRadAccessData, 0)) return res;
+		return 0;
 	}
 
 	int PropagateRadiationSingleE_Meth_0(srTSRWRadStructAccessData* pRadAccessData, srTSRWRadStructAccessData* pPrevRadAccessData)
@@ -129,7 +147,8 @@ public:
 
 		pRadAccessData->ShiftWfrByInterpolVsXZ(ShiftX, ShiftY);
 
-		if(result = PropagateRadMoments(pRadAccessData, 0)) return result;
+		//if(result = PropagateWaveFrontRadius(pRadAccessData)) return result;
+		//if(result = PropagateRadMoments(pRadAccessData, 0)) return result;
 		return 0;
 	}
 
@@ -145,6 +164,13 @@ public:
 			*(MomZ.pX) += ShiftX; *(MomZ.pZ) += ShiftY; 
 			Offset += 11;
 		}
+		return 0;
+	}
+
+	int PropagateWaveFrontRadius(srTSRWRadStructAccessData* pRadAccessData)
+	{// Shift modifies xc, zc !?
+		//pRadAccessData->xc += ShiftX;
+		//pRadAccessData->zc += ShiftY;
 		return 0;
 	}
 };

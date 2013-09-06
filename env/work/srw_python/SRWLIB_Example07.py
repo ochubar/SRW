@@ -14,54 +14,6 @@ import copy
 print('SRWLIB Python Example # 7:')
 print('Simulating propagation of a Gaussian X-ray beam through a simple optical scheme containing CRL')
 
-#**********************Auxiliary Functions
-
-#Write tabulated resulting Intensity data to ASCII file:
-#replaced by srwlib.srwl_uti_save_intens_ascii
-#def AuxSaveIntData(arI, mesh, filePath):
-#    f = open(filePath, 'w')
-#    f.write('#C-aligned Intensity (inner loop is vs photon energy, outer loop vs vertical position)\n')
-#    f.write('#' + repr(mesh.eStart) + ' #Initial Photon Energy [eV]\n')
-#    f.write('#' + repr(mesh.eFin) + ' #Final Photon Energy [eV]\n')
-#    f.write('#' + repr(mesh.ne) + ' #Number of points vs Photon Energy\n')
-#    f.write('#' + repr(mesh.xStart) + ' #Initial Horizontal Position [m]\n')
-#    f.write('#' + repr(mesh.xFin) + ' #Final Horizontal Position [m]\n')
-#    f.write('#' + repr(mesh.nx) + ' #Number of points vs Horizontal Position\n')
-#    f.write('#' + repr(mesh.yStart) + ' #Initial Vertical Position [m]\n')
-#    f.write('#' + repr(mesh.yFin) + ' #Final Vertical Position [m]\n')
-#    f.write('#' + repr(mesh.ny) + ' #Number of points vs Vertical Position\n')
-#    for i in range(mesh.ne*mesh.nx*mesh.ny): #write all data into one column using "C-alignment" as a "flat" 1D array
-#        f.write(' ' + repr(arI[i]) + '\n')
-#    f.close()
-
-#Write Optical Transmission characteristic data to ASCII file:
-#replaced by srwlib.srwl_uti_save_intens_ascii
-#def AuxSaveOpTransmData(optTr, t, filePath):
-#    f = open(filePath, 'w')
-#    f.write('#C-aligned optical Transmission characteristic (inner loop is vs horizontal position, outer loop vs vertical position)\n')
-#    f.write('#' + repr(optTr.mesh.eStart) + ' #Initial Photon Energy [eV]\n')
-#    f.write('#' + repr(optTr.mesh.eFin) + ' #Final Photon Energy [eV]\n')
-#    f.write('#' + repr(optTr.mesh.ne) + ' #Number of points vs Photon Energy\n')
-#    f.write('#' + repr(optTr.mesh.xStart) + ' #Initial Horizontal Position [m]\n')
-#    f.write('#' + repr(optTr.mesh.xFin) + ' #Final Horizontal Position [m]\n')
-#    f.write('#' + repr(optTr.mesh.nx) + ' #Number of points vs Horizontal Position\n')
-#    f.write('#' + repr(optTr.mesh.yStart) + ' #Initial Vertical Position [m]\n')
-#    f.write('#' + repr(optTr.mesh.yFin) + ' #Final Vertical Position [m]\n')
-#    f.write('#' + repr(optTr.mesh.ny) + ' #Number of points vs Vertical Position\n')
-#    neLoc = 1
-#    if(optTr.mesh.ne > 1):
-#        neLoc = optTr.mesh.ne
-#    for i in range(neLoc*optTr.mesh.nx*optTr.mesh.ny): #write all data into one column using "C-alignment" as a "flat" 1D array
-#        tr = 0
-#        if((t == 1) or (t == 2)): #amplitude or intensity transmission
-#            tr = optTr.arTr[i*2]
-#            if(t == 2): #intensity transmission
-#                tr *= tr
-#        else: #optical path difference
-#            tr = optTr.arTr[i*2 + 1]
-#        f.write(' ' + repr(tr) + '\n')
-#    f.close()
-
 #**********************Input Parameters and structures:
     
 strDataFolderName = 'data_example_07' #data sub-folder name

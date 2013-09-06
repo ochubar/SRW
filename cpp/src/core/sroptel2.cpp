@@ -56,6 +56,8 @@ int srTGenOptElem::PropagateRadiationMeth_0(srTSRWRadStructAccessData* pRadAcces
 	//separate processing of wavefront radius is necessary
 	double origRobsX = pRadAccessData->RobsX, origRobsXAbsErr = pRadAccessData->RobsXAbsErr;
 	double origRobsZ = pRadAccessData->RobsZ, origRobsZAbsErr = pRadAccessData->RobsZAbsErr;
+	double origXc = pRadAccessData->xc; //OC180813
+	double origZc = pRadAccessData->zc;
 
 	const int AmOfMoments = 11;
 	int neOrig = pRadAccessData->ne;
@@ -74,6 +76,9 @@ int srTGenOptElem::PropagateRadiationMeth_0(srTSRWRadStructAccessData* pRadAcces
 			pRadDataSingleE->pMomZ = pRadAccessData->pMomZ + OffsetMom;
 			pRadDataSingleE->RobsX = origRobsX; pRadDataSingleE->RobsXAbsErr = origRobsXAbsErr;
 			pRadDataSingleE->RobsZ = origRobsZ; pRadDataSingleE->RobsZAbsErr = origRobsZAbsErr;
+
+			pRadDataSingleE->xc = origXc; //OC180813
+			pRadDataSingleE->zc = origZc;
 
 			//if(pRadAccessData->xStart != pRadDataSingleE->xStart) pRadDataSingleE->xStart = pRadAccessData->xStart;
 			//if(pRadAccessData->xStep != pRadDataSingleE->xStep) pRadDataSingleE->xStep = pRadAccessData->xStep;
@@ -100,7 +105,8 @@ int srTGenOptElem::PropagateRadiationMeth_0(srTSRWRadStructAccessData* pRadAcces
 			//the above doesn't change the transverse grid parameters in *pRadAccessData
 
 			//vRadSlices.push_back(*pRadDataSingleE); //this automatically calls destructor, which can eventually delete "emulated" structs!
-			srTSRWRadStructAccessData copyRadDataSingleE(*pRadDataSingleE); //this doesn't assume to copy pBaseRadX, pBaseRadZ
+			//srTSRWRadStructAccessData copyRadDataSingleE(*pRadDataSingleE); //this doesn't assume to copy pBaseRadX, pBaseRadZ
+			srTSRWRadStructAccessData copyRadDataSingleE(*pRadDataSingleE, false); //OC290813 fixing memory leak(?) //this doesn't assume to copy pBaseRadX, pBaseRadZ
 			copyRadDataSingleE.pBaseRadX = copyRadDataSingleE.pBaseRadZ = 0; copyRadDataSingleE.BaseRadWasEmulated = false;
 			vRadSlices.push_back(copyRadDataSingleE);
 			

@@ -93,7 +93,7 @@ public:
 	char PresT; // 0- Frequency (Photon Energy), 1- Time Domain (i.e. ne, eStep, eStart contain time parameters)
 	char LengthUnit; // 0- m; 1- mm; 
 	char PhotEnergyUnit; // 0- eV; 1- keV; 
-	char ElecFldUnit; // 0- Arb. Units, 1- sqrt(Phot/s/0.1%bw/mm^2)
+	char ElecFldUnit; // 0- Arb. Units, 1- sqrt(Phot/s/0.1%bw/mm^2), 2- sqrt(J/eV/mm^2) or sqrt(W/mm^2), depending on representation (freq. or time)
 
 	bool WfrQuadTermCanBeTreatedAtResizeX; // is used at the time of one resize only
 	bool WfrQuadTermCanBeTreatedAtResizeZ;

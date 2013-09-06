@@ -130,7 +130,6 @@ double CGenMathMeth::Integ1D_FuncDefByArray(double* FuncArr, long Np, double Ste
             Sum2 += *(tFuncArr++);
 		}
 		Sum1 += *(tFuncArr++);
-		//return (Step/3.)*(FuncArr[0] + 4.*Sum1 + 2.*Sum1 + (*tFuncArr));
 		return (Step/3.)*(FuncArr[0] + 4.*Sum1 + 2.*Sum2 + (*tFuncArr));
 	}
 }

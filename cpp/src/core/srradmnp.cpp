@@ -249,6 +249,8 @@ int srTRadGenManip::ExtractSingleElecIntensity1DvsX(srTRadExtract& RadExtract)
 	int PolCom = RadExtract.PolarizCompon;
 	int Int_or_ReE = RadExtract.Int_or_Phase;
 
+	if(Int_or_ReE == 7) Int_or_ReE = 0; //OC150813: time/phot. energy integrated single-e intensity requires "normal" intensity here
+
 	srTSRWRadStructAccessData& RadAccessData = *((srTSRWRadStructAccessData*)(hRadAccessData.ptr()));
 
 	float *pI = 0;
@@ -264,15 +266,26 @@ int srTRadGenManip::ExtractSingleElecIntensity1DvsX(srTRadExtract& RadExtract)
 
 	long ie0=0, ie1=0, iz0=0, iz1=0;
 	double InvStepRelArg1, InvStepRelArg2;
-	SetupIntCoord('e', RadExtract.ePh, ie0, ie1, InvStepRelArg1);
+	//SetupIntCoord('e', RadExtract.ePh, ie0, ie1, InvStepRelArg1); //OC140813
 	SetupIntCoord('z', RadExtract.z, iz0, iz1, InvStepRelArg2);
+
+	bool intOverEnIsRequired = (RadExtract.Int_or_Phase == 7) && (RadAccessData.ne > 1); //OC140813
+	double *arAuxInt = 0, resInt;
+	if(intOverEnIsRequired)
+	{
+		arAuxInt = new double[RadAccessData.ne];
+	}
+	else SetupIntCoord('e', RadExtract.ePh, ie0, ie1, InvStepRelArg1); //OC140813
+
+	//double ConstPhotEnInteg = 1.60219e-16; //1 Phot/s/.1%bw correspond(s) to : 1.60219e-16 W/eV
+	//if(RadAccessData.ElecFldUnit != 1) ConstPhotEnInteg = 1; //(?) 
+	double ConstPhotEnInteg = 1.; //1 Phot/s/.1%bw correspond(s) to : 1.60219e-16 W/eV
 
 	long Two_ie0 = ie0 << 1, Two_ie1 = ie1 << 1;
 
 	long iz0PerZ = iz0*PerZ, iz1PerZ = iz1*PerZ;
 	float *pEx_StartForX_iz0 = pEx0 + iz0PerZ, *pEx_StartForX_iz1 = pEx0 + iz1PerZ;
 	float *pEz_StartForX_iz0 = pEz0 + iz0PerZ, *pEz_StartForX_iz1 = pEz0 + iz1PerZ;
-
 	long ixPerX = 0;
 
 	for(long ix=0; ix<RadAccessData.nx; ix++)
@@ -284,11 +297,34 @@ int srTRadGenManip::ExtractSingleElecIntensity1DvsX(srTRadExtract& RadExtract)
 							(pEx_StartForE_iz1 + Two_ie0), (pEx_StartForE_iz1 + Two_ie1)};
 		float *EzPtrs[] = { (pEz_StartForE_iz0 + Two_ie0), (pEz_StartForE_iz0 + Two_ie1),
 							(pEz_StartForE_iz1 + Two_ie0), (pEz_StartForE_iz1 + Two_ie1)};
-		if(pI != 0) *(pI++) = IntensityComponentSimpleInterpol2D(ExPtrs, EzPtrs, InvStepRelArg1, InvStepRelArg2, PolCom, Int_or_ReE);
-		if(pId != 0) *(pId++) = IntensityComponentSimpleInterpol2D(ExPtrs, EzPtrs, InvStepRelArg1, InvStepRelArg2, PolCom, Int_or_ReE);
+		//OC150813
+		//if(pI != 0) *(pI++) =   IntensityComponentSimpleInterpol2D(ExPtrs, EzPtrs, InvStepRelArg1, InvStepRelArg2, PolCom, Int_or_ReE);
+		//if(pId != 0) *(pId++) = IntensityComponentSimpleInterpol2D(ExPtrs, EzPtrs, InvStepRelArg1, InvStepRelArg2, PolCom, Int_or_ReE);
+
+		if(intOverEnIsRequired) //OC150813
+		{//integrate over photon energy / time
+			double *tInt = arAuxInt; 
+			float *pEx_StAux = pEx_StartForE_iz0;
+			float *pEx_FiAux = pEx_StartForE_iz1;
+			float *pEz_StAux = pEz_StartForE_iz0;
+			float *pEz_FiAux = pEz_StartForE_iz1;
+
+			for(int ie=0; ie<RadAccessData.ne; ie++)
+			{
+				*(tInt++) = IntensityComponentSimpleInterpol(pEx_StAux, pEx_FiAux, pEz_StAux, pEz_FiAux, InvStepRelArg2, PolCom, Int_or_ReE);
+				pEx_StAux += 2; pEx_FiAux += 2;
+				pEz_StAux += 2; pEz_FiAux += 2;
+			}
+			resInt = ConstPhotEnInteg*CGenMathMeth::Integ1D_FuncDefByArray(arAuxInt, RadAccessData.ne, RadAccessData.eStep);
+		}
+		else resInt = IntensityComponentSimpleInterpol2D(ExPtrs, EzPtrs, InvStepRelArg1, InvStepRelArg2, PolCom, Int_or_ReE);
+		//OC150813
+		if(pI != 0) *(pI++) = (float)resInt;
+		if(pId != 0) *(pId++) = (double)resInt;
 
 		ixPerX += PerX;
 	}
+	if(arAuxInt != 0) delete[] arAuxInt; //OC150813
 	return 0;
 }
 
@@ -298,6 +334,8 @@ int srTRadGenManip::ExtractSingleElecIntensity1DvsZ(srTRadExtract& RadExtract)
 {
 	int PolCom = RadExtract.PolarizCompon;
 	int Int_or_ReE = RadExtract.Int_or_Phase;
+
+	if(Int_or_ReE == 7) Int_or_ReE = 0; //OC150813: time/phot. energy integrated single-e intensity requires "normal" intensity here
 
 	srTSRWRadStructAccessData& RadAccessData = *((srTSRWRadStructAccessData*)(hRadAccessData.ptr()));
 
@@ -314,8 +352,20 @@ int srTRadGenManip::ExtractSingleElecIntensity1DvsZ(srTRadExtract& RadExtract)
 
 	long ie0=0, ie1=0, ix0=0, ix1=0;
 	double InvStepRelArg1, InvStepRelArg2;
-	SetupIntCoord('e', RadExtract.ePh, ie0, ie1, InvStepRelArg1);
+	//SetupIntCoord('e', RadExtract.ePh, ie0, ie1, InvStepRelArg1); //OC150813
 	SetupIntCoord('x', RadExtract.x, ix0, ix1, InvStepRelArg2);
+
+	bool intOverEnIsRequired = (RadExtract.Int_or_Phase == 7) && (RadAccessData.ne > 1); //OC150813
+	double *arAuxInt = 0, resInt;
+	if(intOverEnIsRequired)
+	{
+		arAuxInt = new double[RadAccessData.ne];
+	}
+	else SetupIntCoord('e', RadExtract.ePh, ie0, ie1, InvStepRelArg1); //OC150813
+
+	//double ConstPhotEnInteg = 1.60219e-16; //1 Phot/s/.1%bw correspond(s) to : 1.60219e-16 W/eV
+	//if(RadAccessData.ElecFldUnit != 1) ConstPhotEnInteg = 1; //(?) 
+	double ConstPhotEnInteg = 1.; //1 Phot/s/.1%bw correspond(s) to : 1.60219e-16 W/eV
 
 	long Two_ie0 = ie0 << 1, Two_ie1 = ie1 << 1;
 	long ix0PerX = ix0*PerX, ix1PerX = ix1*PerX;
@@ -332,11 +382,34 @@ int srTRadGenManip::ExtractSingleElecIntensity1DvsZ(srTRadExtract& RadExtract)
 							(pEx_StartForE_ix1 + Two_ie0), (pEx_StartForE_ix1 + Two_ie1)};
 		float *EzPtrs[] = { (pEz_StartForE_ix0 + Two_ie0), (pEz_StartForE_ix0 + Two_ie1),
 							(pEz_StartForE_ix1 + Two_ie0), (pEz_StartForE_ix1 + Two_ie1)};
-		if(pI != 0) *(pI++) = IntensityComponentSimpleInterpol2D(ExPtrs, EzPtrs, InvStepRelArg1, InvStepRelArg2, PolCom, Int_or_ReE);
-		if(pId != 0) *(pId++) = IntensityComponentSimpleInterpol2D(ExPtrs, EzPtrs, InvStepRelArg1, InvStepRelArg2, PolCom, Int_or_ReE);
+		//OC150813
+		//if(pI != 0) *(pI++) = IntensityComponentSimpleInterpol2D(ExPtrs, EzPtrs, InvStepRelArg1, InvStepRelArg2, PolCom, Int_or_ReE);
+		//if(pId != 0) *(pId++) = IntensityComponentSimpleInterpol2D(ExPtrs, EzPtrs, InvStepRelArg1, InvStepRelArg2, PolCom, Int_or_ReE);
+
+		if(intOverEnIsRequired) //OC150813
+		{//integrate over photon energy / time
+			double *tInt = arAuxInt; 
+			float *pEx_StAux = pEx_StartForE_ix0;
+			float *pEx_FiAux = pEx_StartForE_ix1;
+			float *pEz_StAux = pEz_StartForE_ix0;
+			float *pEz_FiAux = pEz_StartForE_ix1;
+
+			for(int ie=0; ie<RadAccessData.ne; ie++)
+			{
+				*(tInt++) = IntensityComponentSimpleInterpol(pEx_StAux, pEx_FiAux, pEz_StAux, pEz_FiAux, InvStepRelArg2, PolCom, Int_or_ReE);
+				pEx_StAux += 2; pEx_FiAux += 2;
+				pEz_StAux += 2; pEz_FiAux += 2;
+			}
+			resInt = ConstPhotEnInteg*CGenMathMeth::Integ1D_FuncDefByArray(arAuxInt, RadAccessData.ne, RadAccessData.eStep);
+		}
+		else resInt = IntensityComponentSimpleInterpol2D(ExPtrs, EzPtrs, InvStepRelArg1, InvStepRelArg2, PolCom, Int_or_ReE);
+		//OC150813
+		if(pI != 0) *(pI++) = (float)resInt;
+		if(pId != 0) *(pId++) = (double)resInt;
 
 		izPerZ += PerZ;
 	}
+	if(arAuxInt != 0) delete[] arAuxInt; //OC150813
 	return 0;
 }
 
@@ -346,6 +419,8 @@ int srTRadGenManip::ExtractSingleElecIntensity2DvsXZ(srTRadExtract& RadExtract)
 {
 	int PolCom = RadExtract.PolarizCompon;
 	int Int_or_ReE = RadExtract.Int_or_Phase;
+
+	if(Int_or_ReE == 7) Int_or_ReE = 0; //OC150813: time/phot. energy integrated single-e intensity requires "normal" intensity here
 
 	srTSRWRadStructAccessData& RadAccessData = *((srTSRWRadStructAccessData*)(hRadAccessData.ptr()));
 
@@ -361,8 +436,19 @@ int srTRadGenManip::ExtractSingleElecIntensity2DvsXZ(srTRadExtract& RadExtract)
 	long PerZ = PerX*RadAccessData.nx;
 
 	long ie0=0, ie1=0;
-	double InvStepRelArg;
-	SetupIntCoord('e', RadExtract.ePh, ie0, ie1, InvStepRelArg);
+	double InvStepRelArg=0;
+	//SetupIntCoord('e', RadExtract.ePh, ie0, ie1, InvStepRelArg); //OC140813
+	bool intOverEnIsRequired = (RadExtract.Int_or_Phase == 7) && (RadAccessData.ne > 1); //OC140813
+	double *arAuxInt = 0, resInt;
+	if(intOverEnIsRequired)
+	{
+		arAuxInt = new double[RadAccessData.ne];
+	}
+	else SetupIntCoord('e', RadExtract.ePh, ie0, ie1, InvStepRelArg); //OC140813
+
+	//double ConstPhotEnInteg = 1.60219e-16; //1 Phot/s/.1%bw correspond(s) to : 1.60219e-16 W/eV
+	//if(RadAccessData.ElecFldUnit != 1) ConstPhotEnInteg = 1; //(?) 
+	double ConstPhotEnInteg = 1.; //1 Phot/s/.1%bw correspond(s) to : 1.60219e-16 W/eV
 
 	long Two_ie0 = ie0 << 1, Two_ie1 = ie1 << 1;
 	long izPerZ = 0;
@@ -382,17 +468,30 @@ int srTRadGenManip::ExtractSingleElecIntensity2DvsXZ(srTRadExtract& RadExtract)
 		{
 			//float *pEx_StartForE = pEx_StartForX + ixPerX;
 			//float *pEz_StartForE = pEz_StartForX + ixPerX;
-
 			//float *pEx_St = pEx_StartForE + Two_ie0, *pEx_Fi = pEx_StartForE + Two_ie1;
 			//float *pEz_St = pEz_StartForE + Two_ie0, *pEz_Fi = pEz_StartForE + Two_ie1;
 
-			//if((ix > RadAccessData.nx - 2) && (iz > RadAccessData.nz - 2))
-			//{
-			//	int aha = 1;
-			//}
+			//OC140813
+			//if(pI != 0) *(pI++) = IntensityComponentSimpleInterpol(pEx_St, pEx_Fi, pEz_St, pEz_Fi, InvStepRelArg, PolCom, Int_or_ReE);
+			//if(pId != 0) *(pId++) = IntensityComponentSimpleInterpol(pEx_St, pEx_Fi, pEz_St, pEz_Fi, InvStepRelArg, PolCom, Int_or_ReE);
 
-			if(pI != 0) *(pI++) = IntensityComponentSimpleInterpol(pEx_St, pEx_Fi, pEz_St, pEz_Fi, InvStepRelArg, PolCom, Int_or_ReE);
-			if(pId != 0) *(pId++) = IntensityComponentSimpleInterpol(pEx_St, pEx_Fi, pEz_St, pEz_Fi, InvStepRelArg, PolCom, Int_or_ReE);
+			if(intOverEnIsRequired) //OC140813
+			{//integrate over photon energy / time
+				double *tInt = arAuxInt; 
+				float *pEx_StAux = pEx_St;
+				float *pEz_StAux = pEz_St;
+				for(int ie=0; ie<RadAccessData.ne; ie++)
+				{
+					*(tInt++) = IntensityComponent(pEx_StAux, pEz_StAux, PolCom, Int_or_ReE);
+					pEx_StAux += 2;
+					pEz_StAux += 2;
+				}
+				resInt = ConstPhotEnInteg*CGenMathMeth::Integ1D_FuncDefByArray(arAuxInt, RadAccessData.ne, RadAccessData.eStep);
+			}
+			else resInt = IntensityComponentSimpleInterpol(pEx_St, pEx_Fi, pEz_St, pEz_Fi, InvStepRelArg, PolCom, Int_or_ReE);
+			//OC140813
+			if(pI != 0) *(pI++) = (float)resInt;
+			if(pId != 0) *(pId++) = (double)resInt;
 
 			//ixPerX += PerX;
 			pEx_St += PerX;
@@ -402,6 +501,7 @@ int srTRadGenManip::ExtractSingleElecIntensity2DvsXZ(srTRadExtract& RadExtract)
 		}
 		izPerZ += PerZ;
 	}
+	if(arAuxInt != 0) delete[] arAuxInt; //OC150813
 	return 0;
 }
 

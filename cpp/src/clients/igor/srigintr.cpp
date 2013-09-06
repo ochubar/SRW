@@ -642,8 +642,11 @@ static int srStokesUnd(void* p_void)
 		int InitHarm, FinHarm;
 		double Kns, Knphi;
 		char IntensityOrFlux;
-        ProcErr(srTIgorSend::GetPrecParamStokesPerComp(pStr->wPerIntPar, InitHarm, FinHarm, Kns, Knphi, IntensityOrFlux));
-		srTParPrecStokesPer PrecStokesPer(InitHarm, FinHarm, Kns, Knphi, IntensityOrFlux);
+		double minPhotEnExtRight = 1; //OC170713
+        //ProcErr(srTIgorSend::GetPrecParamStokesPerComp(pStr->wPerIntPar, InitHarm, FinHarm, Kns, Knphi, IntensityOrFlux));
+        ProcErr(srTIgorSend::GetPrecParamStokesPerComp(pStr->wPerIntPar, InitHarm, FinHarm, Kns, Knphi, IntensityOrFlux, minPhotEnExtRight)); //OC170713
+		//srTParPrecStokesPer PrecStokesPer(InitHarm, FinHarm, Kns, Knphi, IntensityOrFlux);
+		srTParPrecStokesPer PrecStokesPer(InitHarm, FinHarm, Kns, Knphi, IntensityOrFlux, minPhotEnExtRight); //OC170713
 
 		ProcErr(srTIgorSend::GetSRWStokesInData(pStr->wStokes, &StokesInData));
 

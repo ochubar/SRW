@@ -21,6 +21,7 @@
 #include "sroptgtr.h"
 #include "sropthck.h"
 #include "sroptang.h"
+#include "sroptcryst.h"
 #include "auxparse.h"
 #include "srwlib.h"
 
@@ -162,6 +163,10 @@ srTCompositeOptElem::srTCompositeOptElem(const SRWLOptC& opt)
 			else if(strcmp(sType, "mirror: toroid") == 0)
 			{
 				pOptElem = new srTMirrorToroid(*((SRWLOptMirTor*)(*t_arOpt)));
+			}
+			else if(strcmp(sType, "crystal") == 0)
+			{
+				pOptElem = new srTOptCryst(*((SRWLOptCryst*)(*t_arOpt)));
 			}
 
 			else if(strcmp(sType, "container") == 0)

@@ -934,7 +934,7 @@ class SRWLWfr(object):
         self.avgPhotEn = 0 #average photon energy for time-domain simulations
         self.presCA = 0 #presentation/domain: 0- coordinates, 1- angles
         self.presFT = 0 #presentation/domain: 0- frequency (photon energy), 1- time
-        self.unitElFld = 1 #electric field units: 0- arbitrary, 1- sqrt(Phot/s/0.1%bw/mm^2) ?
+        self.unitElFld = 1 #electric field units: 0- arbitrary, 1- sqrt(Phot/s/0.1%bw/mm^2), 2- sqrt(J/eV/mm^2) or sqrt(W/mm^2), depending on representation (freq. or time) ?
         self.arElecPropMatr = array('d', [0] * 20) #effective 1st order "propagation matrix" for electron beam parameters
         self.arMomX = array('d', [0] * 11 * _ne) #statistical moments (of Wigner distribution); to check the exact number of moments required
         self.arMomY = array('d', [0] * 11 * _ne)
@@ -990,9 +990,15 @@ class SRWLWfr(object):
             if((self.mesh.ne != _wfr.mesh.ne) or (self.mesh.nx != _wfr.mesh.nx) or (self.mesh.ny != _wfr.mesh.ny)):
                  raise Exception("Electric Field addition can not be performed by this method because of unequal sizes of the two Wavefronts") 
             nTot = 2*self.mesh.ne*self.mesh.nx*self.mesh.ny
+            #test:
+            #aux = 0
+            wfr_arEx = _wfr.arEx
+            wfr_arEy = _wfr.arEy
+            
             for i in range(nTot):
-                self.arEx[i] += _wfr.arEx[i]
-                self.arEy[i] += _wfr.arEy[i]
+                #for some reason, this increases memory requirements in Py:
+                self.arEx[i] += wfr_arEx[i] 
+                self.arEy[i] += wfr_arEy[i]
                 
         elif(_meth == 1):
             #to implement
@@ -1599,13 +1605,13 @@ class SRWLOptMir(SRWLOpt):
 
     def set_orient(self, _nvx=0, _nvy=0, _nvz=-1, _tvx=1, _tvy=0, _x=0, _y=0):
         """Defines Mirror Orientation in the frame of the incident photon beam
-        :param _nvx: horizontal coordinate of central normal vector [m]
-        :param _nvy: vertical coordinate of central normal vector [m]
-        :param _nvz: longitudinal coordinate of central normal vector [m]
-        :param _tvx: horizontal coordinate of central tangential vector [m]
-        :param _tvy: vertical coordinate of central tangential vector [m]
-        :param _x: horizontal position of mirror center
-        :param _y: vertical position of mirror center
+        :param _nvx: horizontal coordinate of central normal vector
+        :param _nvy: vertical coordinate of central normal vector
+        :param _nvz: longitudinal coordinate of central normal vector
+        :param _tvx: horizontal coordinate of central tangential vector
+        :param _tvy: vertical coordinate of central tangential vector
+        :param _x: horizontal position of mirror center [m]
+        :param _y: vertical position of mirror center [m]
         """
         self.nvx = _nvx
         self.nvy = _nvy
@@ -1637,13 +1643,13 @@ class SRWLOptMirPl(SRWLOptMir):
                 2- assume that the input wavefront is defined in the plane at the optical element center and the output wavefront is also required at the element center; however, before the propagation though the optical element, the wavefront should be propagated through a drift back to a plane just before the optical element, then a special propagator will bring the wavefront to a plane at the optical element exit, and after that the wavefront will be propagated through a drift back to the element center;
         :param _ext_in: optical element extent on the input side, i.e. distance between the input plane and the optical center (positive, in [m]) to be used at wavefront propagation manipulations; if 0, this extent will be calculated internally from optical element parameters
         :param _ext_out: optical element extent on the output side, i.e. distance between the optical center and the output plane (positive, in [m]) to be used at wavefront propagation manipulations; if 0, this extent will be calculated internally from optical element parameters        
-        :param _nvx: horizontal coordinate of central normal vector [m]
-        :param _nvy: vertical coordinate of central normal vector [m]
-        :param _nvz: longitudinal coordinate of central normal vector [m]
-        :param _tvx: horizontal coordinate of central tangential vector [m]
-        :param _tvy: vertical coordinate of central tangential vector [m]
-        :param _x: horizontal position of mirror center
-        :param _y: vertical position of mirror center
+        :param _nvx: horizontal coordinate of central normal vector
+        :param _nvy: vertical coordinate of central normal vector
+        :param _nvz: longitudinal coordinate of central normal vector
+        :param _tvx: horizontal coordinate of central tangential vector
+        :param _tvy: vertical coordinate of central tangential vector
+        :param _x: horizontal position of mirror center [m]
+        :param _y: vertical position of mirror center [m]
         :param _refl: reflectivity coefficient to set (can be one number or C-aligned flat complex array vs photon energy vs grazing angle vs component (sigma, pi))
         :param _n_ph_en: number of photon energy values for which the reflectivity coefficient is specified
         :param _n_ang: number of grazing angle values for which the reflectivity coefficient is specified
@@ -1685,13 +1691,13 @@ class SRWLOptMirEl(SRWLOptMir):
                 2- assume that the input wavefront is defined in the plane at the optical element center and the output wavefront is also required at the element center; however, before the propagation though the optical element, the wavefront should be propagated through a drift back to a plane just before the optical element, then a special propagator will bring the wavefront to a plane at the optical element exit, and after this the wavefront will be propagated through a drift back to the element center;
         :param _ext_in: optical element extent on the input side, i.e. distance between the input plane and the optical center (positive, in [m]) to be used at wavefront propagation manipulations; if 0, this extent will be calculated internally from optical element parameters
         :param _ext_out: optical element extent on the output side, i.e. distance between the optical center and the output plane (positive, in [m]) to be used at wavefront propagation manipulations; if 0, this extent will be calculated internally from optical element parameters        
-        :param _nvx: horizontal coordinate of central normal vector [m]
-        :param _nvy: vertical coordinate of central normal vector [m]
-        :param _nvz: longitudinal coordinate of central normal vector [m]
-        :param _tvx: horizontal coordinate of central tangential vector [m]
-        :param _tvy: vertical coordinate of central tangential vector [m]
-        :param _x: horizontal position of mirror center
-        :param _y: vertical position of mirror center
+        :param _nvx: horizontal coordinate of central normal vector
+        :param _nvy: vertical coordinate of central normal vector
+        :param _nvz: longitudinal coordinate of central normal vector
+        :param _tvx: horizontal coordinate of central tangential vector
+        :param _tvy: vertical coordinate of central tangential vector
+        :param _x: horizontal position of mirror center [m]
+        :param _y: vertical position of mirror center [m]
         :param _refl: reflectivity coefficient to set (can be one number or C-aligned flat complex array vs photon energy vs grazing angle vs component (sigma, pi))
         :param _n_ph_en: number of photon energy values for which the reflectivity coefficient is specified
         :param _n_ang: number of grazing angle values for which the reflectivity coefficient is specified
@@ -1729,46 +1735,58 @@ class SRWLOptMirTor(SRWLOptMir):
         self.set_dim_sim_meth()
         self.set_orient()
 
-#class SRWLCrystal(SRWLOpt):
-#    """Optical Element: Ideal Crystal"""
-#
-#    #def _init_(self, _d_space, _psiOr, _psiOi, _psiHr, _psiHi, _psiHBr, _psiHBi, _H1, _H2, _H3, _Tc, _Tasym, _nx, _ny, _nz, _sx, _sy, _sz, _aChi, _aPsi, _aThe):
-#    def _init_(self, _d_space, _psiOr, _psiOi, _psiHr, _psiHi, _psiHBr, _psiHBi, _H1, _H2, _H3, _Tc, _Tasym, _nvx, _nvy, _nvz, _tvx, _tvy):
-#        """
-#        :param _d_space: crystal reflecting planes d-spacing (John's dA)
-#        :param _psiOr: real part of 0-th Fourier component of crystal polarizability (John's psi0c.real)
-#        :param _psiOi: imaginary part of 0-th Fourier component of crystal polarizability (John's psi0c.imag)
-#        :param _psiHr: real part of H-th Fourier component of crystal polarizability (John's psihc.real)
-#        :param _psiHi: imaginary part of H-th Fourier component of crystal polarizability (John's psihc.imag)
-#        :param _psiHBr: real part of -H-th Fourier component of crystal polarizability (John's psimhc.real)
-#        :param _psiHBi: imaginary part of -H-th Fourier component of crystal polarizability (John's psimhc.imag)
-#        :param _H1: 1st diffraction index of diffraction vector (John's hMilND)
-#        :param _H2: 2nd diffraction index of diffraction vector (John's kMilND)
-#        :param _H3: 2nd diffraction index of diffraction vector (John's lMilND)
-#        :param _Tc: crystal thickness [m] (John's thicum)
-#        :param _Tasym: asymmetry angle [rad] (John's alphdg)
-#        
-#        :param _nvx: horizontal coordinate of outward normal to crystal surface [m] (John's angles: thdg, chidg, phidg)
-#        :param _nvy: vertical coordinate of outward normal to crystal surface [m] (John's angles: thdg, chidg, phidg)
-#        :param _nvz: longitudinal coordinate of outward normal to crystal surface [m] (John's angles: thdg, chidg, phidg)
-#        :param _tvx: horizontal coordinate of central tangential vector [m] (John's angles: thdg, chidg, phidg)
-#        :param _tvy: vertical coordinate of central tangential vector [m] (John's angles: thdg, chidg, phidg)
-#        """
-#
-#        #"""
-#        #to go to Propagation Parameters
-#        #:param _sx: horizontal coordinate of optical axis after crystal [m] (John's )
-#        #:param _sy: vertical coordinate of optical axis after crystal [m] (John's )
-#        #:param _sz: longitudinal coordinate of optical axis after crystal [m] (John's )
-#
-#        #to go to member functions (convenience)
-#        #:param _aChi: crystal roll angle (John's )
-#        #:param _aPsi: crystal yaw angle (John's )
-#        #:param _aThe: crystal theta angle (John's )
-#        #"""
-#        
-#        #To program affectation!
+class SRWLOptCryst(SRWLOpt):
+    """Optical Element: Ideal Crystal"""
 
+    #def _init_(self, _d_space, _psiOr, _psiOi, _psiHr, _psiHi, _psiHBr, _psiHBi, _H1, _H2, _H3, _Tc, _Tasym, _nx, _ny, _nz, _sx, _sy, _sz, _aChi, _aPsi, _aThe):
+    def _init_(self, _d_sp, _psi0r, _psi0i, _psi_hr, _psi_hi, _psi_hbr, _psi_hbi, _h1, _h2, _h3, _tc, _ang_as, _nvx, _nvy, _nvz, _tvx, _tvy):
+        """
+        :param _d_sp: (_d_space) crystal reflecting planes d-spacing (John's dA) (units?)
+        :param _psi0r: real part of 0-th Fourier component of crystal polarizability (John's psi0c.real) (units?)
+        :param _psi0i: imaginary part of 0-th Fourier component of crystal polarizability (John's psi0c.imag) (units?)
+        :param _psi_hr: (_psiHr) real part of H-th Fourier component of crystal polarizability (John's psihc.real) (units?)
+        :param _psi_hi: (_psiHi) imaginary part of H-th Fourier component of crystal polarizability (John's psihc.imag) (units?)
+        :param _psi_hbr: (_psiHBr:) real part of -H-th Fourier component of crystal polarizability (John's psimhc.real) (units?)
+        :param _psi_hbi: (_psiHBi:) imaginary part of -H-th Fourier component of crystal polarizability (John's psimhc.imag) (units?)
+        :param _h1: 1st index of diffraction vector (John's hMilND)
+        :param _h2: 2nd index of diffraction vector (John's kMilND)
+        :param _h3: 3rd index of diffraction vector (John's lMilND)
+        :param _tc: crystal thickness [m] (John's thicum)
+        :param _ang_as: (_Tasym) asymmetry angle [rad] (John's alphdg)
+        :param _nvx: horizontal coordinate of outward normal to crystal surface (John's angles: thdg, chidg, phidg)
+        :param _nvy: vertical coordinate of outward normal to crystal surface (John's angles: thdg, chidg, phidg)
+        :param _nvz: longitudinal coordinate of outward normal to crystal surface (John's angles: thdg, chidg, phidg)
+        :param _tvx: horizontal coordinate of central tangential vector (John's angles: thdg, chidg, phidg)
+        :param _tvy: vertical coordinate of central tangential vector (John's angles: thdg, chidg, phidg)
+        """
+        #"""
+        #to go to Propagation Parameters
+        #:param _sx: horizontal coordinate of optical axis after crystal [m] (John's )
+        #:param _sy: vertical coordinate of optical axis after crystal [m] (John's )
+        #:param _sz: longitudinal coordinate of optical axis after crystal [m] (John's )
+
+        #to go to member functions (convenience derived parameters)
+        #:param _aChi: crystal roll angle (John's )
+        #:param _aPsi: crystal yaw angle (John's )
+        #:param _aThe: crystal theta angle (John's )
+        #"""
+        self.dSp = _d_sp
+        self.psi0r = _psi0r
+        self.psi0i = _psi0i
+        self.psiHr = _psi_hr
+        self.psiHi = _psi_hi
+        self.psiHbr = _psi_hbr
+        self.psiHbi = _psi_hbi
+        self.h1 = _h1
+        self.h2 = _h2
+        self.h3 = _h3
+        self.tc = _tc
+        self.angAs = _ang_as
+        self.nvx = _nvx
+        self.nvy = _nvy
+        self.nvz = _nvz
+        self.tvx = _tvx
+        self.tvy = _tvy
 
 class SRWLOptC(SRWLOpt):
     """Optical Element: Container"""

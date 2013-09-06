@@ -3008,6 +3008,7 @@ void srTSRWRadStructAccessData::MakeWfrEdgeCorrection(float* pDataEx, float* pDa
 
 int srTSRWRadStructAccessData::ShiftWfrByInterpolVsXZ(double shiftX, double shiftZ)
 {//Shift the wavefront E-field data by interpolation, in whatever representation (coord. of ang.), keeping same mesh
+ //Note: it also modifies xc, zc (requires for best treatment of quadratic phase term) !
 
 	long nTot = (ne << 1)*nx*nz;
 	float *pAuxBaseRadX = 0;
@@ -3132,6 +3133,8 @@ int srTSRWRadStructAccessData::ShiftWfrByInterpolVsXZ(double shiftX, double shif
 					*(t_arF++) = pBaseRadX[ofstOld_10]; //double f10 = *(arF++);
 					*(t_arF++) = pBaseRadX[ofstOld_01]; //double f01 = *arF;
 					*pEX_New = (float)CGenMathInterp::Interp2dBiQuad5Rec(xt, zt, arF);
+					//OCTEST
+					//*pEX_New = (float)pBaseRadX[ofstOld_00];
 
 					t_arF = arF;
 					*(t_arF++) = pBaseRadX[ofstOld_0m1_p1]; //double f0m1 = *(arF++);
@@ -3140,6 +3143,8 @@ int srTSRWRadStructAccessData::ShiftWfrByInterpolVsXZ(double shiftX, double shif
 					*(t_arF++) = pBaseRadX[ofstOld_10_p1]; //double f10 = *(arF++);
 					*(t_arF++) = pBaseRadX[ofstOld_01_p1]; //double f01 = *arF;
 					*(pEX_New + 1) = (float)CGenMathInterp::Interp2dBiQuad5Rec(xt, zt, arF);
+					//OCTEST
+					//*(pEX_New + 1) = (float)pBaseRadX[ofstOld_00_p1];
 				}
 				if(pBaseRadZ != 0)
 				{
@@ -3150,6 +3155,8 @@ int srTSRWRadStructAccessData::ShiftWfrByInterpolVsXZ(double shiftX, double shif
 					*(t_arF++) = pBaseRadZ[ofstOld_10]; //double f10 = *(arF++);
 					*(t_arF++) = pBaseRadZ[ofstOld_01]; //double f01 = *arF;
 					*pEZ_New = (float)CGenMathInterp::Interp2dBiQuad5Rec(xt, zt, arF);
+					//OCTEST
+					//*pEZ_New = (float)pBaseRadZ[ofstOld_00];
 
 					t_arF = arF;
 					*(t_arF++) = pBaseRadZ[ofstOld_0m1_p1]; //double f0m1 = *(arF++);
@@ -3158,6 +3165,8 @@ int srTSRWRadStructAccessData::ShiftWfrByInterpolVsXZ(double shiftX, double shif
 					*(t_arF++) = pBaseRadZ[ofstOld_10_p1]; //double f10 = *(arF++);
 					*(t_arF++) = pBaseRadZ[ofstOld_01_p1]; //double f01 = *arF;
 					*(pEZ_New + 1) = (float)CGenMathInterp::Interp2dBiQuad5Rec(xt, zt, arF);
+					//OCTEST
+					//*(pEZ_New + 1) = (float)pBaseRadZ[ofstOld_00_p1];
 				}
 				x += xStep;
 			}
@@ -3176,7 +3185,15 @@ int srTSRWRadStructAccessData::ShiftWfrByInterpolVsXZ(double shiftX, double shif
 		for(long i=0; i<nTot; i++) *(tRadZ++) = *(tAuxRadZ++);
 	}
 
+	//OC180813: don't correct it here; will be corrected in sep. function
+	xc += shiftX; 
+	zc += shiftZ;
+
 	if(WaveFrontTermWasTreated) TreatQuadPhaseTermTerm('a', PolComp);
+
+	//OC180813: don't correct it here; will be corrected in sep. function
+	xc -= shiftX; 
+	zc -= shiftZ;
 
 	if(pAuxBaseRadX != 0) delete[] pAuxBaseRadX;
 	if(pAuxBaseRadZ != 0) delete[] pAuxBaseRadZ;
@@ -3322,7 +3339,9 @@ int srTSRWRadStructAccessData::SetRepresFT(char FreqOrTime)
 	//char DirFFT = (FreqOrTime == 0)? -1 : 1;
 
 	const double multConvHz2eV = 4.135667175e-15;
-	const double multConv_eV2PhperBW = 6.24146e+15;
+	//const double multConv_eV2PhperBW = 6.24146e+15;
+	double multConv_eV2PhperBW = 6.24146e+15; 
+	if(ElecFldUnit == 2) multConv_eV2PhperBW = 1; //OC170813
 
 	//default- to time:
 	double normArgConv = multConvHz2eV;

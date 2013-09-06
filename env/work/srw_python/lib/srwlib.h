@@ -241,7 +241,7 @@ struct SRWLStructWaveFront {
 	char presCA; /* presentation/domain: 0- coordinates, 1- angles */
 	char presFT; /* presentation/domain: 0- frequency (photon energy), 1- time */
 	char numTypeElFld; /* electric field numerical type: 'f' (float) or 'd' (double) */
-	char unitElFld; /* electric field units: 0- arbitrary, 1- sqrt(Phot/s/0.1%bw/mm^2) ? */
+	char unitElFld; /* electric field units: 0- arbitrary, 1- sqrt(Phot/s/0.1%bw/mm^2), 2- sqrt(J/eV/mm^2) or sqrt(W/mm^2), depending on representation (freq. or time) ? */
 
 	SRWLPartBeam partBeam; /* particle beam source; strictly speaking, it should be just SRWLParticle; however, "multi-electron" information can appear useful for those cases when "multi-electron intensity" can be deduced from the "single-electron" one by convolution */
 	double *arElecPropMatr; /* effective 1st order "propagation matrix" for electron beam parameters */
@@ -397,8 +397,8 @@ struct SRWLStructOpticsMirror {
 	double reflAngStart, reflAngFin; /* initial and final grazing angle values for which the reflectivity coefficient is specified */
 	char reflPhEnScaleType[4], reflAngScaleType[4]; /* photon energy and angle sampling type (1 for linear, 2 for logarithmic) */
 
-	double nvx, nvy, nvz; /* horizontal, vertical and longitudinal coordinates of central normal vector [m] in the frame of incident beam */
-	double tvx, tvy; /* horizontal and vertical coordinates of central tangential vector [m] in the frame of incident beam */
+	double nvx, nvy, nvz; /* horizontal, vertical and longitudinal coordinates of central normal vector in the frame of incident beam */
+	double tvx, tvy; /* horizontal and vertical coordinates of central tangential vector in the frame of incident beam */
 	double x, y; /* transverse coordinates of center [m] */
 };
 typedef struct SRWLStructOpticsMirror SRWLOptMir;
@@ -433,6 +433,23 @@ struct SRWLStructOpticsMirrorToroid {
 	SRWLOptMir baseMir; /* general information about the mirror */
 };
 typedef struct SRWLStructOpticsMirrorToroid SRWLOptMirTor;
+
+/**
+ * Optical Element:
+ * Ideal Crystal
+ */
+struct SRWLStructOpticsCrystal {
+	double dSp; /* crystal reflecting planes d-spacing (units?) */
+	double psi0r, psi0i; /* real and imaginary parts of 0-th Fourier component of crystal polarizability (units?) */
+	double psiHr, psiHi; /* real and imaginary parts of H-th Fourier component of crystal polarizability (units?) */
+	double psiHbr, psiHbi; /* real and imaginary parts of -H-th Fourier component of crystal polarizability (units?) */
+	double h1, h2, h3; /* 1st, 2nd and 3rd  indexes of diffraction vector (Miller indices) */
+	double tc; /* crystal thickness [m] */
+	double angAs; /* asymmetry angle [rad] */
+	double nvx, nvy, nvz; /* horizontal, vertical and longitudinal coordinates of outward normal to crystal surface in the frame of incident beam */
+	double tvx, tvy; /* horizontal and vertical coordinates of central tangential vector [m] in the frame of incident beam */
+};
+typedef struct SRWLStructOpticsCrystal SRWLOptCryst;
 
 /**
  * Optical Element:
@@ -597,21 +614,22 @@ EXP int CALL srwlCalcPowDenSR(SRWLStokes* pStokes, SRWLPartBeam* pElBeam, SRWLPr
  *             5- Circular Left; 
  *             6- Total
  * @param [in] intType "type" of a characteristic to be extracted: 
- *             0- Single-Electron Intensity; 
- *             1- Multi-Electron Intensity; 
- *             2- Single-Electron Flux; 
- *             3- Multi-Electron Flux; 
- *             4- Single-Electron Radiation Phase; 
+ *             0- "Single-Electron" Intensity; 
+ *             1- "Multi-Electron" Intensity; 
+ *             2- "Single-Electron" Flux; 
+ *             3- "Multi-Electron" Flux; 
+ *             4- "Single-Electron" Radiation Phase; 
  *             5- Re(E): Real part of Single-Electron Electric Field;
- *             6- Im(E): Imaginary part of Single-Electron Electric Field
+ *             6- Im(E): Imaginary part of Single-Electron Electric Field;
+ *             7- "Single-Electron" Intensity, integrated over Time or Photon Energy (i.e. Fluence);
  * @param [in] depType type of dependence to extract: 
- *             0- vs e (photon energy or time); 
- *             1- vs x (horizontal position or angle); 
- *             2- vs y (vertical position or angle); 
- *             3- vs x&y; (horizontal and vertical positions or angles);
- *             4- vs e&x; 
- *             5- e&y; 
- *             6- vs e&x&y 
+ *             0- vs e (photon energy or time);
+ *             1- vs x (horizontal position or angle);
+ *             2- vs y (vertical position or angle);
+ *             3- vs x&y (horizontal and vertical positions or angles);
+ *             4- vs e&x (photon energy or time and horizontal position or angle);
+ *             5- vs e&y (photon energy or time and vertical position or angle);
+ *             6- vs e&x&y (photon energy or time, horizontal and vertical positions or angles);
  * @param [in] e photon energy (to keep fixed)
  * @param [in] x horizontal position (to keep fixed)
  * @param [in] y vertical position (to keep fixed)
@@ -626,10 +644,10 @@ EXP int CALL srwlCalcIntFromElecField(char* pInt, SRWLWfr* pWfr, char pol, char 
  * @param [in] type character specifying whether the resizing should be done vs coordinates/angles ('c') or vs photon energy/time ('f') 
  * @param [in] par array of parameters: 
  *             [0]- method (0- regular method, without FFT, 1- "special" method involving FFT),
- *             [1]- range resizing factor for horizontal poosition / angle (if type == 'c') or for photon energy / time (if type == 'f')
- *             [2]- resolution resizing factor for horizontal poosition / angle (if type == 'c') or for photon energy / time (if type == 'f')
- *             [3]- range resizing factor for vertical poosition / angle (effective only if type == 'c')
- *             [4]- resolution resizing factor for vertical poosition / angle (effective only if type == 'c')
+ *             [1]- range resizing factor for horizontal position / angle (if type == 'c') or for photon energy / time (if type == 'f')
+ *             [2]- resolution resizing factor for horizontal position / angle (if type == 'c') or for photon energy / time (if type == 'f')
+ *             [3]- range resizing factor for vertical position / angle (effective only if type == 'c')
+ *             [4]- resolution resizing factor for vertical position / angle (effective only if type == 'c')
  * @return	integer error (>0) or warnig (<0) code
  * @see ...
  */

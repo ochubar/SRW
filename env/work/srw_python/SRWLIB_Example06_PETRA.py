@@ -143,12 +143,6 @@ stkFS.mesh.yFin = 0.0015 #final vertical position of the collection aperture [m]
 
 #**********************Calculation (SRWLIB function calls)
 
-#import matplotlib as mpl
-#from matplotlib import pyplot
-#pyplot.plot([1.,2.],[1.,2.])
-
-
-
 print('   Performing Spectral Flux (Stokes parameters) vs Photon Energy calculation ... ', end='')
 srwl.CalcStokesUR(stkF, eBeam, und, arPrecF)
 print('done')
@@ -164,45 +158,6 @@ print('   Extracting Intensity from the Calculated Electric Field ... ', end='')
 arIS = array('f', [0]*wfrS.mesh.ne) #array to take intensity data
 srwl.CalcIntFromElecField(arIS, wfrS, 6, 0, 0, wfrS.mesh.eStart, 0, 0)
 print('done')
-
-#from matplotlib.pyplot import draw, figure, show
-#f1, f2 = figure(), figure()
-#af1 = f1.add_subplot(111)
-#af2 = f2.add_subplot(111)
-#af1.plot([1,2,3])
-#af2.plot([6,5,4])
-#draw() 
-#print('continuing computation')
-#show()
-
-#import numpy as np
-#import matplotlib as mpl
-#import matplotlib.pyplot as pl        
-
-from multiprocessing import Process
-from plot_1d_2d import *
-plot1D(arIS, [wfrS.mesh.eStart,wfrS.mesh.eFin,wfrS.mesh.ne], labels=['photon energy, eV','Ph/s/0.1%BW/mm^2'])
-
-#t = threading.Thread(justShow())
-#t = threading.Thread(plot1D(arIS, [wfrS.mesh.eStart,wfrS.mesh.eFin,wfrS.mesh.ne], labels=['photon energy, eV','Ph/s/0.1%BW/mm^2']))
-
-#t.daemon = True
-#t.start()
-#p = Process(target=plot1D, args=([arIS, [wfrS.mesh.eStart,wfrS.mesh.eFin,wfrS.mesh.ne], ['photon energy, eV','Ph/s/0.1%BW/mm^2']]))
-#p = Process(target=plot1D, args=[arIS, [wfrS.mesh.eStart,wfrS.mesh.eFin,wfrS.mesh.ne]])
-#p = Process(None, plot1D)
-
-#p.start()
-#p.join()
-
-
-#justShow()
-#anotherJustShow()
-
-#raw_input()
-#sys.exit(0)
-
-
 
 print('   Performing Single-E Electric Field calculation (vs hor. and vert. positions) ... ', end='')
 srwl.CalcElecFieldSR(wfrI, 0, magFldCnt, arPrecS)
@@ -231,23 +186,6 @@ arPrecF[4] = 2 #calculate flux within aperture (1) or flux per unit surface (2)
 print('done')
 
 #**********************Saving results
-#Auxiliary function to write tabulated resulting Intensity data to ASCII file:
-def AuxSaveS0Data(stk, filePath):
-    f = open(filePath, 'w')
-    f.write('#C-aligned Intensity (inner loop is vs photon energy, outer loop vs vertical position)\n')
-    f.write('#' + repr(stk.mesh.eStart) + ' #Initial Photon Energy [eV]\n')
-    f.write('#' + repr(stk.mesh.eFin) + ' #Final Photon Energy [eV]\n')
-    f.write('#' + repr(stk.mesh.ne) + ' #Number of points vs Photon Energy\n')
-    f.write('#' + repr(stk.mesh.xStart) + ' #Initial Horizontal Position [m]\n')
-    f.write('#' + repr(stk.mesh.xFin) + ' #Final Horizontal Position [m]\n')
-    f.write('#' + repr(stk.mesh.nx) + ' #Number of points vs Horizontal Position\n')
-    f.write('#' + repr(stk.mesh.yStart) + ' #Initial Vertical Position [m]\n')
-    f.write('#' + repr(stk.mesh.yFin) + ' #Final Vertical Position [m]\n')
-    f.write('#' + repr(stk.mesh.ny) + ' #Number of points vs Vertical Position\n')
-    for i in range(stk.mesh.ne*stk.mesh.nx*stk.mesh.ny): #write all data into one column using "C-alignment" as a "flat" 1D array
-        f.write(' ' + repr(stk.arS[i]) + '\n')
-    f.close()
-
 #Auxiliary function to write tabulated Trajectory data to ASCII file:
 def AuxSaveTrajData(traj, filePath):
     f = open(filePath, 'w')
@@ -277,15 +215,20 @@ def AuxSaveTrajData(traj, filePath):
 
 print('   Saving spectral flux [ph/s/.1%bw], flux per unit surface [ph/s/.1%bw/mm^2], poower density [W/mm^2], and electron trajectory data to files ... ', end='')
 
-AuxSaveS0Data(stkF, os.path.join(os.getcwd(), strExDataFolderName, strFluxOutFileName))
+#AuxSaveS0Data(stkF, os.path.join(os.getcwd(), strExDataFolderName, strFluxOutFileName))
+srwl_uti_save_intens_ascii(stkF.arS, stkF.mesh, os.path.join(os.getcwd(), strExDataFolderName, strFluxOutFileName), 0, ['Photon Energy', '', '', 'Flux'], _arUnits=['eV', '', '', 'ph/s/.1%bw'])
+
 AuxSaveTrajData(partTraj, os.path.join(os.getcwd(), strExDataFolderName, strTrjOutFileName))
 srwl_uti_save_intens_ascii(arIS, wfrS.mesh, os.path.join(os.getcwd(), strExDataFolderName, strSingleElSpecOutFileName))
 
-
 srwl_uti_save_intens_ascii(arI, wfrI.mesh, os.path.join(os.getcwd(), strExDataFolderName, strSingleElIntOutFileName))
-AuxSaveS0Data(stkP, os.path.join(os.getcwd(), strExDataFolderName, strPowOutFileName))
-AuxSaveS0Data(stkP1, os.path.join(os.getcwd(), strExDataFolderName, strPowTrjOutFileName))
+
+#AuxSaveS0Data(stkP, os.path.join(os.getcwd(), strExDataFolderName, strPowOutFileName))
+srwl_uti_save_intens_ascii(stkP.arS, stkP.mesh, os.path.join(os.getcwd(), strExDataFolderName, strPowOutFileName), 0, ['', 'Horizontal Position', 'Vertical Position', 'Power Density'], _arUnits=['', 'm', 'm', 'W/mm^2'])
+
+#AuxSaveS0Data(stkP1, os.path.join(os.getcwd(), strExDataFolderName, strPowTrjOutFileName))
+srwl_uti_save_intens_ascii(stkP1.arS, stkP1.mesh, os.path.join(os.getcwd(), strExDataFolderName, strPowTrjOutFileName), 0, ['', 'Horizontal Position', 'Vertical Position', 'Power Density'], _arUnits=['', 'm', 'm', 'W/mm^2'])
+
 #AuxSaveS0Data(stkFS, os.path.join(os.getcwd(), strExDataFolderName, strSpecIntOutFileName))
 
-#pl.show()
 print('done')

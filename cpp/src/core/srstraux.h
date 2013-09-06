@@ -1375,7 +1375,7 @@ struct srTWaveAccessDataD1D {
 struct srTRadExtract {
 
 	int PolarizCompon; // 0: Linear Hor.; 1: Linear Vert.; 2: Linear 45; 3: Linear 135; 4: Circul. Right; 5: Circul. Left; 6: Total
-	int Int_or_Phase; // 0: 1-e Int; 1: Multi-e Int; 2: Phase; 3: Re(E); 4: 1-e Flux; 5: Multi-e Flux
+	int Int_or_Phase; // 0: 1-e Int; 1: Multi-e Int; 2: Phase; 3: Re(E); 4: 1-e Flux; 5: Multi-e Flux; 6- Im(E); 7- Time or Photon Energy Integrated Intensity
 	int PlotType; // vs 0: e; 1: x; 2: z; 3: x&z; 4: e&x; 5: e&z; 6: e&x&z
 	int TransvPres; // 0: Spatial; 1: Angular
 

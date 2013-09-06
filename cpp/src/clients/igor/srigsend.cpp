@@ -2892,13 +2892,20 @@ int srTIgorSend::SetupExtractedWaveData(srTSRWRadInData* pRad, int Int_or_Phase,
 
 //*************************************************************************
 
-int srTIgorSend::GetPrecParamStokesPerComp(waveHndl wavH, int& InitHarm, int& FinHarm, double& Kns, double& Knphi, char& IntensityOrFlux)
+//int srTIgorSend::GetPrecParamStokesPerComp(waveHndl wavH, int& InitHarm, int& FinHarm, double& Kns, double& Knphi, char& IntensityOrFlux)
+int srTIgorSend::GetPrecParamStokesPerComp(waveHndl wavH, int& InitHarm, int& FinHarm, double& Kns, double& Knphi, char& IntensityOrFlux, double& minPhotEnExtRight)
 {
 	if(wavH == NIL) return NOWAV;
 	int waveType = WaveType(wavH);
 	if(waveType != NT_FP64) return NT_FP64_WAVE_REQUIRED;
 
 	int result;
+
+	long numDimensions;
+	long dimensionSizes[MAX_DIMENSIONS+1];
+	if(result = MDGetWaveDimensions(wavH, &numDimensions, dimensionSizes)) return result;
+	long AmOfValues = dimensionSizes[0];
+
 	long dataOffset;
 	if(result = MDAccessNumericWaveData(wavH, kMDWaveAccessMode0, &dataOffset)) return result;
 	int hState = MoveLockHandle(wavH);
@@ -2914,6 +2921,11 @@ int srTIgorSend::GetPrecParamStokesPerComp(waveHndl wavH, int& InitHarm, int& Fi
 	if(*dp == 1) IntensityOrFlux = 'f';
 	else if(*dp == 2) IntensityOrFlux = 'i';
 	else if(*dp == 3) IntensityOrFlux = 'a';
+
+	if(AmOfValues > 5) //OC170713
+	{
+		minPhotEnExtRight = (double)(*(++dp));
+	}
 
 	HSetState((Handle)wavH, hState);
 	return 0;

@@ -96,7 +96,7 @@ SSA = SRWLOptA('r', 'a', 30e-06, 10e-03)
 
 Drift_SSA_VKB = SRWLOptD(11.) #Drift from SSA to Center of Vertically Focusing K-B Mirror (VKB)
 
-twoSlitPlane = 'v' #'h' #'v'  #plane for the two slit interference scheme (should be 'h' or 'v' for calculating interference)
+twoSlitPlane = None #'h' #'v'  #plane for the two slit interference scheme (should be 'h' or 'v' for calculating interference)
 #twoSlitInterfAngRepres = False #calculate interference in angular representation
 twoSlitSep = 0.2e-03 #separation distance between two slits
 twoSlitSize = 0.002e-03 #size of each slit

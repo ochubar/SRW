@@ -78,7 +78,8 @@ public:
 	static int GetWfrSampling(waveHndl wavH, double& s, double& zSt, double& zFi, int& nz, double& xSt, double& xFi, int& nx, double& eSt, double& eFi, int& ne, char* PhotEnUnits, double& tSt, double& tFi, int& nt, int& presT, double*& pSurfData, waveHndl& wSurfData, int& hStateSurfData, double* horOrtObsPlane =0, double* inNormObsPlane =0);
 	//static int GetPrecParamElectricFieldComp(waveHndl wavH, int& IntegMeth, double& RelPrecOrStep, double& sStart, double& sEnd);
 	static int GetPrecParamElectricFieldComp(waveHndl wavH, int& IntegMeth, double& RelPrecOrStep, double& sStart, double& sEnd, bool& showProgrIndic);
-	static int GetPrecParamStokesPerComp(waveHndl wavH, int& InitHarm, int& FinHarm, double& Kns, double& Knphi, char& IntensityOrFlux);
+	//static int GetPrecParamStokesPerComp(waveHndl wavH, int& InitHarm, int& FinHarm, double& Kns, double& Knphi, char& IntensityOrFlux);
+	static int GetPrecParamStokesPerComp(waveHndl wavH, int& InitHarm, int& FinHarm, double& Kns, double& Knphi, char& IntensityOrFlux, double& minPhotEnExtRight);
 	static int GetPrecParamPowDensComp(waveHndl wavH, double& PrecFact, int& Method, int& UseSpecIntLim, double& sIntStart, double& sIntFin);
 	static int GetPrecParamMagArb2Per(waveHndl wavH, double& RelPrec, int& MaxAmOfHarm, double& MaxPerLen_m);
 	static int GetPrecParamStokesArbComp(waveHndl wavH, srTParPrecStokesArb* pPrecStokesArb);

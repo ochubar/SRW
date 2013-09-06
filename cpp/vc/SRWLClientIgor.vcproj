@@ -602,6 +602,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\src\core\sroptang.h"
+				>
+			</File>
+			<File
 				RelativePath="..\src\core\sroptapt.cpp"
 				>
 			</File>
@@ -615,6 +619,10 @@
 			</File>
 			<File
 				RelativePath="..\src\core\sroptcnt.h"
+				>
+			</File>
+			<File
+				RelativePath="..\src\core\sroptcryst.h"
 				>
 			</File>
 			<File

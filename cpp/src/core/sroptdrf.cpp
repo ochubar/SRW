@@ -474,7 +474,7 @@ int srTDriftSpace::PropagateRadiationSimple_AnalytTreatQuadPhaseTerm(srTSRWRadSt
 	if(result = TraverseRadZXE(pRadAccessData)) return result;
 
 		//testOC09302011
-		//return 0;
+		//if(Length == 130.) return 0;
 
 	double xStartOld = pRadAccessData->xStart, zStartOld = pRadAccessData->zStart;
 	pRadAccessData->xStart = -(pRadAccessData->nx >> 1)*pRadAccessData->xStep;
@@ -567,8 +567,9 @@ void srTDriftSpace::SetupPropBufVars_AnalytTreatQuadPhaseTerm(srTSRWRadStructAcc
 	double trueRx = pRadAccessData->RobsX;
 	double trueRz = pRadAccessData->RobsZ;
 
-	//if(pRadAccessData->ne > 1) PropBufVars.UseExactRxRzForAnalytTreatQuadPhaseTerm = true;
+	if(pRadAccessData->ne > 1) PropBufVars.UseExactRxRzForAnalytTreatQuadPhaseTerm = true;
 	//OC120412 (commented-out)
+	//OC180813 (uncommented)
 
 	//testOC30092011
 	if(!PropBufVars.UseExactRxRzForAnalytTreatQuadPhaseTerm)

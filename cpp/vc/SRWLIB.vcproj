@@ -550,6 +550,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\src\core\sroptcryst.h"
+				>
+			</File>
+			<File
 				RelativePath="..\src\core\sroptdrf.cpp"
 				>
 			</File>
