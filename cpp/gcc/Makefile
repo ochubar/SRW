@@ -16,8 +16,8 @@ CFLAGS=	-O3 -fPIC -I$(SRW_SRC_GEN_DIR) -I$(SRW_SRC_LIB_DIR) -I$(SH_SRC_PARSE_DIR
 
 PYPATH=/nsls2/projects/bldev/bldev-env
 #PYPATH=/usr
-PYFLAGS=-I$(PYPATH)/include/python3.2m -L$(PYPATH)/lib/python3.2
-#PYFLAGS=-I$(PYPATH)/include/python2.7 -L$(PYPATH)/lib/python2.7
+#PYFLAGS=-I$(PYPATH)/include/python3.2m -L$(PYPATH)/lib/python3.2
+PYFLAGS=-I$(PYPATH)/include/python2.7 -L$(PYPATH)/lib/python2.7
 #PYFLAGS=-I$(PYPATH)/include/python2.6 -L$(PYPATH)/lib/python2.6
 
 LDFLAGS=-L$(LIB_DIR) -lm -lfftw 
@@ -29,6 +29,7 @@ PRG=	libsrw.a
 lib:	$(OBJ)
 	ar -cvq $(PRG) *.o
 	#cp $(PRG) $(LIB_DIR)/
+	rm -f *.o
 
 %.o: $(SRW_SRC_LIB_DIR)/%.cpp
 	$(CC) $(CFLAGS) -c $<  

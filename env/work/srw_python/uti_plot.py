@@ -87,7 +87,12 @@ def uti_plot2d(ar2d, x_range, y_range, labels=('Horizontal position [m]','Vertic
 #def srw_ascii_load(fname):
 def uti_data_file_load(_fname, _read_labels=1):
   nLinesHead = 11
-  with open(_fname,'r') as f: hlp = f.readlines(nLinesHead)
+  hlp = []
+  #with open(_fname,'r') as f: hlp = f.readlines(nLinesHead)
+  with open(_fname,'r') as f:
+    for i in range(nLinesHead):
+      hlp.append(f.readline())
+  
   #ne, nx, ny, ns    = [   int(hlp[i].replace('#','').split()[0]) for i in [3,6,9,10] ]
   ne, nx, ny = [int(hlp[i].replace('#','').split()[0]) for i in [3,6,9]]
   ns = 1

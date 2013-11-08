@@ -2,6 +2,7 @@ srw_dev
 	/cpp
 		/gcc
 		/vc
+		/py
 		/xcode
 		/src
 			/clients

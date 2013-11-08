@@ -12,18 +12,28 @@
  * @version 0.066
  ***************************************************************************/
 
-#if defined(_DEBUG) //without this Python.h will enforce usage of python**_d.lib, which may not be always existing
+//#if defined(_DEBUG) 
+//#undef _DEBUG
+//#include "Python.h"
+//#define _DEBUG
+//#else
+//#include "Python.h"
+//#endif
+
+#include "srwlib.h"
+#include <vector>
+#include <map>
+using namespace std;
+
+//Without the following Python.h will enforce usage of python**_d.lib in dbug mode, which may not be always existing
+//NOTE: to make it compilable with VC2013 (VC12), that blcock had to be moved down and placed after the previous includes
+#if defined(_DEBUG) 
 #undef _DEBUG
 #include "Python.h"
 #define _DEBUG
 #else
 #include "Python.h"
 #endif
-
-#include "srwlib.h"
-#include <vector>
-#include <map>
-using namespace std;
 
 /************************************************************************//**
  * Error messages related to Python interface
@@ -83,6 +93,7 @@ struct AuxStructPyObjectPtrs {
 	Py_buffer pbEx, pbEy, pbMomX, pbMomY;
 	vector<Py_buffer> *pv_buf;
 };
+
 static map<SRWLWfr*, AuxStructPyObjectPtrs> gmWfrPyPtr;
 
 /************************************************************************//**
@@ -112,6 +123,8 @@ void ProcRes(int er) //throw(...)
 void EraseElementFromMap(SRWLWfr* key, map<SRWLWfr*, AuxStructPyObjectPtrs>& m)
 {
 	map<SRWLWfr*, AuxStructPyObjectPtrs>::iterator iter = m.find(key);
+	//map<SRWLWfr*, AuxStructPyObjectPtrs>::const_iterator iter = m.find(key);
+
 	if(iter == m.end()) return;
 	m.erase(iter);
 }
@@ -2748,6 +2761,8 @@ int ModifySRWLWfr(int action, SRWLWfr* pWfr, char pol)
 	if((action < 0) || (action > 2)) return -1;
 
 	map<SRWLWfr*, AuxStructPyObjectPtrs>::iterator it = gmWfrPyPtr.find(pWfr);
+	//map<SRWLWfr*, AuxStructPyObjectPtrs>::const_iterator it = gmWfrPyPtr.find(pWfr);
+
 	if(it == gmWfrPyPtr.end()) return -1;
 	PyObject *oWfr = it->second.o_wfr;
 	if(oWfr == 0) return -1;

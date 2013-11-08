@@ -20,17 +20,17 @@ Besides, some recent pre-releases and current work versions of SRW for IGOR Pro 
 
 Compiling and testing SRW Library and its Python and IGOR Pro bindings on Windows:
 ------------------------------------------------------------------
-Microsoft Visual C++ 2008 (or later version) solution file (SRW.sln), which includes 4 projects: 
-	- SRW Library (file SRWLIB.vcproj),
-	- SRW Python client / binding (file SRWLClientPython.vcproj),
-	- SRW IGOR Pro client / binding (file SRWLClientIgor.vcproj),
-	- SRW C demo client (file SRWLClientC.vcproj),
-can be found in SRW_Dev/cpp/vc.
+Microsoft Visual C++ 2013 (or later version) solution file (SRW.sln), which includes 4 projects: 
+	- SRW Library (file SRWLIB.vcxproj),
+	- SRW Python client / binding (file SRWLClientPython.vcxproj),
+	- SRW IGOR Pro client / binding (file SRWLClientIgor.vcxproj),
+	- SRW C demo client (file SRWLClientC.vcxproj),
+can be found in SRW_Dev/cpp/vc. These project files allow for compiling SRW for Python 2.7 and 3.x (64-bit or 32-bit), and SRW for IGOR Pro (32-bit only). Visual Studio Express 2013 for Desktop (or later versions) can be used.
 
 
 Compiling and testing SRW Library and its Python binding on Linux:
 ------------------------------------------------------------------
-1. Download and compile fftw-2.1.5 library as required for SRW (assuming that absolute path to SRW directory is "SRW_Dev"):
+1. Download and compile fftw-2.1.5 library as required for SRW:
 	Download fftw-2.1.5.tar.gz from FFTW site (probably http://www.fftw.org/download.html) and place it to SRW_Dev/ext_lib
 	cd SRW_Dev/ext_lib
 	tar -zxvf fftw-2.1.5.tar.gz

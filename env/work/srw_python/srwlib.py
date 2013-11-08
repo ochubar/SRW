@@ -433,6 +433,7 @@ class SRWLStokes(object):
         if _mutual > 0:
             nTot *= nTot
         nTot *= 4 #array length of all Stokes components
+        #eventually allow for storage of less than 4 Stokes components!
         
         self.arS = array(_typeStokes, [0]*nTot)
         self.numTypeStokes = _typeStokes
@@ -440,6 +441,47 @@ class SRWLStokes(object):
         self.mesh.nx = _nx
         self.mesh.ny = _ny
         self.mutual = _mutual
+
+    def add_stokes(self, _st, _n_comp=4, _mult=1, _meth=0):
+        """Add Another Stokes structure
+        :param _st: Stokes structure to be added
+        :param _n_comp: number of components to treat
+        :param _mult: multiplier 
+        :param _meth: method of adding the Stokes structure _st:
+        0- simple addition assuming _wfr to have same mesh as this wavefront
+        1- add using bilinear interpolation (taking into account meshes of the two wavefronts)
+        2- add using bi-quadratic interpolation (taking into account meshes of the two wavefronts)
+        3- add using bi-cubic interpolation (taking into account meshes of the two wavefronts)
+        """
+
+        nTot = _n_comp*self.mesh.ne*self.mesh.nx*self.mesh.ny #eventually allow for storage of less than 4 Stokes components!
+        if(self.mutual > 0): nTot *= nTot
+
+        if(_meth == 0):
+            if((self.mesh.ne != _st.mesh.ne) or (self.mesh.nx != _st.mesh.nx) or (self.mesh.ny != _st.mesh.ny)):
+                raise Exception("Stokes parameters addition can not be performed by this method because of unequal sizes of the two Stokes structures") 
+
+            st_arS = _st.arS
+            if(_mult == 1):
+                for i in range(nTot):
+                    #for some reason, this increases memory requirements in Py(?):
+                    self.arS[i] += st_arS[i]
+            else:
+                for i in range(nTot):
+                    #for some reason, this increases memory requirements in Py(?):
+                    self.arS[i] += _mult*st_arS[i]
+                
+        elif(_meth == 1):
+            #to implement
+            raise Exception("This Stokes parameters addition method is not implemented yet")
+        
+        elif(_meth == 2):
+            #to implement
+            raise Exception("This Stokes parameters addition method is not implemented yet")
+            
+        elif(_meth == 3):
+            #to implement
+            raise Exception("This Stokes parameters addition method is not implemented yet")
 
     def avg_update_same_mesh(self, _more_stokes, _iter, _n_stokes_comp=4):
         """ Update this Stokes data structure with new data, contained in the _more_stokes structure, calculated on the same mesh, so that this structure would represent estimation of average of (_iter + 1) structures

@@ -1,18 +1,14 @@
-Microsoft Visual Studio Solution File, Format Version 10.00
-# Visual Studio 2008
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SRWLIB", "SRWLIB.vcproj", "{A7E707A6-D325-42AE-A0D0-3C97C38D36A6}"
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Express 2013 for Windows Desktop
+VisualStudioVersion = 12.0.21005.1
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SRWLIB", "SRWLIB.vcxproj", "{A7E707A6-D325-42AE-A0D0-3C97C38D36A6}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SRWLClientPython", "SRWLClientPython.vcproj", "{B04ABD04-7AC6-4516-B8A7-E2CBC18B4333}"
-	ProjectSection(ProjectDependencies) = postProject
-		{A7E707A6-D325-42AE-A0D0-3C97C38D36A6} = {A7E707A6-D325-42AE-A0D0-3C97C38D36A6}
-	EndProjectSection
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SRWLClientPython", "SRWLClientPython.vcxproj", "{B04ABD04-7AC6-4516-B8A7-E2CBC18B4333}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SRWLClientIgor", "SRWLClientIgor.vcproj", "{0D473386-2B3E-4586-8516-DD4DCF6D4E1E}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SRWLClientIgor", "SRWLClientIgor.vcxproj", "{0D473386-2B3E-4586-8516-DD4DCF6D4E1E}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SRWLClientC", "SRWLClientC.vcproj", "{AA6DEE02-E699-4AF6-A8FC-655906C9CDC9}"
-	ProjectSection(ProjectDependencies) = postProject
-		{A7E707A6-D325-42AE-A0D0-3C97C38D36A6} = {A7E707A6-D325-42AE-A0D0-3C97C38D36A6}
-	EndProjectSection
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SRWLClientC", "SRWLClientC.vcxproj", "{AA6DEE02-E699-4AF6-A8FC-655906C9CDC9}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
