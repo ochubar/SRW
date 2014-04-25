@@ -35,7 +35,8 @@ CGenMathInterp::CGenMathInterp(int MethNo, double *x, double *y, int np)
 
 CGenMathInterp::CGenMathInterp(int MethNo, double xStart, double xStep, double *y, int np)
 {
-	mSplineY2Arr = mSplineValTabArr = 0;
+	//mSplineY2Arr = mSplineValTabArr = 0;
+	mSplineY2Arr = mSplineArgTabArr = mSplineValTabArr = 0; //OC011213
 	mArgStart = mArgStep = 0;
 	mSplineTabNp = 0;
 

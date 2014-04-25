@@ -1,5 +1,5 @@
 #############################################################################
-# SRWLib for Python v 0.069
+# SRWLib for Python v 0.07
 #############################################################################
 
 from __future__ import print_function #Python 2.7 compatibility
@@ -9,6 +9,7 @@ from math import *
 from copy import *
 import random
 import sys
+import os
 import traceback
 try:
     from uti_plot import * #universal simple plotting module distributed together with SRWLib
@@ -47,6 +48,14 @@ class SRWLParticle(object):
         self.relE0 = _relE0
         self.nq = _nq
 
+    def drift(self, _dist):
+        """Propagates particle beam statistical moments over a distance in free space
+        :param _dist: distance the beam has to be propagated over [m]
+        """
+        self.z += _dist
+        self.x +=  self.xp*_dist
+        self.y +=  self.yp*_dist
+
 #****************************************************************************
 class SRWLPartBeam(object):
     """Particle Beam"""
@@ -83,6 +92,17 @@ class SRWLPartBeam(object):
         self.nPart = _nPart
         self.partStatMom1 = SRWLParticle() if _partStatMom1 is None else _partStatMom1
         self.arStatMom2 = array('d', [0] * 21) if _arStatMom2 is None else _arStatMom2
+
+    def drift(self, _dist):
+        """Propagates particle beam statistical moments over a distance in free space
+        :param _dist: distance the beam has to be propagated over [m]
+        """
+        self.partStatMom1.drift(_dist)
+        self.arStatMom2[0] += self.arStatMom2[1]*_dist*2 + self.arStatMom2[2]*_dist*_dist
+        self.arStatMom2[1] += self.arStatMom2[2]*_dist
+        self.arStatMom2[3] += self.arStatMom2[4]*_dist*2 + self.arStatMom2[5]*_dist*_dist
+        self.arStatMom2[4] += self.arStatMom2[5]*_dist
+        #to be checked and extended for other stat. moments
 
 #****************************************************************************
 class SRWLMagFld(object):
@@ -331,7 +351,7 @@ class SRWLGsnBm(object):
 class SRWLRadMesh(object):
     """Radiation Mesh (Sampling)"""
     
-    def __init__(self, _eStart=0, _eFin=0, _ne=1, _xStart=0, _xFin=0, _nx=1, _yStart=0, _yFin=0, _ny=1, _zStart=0):
+    def __init__(self, _eStart=0, _eFin=0, _ne=1, _xStart=0, _xFin=0, _nx=1, _yStart=0, _yFin=0, _ny=1, _zStart=0, _nvx=0, _nvy=0, _nvz=1, _hvx=1, _hvy=0, _hvz=0, _arSurf=None):
         """
         :param _eStart: initial value of photon energy (/time)
         :param _eFin: final value of photon energy (/time)
@@ -343,6 +363,13 @@ class SRWLRadMesh(object):
         :param _yFin: final value of vertical position (/angle)
         :param _ny: number of points vs vertical position (/angle)
         :param _zStart: longitudinal position
+        :param _nvx: horizontal lab-frame coordinate of inner normal to observation plane (/ surface in its center)
+        :param _nvy: vertical lab-frame coordinate of inner normal to observation plane (/ surface in its center)
+        :param _nvz: longitudinal lab-frame coordinate of inner normal to observation plane (/ surface in its center)
+        :param _hvx: horizontal lab-frame coordinate of the horizontal base vector of the observation plane (/ surface in its center)
+        :param _hvy: vertical lab-frame coordinate of the horizontal base vector of the observation plane (/ surface in its center)
+        :param _hvz: longitudinal lab-frame coordinate of the horizontal base vector of the observation plane (/ surface in its center)
+        :param _arSurf: array defining the observation surface (as function of 2 variables - x & y - on the mesh given by _xStart, _xFin, _nx, _yStart, _yFin, _ny; to be used in case this surface differs from plane)
         """
         self.eStart = _eStart
         self.eFin = _eFin
@@ -355,11 +382,33 @@ class SRWLRadMesh(object):
         self.ny = _ny
         self.zStart = _zStart
 
+        self.nvx = _nvx
+        self.nvy = _nvy
+        self.nvz = _nvz
+        self.hvx = _hvx
+        self.hvy = _hvy
+        self.hvz = _hvz
+        self.arSurf = _arSurf
+
     def set_from_other(self, _mesh):
         self.eStart = _mesh.eStart; self.eFin = _mesh.eFin; self.ne = _mesh.ne; 
         self.xStart = _mesh.xStart; self.xFin = _mesh.xFin; self.nx = _mesh.nx; 
         self.yStart = _mesh.yStart; self.yFin = _mesh.yFin; self.ny = _mesh.ny;
         self.zStart = _mesh.zStart
+
+        self.nvx = _mesh.nvx; self.nvy = _mesh.nvy; self.nvz = _mesh.nvz
+        self.hvx = _mesh.hvx; self.hvy = _mesh.hvy; self.hvz = _mesh.hvz
+        del self.arSurf; self.arSurf = None
+        if(_mesh.arSurf != None):
+            try:
+                lenArSurf = len(_mesh.arSurf)
+                if(lenArSurf > 0):
+                    self.arSurf = array('d', [0]*lenArSurf)
+                    for i in range(lenArSurf):
+                        self.arSurf[i] = _mesh.arSurf[i]
+            except:
+                pass
+
 
 #****************************************************************************
 class SRWLStokes(object):
@@ -483,27 +532,41 @@ class SRWLStokes(object):
             #to implement
             raise Exception("This Stokes parameters addition method is not implemented yet")
 
-    def avg_update_same_mesh(self, _more_stokes, _iter, _n_stokes_comp=4):
+    def avg_update_same_mesh(self, _more_stokes, _iter, _n_stokes_comp=4, _mult=1.):
         """ Update this Stokes data structure with new data, contained in the _more_stokes structure, calculated on the same mesh, so that this structure would represent estimation of average of (_iter + 1) structures
         :param _more_stokes: Stokes data structure to "add" to the estimation of average
         :param _iter: number of Stokes structures already "added" previously
         :param _n_stokes_comp: number of Stokes components to treat (1 to 4)
+        :param _mult: optional multiplier of the _more_stokes
         """
+
+        #DEBUG
+        #print('avg_update_same_mesh: iter=', _iter)
+
         #nStPt = self.mesh.ne*self.mesh.nx*self.mesh.ny*_n_stokes_comp
         nStPt = self.mesh.ne*self.mesh.nx*self.mesh.ny
         if self.mutual > 0:
             nStPt *= nStPt
         nStPt *= _n_stokes_comp
-        for ir in range(nStPt):
-            self.arS[ir] = (self.arS[ir]*_iter + _more_stokes.arS[ir])/(_iter + 1)
-
-    def avg_update_interp(self, _more_stokes, _iter, _ord, _n_stokes_comp=4):
+        if(_mult == 1.):
+            for ir in range(nStPt):
+                self.arS[ir] = (self.arS[ir]*_iter + _more_stokes.arS[ir])/(_iter + 1)
+        else:
+            for ir in range(nStPt):
+                self.arS[ir] = (self.arS[ir]*_iter + _mult*_more_stokes.arS[ir])/(_iter + 1)
+            
+    def avg_update_interp(self, _more_stokes, _iter, _ord, _n_stokes_comp=4, _mult=1.):
         """ Update this Stokes data structure with new data, contained in the _more_stokes structure, calculated on a different 2D mesh, so that it would represent estimation of average of (_iter + 1) structures
         :param _more_stokes: Stokes data structure to "add" to the estimation of average
         :param _iter: number of Stokes structures already "added" previously
         :param _ord: order of 2D interpolation to use (1- bilinear, ..., 3- bi-cubic)
         :param _n_stokes_comp: number of Stokes components to treat (1 to 4)
+        :param _mult: optional multiplier of the _more_stokes
         """
+
+        #DEBUG
+        #print('avg_update_interp: iter=', _iter)
+        
         eNpMeshRes = self.mesh.ne
         xNpMeshRes = self.mesh.nx
         xStartMeshRes = self.mesh.xStart
@@ -663,15 +726,18 @@ class SRWLStokes(object):
                             a13 = 0.5*(f10 - f11 - a00 + f01) + (f0m1 + f12 - f02 - f1m1)/6
                             fInterp = a00 + tx*(a10 + tx*(a20 + tx*(a30 + ty*a31) + ty*a21) + ty*a11) + ty*(a01 + ty*(a02 + ty*(a03 + tx*a13) + tx*a12))
 
-                        self.arS[ir] = (self.arS[ir]*_iter + fInterp)/(_iter + 1)
+                        #self.arS[ir] = (self.arS[ir]*_iter + fInterp)/(_iter + 1)
+                        self.arS[ir] = (self.arS[ir]*_iter + _mult*fInterp)/(_iter + 1)
+                        
                         ir += 1
             iOfstSt += nRadWfr        
 
-    def avg_update_interp_mutual(self, _more_stokes, _iter, _n_stokes_comp=4):
+    def avg_update_interp_mutual(self, _more_stokes, _iter, _n_stokes_comp=4, _mult=1.):
         """ Update this Stokes data structure with new data, contained in the _more_stokes structure, calculated on a different 2D mesh, so that it would represent estimation of average of (_iter + 1) structures
         :param _more_stokes: Stokes data structure to "add" to the estimation of average
         :param _iter: number of Stokes structures already "added" previously
         :param _n_stokes_comp: number of Stokes components to treat (1 to 4)
+        :param _mult: optional multiplier of the _more_stokes
         """
         eNpMeshRes = self.mesh.ne
         eStartMeshRes = self.mesh.eStart
@@ -904,7 +970,9 @@ class SRWLStokes(object):
                                         fInterp += (a001000 + a001100*tx + a001010*typ + a001001*ty)*txp
                                         fInterp += (a000100 + a000110*typ + a000101*ty)*tx + (a000010 + a000011*ty)*typ + a000001*ty + a000000
 
-                                    self.arS[ir] = (self.arS[ir]*_iter + fInterp)/(_iter + 1)
+                                    #self.arS[ir] = (self.arS[ir]*_iter + fInterp)/(_iter + 1)
+                                    self.arS[ir] = (self.arS[ir]*_iter + _mult*fInterp)/(_iter + 1)
+                                    
                                     ir += 1
             iOfstSt += nRadWfr        
 
@@ -1430,23 +1498,6 @@ class SRWLOptWG(SRWLOpt):
         self.x = _x #transverse coordinates of center [m]
         self.y = _y
 
-class SRWLOptG(SRWLOpt):
-    """Optical Element: Grating (planar)"""
-    
-    def __init__(self, _grDen=100, _disPl='v', _ang=0.7854, _m=1, _refl=1):
-        """
-        :param _grDen: groove density [lines/mm]
-        :param _disPl: dispersion plane: 'x' ('h') or 'y' ('v')
-        :param _ang: angle between optical axis and grating plane [rad]
-        :param _m: output order
-        :param _refl: average reflectivity (with respect to intensity)
-        """
-        self.grDen = _grDen #groove density [lines/mm]
-        self.disPl = _disPl #dispersion plane: 'x' ('h') or 'y' ('v')
-        self.ang = _ang #angle between optical axis and grating plane [rad]
-        self.m = _m #output order
-        self.refl = _refl #average reflectivity (with resp. to intensity)
-
 class SRWLOptT(SRWLOpt):
     """Optical Element: Transmission (generic)"""
     
@@ -1634,7 +1685,9 @@ class SRWLOptMir(SRWLOpt):
                 self.arRefl[i2 + 1] = 0
         else:
             self.arRefl = _refl
-        
+
+        #DEBUG
+        #print(self.arRefl)
         self.reflNumPhEn = int(_n_ph_en)
         self.reflNumAng = int(_n_ang)
         self.reflNumComp = _n_comp
@@ -1662,15 +1715,14 @@ class SRWLOptMir(SRWLOpt):
         self.tvy = _tvy
         self.x = _x
         self.y = _y
-        self.Fx = 0 #i.e. focal lengthes are not set
+        self.Fx = 0 #i.e. focal lengths are not set
         self.Fy = 0
 
 class SRWLOptMirPl(SRWLOptMir):
     """Optical Element: Mirror: Plane"""
     
     def __init__(self, 
-                 #_size_tang=1, _size_sag=1, _ap_shape='r', _sim_meth=2, _npt=500, _nps=500, _treat_in_out=1, _ext_in=0, _ext_out=0,
-                 _size_tang=1, _size_sag=1, _ap_shape='r', _sim_meth=2, _treat_in_out=1, _ext_in=0, _ext_out=0,
+                 _size_tang=1, _size_sag=1, _ap_shape='r', _sim_meth=2, _npt=100, _nps=100, _treat_in_out=1, _ext_in=0, _ext_out=0,
                  _nvx=0, _nvy=0, _nvz=-1, _tvx=1, _tvy=0, _x=0, _y=0,
                  _refl=1, _n_ph_en=1, _n_ang=1, _n_comp=1, _ph_en_start=1000., _ph_en_fin=1000., _ph_en_scale_type='lin', _ang_start=0, _ang_fin=0, _ang_scale_type='lin'):
         """
@@ -1705,7 +1757,7 @@ class SRWLOptMirPl(SRWLOptMir):
         """
         #There are no other members, except for those of the base class.
         #Finishing of the mirror setup requires calling these 3 functions (with their required arguments):
-        self.set_dim_sim_meth(_size_tang, _size_sag, _ap_shape, _sim_meth, 100, 100, _treat_in_out, _ext_in, _ext_out)
+        self.set_dim_sim_meth(_size_tang, _size_sag, _ap_shape, _sim_meth, _npt, _nps, _treat_in_out, _ext_in, _ext_out)
         self.set_orient(_nvx, _nvy, _nvz, _tvx, _tvy, _x, _y)
         self.set_reflect(_refl, _n_ph_en, _n_ang, _n_comp, _ph_en_start, _ph_en_fin, _ph_en_scale_type, _ang_start, _ang_fin, _ang_scale_type)
 
@@ -1761,38 +1813,63 @@ class SRWLOptMirEl(SRWLOptMir):
         self.set_orient(_nvx, _nvy, _nvz, _tvx, _tvy, _x, _y)
         self.set_reflect(_refl, _n_ph_en, _n_ang, _n_comp, _ph_en_start, _ph_en_fin, _ph_en_scale_type, _ang_start, _ang_fin, _ang_scale_type)
 
-class SRWLOptMirTor(SRWLOptMir):
-    """Optical Element: Mirror: Ellipsoid"""
+#class SRWLOptMirTor(SRWLOptMir):
+#    """Optical Element: Mirror: Toroid (to be developed)"""
+#    
+#    def __init__(self, _rt=1, _rs=1):
+#        """
+#        :param _rt: tangential (major) radius [m]
+#        :param _rs: sagittal (minor) radius [m]
+#        """
+#        self.radTan = _rt
+#        self.radSag = _rs
+#        
+#        #finishing of the mirror setup requires calling these 3 functions (with their required arguments):
+#        self.set_reflect()
+#        self.set_dim_sim_meth()
+#        self.set_orient()
+
+class SRWLOptG(SRWLOpt):
+    """Optical Element: Grating"""
     
-    def __init__(self, _rt=1, _rs=1):
+    def __init__(self, _mirSub, _m=1, _grDen=100, _grDen1=0, _grDen2=0, _grDen3=0, _grDen4=0, _grAng=0):
         """
-        :param _rt: tangential (major) radius [m]
-        :param _rs: sagittal (minor) radius [m]
-       """
-        self.radTan = _rt
-        self.radSag = _rs
-        
-        #finishing of the mirror setup requires calling these 3 functions (with their required arguments):
-        self.set_reflect()
-        self.set_dim_sim_meth()
-        self.set_orient()
+        :param _mirSub: SRWLOptMir (or derived) type object defining substrate of the grating
+        :param _m: output (diffraction) order
+        :param _grDen: groove density [lines/mm] (coefficient a0 in the polynomial groove density: a0 + a1*y + a2*y^2 + a3*y^3 + a4*y^4)
+        :param _grDen1: groove density polynomial coefficient a1 [lines/mm^2]
+        :param _grDen2: groove density polynomial coefficient a2 [lines/mm^3]
+        :param _grDen3: groove density polynomial coefficient a3 [lines/mm^4]
+        :param _grDen4: groove density polynomial coefficient a4 [lines/mm^5]
+        :param _grAng: angle between the grove direction and the saggital direction of the substrate [rad] (by default, groves are made along saggital direction (_grAng=0))
+        """
+
+        if(isinstance(_mirSub, SRWLOptMir) == False):
+            raise Exception("Incorrect substrate data submitted to Grating constructor(SRWLOptMir type object is expected for the substrate)") 
+
+        self.mirSub = _mirSub #SRWLOptMir (or derived) type object defining the Grating substrate
+        self.m = _m #output order
+        self.grDen = _grDen #grove density [lines/mm] (polynomial coefficient a0 in: a0 + a1*y + a2*y^2 + a3*y^3 + a4*y^4)
+        self.grDen1 = _grDen1 #grove density polynomial coefficient a1 in [lines/mm^2]
+        self.grDen2 = _grDen2 #grove density polynomial coefficient a2 in [lines/mm^3]
+        self.grDen3 = _grDen3 #grove density polynomial coefficient a3 in [lines/mm^4]
+        self.grDen4 = _grDen4 #grove density polynomial coefficient a4 in [lines/mm^5]
+        self.grAng = _grAng #angle between the grove direction and the saggital direction of the substrate [rad]
 
 class SRWLOptCryst(SRWLOpt):
     """Optical Element: Ideal Crystal"""
 
     #def _init_(self, _d_space, _psiOr, _psiOi, _psiHr, _psiHi, _psiHBr, _psiHBi, _H1, _H2, _H3, _Tc, _Tasym, _nx, _ny, _nz, _sx, _sy, _sz, _aChi, _aPsi, _aThe):
-    def _init_(self, _d_sp, _psi0r, _psi0i, _psi_hr, _psi_hi, _psi_hbr, _psi_hbi, _h1, _h2, _h3, _tc, _ang_as, _nvx, _nvy, _nvz, _tvx, _tvy):
+    #def __init__(self, _d_sp, _psi0r, _psi0i, _psi_hr, _psi_hi, _psi_hbr, _psi_hbi, _h1, _h2, _h3, _tc, _ang_as, _nvx, _nvy, _nvz, _tvx, _tvy):
+    def __init__(self, _d_sp, _psi0r, _psi0i, _psi_hr, _psi_hi, _psi_hbr, _psi_hbi, _tc, _ang_as, _nvx=0, _nvy=0, _nvz=-1, _tvx=1, _tvy=0):
         """
-        :param _d_sp: (_d_space) crystal reflecting planes d-spacing (John's dA) (units?)
+        :param _d_sp: (_d_space) crystal reflecting planes d-spacing (John's dA) [A]
         :param _psi0r: real part of 0-th Fourier component of crystal polarizability (John's psi0c.real) (units?)
         :param _psi0i: imaginary part of 0-th Fourier component of crystal polarizability (John's psi0c.imag) (units?)
         :param _psi_hr: (_psiHr) real part of H-th Fourier component of crystal polarizability (John's psihc.real) (units?)
         :param _psi_hi: (_psiHi) imaginary part of H-th Fourier component of crystal polarizability (John's psihc.imag) (units?)
         :param _psi_hbr: (_psiHBr:) real part of -H-th Fourier component of crystal polarizability (John's psimhc.real) (units?)
         :param _psi_hbi: (_psiHBi:) imaginary part of -H-th Fourier component of crystal polarizability (John's psimhc.imag) (units?)
-        :param _h1: 1st index of diffraction vector (John's hMilND)
-        :param _h2: 2nd index of diffraction vector (John's kMilND)
-        :param _h3: 3rd index of diffraction vector (John's lMilND)
         :param _tc: crystal thickness [m] (John's thicum)
         :param _ang_as: (_Tasym) asymmetry angle [rad] (John's alphdg)
         :param _nvx: horizontal coordinate of outward normal to crystal surface (John's angles: thdg, chidg, phidg)
@@ -1802,7 +1879,13 @@ class SRWLOptCryst(SRWLOpt):
         :param _tvy: vertical coordinate of central tangential vector (John's angles: thdg, chidg, phidg)
         """
         #"""
-        #to go to Propagation Parameters
+        #The Miller Inices are removed from this input (after discussion with A. Suvorov), because _d_sp already incorporates this information:
+        #:param _h1: 1st index of diffraction vector (John's hMilND)
+        #:param _h2: 2nd index of diffraction vector (John's kMilND)
+        #:param _h3: 3rd index of diffraction vector (John's lMilND)
+        #However, a member-function may be added here to calculate _d_sp from teh Miller Indices and material constant(s)
+        
+        #Moved to Propagation Parameters
         #:param _sx: horizontal coordinate of optical axis after crystal [m] (John's )
         #:param _sy: vertical coordinate of optical axis after crystal [m] (John's )
         #:param _sz: longitudinal coordinate of optical axis after crystal [m] (John's )
@@ -1819,9 +1902,9 @@ class SRWLOptCryst(SRWLOpt):
         self.psiHi = _psi_hi
         self.psiHbr = _psi_hbr
         self.psiHbi = _psi_hbi
-        self.h1 = _h1
-        self.h2 = _h2
-        self.h3 = _h3
+        #self.h1 = _h1
+        #self.h2 = _h2
+        #self.h3 = _h3
         self.tc = _tc
         self.angAs = _ang_as
         self.nvx = _nvx
@@ -1829,6 +1912,91 @@ class SRWLOptCryst(SRWLOpt):
         self.nvz = _nvz
         self.tvx = _tvx
         self.tvy = _tvy
+
+    def set_orient(self, _nvx=0, _nvy=0, _nvz=-1, _tvx=1, _tvy=0):
+        """Defines Crystal Orientation in the frame of the Incident Photon beam
+        :param _nvx: horizontal coordinate of normal vector
+        :param _nvy: vertical coordinate of normal vector
+        :param _nvz: longitudinal coordinate of normal vector
+        :param _tvx: horizontal coordinate of tangential vector
+        :param _tvy: vertical coordinate of tangential vector
+        """
+        self.nvx = _nvx
+        self.nvy = _nvy
+        self.nvz = _nvz
+        self.tvx = _tvx
+        self.tvy = _tvy
+
+    def find_orient(self, _en, _ang_dif_pl=0):
+        """Finds optimal crystal orientation in the input beam frame (i.e. surface normal and tangential vectors) and the orientation of the output beam frame (i.e. coordinates of the longitudinal and horizontal vectors in the input beam frame)
+        :param _en: photon energy [eV]
+        :param _ang_dif_pl: diffraction plane angle (0 corresponds to the vertical deflection; pi/2 to the horizontal deflection; any value in between is allowed)
+        """
+        #dSi = 5.43096890 # Si lattice constant (A)
+        eV2wA = 12398.4193009 # energy to wavelength conversion factor 12398.41930092394
+        wA = eV2wA/_en
+        #Tar = math.pi*Ta/180.
+        #Kh = norm(Hr)/dSi # reflection vector modulus
+        kh = 1./self.dSp # because self.dSp = dSi/norm(Hr)
+        hv = [0, kh*cos(self.angAs), -kh*sin(self.angAs)]
+        tBr = asin(wA*kh/2)
+        tKin = tBr - self.angAs # TKin = Tbr - Tar
+        tKou = tBr + self.angAs # TKou = Tbr + Tar
+        abs_c0 = sqrt(self.psi0r*self.psi0r + self.psi0i*self.psi0i)
+        #dTref = abs(c0)*(1+math.sin(TKou)/math.sin(TKin))/2/math.sin(2*Tbr)
+        dTref = 0.5*abs_c0*(1 + sin(tKou)/sin(tKin))/sin(2*tBr)
+        tIn = tKin + dTref
+
+        def prodV(_a, _b):
+            return [_a[1]*_b[2] - _a[2]*_b[1], _a[2]*_b[0] - _a[0]*_b[2], _a[0]*_b[1] - _a[1]*_b[0]]
+        
+        def prodMV(_m, _v):
+            return [_m[0][0]*_v[0] + _m[0][1]*_v[1] + _m[0][2]*_v[2],
+                _m[1][0]*_v[0] + _m[1][1]*_v[1] + _m[1][2]*_v[2],
+                _m[2][0]*_v[0] + _m[2][1]*_v[1] + _m[2][2]*_v[2]]
+        
+        def normV(_a):
+            return sqrt(sum(n**2 for n in _a))
+
+        #Crystal orientation vectors
+        nv = [0, cos(tIn), -sin(tIn)]
+        tv = [0, sin(tIn), cos(tIn)]
+        sv = prodV(nv, tv)
+
+        mc = [[sv[0], nv[0], tv[0]],
+              [sv[1], nv[1], tv[1]],
+              [sv[2], nv[2], tv[2]]]
+
+        #Diffracted beam frame vectors
+        z1c = [sv[2], sqrt(1. - sv[2]**2 - (tv[2] + wA*hv[2])**2), tv[2] + wA*hv[2]]
+        #rz = [sv[0]*z1c[0] + nv[0]*z1c[1] + tv[0]*z1c[2],
+        #      sv[1]*z1c[0] + nv[1]*z1c[1] + tv[1]*z1c[2],
+        #      sv[2]*z1c[0] + nv[2]*z1c[1] + tv[2]*z1c[2]]
+        rz = prodMV(mc, z1c)
+        
+        x1c = prodV(hv, z1c)
+        if sum(n**2 for n in x1c) == 0:
+            x1c = prodV(nv, z1c)
+        if sum(n**2 for n in x1c) == 0:
+            x1c = sv
+        x1c = [n/normV(x1c) for n in x1c]
+        
+        #rx = [sv[0]*x1c[0] + nv[0]*x1c[1] + tv[0]*x1c[2],
+        #      sv[1]*x1c[0] + nv[1]*x1c[1] + tv[1]*x1c[2],
+        #      sv[2]*x1c[0] + nv[2]*x1c[1] + tv[2]*x1c[2]]
+        rx = prodMV(mc, x1c)
+        ry = prodV(rz, rx)
+
+        tolAng = 1.e-06
+        if(abs(_ang_dif_pl) < tolAng): #case of the vertical deflection plane
+            return [[tv, sv, nv], [rx, ry, rz]]
+        else: #case of a tilted deflection plane
+            cosA = cos(_ang_dif_pl)
+            sinA = sin(_ang_dif_pl)
+            mr = [[cosA, -sinA, 0],
+                  [sinA, cosA, 0],
+                  [0, 0, 1]]
+            return [[prodMV(mr, tv), prodMV(mr, sv), prodMV(mr, nv)], [prodMV(mr, rx), prodMV(mr, ry), prodMV(mr, rz)]]
 
 class SRWLOptC(SRWLOpt):
     """Optical Element: Container"""
@@ -1847,9 +2015,14 @@ class SRWLOptC(SRWLOpt):
             [6]: Horizontal Resolution modification factor at Resizing
             [7]: Vertical Range modification factor at Resizing
             [8]: Vertical Resolution modification factor at Resizing
-            [9]: Type of wavefront Shift before Resizing (vs which coordinates; not yet implemented)
-            [10]: New Horizontal wavefront Center position after Shift (not yet implemented)
-            [11]: New Vertical wavefront Center position after Shift (not yet implemented)
+            [9]: Optional: Type of wavefront Shift before Resizing (vs which coordinates; to be implemented)
+            [10]: Optional: New Horizontal wavefront Center position after Shift (to be implemented)
+            [11]: Optional: New Vertical wavefront Center position after Shift (to be implemented)
+            [12]: Optional: Orientation of the Output Optical Axis vector in the Incident Beam Frame: Horizontal Coordinate
+            [13]: Optional: Orientation of the Output Optical Axis vector in the Incident Beam Frame: Vertical Coordinate
+            [14]: Optional: Orientation of the Output Optical Axis vector in the Incident Beam Frame: Longitudinal Coordinate
+            [15]: Optional: Orientation of the Horizontal Base vector of the Output Frame in the Incident Beam Frame: Horizontal Coordinate
+            [16]: Optional: Orientation of the Horizontal Base vector of the Output Frame in the Incident Beam Frame: Vertical Coordinate
         """
         self.arOpt = _arOpt #optical element structures array
         if(_arOpt == None):
@@ -1860,7 +2033,7 @@ class SRWLOptC(SRWLOpt):
             
     def allocate(self, _nElem):
         self.arOpt = [SRWLOpt()]*_nElem
-        self.arProp = [[0]*12]*_nElem
+        self.arProp = [[0]*17]*_nElem  
 
 #****************************************************************************
 #****************************************************************************
@@ -2373,7 +2546,8 @@ def srwl_uti_proc_is_master():
     Check if process is Master (in parallel processing sense)
     """
     try:
-        resImpMPI4Py = __import__('mpi4py', globals(), locals(), ['MPI'], -1) #MPI module dynamic load
+        #resImpMPI4Py = __import__('mpi4py', globals(), locals(), ['MPI'], -1) #MPI module dynamic load
+        resImpMPI4Py = __import__('mpi4py', globals(), locals(), ['MPI'], 0) #MPI module dynamic load
         #multiply re-import won't hurt; but it would be better to avoid this(?)
         MPI = resImpMPI4Py.MPI
         comMPI = MPI.COMM_WORLD
@@ -2385,7 +2559,7 @@ def srwl_uti_proc_is_master():
     except:
         return True
 
-#**********************Auxiliary function to write tabulated resulting Intensity data to ASCII file:
+#**********************Auxiliary function to write tabulated resulting Intensity data to an ASCII file:
 def srwl_uti_save_intens_ascii(_ar_intens, _mesh, _file_path, _n_stokes=1, _arLabels=['Photon Energy', 'Horizontal Position', 'Vertical Position', 'Intensity'], _arUnits=['eV', 'm', 'm', 'ph/s/.1%bw/mm^2'], _mutual=0):
     f = open(_file_path, 'w')
     arLabelUnit = [_arLabels[i] + ' [' + _arUnits[i] + ']' for i in range(4)]
@@ -2411,12 +2585,18 @@ def srwl_uti_save_intens_ascii(_ar_intens, _mesh, _file_path, _n_stokes=1, _arLa
         f.write(' ' + repr(_ar_intens[i]) + '\n')
     f.close()
 
+#**********************Auxiliary function to write auxiliary/debugging information to an ASCII file:
+def srwl_uti_save_text(_text, _file_path):
+    f = open(_file_path, 'w')
+    f.write(_text + '\n')
+    f.close()
+
 #****************************************************************************
 #****************************************************************************
 #Wavefront manipulation functions
 #****************************************************************************
 #****************************************************************************
-def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_part_tot, _n_part_avg_proc=1, _n_save_per=100, _file_path=None, _sr_samp_fact=-1, _opt_bl=None, _pres_ang=0, _char=0, _x0=0, _y0=0):
+def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_part_tot, _n_part_avg_proc=1, _n_save_per=100, _file_path=None, _sr_samp_fact=-1, _opt_bl=None, _pres_ang=0, _char=0, _x0=0, _y0=0, _e_ph_integ=0):
     """
     Calculate Stokes Parameters of Emitted (and Propagated, if beamline is defined) Partially-Coherent SR
     :param _e_beam: Finite-Emittance e-beam (SRWLPartBeam type)
@@ -2434,6 +2614,7 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
     :param _char: radiation characteristic to calculate: 0- Intensity (s0); 1- Four Stokes components; 2- Mutual Intensity Cut vs X; 3- Mutual Intensity Cut vs Y; 4- Mutual Intensity Cut vs X & Y
     :param _x0: horizontal center position for mutual intensity calculation
     :param _y0: vertical center position for mutual intensity calculation
+    :param _e_ph_integ: integration vs photon energy is required (1) or not (0); if the integration is required, the limits are defined in _mesh
     """
 
     nProc = 1
@@ -2441,7 +2622,11 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
     MPI = None
     comMPI = None
     try:
-        resImpMPI4Py = __import__('mpi4py', globals(), locals(), ['MPI'], -1) #MPI module load
+        #DEBUG
+        #resImpMPI4Py = __import__('mpi4py', globals(), locals(), ['MPI'], -1) #MPI module load
+        resImpMPI4Py = __import__('mpi4py', globals(), locals(), ['MPI'], 0) #MPI module load
+        #print('__import__ passed')
+
         MPI = resImpMPI4Py.MPI
         comMPI = MPI.COMM_WORLD
         rank = comMPI.Get_rank()
@@ -2450,22 +2635,38 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
     except:
         print('Calculation will be sequential (non-parallel), because "mpi4py" module can not be loaded')
 
-    if(nProc <= 1):
-        _n_part_avg_proc = _n_part_tot
+    #print(MPI)
+    #print(rank, nProc)
+
+    #if(nProc <= 1): #OC050214
+    #    _n_part_avg_proc = _n_part_tot
 
     wfr = SRWLWfr() #Wavefronts to be used in each process
     wfr.allocate(_mesh.ne, _mesh.nx, _mesh.ny) #Numbers of points vs Photon Energy, Horizontal and Vertical Positions
-    wfr.mesh.set_from_other(_mesh)
+    wfr.mesh.set_from_other(_mesh)    
     wfr.partBeam = deepcopy(_e_beam)
     arPrecParSR = [_sr_meth, _sr_rel_prec, 0, 0, 50000, 0, _sr_samp_fact]
-    meshRes = SRWLRadMesh()
+
+    #meshRes = SRWLRadMesh()
+    meshRes = SRWLRadMesh(_mesh.eStart, _mesh.eFin, _mesh.ne, _mesh.xStart, _mesh.xFin, _mesh.nx, _mesh.yStart, _mesh.yFin, _mesh.ny, _mesh.zStart) #to ensure correct final mesh if _opt_bl==None
+
+    ePhIntegMult = 1
+    if(_e_ph_integ == 1): #Integrate over Photon Energy
+        eAvg = 0.5*(_mesh.eStart + _mesh.eFin)
+        ePhIntegMult = 1000*(_mesh.eFin - _mesh.eStart)/eAvg #To obtain photon energy integrated Intensity in [ph/s/mm^2] assuming monochromatic Spectral Intensity in [ph/s/.1%bw/mm^2]
+        wfr.mesh.eStart = eAvg
+        wfr.mesh.eFin = eAvg
+        wfr.mesh.ne = 1
+        meshRes.eStart = eAvg
+        meshRes.eFin = eAvg
+        meshRes.ne = 1
 
     elecX0 = _e_beam.partStatMom1.x
     elecXp0 = _e_beam.partStatMom1.xp
     elecY0 = _e_beam.partStatMom1.y
     elecYp0 = _e_beam.partStatMom1.yp
     elecGamma0 = _e_beam.partStatMom1.gamma
-    elecE0 = elecGamma0*(0.51099890221e-03)
+    elecE0 = elecGamma0*(0.51099890221e-03) #Assuming electrons 
     
     elecSigXe2 = _e_beam.arStatMom2[0] #<(x-x0)^2>
     elecMXXp = _e_beam.arStatMom2[1] #<(x-x0)*(xp-xp0)>
@@ -2490,7 +2691,21 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
     SigPY = 1/sqrt(2*GY)
     SigQY = sqrt(GY/(2*(BY*GY - AY*AY)))
 
-    nPartPerProc = int(_n_part_tot/nProc)
+    _sr_rel_prec = int(_sr_rel_prec)
+    _n_part_tot = int(_n_part_tot)
+    _n_part_avg_proc = int(_n_part_avg_proc)
+    if(_n_part_avg_proc <= 0): _n_part_avg_proc = 1
+    _n_save_per = int(_n_save_per)
+    
+    nPartPerProc = _n_part_tot
+    nSentPerProc = 0
+    
+    if(nProc <= 1):
+        _n_part_avg_proc = _n_part_tot
+    else: #OC050214: adjustment of all numbers of points, to make sure that sending and receiving are consistent
+        nPartPerProc = int(round(_n_part_tot/(nProc - 1)))
+        nSentPerProc = int(round(nPartPerProc/_n_part_avg_proc)) #Number of sending acts made by each worker process
+        nPartPerProc = _n_part_avg_proc*nSentPerProc #Number of electrons treated by each worker process
 
     useGsnBmSrc = False
     if(isinstance(_mag, SRWLGsnBm)):
@@ -2545,28 +2760,32 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
 
             for iRank in range(nProc - 1):
                 dst = iRank + 1
+                #print("msg %d: sending data from %d to %d" % (iRank, rank, dst)) #an he
                 comMPI.Send([arMesh, MPI.FLOAT], dest=dst)
             #print('DEBUG MESSAGE: Mesh of Propagated central wavefront broadcasted')
 
+        #DEBUG
+        #print('meshRes: ne=', meshRes.ne, 'eStart=', meshRes.eStart, 'eFin=', meshRes.eFin)
+        #END DEBUG
+
         resStokes = SRWLStokes(1, 'f', meshRes.eStart, meshRes.eFin, meshRes.ne, meshRes.xStart, meshRes.xFin, meshRes.nx, meshRes.yStart, meshRes.yFin, meshRes.ny, doMutual)
-        wfr.calc_stokes(resStokes)
+        #wfr.calc_stokes(resStokes) #OC190414 (don't take into account first "central" beam)
         workStokes = SRWLStokes(1, 'f', meshRes.eStart, meshRes.eFin, meshRes.ne, meshRes.xStart, meshRes.xFin, meshRes.nx, meshRes.yStart, meshRes.yFin, meshRes.ny, doMutual)
 
-        #print('DEBUG MESSAGE:  parameters of Propagated central wavefront calculated')
-        #srwl_uti_save_intens_ascii(resStokes.arS, meshRes, _file_path, 1, _mutual = doMutual)
-        #sys.exit(0)
+        #iAvgProc += 1 #OC190414 (commented-out)
+        #iSave += 1
 
-        iAvgProc += 1
-        iSave += 1
- 
+    #slaves = [] #an he
     #print('DEBUG MESSAGE: rank=', rank)
     if((rank > 0) or (nProc == 1)):
 
         if((nProc > 1) and (_opt_bl != None)): #receive mesh for the resulting wavefront from the master
             arMesh = array('f', [0]*9)
+            #_stat = MPI.Status() #an he
             #comMPI.Recv([arMesh, MPI.FLOAT], source=0)
             comMPI.Recv([arMesh, MPI.FLOAT], source=MPI.ANY_SOURCE)
             #comMPI.Bcast([arMesh, MPI.FLOAT], root=0)
+            #print("received mesh %d -> %d" % (_stat.Get_source(), rank))
             meshRes.eStart = arMesh[0]
             meshRes.eFin = arMesh[1]
             meshRes.ne = int(arMesh[2])
@@ -2584,7 +2803,12 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
         nStPt = nRadPt*4
         randAr = array('d', [0]*5) #to expend to 6D eventually
 
-        random.seed(rank)
+        #random.seed(rank)
+        random.seed(rank*123)
+        newSeed = random.randint(0, 1000000)
+        random.seed(newSeed)
+        
+        iAuxSendCount = 0 #for debug
         
         for i in range(nPartPerProc): #loop over macro-electrons
 
@@ -2610,11 +2834,20 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
 
             #reset mesh, because it may be modified by CalcElecFieldSR and PropagElecField
             wfr.mesh.set_from_other(_mesh)
+
+            if(_e_ph_integ == 1):
+                ePh = random.uniform(_mesh.eStart, _mesh.eFin)
+                wfr.mesh.eStart = ePh
+                wfr.mesh.eFin = ePh
+                wfr.mesh.ne = 1
+            
             wfr.presCA = 0 #presentation/domain: 0- coordinates, 1- angles
             wfr.presFT = 0 #presentation/domain: 0- frequency (photon energy), 1- time
 
             if(nProc == 1):
                 print('i=', i, 'Electron Coord.: x=', wfr.partBeam.partStatMom1.x, 'x\'=', wfr.partBeam.partStatMom1.xp, 'y=', wfr.partBeam.partStatMom1.y, 'y\'=', wfr.partBeam.partStatMom1.yp, 'E=',  wfr.partBeam.partStatMom1.gamma*0.51099890221e-03)
+                if(_e_ph_integ == 1):
+                     print('Eph=', wfr.mesh.eStart)
 
             try:
                 if(useGsnBmSrc):
@@ -2669,22 +2902,54 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
 
             if(resStokes == None):
                 resStokes = SRWLStokes(1, 'f', meshRes.eStart, meshRes.eFin, meshRes.ne, meshRes.xStart, meshRes.xFin, meshRes.nx, meshRes.yStart, meshRes.yFin, meshRes.ny, doMutual)
+                #DEBUG
+                #print('resStokes #2: ne=', resStokes.mesh.ne, 'eStart=', resStokes.mesh.eStart, 'eFin=', resStokes.mesh.eFin)
+                #END DEBUG
  
             if(_opt_bl == None):
-                resStokes.avg_update_same_mesh(workStokes, iAvgProc, 1)
+                #resStokes.avg_update_same_mesh(workStokes, iAvgProc, 1)
+                resStokes.avg_update_same_mesh(workStokes, iAvgProc, 1, ePhIntegMult) #to treat all Stokes components / Polarization in the future
+                
+                #DEBUG
+                #srwl_uti_save_intens_ascii(workStokes.arS, workStokes.mesh, _file_path, 1)
+                #END DEBUG
+                
             else:
                 #print('DEBUG MESSAGE: Started interpolation of current wavefront on resulting mesh')
-                if(doMutual <= 0): resStokes.avg_update_interp(workStokes, iAvgProc, 1, 1)
-                else: resStokes.avg_update_interp_mutual(workStokes, iAvgProc, 1)
+                #if(doMutual <= 0): resStokes.avg_update_interp(workStokes, iAvgProc, 1, 1)
+                #else: resStokes.avg_update_interp_mutual(workStokes, iAvgProc, 1)
+
+                if(doMutual <= 0): resStokes.avg_update_interp(workStokes, iAvgProc, 1, 1, ePhIntegMult) #to treat all Stokes components / Polarization in the future
+                else: resStokes.avg_update_interp_mutual(workStokes, iAvgProc, 1, ePhIntegMult)
+                
                 #print('DEBUG MESSAGE: Finished interpolation of current wavefront on resulting mesh')
 
             iAvgProc += 1
             if(iAvgProc >= _n_part_avg_proc):
                 if(nProc > 1):
                     #sys.exit(0)
+                    #print("sending data from %d to 0" % rank) #an he
+                    #DEBUG
+                    #srwl_uti_save_intens_ascii(resStokes.arS, resStokes.mesh, _file_path, 1)
+                    #END DEBUG
+
+                    #DEBUG
+                    #srwl_uti_save_text("Preparing to sending # " + str(iAuxSendCount + 1), _file_path + "." + str(rank) + "bs.dbg")
+                    #END DEBUG
+
                     comMPI.Send([resStokes.arS, MPI.FLOAT], dest=0)
+                    iAuxSendCount += 1 #for debug
+
+                    #DEBUG
+                    #srwl_uti_save_text("Sent # " + str(iAuxSendCount), _file_path + "." + str(rank) + "es.dbg")
+                    #END DEBUG
+
                     for ir in range(nStPt):
                         resStokes.arS[ir] = 0
+                    #DEBUG
+                    #srwl_uti_save_intens_ascii(resStokes.arS, resStokes.mesh, _file_path, 1)
+                    #END DEBUG
+
                 iAvgProc = 0
 
             if(nProc == 1):
@@ -2702,18 +2967,47 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
 
     elif((rank == 0) and (nProc > 1)):
 
-        nRecv = int(nPartPerProc*nProc/_n_part_avg_proc + 1e-09)
+        #nRecv = int(nPartPerProc*nProc/_n_part_avg_proc + 1e-09)
+        nRecv = nSentPerProc*(nProc - 1) #Total number of sending acts to be made by all worker processes, and to be received by master
+        
+        #DEBUG
+        #srwl_uti_save_text("nRecv: " + str(nRecv) + " nPartPerProc: " + str(nPartPerProc) + " nProc: " + str(nProc) + " _n_part_avg_proc: " + str(_n_part_avg_proc), _file_path + ".00.dbg")
+        #END DEBUG
+
+        if(resStokes == None):
+            resStokes = SRWLStokes(1, 'f', meshRes.eStart, meshRes.eFin, meshRes.ne, meshRes.xStart, meshRes.xFin, meshRes.nx, meshRes.yStart, meshRes.yFin, meshRes.ny, doMutual)
+
+        if(workStokes == None):
+            workStokes = SRWLStokes(1, 'f', meshRes.eStart, meshRes.eFin, meshRes.ne, meshRes.xStart, meshRes.xFin, meshRes.nx, meshRes.yStart, meshRes.yFin, meshRes.ny, doMutual)
+
         for i in range(nRecv): #loop over messages from workers
 
-            comMPI.Recv([workStokes.arS, MPI.FLOAT], source=MPI.ANY_SOURCE) #receive
+            #DEBUG
+            #srwl_uti_save_text("Preparing to receiving # " + str(i), _file_path + ".br.dbg")
+            #END DEBUG
+           
+            comMPI.Recv([workStokes.arS, MPI.FLOAT], source=MPI.ANY_SOURCE) #receive #an he (commented-out)
 
-            resStokes.avg_update_same_mesh(workStokes, i + 1)
+            #DEBUG
+            #srwl_uti_save_text("Received intensity # " + str(i), _file_path + ".er.dbg")
+            #END DEBUG
+
+            #resStokes.avg_update_same_mesh(workStokes, i + 1)
+            resStokes.avg_update_same_mesh(workStokes, i + 1, 1, ePhIntegMult) #to treat all Stokes components / Polarization in the future
+
+            #DEBUG
+            #srwl_uti_save_text("Updated Stokes after receiving intensity # " + str(i), _file_path + "." + str(i) + "er.dbg")
+            #END DEBUG
 
             iSave += 1
             if(iSave == _n_save_per):
                 #Saving results from time to time in the process of calculation
                 srwl_uti_save_intens_ascii(resStokes.arS, meshRes, _file_path, 1, _mutual = doMutual)  
                 iSave = 0
+
+    #DEBUG
+    #srwl_uti_save_text("Exiting srwl_wfr_emit_prop_multi_e", _file_path + "." + str(rank) + "e.dbg")
+    #END DEBUG
 
     if((rank == 0) or (nProc == 1)):
         #Saving final results:

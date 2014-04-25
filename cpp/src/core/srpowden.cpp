@@ -376,8 +376,11 @@ int srTRadIntPowerDensity::TryToReduceIntegLimits()
 		s -= sStep;
 	}
 
-	if(isStartCor > 0) sIntegStartG += isStartCor*sStep;
-	if(isEndCor < AmOfPo_mi_1) sIntegFinG -= (AmOfPo_mi_1 - isEndCor)*sStep;
+	if(isStartCor < isEndCor)
+	{//OC100214
+		if(isStartCor > 0) sIntegStartG += isStartCor*sStep;
+		if(isEndCor < AmOfPo_mi_1) sIntegFinG -= (AmOfPo_mi_1 - isEndCor)*sStep;
+	}
 
 	if(DataCont != 0) delete[] DataCont;
 	return 0;

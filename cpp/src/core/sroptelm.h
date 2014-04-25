@@ -245,7 +245,9 @@ public:
 	inline void SetupCellDataI(srTInterpolAuxF*, srTInterpolAuxF*);
 	char WaveFrontTermCanBeTreated(srTSRWRadStructAccessData&);
 	void TreatStronglyOscillatingTerm(srTSRWRadStructAccessData&, char, char =0, int ieOnly =-1);
-	void TreatStronglyOscillatingTermIrregMesh(srTSRWRadStructAccessData&, float*, float, float, float, float, char, char =0, int =-1);
+	//void TreatStronglyOscillatingTermIrregMesh(srTSRWRadStructAccessData&, float*, float, float, float, float, char, char =0, int =-1);
+	void TreatStronglyOscillatingTermIrregMesh(srTSRWRadStructAccessData&, double*, double, double, double, double, char, char =0, int =-1); //OC260114
+	//void TreatStronglyOscillatingTermIrregMesh(srTSRWRadStructAccessData&, double*, double, double, double, double, char, char =0, int =-1, double =1, double =1); //OC220214
 
 	inline void SetupInterpolAux02(srTInterpolAuxF*, srTInterpolAux01*, srTInterpolAux02*);
 	inline void SetupInterpolAux02_LowOrder(srTInterpolAuxF*, srTInterpolAux01*, srTInterpolAux02*);
@@ -332,6 +334,8 @@ public:
 	long EstimateMinNpForQuadTerm(double en, double R, double xStart, double xEnd);
 
 	int ReduceBiggerResizeParamUntilFitMemory(srTSRWRadStructAccessData& RadAccessData, srTRadResize& RadResize, double& UnderSamplingX, double& UnderSamplingZ);
+
+	double FindLongCoordOfHorBaseVect(double vLx, double vLy, double vLz, double vHx, double vHy);
 };
 
 //*************************************************************************
@@ -1037,6 +1041,32 @@ inline double srTGenOptElem::MaxIntInVertString(long ix, long izSt, long izFi, s
 		tEx += Per; tEz += Per;
 	}
 	return IMax;
+}
+
+//*************************************************************************
+
+inline double srTGenOptElem::FindLongCoordOfHorBaseVect(double vLx, double vLy, double vLz, double vHx, double vHy)
+{//Used for processing the case of manual definition of output beam frame for some optical elements
+	TVector3d vL(vLx, vLy, vLz);
+	vL.Normalize();
+
+	TVector3d vH(vHx, vHy, 0.);
+	if(vLz == 0.)
+	{
+		if((vHx != 0.) || (vHy != 0.))
+		{
+			vH.Normalize();
+			const double relTol = 1.e-12;
+			double testScalProd = ::fabs(vL*vH);
+			if(testScalProd > relTol) throw FAILED_DETERMINE_OPTICAL_AXIS;
+			return 0.;
+		}
+		else return 1.;
+	}
+	else
+	{
+		return (-vL.x*vH.x - vL.y*vH.y)/vL.z;
+	}
 }
 
 //*************************************************************************

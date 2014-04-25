@@ -143,6 +143,7 @@ int srTGenOptElem::TraverseRadZXE(srTSRWRadStructAccessData* pRadAccessData)
 	srTEXZ EXZ;
 	EXZ.z = pRadAccessData->zStart;
 	long izPerZ = 0;
+	long iTotTest = 0; //OCTEST
 
 	int result = 0;
 	for(int iz=0; iz<pRadAccessData->nz; iz++)
@@ -186,6 +187,8 @@ int srTGenOptElem::TraverseRadZXE(srTSRWRadStructAccessData* pRadAccessData)
 
 				EXZ.aux_offset = izPerZ + ixPerX + iePerE;
 				RadPointModifier(EXZ, EFieldPtrs);
+
+				iTotTest++; //OCTEST
 
 				iePerE += 2;
 				EXZ.e += pRadAccessData->eStep;
@@ -3766,25 +3769,32 @@ char srTGenOptElem::WaveFrontTermCanBeTreated(srTSRWRadStructAccessData& RadAcce
 	const double CritRelRobsErr = 0.2; //0.1; //0.2;
 	const double Pi = 3.14159265358979;
 
-	char RobsXErrIsSmall = ::fabs(RadAccessData.RobsXAbsErr) < CritRelRobsErr*(::fabs(RadAccessData.RobsX));
-	char RobsZErrIsSmall = ::fabs(RadAccessData.RobsZAbsErr) < CritRelRobsErr*(::fabs(RadAccessData.RobsZ));
+	bool RobsXErrIsSmall = ::fabs(RadAccessData.RobsXAbsErr) < CritRelRobsErr*(::fabs(RadAccessData.RobsX));
+	bool RobsZErrIsSmall = ::fabs(RadAccessData.RobsZAbsErr) < CritRelRobsErr*(::fabs(RadAccessData.RobsZ));
 
 	if(RadAccessData.Pres == 0) // Coord
 	{
+		/**
 		double xMagn = ::fabs((RadAccessData.nx - 1)*RadAccessData.xStep);
 		double zMagn = ::fabs((RadAccessData.nz - 1)*RadAccessData.zStep);
 
 		char AnglesXAreSmall = (xMagn < CritRatTransvLong*(::fabs(RadAccessData.RobsX)));
 		char AnglesZAreSmall = (zMagn < CritRatTransvLong*(::fabs(RadAccessData.RobsZ)));
+		**/
 
-		RadAccessData.WfrQuadTermCanBeTreatedAtResizeX = (AnglesXAreSmall && RobsXErrIsSmall);
-		RadAccessData.WfrQuadTermCanBeTreatedAtResizeZ = (AnglesZAreSmall && RobsZErrIsSmall);
+		//RadAccessData.WfrQuadTermCanBeTreatedAtResizeX = (AnglesXAreSmall && RobsXErrIsSmall);
+		//RadAccessData.WfrQuadTermCanBeTreatedAtResizeZ = (AnglesZAreSmall && RobsZErrIsSmall);
+		//OC260114
+		//Removed requirement of small angles, because this was producing a buggy behavior for grazing-incidence mirrors
+		//Actually, the quadratic term can be subtracted and added even angles are large(?) 
+		RadAccessData.WfrQuadTermCanBeTreatedAtResizeX = RobsXErrIsSmall; 
+		RadAccessData.WfrQuadTermCanBeTreatedAtResizeZ = RobsZErrIsSmall;
 
-		//return (AnglesXAreSmall && AnglesZAreSmall && RobsXErrIsSmall && RobsZErrIsSmall);
 		return (RadAccessData.WfrQuadTermCanBeTreatedAtResizeX || RadAccessData.WfrQuadTermCanBeTreatedAtResizeZ);
 	}
 	else // Ang
 	{// Not sure about this...
+		/**
 		double ePh = RadAccessData.eStart;
 		double xRatMax = 1.E-23, zRatMax = 1.E-23, MaxPhaseChange = 1.E-23;
 		for(int ie=0; ie<RadAccessData.ne; ie++)
@@ -3805,12 +3815,18 @@ char srTGenOptElem::WaveFrontTermCanBeTreated(srTSRWRadStructAccessData& RadAcce
 		char AnglesXAreSmall = (xRatMax < CritRatTransvLong);
 		char AnglesZAreSmall = (zRatMax < CritRatTransvLong);
 		char PhaseChangeIsLarge = (MaxPhaseChange > 2.*Pi);
+		**/
 
-		RadAccessData.WfrQuadTermCanBeTreatedAtResizeX = (AnglesXAreSmall && RobsXErrIsSmall);
-		RadAccessData.WfrQuadTermCanBeTreatedAtResizeZ = (AnglesZAreSmall && RobsZErrIsSmall);
+		//RadAccessData.WfrQuadTermCanBeTreatedAtResizeX = (AnglesXAreSmall && RobsXErrIsSmall);
+		//RadAccessData.WfrQuadTermCanBeTreatedAtResizeZ = (AnglesZAreSmall && RobsZErrIsSmall);
+		//OC260114
+		//Removed requirement of small angles, because this was producing a buggy behavior for grazing-incidence mirrors
+		//Actually, the quadratic term can be subtracted and added even angles are large(?) 
+		RadAccessData.WfrQuadTermCanBeTreatedAtResizeX = RobsXErrIsSmall; 
+		RadAccessData.WfrQuadTermCanBeTreatedAtResizeZ = RobsZErrIsSmall;
 
-		//return (AnglesXAreSmall && AnglesZAreSmall && PhaseChangeIsLarge && RobsXErrIsSmall && RobsZErrIsSmall);
-		return ((RadAccessData.WfrQuadTermCanBeTreatedAtResizeX || RadAccessData.WfrQuadTermCanBeTreatedAtResizeZ) && PhaseChangeIsLarge);
+		//return ((RadAccessData.WfrQuadTermCanBeTreatedAtResizeX || RadAccessData.WfrQuadTermCanBeTreatedAtResizeZ) && PhaseChangeIsLarge);
+		return (RadAccessData.WfrQuadTermCanBeTreatedAtResizeX || RadAccessData.WfrQuadTermCanBeTreatedAtResizeZ); //OC260114
 	}
 }
 
@@ -3932,7 +3948,9 @@ void srTGenOptElem::TreatStronglyOscillatingTerm(srTSRWRadStructAccessData& RadA
 
 //*************************************************************************
 
-void srTGenOptElem::TreatStronglyOscillatingTermIrregMesh(srTSRWRadStructAccessData& RadAccessData, float* arRayTrCoord, float xMin, float xMax, float zMin, float zMax, char AddOrRem, char PolComp, int ieOnly)
+//void srTGenOptElem::TreatStronglyOscillatingTermIrregMesh(srTSRWRadStructAccessData& RadAccessData, float* arRayTrCoord, float xMin, float xMax, float zMin, float zMax, char AddOrRem, char PolComp, int ieOnly)
+//void srTGenOptElem::TreatStronglyOscillatingTermIrregMesh(srTSRWRadStructAccessData& RadAccessData, double* arRayTrCoord, double xMin, double xMax, double zMin, double zMax, char AddOrRem, char PolComp, int ieOnly, double anamorphMagnX, double anamorphMagnZ)
+void srTGenOptElem::TreatStronglyOscillatingTermIrregMesh(srTSRWRadStructAccessData& RadAccessData, double* arRayTrCoord, double xMin, double xMax, double zMin, double zMax, char AddOrRem, char PolComp, int ieOnly)
 {
 	//Later treat X and Z coordinates separately here!!!
 
@@ -3953,7 +3971,8 @@ void srTGenOptElem::TreatStronglyOscillatingTermIrregMesh(srTSRWRadStructAccessD
 	double ConstRxE, ConstRzE;
 	double ePh = RadAccessData.eStart, x, z; //, zE2;
 	double Phase;
-	float CosPh, SinPh;
+	//float CosPh, SinPh;
+	double CosPh, SinPh;
 
 	float *pEX0 = 0, *pEZ0 = 0;
 	if(TreatPolCompX) pEX0 = RadAccessData.pBaseRadX;
@@ -3968,13 +3987,25 @@ void srTGenOptElem::TreatStronglyOscillatingTermIrregMesh(srTSRWRadStructAccessD
 		ieStart = ieOnly; ieBefEnd = ieOnly + 1;
 	}
 
-	const float relStepTol = (float)1.E-03;
-	float xStepTol = (float)(relStepTol*fabs(RadAccessData.xStep));
-	float zStepTol = (float)(relStepTol*fabs(RadAccessData.zStep));
-	float xMin_mi_xStepTol = xMin - xStepTol;
-	float xMax_pl_xStepTol = xMax + xStepTol;
-	float zMin_mi_zStepTol = zMin - zStepTol;
-	float zMax_pl_zStepTol = zMax + zStepTol;
+	//const float relStepTol = (float)1.E-03;
+	const double relStepTol = 1.E-03;
+
+	//float xStepTol = (float)(relStepTol*fabs(RadAccessData.xStep));
+	//float zStepTol = (float)(relStepTol*fabs(RadAccessData.zStep));
+	//float xMin_mi_xStepTol = xMin - xStepTol;
+	//float xMax_pl_xStepTol = xMax + xStepTol;
+	//float zMin_mi_zStepTol = zMin - zStepTol;
+	//float zMax_pl_zStepTol = zMax + zStepTol;
+
+	double xStepTol = relStepTol*fabs(RadAccessData.xStep);
+	double zStepTol = relStepTol*fabs(RadAccessData.zStep);
+	double xMin_mi_xStepTol = xMin - xStepTol;
+	double xMax_pl_xStepTol = xMax + xStepTol;
+	double zMin_mi_zStepTol = zMin - zStepTol;
+	double zMax_pl_zStepTol = zMax + zStepTol;
+
+	//double invAnamorphMagnXe2 = 1./(anamorphMagnX*anamorphMagnX);
+	//double invAnamorphMagnZe2 = 1./(anamorphMagnZ*anamorphMagnZ);
 
 	//for(int ie=0; ie<RadAccessData.ne; ie++)
 	for(int ie=ieStart; ie<ieBefEnd; ie++) //OC161008
@@ -4011,7 +4042,8 @@ void srTGenOptElem::TreatStronglyOscillatingTermIrregMesh(srTSRWRadStructAccessD
 			float *pEX_StartForX = pEX0 + izPerZ;
 			float *pEZ_StartForX = pEZ0 + izPerZ;
 
-			float *pRayTrCrd_StartForX = arRayTrCoord + izPerZ;
+			//float *pRayTrCrd_StartForX = arRayTrCoord + izPerZ;
+			double *pRayTrCrd_StartForX = arRayTrCoord + izPerZ;
 
 			//x = RadAccessData.xStart - RadAccessData.xc;
 
@@ -4033,8 +4065,11 @@ void srTGenOptElem::TreatStronglyOscillatingTermIrregMesh(srTSRWRadStructAccessD
 						Phase = 0;
 						if(RadAccessData.WfrQuadTermCanBeTreatedAtResizeX) Phase += ConstRxE*x*x;
 						if(RadAccessData.WfrQuadTermCanBeTreatedAtResizeZ) Phase += ConstRzE*z*z;
+						//if(RadAccessData.WfrQuadTermCanBeTreatedAtResizeX) Phase += ConstRxE*x*x*invAnamorphMagnXe2; //OC220214
+						//if(RadAccessData.WfrQuadTermCanBeTreatedAtResizeZ) Phase += ConstRzE*z*z*invAnamorphMagnZe2;
 
-						CosAndSin(Phase, CosPh, SinPh);
+						//CosAndSin(Phase, CosPh, SinPh);
+						CosPh = cos(Phase); SinPh = sin(Phase); //OC260114
 
 						if(TreatPolCompX)
 						{

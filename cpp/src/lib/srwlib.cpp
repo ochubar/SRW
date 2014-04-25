@@ -463,7 +463,10 @@ EXP int CALL srwlCalcPowDenSR(SRWLStokes* pStokes, SRWLPartBeam* pElBeam, SRWLPr
 		srTParPrecPowDens precPowDens(meth, precFact, useSpecIntLim, sIntStart, sIntFin);
 		//srTWfrSmp wfrSmp(pStokes->zStart, pStokes->xStart, pStokes->xFin, pStokes->nx, pStokes->yStart, pStokes->yFin, pStokes->ny, 0, pStokes->eStart, pStokes->eFin, pStokes->ne, "eV");
 		SRWLStructRadMesh &mesh = pStokes->mesh;
-		srTWfrSmp wfrSmp(mesh.zStart, mesh.xStart, mesh.xFin, mesh.nx, mesh.yStart, mesh.yFin, mesh.ny, 0, mesh.eStart, mesh.eFin, mesh.ne, "eV");
+		//srTWfrSmp wfrSmp(mesh.zStart, mesh.xStart, mesh.xFin, mesh.nx, mesh.yStart, mesh.yFin, mesh.ny, 0, mesh.eStart, mesh.eFin, mesh.ne, "eV");
+		double inNormObsPlane[] = {mesh.nvx, mesh.nvz,  mesh.nvy}; //Order of the coordinates is in accord with SRW for Igor Pro; check sign!
+		double horOrtObsPlane[] = {mesh.hvx, mesh.hvz, mesh.hvy}; //Order of the coordinates is in accord with SRW for Igor Pro; check sign!
+		srTWfrSmp wfrSmp(mesh.zStart, mesh.xStart, mesh.xFin, mesh.nx, mesh.yStart, mesh.yFin, mesh.ny, mesh.arSurf, mesh.eStart, mesh.eFin, mesh.ne, "eV", 0, 0, 0, 0, horOrtObsPlane, inNormObsPlane);
 
 		srTPowDensStructAccessData pow;
 		pow.pBasePowDens = (float*)(pStokes->arS0); //consider calculating all Stokes parameters of the power density

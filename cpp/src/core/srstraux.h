@@ -554,6 +554,10 @@ struct srTRadResize {
 	char ModeBits; //OC090311
 	double PropAutoPrec; //OC090311
 
+	//OC011213
+	double vLxOut, vLyOut, vLzOut; //Coordinates of the output Optical Axis vector
+	double vHxOut, vHyOut; //Coordinates of the Horizontal Base vector of the output frame
+
 	srTRadResize() 
 	{
 		pem = ped = pxm = pxd = pzm = pzd = 1.;
@@ -574,6 +578,10 @@ struct srTRadResize {
 		//#2- Propagation: Auto-Resize Before Propagation
 		//#3- Propagation: Auto-Resize After Propagation
 		//#4- Propagation: Allow Under-Sampling Mode
+
+		//OC011213
+		vLxOut = vLyOut = vLzOut = 0; //Default coordinates of the output Optical Axis vector
+		vHxOut = vHyOut = 0; //Default coordinates of the Horizontal Base vector of the output frame
 	}
 
 	char useOtherSideFFT(int in=-1) 

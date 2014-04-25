@@ -143,36 +143,31 @@ srTCompositeOptElem::srTCompositeOptElem(const SRWLOptC& opt)
 				SRWLOptWG *p = (SRWLOptWG*)(*t_arOpt);
 				pOptElem = new srTWaveguideRect(p->L, p->Dx, p->Dy, p->x, p->y); 
 			}
-			else if(strcmp(sType, "grating") == 0)
-			{
-				SRWLOptG *p = (SRWLOptG*)(*t_arOpt);
-				pOptElem = new srTGrating(p->grDen, p->disPl, p->ang, p->m, p->refl);
-			}
-			else if(strcmp(sType, "transmission") == 0)
-			{
-				pOptElem = new srTGenTransmission(*((SRWLOptT*)(*t_arOpt)));
-			}
-			else if(strcmp(sType, "mirror: plane") == 0)
-			{
-				pOptElem = new srTMirrorPlane(*((SRWLOptMirPl*)(*t_arOpt)));
-			}
-			else if(strcmp(sType, "mirror: ellipsoid") == 0)
-			{
-				pOptElem = new srTMirrorEllipsoid(*((SRWLOptMirEl*)(*t_arOpt)));
-			}
-			else if(strcmp(sType, "mirror: toroid") == 0)
-			{
-				pOptElem = new srTMirrorToroid(*((SRWLOptMirTor*)(*t_arOpt)));
-			}
-			else if(strcmp(sType, "crystal") == 0)
-			{
-				pOptElem = new srTOptCryst(*((SRWLOptCryst*)(*t_arOpt)));
-			}
+			else if(strcmp(sType, "transmission") == 0) pOptElem = new srTGenTransmission(*((SRWLOptT*)(*t_arOpt)));
+			else if(strncmp(sType, "mirror", 6) == 0) pOptElem = srTMirror::DefineMirror(sType, *t_arOpt);
+			else if(strcmp(sType, "grating") == 0) pOptElem = srTMirror::DefineGrating(sType, *t_arOpt);
 
-			else if(strcmp(sType, "container") == 0)
-			{
-				pOptElem = new srTCompositeOptElem(*((SRWLOptC*)(*t_arOpt)));
-			}
+			//else if(strcmp(sType, "mirror: plane") == 0)
+			//{
+			//	pOptElem = new srTMirrorPlane(*((SRWLOptMirPl*)(*t_arOpt)));
+			//}
+			//else if(strcmp(sType, "mirror: ellipsoid") == 0)
+			//{
+			//	pOptElem = new srTMirrorEllipsoid(*((SRWLOptMirEl*)(*t_arOpt)));
+			//}
+			//else if(strcmp(sType, "mirror: toroid") == 0)
+			//{
+			//	pOptElem = new srTMirrorToroid(*((SRWLOptMirTor*)(*t_arOpt)));
+			//}
+			//else if(strcmp(sType, "grating") == 0)
+			//{
+			//	SRWLOptG *p = (SRWLOptG*)(*t_arOpt);
+			//	//pOptElem = new srTGrating(p->grDen, p->disPl, p->ang, p->m, p->refl);
+			//	//pOptElem = new srTGrating(p->grDen, p->disPl, p->ang, p->m, p->refl, p->grDen1, p->grDen2, p->grDen3, p->grDen4);
+			//}
+
+			else if(strcmp(sType, "crystal") == 0) pOptElem = new srTOptCryst(*((SRWLOptCryst*)(*t_arOpt)));
+			else if(strcmp(sType, "container") == 0) pOptElem = new srTCompositeOptElem(*((SRWLOptC*)(*t_arOpt)));
 			else throw UNKNOWN_OPTICAL_ELEMENT;
 		}
 		if(pOptElem != 0)
@@ -186,6 +181,9 @@ srTCompositeOptElem::srTCompositeOptElem(const SRWLOptC& opt)
 			//if((i > 0) && (i < opt.nElem) && (i >= opt.nProp) && propResWasSet) propRes = propResLast;
 			if(i < opt.nProp)
 			{
+				char curNumPropPar = 9;
+				if(opt.arPropN != 0) curNumPropPar = opt.arPropN[i];
+
 				double *t_pr = *t_arProp;
 				propRes.propAutoResizeBefore((int)(t_pr[0]));
 				propRes.propAutoResizeAfter((int)(t_pr[1]));
@@ -196,9 +194,15 @@ srTCompositeOptElem::srTCompositeOptElem(const SRWLOptC& opt)
 				propRes.pxd = t_pr[6];
 				propRes.pzm = t_pr[7];
 				propRes.pzd = t_pr[8];
-				propRes.ShiftTypeBeforeRes = (char)t_pr[9];
-				propRes.xCenShift = t_pr[10];
-				propRes.zCenShift = t_pr[11];
+				if(curNumPropPar > 9) propRes.ShiftTypeBeforeRes = (char)t_pr[9];
+				if(curNumPropPar > 10) propRes.xCenShift = t_pr[10];
+				if(curNumPropPar > 11) propRes.zCenShift = t_pr[11];
+
+				if(curNumPropPar > 12) propRes.vLxOut = t_pr[12]; //Default coordinates of the output Optical Axis vector
+				if(curNumPropPar > 13) propRes.vLyOut = t_pr[13];
+				if(curNumPropPar > 14) propRes.vLzOut = t_pr[14];
+				if(curNumPropPar > 15) propRes.vHxOut = t_pr[15]; //Default coordinates of the Horizontal Base vector of the output frame
+				if(curNumPropPar > 16) propRes.vHyOut = t_pr[16];
 			}
 
 			GenOptElemPropResizeVect.push_back(propRes); //define instructions for propagation/resizing
@@ -257,6 +261,9 @@ int srTCompositeOptElem::PropagateRadiationGuided(srTSRWRadStructAccessData& wfr
 		double underSampThresh = 0.5; //not user
 		char analTreatment = 0;
 
+		double vLxO=0, vLyO=0, vLzO=0; //Coordinates of the output Optical Axis vector
+		double vHxO=0, vHyO=0; //Default coordinates of the Horizontal Base vector of the output frame
+
 		if(elemCount < numResizeInst)
 		{
 			srTRadResize &curPropResizeInst = GenOptElemPropResizeVect[elemCount];
@@ -272,9 +279,15 @@ int srTCompositeOptElem::PropagateRadiationGuided(srTSRWRadStructAccessData& wfr
 			if((::fabs(curPropResizeInst.pxd - 1.) > tolRes) || (::fabs(curPropResizeInst.pxm - 1.) > tolRes) ||
 			   (::fabs(curPropResizeInst.pzd - 1.) > tolRes) || (::fabs(curPropResizeInst.pzm - 1.) > tolRes))
 				if(res = RadResizeGen(wfr, curPropResizeInst)) return res;
+
+			vLxO = curPropResizeInst.vLxOut; //OC021213
+			vLyO = curPropResizeInst.vLyOut;
+			vLzO = curPropResizeInst.vLzOut;
+			vHxO = curPropResizeInst.vHxOut;
+			vHyO = curPropResizeInst.vHyOut;
 		}
 
-		srTParPrecWfrPropag precParWfrPropag(methNo, useResizeBefore, useResizeAfter, precFact, underSampThresh, analTreatment);
+		srTParPrecWfrPropag precParWfrPropag(methNo, useResizeBefore, useResizeAfter, precFact, underSampThresh, analTreatment, (char)0, vLxO, vLyO, vLzO, vHxO, vHyO);
 		srTRadResizeVect auxResizeVect;
 		if(res = ((srTGenOptElem*)(it->rep))->PropagateRadiation(&wfr, precParWfrPropag, auxResizeVect)) return res;
 		//maybe to use "PropagateRadiationGuided" for srTCompositeOptElem?

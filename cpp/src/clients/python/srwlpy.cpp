@@ -1068,7 +1068,8 @@ void ParseSructSRWLMagFldU(SRWLMagFldU* pMag, PyObject* oMag) //throw(...)
  * Parses PyObject* to SRWLWfr*
  * vector<Py_buffer>& vBuf is required to release all buffers after the end of execution
  ***************************************************************************/
-void ParseSructSRWLRadMesh(SRWLRadMesh* pRadMesh, PyObject* oRadMesh)
+//void ParseSructSRWLRadMesh(SRWLRadMesh* pRadMesh, PyObject* oRadMesh)
+void ParseSructSRWLRadMesh(SRWLRadMesh* pRadMesh, PyObject* oRadMesh, vector<Py_buffer>* pvBuf =0)
 {
 	if((pRadMesh == 0) || (oRadMesh == 0)) throw strEr_NoObj;
 
@@ -1133,6 +1134,66 @@ void ParseSructSRWLRadMesh(SRWLRadMesh* pRadMesh, PyObject* oRadMesh)
 	if(!PyNumber_Check(o_tmp)) throw strEr_BadRadMesh;
 	pRadMesh->ny = PyLong_AsLong(o_tmp);
 	Py_DECREF(o_tmp);
+
+	//Optional parameters
+	pRadMesh->nvx = 0.;
+	o_tmp = PyObject_GetAttrString(oRadMesh, "nvx");
+	if(o_tmp != 0)
+	{
+		if(!PyNumber_Check(o_tmp)) throw strEr_BadRadMesh;
+		pRadMesh->nvx = PyFloat_AsDouble(o_tmp);
+		Py_DECREF(o_tmp);
+	}
+	pRadMesh->nvy = 0.;
+	o_tmp = PyObject_GetAttrString(oRadMesh, "nvy");
+	if(o_tmp != 0)
+	{
+		if(!PyNumber_Check(o_tmp)) throw strEr_BadRadMesh;
+		pRadMesh->nvy = PyFloat_AsDouble(o_tmp);
+		Py_DECREF(o_tmp);
+	}
+	pRadMesh->nvz = 1.;
+	o_tmp = PyObject_GetAttrString(oRadMesh, "nvz");
+	if(o_tmp != 0)
+	{
+		if(!PyNumber_Check(o_tmp)) throw strEr_BadRadMesh;
+		pRadMesh->nvz = PyFloat_AsDouble(o_tmp);
+		Py_DECREF(o_tmp);
+	}
+	pRadMesh->hvx = 1.;
+	o_tmp = PyObject_GetAttrString(oRadMesh, "hvx");
+	if(o_tmp != 0)
+	{
+		if(!PyNumber_Check(o_tmp)) throw strEr_BadRadMesh;
+		pRadMesh->hvx = PyFloat_AsDouble(o_tmp);
+		Py_DECREF(o_tmp);
+	}
+	pRadMesh->hvy = 0.;
+	o_tmp = PyObject_GetAttrString(oRadMesh, "hvy");
+	if(o_tmp != 0)
+	{
+		if(!PyNumber_Check(o_tmp)) throw strEr_BadRadMesh;
+		pRadMesh->hvy = PyFloat_AsDouble(o_tmp);
+		Py_DECREF(o_tmp);
+	}
+	pRadMesh->hvz = 0.;
+	o_tmp = PyObject_GetAttrString(oRadMesh, "hvz");
+	if(o_tmp != 0)
+	{
+		if(!PyNumber_Check(o_tmp)) throw strEr_BadRadMesh;
+		pRadMesh->hvz = PyFloat_AsDouble(o_tmp);
+		Py_DECREF(o_tmp);
+	}
+
+	pRadMesh->arSurf = 0;
+	o_tmp = PyObject_GetAttrString(oRadMesh, "arSurf");
+	if((o_tmp != 0) && (pvBuf != 0))
+	{
+		Py_ssize_t sizeBuf = 0;
+		char *cpBuf = GetPyArrayBuf(o_tmp, pvBuf, &sizeBuf);
+		if((cpBuf != 0) && (sizeBuf > 0)) pRadMesh->arSurf = (double*)cpBuf;
+		Py_DECREF(o_tmp);
+	}
 }
 
 /************************************************************************//**
@@ -1202,8 +1263,8 @@ void ParseSructSRWLMagFldC(SRWLMagFldC* pMag, PyObject* oMag, vector<Py_buffer>*
 	{
 		PyObject *o = PyList_GetItem(o_List, (Py_ssize_t)i);
 		
-//		PyTypeObject *pTypeO = o->ob_type;
-//		const char* sTypeName = pTypeO->tp_name;
+		//PyTypeObject *pTypeO = o->ob_type;
+		//const char* sTypeName = pTypeO->tp_name;
 		char sTypeName[1025];
 		CopyPyClassNameToC(o, sTypeName, 1024);
 
@@ -1507,49 +1568,6 @@ void ParseSructSRWLOptWG(SRWLOptWG* pOpt, PyObject* oOpt) //throw(...)
 }
 
 /************************************************************************//**
- * Parses PyObject* to SRWLOptG*
- ***************************************************************************/
-void ParseSructSRWLOptG(SRWLOptG* pOpt, PyObject* oOpt) //throw(...) 
-{
-	if((pOpt == 0) || (oOpt == 0)) throw strEr_NoObj;
-	PyObject *o_tmp = 0;
-
-	o_tmp = PyObject_GetAttrString(oOpt, "grDen");
-	if(o_tmp == 0) throw strEr_BadOptG;
-	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptG;
-	pOpt->grDen = PyFloat_AsDouble(o_tmp);
-	Py_DECREF(o_tmp);
-
-	o_tmp = PyObject_GetAttrString(oOpt, "disPl");
-	if(o_tmp == 0) throw strEr_BadOptG;
-	//PyObject *o_str = PyUnicode_AsUTF8String(o_tmp);
-	//if(!PyBytes_Check(o_str)) throw strEr_BadOptG;
-	//pOpt->disPl = *PyBytes_AsString(o_str); 
-	char cStrBuf[2];
-	CopyPyStringToC(o_tmp, cStrBuf, 1);
-	pOpt->disPl = *cStrBuf;
-	Py_DECREF(o_tmp);
-
-	o_tmp = PyObject_GetAttrString(oOpt, "ang");
-	if(o_tmp == 0) throw strEr_BadOptG;
-	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptG;
-	pOpt->ang = PyFloat_AsDouble(o_tmp);
-	Py_DECREF(o_tmp);
-
-	o_tmp = PyObject_GetAttrString(oOpt, "m");
-	if(o_tmp == 0) throw strEr_BadOptG;
-	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptG;
-	pOpt->ang = PyLong_AsLong(o_tmp);
-	Py_DECREF(o_tmp);
-
-	o_tmp = PyObject_GetAttrString(oOpt, "refl");
-	if(o_tmp == 0) throw strEr_BadOptG;
-	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptG;
-	pOpt->refl = PyFloat_AsDouble(o_tmp);
-	Py_DECREF(o_tmp);
-}
-
-/************************************************************************//**
  * Parses PyObject* to SRWLOptT*
  ***************************************************************************/
 void ParseSructSRWLOptT(SRWLOptT* pOpt, PyObject* oOpt, vector<Py_buffer>* pvBuf) //throw(...) 
@@ -1806,21 +1824,22 @@ void ParseSructSRWLOptMir(SRWLOptMir* pOpt, PyObject* oOpt, vector<Py_buffer>* p
 /************************************************************************//**
  * Parses PyObject* to SRWLOptMirPl*
  ***************************************************************************/
-void ParseSructSRWLOptMirPl(SRWLOptMirPl* pOpt, PyObject* oOpt, vector<Py_buffer>* pvBuf) //throw(...) 
-{
-	if((pOpt == 0) || (oOpt == 0)) throw strEr_NoObj;
-
-	ParseSructSRWLOptMir(&(pOpt->baseMir), oOpt, pvBuf);
-}
+//void ParseSructSRWLOptMirPl(SRWLOptMirPl* pOpt, PyObject* oOpt, vector<Py_buffer>* pvBuf) //throw(...) 
+//{
+//	if((pOpt == 0) || (oOpt == 0)) throw strEr_NoObj;
+//
+//	ParseSructSRWLOptMir(&(pOpt->baseMir), oOpt, pvBuf);
+//}
 
 /************************************************************************//**
  * Parses PyObject* to SRWLOptMirEl*
  ***************************************************************************/
-void ParseSructSRWLOptMirEl(SRWLOptMirEl* pOpt, PyObject* oOpt, vector<Py_buffer>* pvBuf) //throw(...) 
+//void ParseSructSRWLOptMirEl(SRWLOptMirEl* pOpt, PyObject* oOpt, vector<Py_buffer>* pvBuf) //throw(...) 
+void ParseSructSRWLOptMirExtEl(SRWLOptMirEl* pOpt, PyObject* oOpt) //throw(...) 
 {
 	if((pOpt == 0) || (oOpt == 0)) throw strEr_NoObj;
 
-	ParseSructSRWLOptMir(&(pOpt->baseMir), oOpt, pvBuf);
+	//ParseSructSRWLOptMir(&(pOpt->baseMir), oOpt, pvBuf);
 
 	PyObject *o_tmp = PyObject_GetAttrString(oOpt, "p");
 	if(o_tmp == 0) throw strEr_BadOptMir;
@@ -1850,11 +1869,12 @@ void ParseSructSRWLOptMirEl(SRWLOptMirEl* pOpt, PyObject* oOpt, vector<Py_buffer
 /************************************************************************//**
  * Parses PyObject* to SRWLOptMirEl*
  ***************************************************************************/
-void ParseSructSRWLOptMirTor(SRWLOptMirTor* pOpt, PyObject* oOpt, vector<Py_buffer>* pvBuf) //throw(...) 
+//void ParseSructSRWLOptMirTor(SRWLOptMirTor* pOpt, PyObject* oOpt, vector<Py_buffer>* pvBuf) //throw(...) 
+void ParseSructSRWLOptMirExtTor(SRWLOptMirTor* pOpt, PyObject* oOpt) //throw(...) 
 {
 	if((pOpt == 0) || (oOpt == 0)) throw strEr_NoObj;
 
-	ParseSructSRWLOptMir(&(pOpt->baseMir), oOpt, pvBuf);
+	//ParseSructSRWLOptMir(&(pOpt->baseMir), oOpt, pvBuf);
 
 	PyObject *o_tmp = PyObject_GetAttrString(oOpt, "radTan");
 	if(o_tmp == 0) throw strEr_BadOptMir;
@@ -1867,6 +1887,130 @@ void ParseSructSRWLOptMirTor(SRWLOptMirTor* pOpt, PyObject* oOpt, vector<Py_buff
 	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptMir;
 	pOpt->radSag = PyFloat_AsDouble(o_tmp);
 	Py_DECREF(o_tmp);
+}
+
+/************************************************************************//**
+ * Parses PyObject* to SRWLOptMirEl*
+ ***************************************************************************/
+void* ParseSructSRWLOptMirAll(PyObject* oOpt, char* sPyTypeName, vector<Py_buffer>* pvBuf, char* srwOptTypeName)
+{
+	if((oOpt == 0) || (srwOptTypeName == 0)) throw strEr_NoObj;
+
+	bool needTypeName = false;
+	if(sPyTypeName == 0) needTypeName = true; 
+	else if(*sPyTypeName == '\0') needTypeName = true;
+
+	char sPyTypeNameLoc[1025];
+	if(needTypeName)
+	{
+		sPyTypeName = sPyTypeNameLoc;
+		CopyPyClassNameToC(oOpt, sPyTypeName, 1024);
+	}
+
+	void *pMir = 0;
+	strcpy(srwOptTypeName, "mirror: ");
+	if(strcmp(sPyTypeName, "SRWLOptMirPl") == 0)
+	{
+		pMir = new SRWLOptMirPl();
+		strcat(srwOptTypeName, "plane\0");
+		ParseSructSRWLOptMir(&(((SRWLOptMirPl*)pMir)->baseMir), oOpt, pvBuf);
+	}
+	else if(strcmp(sPyTypeName, "SRWLOptMirEl") == 0)
+	{
+		pMir = new SRWLOptMirEl();
+		strcat(srwOptTypeName, "ellipsoid\0");
+		ParseSructSRWLOptMir(&(((SRWLOptMirEl*)pMir)->baseMir), oOpt, pvBuf);
+		ParseSructSRWLOptMirExtEl((SRWLOptMirEl*)pMir, oOpt);
+	}
+	else if(strcmp(sPyTypeName, "SRWLOptMirTor") == 0)
+	{
+		pMir = new SRWLOptMirTor();
+		strcat(srwOptTypeName, "toroid\0");
+		ParseSructSRWLOptMir(&(((SRWLOptMirTor*)pMir)->baseMir), oOpt, pvBuf);
+		ParseSructSRWLOptMirExtTor((SRWLOptMirTor*)pMir, oOpt);
+	}
+	return pMir;
+}
+
+/************************************************************************//**
+ * Parses PyObject* to SRWLOptG*
+ ***************************************************************************/
+void ParseSructSRWLOptG(SRWLOptG* pOpt, PyObject* oOpt, vector<Py_buffer>* pvBuf) //throw(...) 
+{
+	if((pOpt == 0) || (oOpt == 0)) throw strEr_NoObj;
+	PyObject *o_tmp = 0;
+
+	o_tmp = PyObject_GetAttrString(oOpt, "mirSub");
+	if(o_tmp == 0) throw strEr_BadOptG;
+	pOpt->mirSub = ParseSructSRWLOptMirAll(o_tmp, 0, pvBuf, pOpt->mirSubType);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "m");
+	if(o_tmp == 0) throw strEr_BadOptG;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptG;
+	pOpt->m = PyLong_AsLong(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "grDen");
+	if(o_tmp == 0) throw strEr_BadOptG;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptG;
+	pOpt->grDen = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	pOpt->grDen1 = 0;
+	o_tmp = PyObject_GetAttrString(oOpt, "grDen1");
+	if(o_tmp != 0) 
+	{
+		if(PyNumber_Check(o_tmp)) 
+		{
+			pOpt->grDen1 = PyFloat_AsDouble(o_tmp);
+			Py_DECREF(o_tmp);
+		}
+	}
+
+	pOpt->grDen2 = 0;
+	o_tmp = PyObject_GetAttrString(oOpt, "grDen2");
+	if(o_tmp != 0) 
+	{
+		if(PyNumber_Check(o_tmp)) 
+		{
+			pOpt->grDen2 = PyFloat_AsDouble(o_tmp);
+			Py_DECREF(o_tmp);
+		}
+	}
+
+	pOpt->grDen3 = 0;
+	o_tmp = PyObject_GetAttrString(oOpt, "grDen3");
+	if(o_tmp != 0) 
+	{
+		if(PyNumber_Check(o_tmp)) 
+		{
+			pOpt->grDen3 = PyFloat_AsDouble(o_tmp);
+			Py_DECREF(o_tmp);
+		}
+	}
+
+	pOpt->grDen4 = 0;
+	o_tmp = PyObject_GetAttrString(oOpt, "grDen4");
+	if(o_tmp != 0) 
+	{
+		if(PyNumber_Check(o_tmp)) 
+		{
+			pOpt->grDen4 = PyFloat_AsDouble(o_tmp);
+			Py_DECREF(o_tmp);
+		}
+	}
+
+	pOpt->grAng = 0;
+	o_tmp = PyObject_GetAttrString(oOpt, "grAng");
+	if(o_tmp != 0) 
+	{
+		if(PyNumber_Check(o_tmp)) 
+		{
+			pOpt->grAng = PyFloat_AsDouble(o_tmp);
+			Py_DECREF(o_tmp);
+		}
+	}
 }
 
 /************************************************************************//**
@@ -1906,23 +2050,35 @@ void ParseSructSRWLOptCryst(SRWLOptCryst* pOpt, PyObject* oOpt)
 	pOpt->psiHi = PyFloat_AsDouble(o_tmp);
 	Py_DECREF(o_tmp);
 
-	o_tmp = PyObject_GetAttrString(oOpt, "h1");
+	o_tmp = PyObject_GetAttrString(oOpt, "psiHbr");
 	if(o_tmp == 0) throw strEr_BadOptCryst;
 	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptCryst;
-	pOpt->h1 = PyFloat_AsDouble(o_tmp);
+	pOpt->psiHbr = PyFloat_AsDouble(o_tmp);
 	Py_DECREF(o_tmp);
 
-	o_tmp = PyObject_GetAttrString(oOpt, "h2");
+	o_tmp = PyObject_GetAttrString(oOpt, "psiHbi");
 	if(o_tmp == 0) throw strEr_BadOptCryst;
 	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptCryst;
-	pOpt->h2 = PyFloat_AsDouble(o_tmp);
+	pOpt->psiHbi = PyFloat_AsDouble(o_tmp);
 	Py_DECREF(o_tmp);
 
-	o_tmp = PyObject_GetAttrString(oOpt, "h3");
-	if(o_tmp == 0) throw strEr_BadOptCryst;
-	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptCryst;
-	pOpt->h3 = PyFloat_AsDouble(o_tmp);
-	Py_DECREF(o_tmp);
+	//o_tmp = PyObject_GetAttrString(oOpt, "h1"); //OC180314 (h1, h2, h3 removed)
+	//if(o_tmp == 0) throw strEr_BadOptCryst;
+	//if(!PyNumber_Check(o_tmp)) throw strEr_BadOptCryst;
+	//pOpt->h1 = PyFloat_AsDouble(o_tmp);
+	//Py_DECREF(o_tmp);
+
+	//o_tmp = PyObject_GetAttrString(oOpt, "h2");
+	//if(o_tmp == 0) throw strEr_BadOptCryst;
+	//if(!PyNumber_Check(o_tmp)) throw strEr_BadOptCryst;
+	//pOpt->h2 = PyFloat_AsDouble(o_tmp);
+	//Py_DECREF(o_tmp);
+
+	//o_tmp = PyObject_GetAttrString(oOpt, "h3");
+	//if(o_tmp == 0) throw strEr_BadOptCryst;
+	//if(!PyNumber_Check(o_tmp)) throw strEr_BadOptCryst;
+	//pOpt->h3 = PyFloat_AsDouble(o_tmp);
+	//Py_DECREF(o_tmp);
 
 	o_tmp = PyObject_GetAttrString(oOpt, "tc");
 	if(o_tmp == 0) throw strEr_BadOptCryst;
@@ -1985,16 +2141,20 @@ void ParseSructSRWLOptC(SRWLOptC* pOpt, PyObject* oOpt, vector<Py_buffer>* pvBuf
 	int nElem = (int)PyList_Size(o_List);
 	if(nElem <=  0) throw strEr_NoObj;
 
+	pOpt->arPropN = 0; //OC031213
+
 	o_tmp = PyObject_GetAttrString(oOpt, "arProp");
 	if(o_tmp == 0) throw strEr_BadOptC;
 	if(!PyList_Check(o_tmp)) throw strEr_BadOptC;
 	int nElemProp = (int)PyList_Size(o_tmp);
 	if(nElemProp > 0)
 	{
+		pOpt->arPropN = new char[nElemProp]; //OC031213
 		pOpt->arProp = new double*[nElemProp];
 		double **t_arProp = pOpt->arProp;
 		for(int i=0; i<nElemProp; i++)
 		{
+			pOpt->arPropN[i] = 0;
 			*t_arProp = 0;
 			PyObject *o = PyList_GetItem(o_tmp, (Py_ssize_t)i);
 			if(o != 0)
@@ -2003,6 +2163,7 @@ void ParseSructSRWLOptC(SRWLOptC* pOpt, PyObject* oOpt, vector<Py_buffer>* pvBuf
 				{
 					int nElemSub = 0;
 					CopyPyListElemsToNumArray(o, 'd', *t_arProp, nElemSub);
+					pOpt->arPropN[i] = (char)nElemSub;
 				}
 			}
 			t_arProp++;
@@ -2079,7 +2240,7 @@ void ParseSructSRWLOptC(SRWLOptC* pOpt, PyObject* oOpt, vector<Py_buffer>* pvBuf
 		{
 			pOptElem = new SRWLOptG();
 			strcpy(sOptType, "grating\0");
-			ParseSructSRWLOptG((SRWLOptG*)pOptElem, o);
+			ParseSructSRWLOptG((SRWLOptG*)pOptElem, o, pvBuf);
 		}
 		else if(strcmp(sTypeName, "SRWLOptT") == 0)
 		{
@@ -2087,24 +2248,25 @@ void ParseSructSRWLOptC(SRWLOptC* pOpt, PyObject* oOpt, vector<Py_buffer>* pvBuf
 			strcpy(sOptType, "transmission\0");
 			ParseSructSRWLOptT((SRWLOptT*)pOptElem, o, pvBuf);
 		}
-		else if(strcmp(sTypeName, "SRWLOptMirPl") == 0)
-		{
-			pOptElem = new SRWLOptMirPl();
-			strcpy(sOptType, "mirror: plane\0");
-			ParseSructSRWLOptMirPl((SRWLOptMirPl*)pOptElem, o, pvBuf);
-		}
-		else if(strcmp(sTypeName, "SRWLOptMirEl") == 0)
-		{
-			pOptElem = new SRWLOptMirEl();
-			strcpy(sOptType, "mirror: ellipsoid\0");
-			ParseSructSRWLOptMirEl((SRWLOptMirEl*)pOptElem, o, pvBuf);
-		}
-		else if(strcmp(sTypeName, "SRWLOptMirTor") == 0)
-		{
-			pOptElem = new SRWLOptMirTor();
-			strcpy(sOptType, "mirror: toroid\0");
-			ParseSructSRWLOptMirTor((SRWLOptMirTor*)pOptElem, o, pvBuf);
-		}
+		else if(strncmp(sTypeName, "SRWLOptMir", 10) == 0) pOptElem = ParseSructSRWLOptMirAll(o, sTypeName, pvBuf, sOptType);
+		//else if(strcmp(sTypeName, "SRWLOptMirPl") == 0)
+		//{
+		//	pOptElem = new SRWLOptMirPl();
+		//	strcpy(sOptType, "mirror: plane\0");
+		//	ParseSructSRWLOptMirPl((SRWLOptMirPl*)pOptElem, o, pvBuf);
+		//}
+		//else if(strcmp(sTypeName, "SRWLOptMirEl") == 0)
+		//{
+		//	pOptElem = new SRWLOptMirEl();
+		//	strcpy(sOptType, "mirror: ellipsoid\0");
+		//	ParseSructSRWLOptMirEl((SRWLOptMirEl*)pOptElem, o, pvBuf);
+		//}
+		//else if(strcmp(sTypeName, "SRWLOptMirTor") == 0)
+		//{
+		//	pOptElem = new SRWLOptMirTor();
+		//	strcpy(sOptType, "mirror: toroid\0");
+		//	ParseSructSRWLOptMirTor((SRWLOptMirTor*)pOptElem, o, pvBuf);
+		//}
 		else if(strcmp(sTypeName, "SRWLOptCryst") == 0)
 		{
 			pOptElem = new SRWLOptCryst();
@@ -2500,7 +2662,8 @@ void ParseSructSRWLStokes(SRWLStokes* pStokes, PyObject* oStokes, vector<Py_buff
 
 	o_tmp = PyObject_GetAttrString(oStokes, "mesh");
 	if(o_tmp == 0) throw strEr_BadStokes;
-	ParseSructSRWLRadMesh(&(pStokes->mesh), o_tmp);
+	//ParseSructSRWLRadMesh(&(pStokes->mesh), o_tmp);
+	ParseSructSRWLRadMesh(&(pStokes->mesh), o_tmp, pvBuf);
 	Py_DECREF(o_tmp);
 
 	long npTotS0 = (pStokes->mesh.ne)*(pStokes->mesh.nx)*(pStokes->mesh.ny);
@@ -2749,6 +2912,11 @@ void DeallocOptCntArrays(SRWLOptC* pOptCnt)
 			if(pOptCnt->arProp[i] != 0) delete[] pOptCnt->arProp[i];
 		}
 		delete[] pOptCnt->arProp; pOptCnt->arProp = 0;
+	}
+
+	if (pOptCnt->arPropN != 0)
+	{
+		delete[] pOptCnt->arPropN; pOptCnt->arPropN = 0;
 	}
 }
 

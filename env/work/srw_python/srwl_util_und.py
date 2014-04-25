@@ -1,5 +1,5 @@
 #############################################################################
-# SRWLib for Python: Undulator Utilities
+# SRWLib for Python: Undulator Utilities v 0.0
 #############################################################################
 
 from srwlib import *

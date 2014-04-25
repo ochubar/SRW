@@ -232,6 +232,8 @@ int srTGsnBeam::CreateWavefrontElFieldFreqDomain(srTSRWRadStructAccessData& RadA
 	const double InvTwoPI = 1./TwoPI;
 	const double enMult = 2.53384080189E+06;
 
+	RadAccessData.SetAvgPhotEnergyFromLimits(); //OC180314
+
 	if(result = CheckInputConsistency()) return result;
 	SetupSourceConstantsFreqDomain();
 

@@ -44,7 +44,7 @@
 //*************************************************************************
 
 class srTMirror : public srTFocusingElem {
-//Base class for all mirrors
+//Base class for all Mirrors and Gratings
 
 	srTParPrecWfrPropag m_ParPrecWfrPropag;
 	srTSRWRadStructAccessData* m_pRadAux;
@@ -55,18 +55,30 @@ protected:
 	char m_propMeth;
 	int m_numPartsProp;
 	int m_npt, m_nps;
-	TVector3d m_vCenNorm, m_vCenTang, m_vInLoc, m_vOutLoc, m_vPtOutLoc, m_vHorOutIn, m_vVerOutIn;
+	TVector3d m_vCenNorm, m_vCenTang, m_vInLoc, m_vOutLoc, m_vHorOutIn, m_vVerOutIn; //Used in all main propagation methods for most mirror types
+	TVector3d m_vPtOutLoc; //Used only in Test PropagateRadiationSimple_FourierByParts
+
 	double m_longPosStartPropPart, m_longPosEndPropPart;
 	double m_inWfrRh, m_inWfrRv, m_inWfrCh, m_inWfrCv;
+
+	//Grating parameters:
+	int m_grM; //Output (diffraction) order to be used
+	double m_grDen, m_grDen1, m_grDen2, m_grDen3, m_grDen4; //Grove density (coefficients in the polynomial: m_grDen + m_grDen1*y + m_grDen2*y^2 + m_grDen3*y^3 + m_grDen4*y^4), in [lines/m], [lines/m^2], [lines/m^3], [lines/m^4], and [lines/m^5] respectively 
+	double m_grAng; //Angle between the grove direction and the saggital direction of the substrate [rad]
+	bool m_isGrating; //Switch between Mirror and Grating Reflection Laws
+
+	double m_grAuxCosAng, m_grAuxSinAng, m_grAuxEphAvg, m_grAuxAnamorphMagnH, m_grAuxAnamorphMagnV, m_grAuxElecFldAnamorphMagnFact; //Auxiliary variables for Grating
 
 public:
 
 	srTMirror(const SRWLOptMir& mir);
 	srTMirror(srTStringVect* pElemInfo, srTDataMD* pExtraData);
 	static srTMirror* DefineMirror(srTStringVect* pElemInfo, srTDataMD* pExtraData);
+	static srTMirror* DefineMirror(char* sType, void* pvData);
+	static srTMirror* DefineGrating(char* sType, void* pvData);
 
 	void SetupNativeTransFromLocToBeamFrame(TVector3d& vCenNorm, TVector3d& vCenTang, TVector2d& vCenP);
-	int FindBasisVectorTransAndExents();
+	int FindBasisVectorTransAndExtents();
 	void FindElemExtentsAlongOptAxes(gmTrans& trfMir, TVector3d& vCenNorm, double halfDim1, double halfDim2, double& extIn, double& extOut);
 	
 	int PropagateRadiationSimple_LocRayTracing(srTSRWRadStructAccessData* pRadAccessData);
@@ -76,7 +88,8 @@ public:
 	void RadPointModifier_FourierByParts(srTEXZ& EXZ, srTEFieldPtrs& EPtrs); //Test of propagation by Fourier method in steps (failed?)
 	void EstimateFocalLengths(double radTan, double radSag); //to make it virtual in srTFocusingElem?
 
-	int WfrInterpolOnOrigGrid(srTSRWRadStructAccessData* pWfr, float* arRayTrCoord, float* arEX, float* arEY, float xRelOutMin, float xRelOutMax, float yRelOutMin, float yRelOutMax);
+	//int WfrInterpolOnOrigGrid(srTSRWRadStructAccessData* pWfr, float* arRayTrCoord, float* arEX, float* arEY, float xRelOutMin, float xRelOutMax, float yRelOutMin, float yRelOutMax);
+	int WfrInterpolOnOrigGrid(srTSRWRadStructAccessData* pWfr, double* arRayTrCoord, float* arEX, float* arEY, double xRelOutMin, double xRelOutMax, double yRelOutMin, double yRelOutMax);
 
 	virtual void FindSurfNormalInLocFrame(double x, double y, TVector3d& vN) {}
 	virtual double SurfHeightInLocFrame(double x, double y) { return 0;}
@@ -106,7 +119,29 @@ public:
 		return true;
 	}
 
-	int PropagateRadiationSingleE_Meth_0(srTSRWRadStructAccessData* pRadAccessData, srTSRWRadStructAccessData* pPrevRadDataSingleE) //virtual
+	int PropagateRadiation(srTSRWRadStructAccessData* pRadAccessData, srTParPrecWfrPropag& ParPrecWfrPropag, srTRadResizeVect& ResBeforeAndAfterVect) //virtual in srTGenOptElem
+	{
+		m_ParPrecWfrPropag = ParPrecWfrPropag; //store for use in a composite prapagator (through drif space, etc.)
+		
+		if(m_isGrating)
+		{
+			double eFin = pRadAccessData->eStart + (pRadAccessData->ne - 1)*(pRadAccessData->eStep);
+			m_grAuxEphAvg = 0.5*(pRadAccessData->eStart + eFin); //required for Grating basis vecotrs setup (in FindBasisVectorTransAndExtents)
+		}
+
+		int res = FindBasisVectorTransAndExtents(); //main reason for putting this here (and not in ctor) is that some (intersection with surfaces) functions from derived classes should be called in it
+		if(res) return res;
+
+		char &MethNo = ParPrecWfrPropag.MethNo;
+		int result = 0;
+
+		if(MethNo == 0) result = PropagateRadiationMeth_0(pRadAccessData); //int srTGenOptElem::PropagateRadiationMeth_0
+		//else if(MethNo == 1) result = PropagateRadiationMeth_1(pRadAccessData);
+		//else if(MethNo == 2) result = PropagateRadiationMeth_2(pRadAccessData, ParPrecWfrPropag, ResBeforeAndAfterVect);
+		return result;
+	}
+
+	int PropagateRadiationSingleE_Meth_0(srTSRWRadStructAccessData* pRadAccessData, srTSRWRadStructAccessData* pPrevRadDataSingleE) //virtual in srTGenOptElem
 	{
 		int result = 0;
 		m_wfrRadWasProp = false;
@@ -115,21 +150,6 @@ public:
 		if(!m_wfrRadWasProp) { if(result = PropagateWaveFrontRadius(pRadAccessData)) return result;} //already propagated
 		if(result = Propagate4x4PropMatr(pRadAccessData)) return result;
 		return 0;
-	}
-
-	int PropagateRadiation(srTSRWRadStructAccessData* pRadAccessData, srTParPrecWfrPropag& ParPrecWfrPropag, srTRadResizeVect& ResBeforeAndAfterVect)
-	{
-		int res = FindBasisVectorTransAndExents(); //reason for putting this here (and not in ctor) is that some (intersection with surfaces) function of derived classes should be called
-		if(res) return res;
-
-		m_ParPrecWfrPropag = ParPrecWfrPropag; //store for us in composed prapagator (through drif space, etc.)
-		char &MethNo = ParPrecWfrPropag.MethNo;
-		int result = 0;
-
-		if(MethNo == 0) result = PropagateRadiationMeth_0(pRadAccessData);
-		//else if(MethNo == 1) result = PropagateRadiationMeth_1(pRadAccessData);
-		//else if(MethNo == 2) result = PropagateRadiationMeth_2(pRadAccessData, ParPrecWfrPropag, ResBeforeAndAfterVect);
-		return result;
 	}
 
 	int PropagateRadiationSimple(srTSRWRadStructAccessData* pRadAccessData)
@@ -214,6 +234,32 @@ public:
 				RpiRe = RsigRe; RpiIm = RsigIm;
 			}
 		}
+	}
+
+	int PropagateWaveFrontRadius(srTSRWRadStructAccessData* pRadAccessData)
+	{
+		m_wfrRadWasProp = true; //OC190414
+
+		if(m_isGrating)
+		{
+			double anaMagnHe2 = m_grAuxAnamorphMagnH*m_grAuxAnamorphMagnH;
+			double RhOld = pRadAccessData->RobsX;
+			double bufErrH = m_grAuxAnamorphMagnH*FocDistX/(FocDistX - anaMagnHe2*RhOld);
+			double MagnH = bufErrH*m_grAuxAnamorphMagnH;
+			pRadAccessData->RobsX = RhOld*MagnH;
+			pRadAccessData->RobsXAbsErr *= (bufErrH*bufErrH);
+			pRadAccessData->xc = (pRadAccessData->xc - TransvCenPoint.x)*MagnH;
+
+			double anaMagnVe2 = m_grAuxAnamorphMagnV*m_grAuxAnamorphMagnV;
+			double RvOld = pRadAccessData->RobsZ;
+			double bufErrV = m_grAuxAnamorphMagnV*FocDistZ/(FocDistZ - anaMagnVe2*RvOld);
+			double MagnV = bufErrV*m_grAuxAnamorphMagnV;
+			pRadAccessData->RobsZ = RvOld*MagnV;
+			pRadAccessData->RobsZAbsErr *= (bufErrV*bufErrV);
+			pRadAccessData->zc = (pRadAccessData->zc - TransvCenPoint.y)*MagnV;
+			return 0;
+		}
+		else return srTFocusingElem::PropagateWaveFrontRadius(pRadAccessData);
 	}
 };
 
@@ -476,7 +522,6 @@ public:
 			//double auxInstGrazAng = 1.5707963267948966 - acos(-((*pResN)*inVaux));
 			//double instFocLen = 0.5*radCurv*sin(auxInstGrazAng);
 			//int aha = 1;
-
 		}
 		return true;
 	}
@@ -487,8 +532,6 @@ public:
 		//Coordinates of all points and vectors in the frame where the elipse is described by x^2/m_ax^2 + y^2/m_ay^2 + z^2/m_az^2 = 1:
 		double x0 = m_xcLocNorm + inP.x*m_cosAngGraz + inP.z*m_sinAngGraz;
 		double y0 = inP.y;
-
-
 
 		double sqrt1 = sqrt(m_Rs*m_Rs - y*y);
 		double R_mi_r_p_radS = m_Rt - m_Rs + sqrt1;

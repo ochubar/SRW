@@ -45,6 +45,11 @@ class srTGrating : public srTShapedOptElem {
 	int m_Order; 
 	double m_ReflectAvgInt;
 
+	//Polynomial coefficients for groove density, so that the Groove Density in [lines/m] (units to check/refine!?) equals to:
+	//m_grDen + m_grDen1*s + m_grDen2*s^2 + m_grDen3*s^3 + m_grDen4*s^4
+	//where s is longitudinal position along grating in [m]
+	double m_grDen, m_grDen1, m_grDen2, m_grDen3, m_grDen4;  
+
 	srTGratingPropBufVars m_PropBufVars;
 
 public:
@@ -63,20 +68,27 @@ public:
 		if(RotPlane == 1) RotPlane = 'h';
 		else RotPlane = 'v';
 
-		Theta = HalfPI - (atof((*pElemInfo)[3]))*PI/180.; //inline with definition in base class
+		Theta = HalfPI - (atof((*pElemInfo)[3]))*PI/180.; //in line with definition in base class
 		m_Order = atoi((*pElemInfo)[4]); 
 		m_ReflectAvgInt = atof((*pElemInfo)[5]); 
 	}
-	srTGrating(double _grDen, char _disPl, double _ang, int _m, double _refl)
+	//srTGrating(double _grDen, char _disPl, double _ang, int _m, double _refl)
+	srTGrating(double _grDen, char _disPl, double _ang, int _m, double _refl, double _grDen1=0, double _grDen2=0, double _grDen3=0, double _grDen4=0)
 	{
 		m_Period = 1.e-03/_grDen;
 
 		if((_disPl == 'x') || (_disPl == 'h')) RotPlane = 'h';
 		else if((_disPl == 'y') || (_disPl == 'v')) RotPlane = 'v';
 
-		Theta = HalfPI - _ang; //inline with definition in base class
+		Theta = HalfPI - _ang; //in line with definition in base class
 		m_Order = _m;
 		m_ReflectAvgInt = _refl;
+
+		m_grDen = _grDen*1e+03; //[lines/m]?
+		m_grDen1 = _grDen1*1e+06; //[lines/m^2]?
+		m_grDen2 = _grDen2*1e+09; //[lines/m^3]?
+		m_grDen3 = _grDen3*1e+12; //[lines/m^4]?
+		m_grDen4 = _grDen4*1e+15; //[lines/m^5]?
 	}
 	srTGrating() 
 	{

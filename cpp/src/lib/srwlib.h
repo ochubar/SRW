@@ -219,6 +219,8 @@ typedef struct SRWLStructGaussianBeam SRWLGsnBm;
 struct SRWLStructRadMesh {
 	double eStart, eFin, xStart, xFin, yStart, yFin, zStart; /* initial and final values of photon energy (/time), horizontal, vertical and longitudinal positions */
 	long ne, nx, ny; /* numbers of points vs photon energy, horizontal and vertical positions */
+	double nvx, nvy, nvz, hvx, hvy, hvz; /* lab-frame coordinate of the inner normal to observation plane (/ surface in its center) and horizontal base vector of the observation plane (/ surface in its center) */
+	double *arSurf; /* array defining the observation surface (as function of 2 variables - x & y - on the mesh given by _xStart, _xFin, _nx, _yStart, _yFin, _ny; to be used in case this surface differs from plane) */
 };
 typedef struct SRWLStructRadMesh SRWLRadMesh;
 
@@ -346,19 +348,6 @@ typedef struct SRWLStructOpticsWaveguide SRWLOptWG;
 
 /**
  * Optical Element:
- * Grating (plane) ("grating" type)
- */
-struct SRWLStructOpticsGrating {
-	double grDen; /* groove density [lines/mm] */
-	char disPl; /* dispersion plane: 'x' ('h') or 'y' ('v') */
-	double ang; /* angle between optical axis and grating plane [rad] */
-	int m; /* output order to be used */
-	double refl; /* average reflectivity (with resp. to intensity) */
-};
-typedef struct SRWLStructOpticsGrating SRWLOptG;
-
-/**
- * Optical Element:
  * Transmission ("transmission" type)
  */
 struct SRWLStructOpticsTransmission {
@@ -405,7 +394,7 @@ typedef struct SRWLStructOpticsMirror SRWLOptMir;
 
 /**
  * Optical Element:
- * Plane Mirror
+ * Plane Mirror ("mirror: plane" type)
  */
 struct SRWLStructOpticsMirrorPlane {
 	SRWLOptMir baseMir; /* general information about the mirror */
@@ -414,7 +403,7 @@ typedef struct SRWLStructOpticsMirrorPlane SRWLOptMirPl;
 
 /**
  * Optical Element:
- * Ellipsoidal Mirror
+ * Ellipsoidal Mirror ("mirror: ellipsoid" type)
  */
 struct SRWLStructOpticsMirrorEllipsoid {
 	double p, q; /* distance [m] from first focus ('source') to mirror center, and from center to second focus ('image') */
@@ -426,13 +415,27 @@ typedef struct SRWLStructOpticsMirrorEllipsoid SRWLOptMirEl;
 
 /**
  * Optical Element:
- * Toroidal Mirror
+ * Toroidal Mirror ("mirror: toroid" type)
  */
 struct SRWLStructOpticsMirrorToroid {
 	double radTan, radSag; /* tangential and sagital radii of the torus [m] */
 	SRWLOptMir baseMir; /* general information about the mirror */
 };
 typedef struct SRWLStructOpticsMirrorToroid SRWLOptMirTor;
+
+/**
+ * Optical Element:
+ * Grating ("grating" type)
+ */
+struct SRWLStructOpticsGrating {
+	void *mirSub; /* pointer to a mirror object defining the grating substrate */
+	char mirSubType[256]; /* array of types of optical elements (C strings) in arOpt array */
+	int m; /* output (diffraction) order to be used */
+	double grDen; /* grove density [lines/mm] (coefficient a0 in the polynomial groove density: a0 + a1*y + a2*y^2 + a3*y^3 + a4*y^4) */
+	double grDen1, grDen2, grDen3, grDen4; /* groove density polynomial coefficients a1 [lines/mm^2], a2 [lines/mm^3], a3 [lines/mm^4], a4 [lines/mm^5]*/ 
+	double grAng; /* angle between the grove direction and the saggital direction of the substrate [rad] */
+};
+typedef struct SRWLStructOpticsGrating SRWLOptG;
 
 /**
  * Optical Element:
@@ -443,7 +446,8 @@ struct SRWLStructOpticsCrystal {
 	double psi0r, psi0i; /* real and imaginary parts of 0-th Fourier component of crystal polarizability (units?) */
 	double psiHr, psiHi; /* real and imaginary parts of H-th Fourier component of crystal polarizability (units?) */
 	double psiHbr, psiHbi; /* real and imaginary parts of -H-th Fourier component of crystal polarizability (units?) */
-	double h1, h2, h3; /* 1st, 2nd and 3rd  indexes of diffraction vector (Miller indices) */
+	//double h1, h2, h3; /* 1st, 2nd and 3rd  indexes of diffraction vector (Miller indices) */
+	//OC180314: the Miller indices are removed after discussion with A. Suvorov (because these are only required for the dSp, and it is used as input parameter)
 	double tc; /* crystal thickness [m] */
 	double angAs; /* asymmetry angle [rad] */
 	double nvx, nvy, nvz; /* horizontal, vertical and longitudinal coordinates of outward normal to crystal surface in the frame of incident beam */
@@ -460,6 +464,7 @@ struct SRWLStructOpticsContainer {
 	char **arOptTypes; /* array of types of optical elements (C strings) in arOpt array */
 	int nElem; /* number of magnetic field elements in arMagFld array */
 	double **arProp; /* array of arrays of propagation parameters to be used for individual optical elements */
+	char *arPropN; /* array of numbers of propagation parameters for each optical element */
 	int nProp; /* number of propagation instructions (length of arProp array); 
 			      can be nProp <= (nElem + 1); if nProp == (nElem + 1), last resizing is applied after the propagation */
 };

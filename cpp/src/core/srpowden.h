@@ -178,12 +178,13 @@ public:
 		double invRinst = One_d_ymis;
 
 		double auxFact = Nx*Nx + Nz*Nz;
-		if(auxFact > 0.99) 
-		{
-			double multFact = sqrt(0.99/auxFact);
-			Nx *= multFact; Nz *= multFact;
-			auxFact = 0.99; //to calculate angles more accurately??
-		}
+		//OCTEST (commented-out)
+		//if(auxFact > 0.99) 
+		//{
+		//	double multFact = sqrt(0.99/auxFact);
+		//	Nx *= multFact; Nz *= multFact;
+		//	auxFact = 0.99; //to calculate angles more accurately??
+		//}
 
 		//double Ny = (auxFact > 0.01)? sqrt(1. - auxFact) : 1 - 0.5*auxFact - 0.125*auxFact*auxFact;
 		//double Ny = (auxFact > 0.001)? sqrt(1. - auxFact) : 1 - 0.5*auxFact - 0.125*auxFact*auxFact;

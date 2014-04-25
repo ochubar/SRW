@@ -1,12 +1,12 @@
 ###########################################################################
 # SRWLIB Example#9: Simulating propagation of a Gaussian X-ray beam through a Beamline containing an Imperfect Mirror
-# v 0.03 (based on input of L. Samoylova)
+# v 0.01
 #############################################################################
 
 from __future__ import print_function #Python 2.7 compatibility
 from srwlib import *
 import os
-#import sys
+import sys
 import math
 
 print('SRWLIB Python Example # 9:')

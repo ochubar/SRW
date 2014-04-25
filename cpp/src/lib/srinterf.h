@@ -137,7 +137,13 @@ struct srTParPrecWfrPropag {
 	char AnalTreatment; //0- none; 1- linear term; 2- quadratic term
 	char DoNotResetAnalTreatTermsAfterProp;
 
-	srTParPrecWfrPropag(char In_MethNo, char In_UseResBefore, char In_UseResAfter, double In_PrecFact, double In_UnderSampThresh, char In_AnalTreatment =0, char In_DoNotResetAnalTreatTermsAfterProp =0)
+	//OC011213
+	double vLxOut, vLyOut, vLzOut; //Coordinates of the output Optical Axis vector
+	double vHxOut, vHyOut; //Coordinates of the Horizontal Base vector of the output frame
+
+	srTParPrecWfrPropag(char In_MethNo, char In_UseResBefore, char In_UseResAfter, double In_PrecFact, double In_UnderSampThresh, 
+		char In_AnalTreatment =0, char In_DoNotResetAnalTreatTermsAfterProp =0,
+		double In_vLxO =0, double In_vLyO =0, double In_vLzO =0, double In_vHxO =0, double In_vHyO =0)
 	{
 		MethNo = In_MethNo;
         UseResBefore = In_UseResBefore;
@@ -146,6 +152,12 @@ struct srTParPrecWfrPropag {
         UnderSampThresh = In_UnderSampThresh;
 		AnalTreatment = In_AnalTreatment; //Allow switching to under-sampling mode
 		DoNotResetAnalTreatTermsAfterProp = In_DoNotResetAnalTreatTermsAfterProp;
+
+		vLxOut = In_vLxO;
+		vLyOut = In_vLyO;
+		vLzOut = In_vLzO;
+		vHxOut = In_vHxO;
+		vHyOut = In_vHyO;
 	}
 	srTParPrecWfrPropag()
 	{

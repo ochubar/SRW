@@ -204,7 +204,7 @@ if(srwl_uti_proc_is_master()):
     print('done')
 
 #sys.exit()
-    
+
 print('   Starting simulation of Partially-Coherent Wavefront Propagation (takes a lot of time)... ')
 nMacroElec = 50000 #Total number of Macro-Electrons (Wavefronts)
 nMacroElecAvgOneProc = 5 #Number of Macro-Electrons (Wavefronts) to average on each node (for MPI calculations)

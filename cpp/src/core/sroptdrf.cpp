@@ -355,10 +355,13 @@ int srTDriftSpace::PropagateRadiationSimple_PropToWaist(srTSRWRadStructAccessDat
 	PropBufVars.PassNo = 1;
 	if(result = TraverseRadZXE(pRadAccessData)) return result;
 
-	if(result = ResizeBeforePropToWaistIfNecessary(pRadAccessData)) return result;
+	//OC240114 (commented-out)
+	//if(result = ResizeBeforePropToWaistIfNecessary(pRadAccessData)) return result;
 
-	PropBufVars.PassNo = 3;
-	if(result = TraverseRadZXE(pRadAccessData)) return result;
+	//DEBUG
+	//PropBufVars.PassNo = 3;
+	//if(result = TraverseRadZXE(pRadAccessData)) return result;
+	//END DEBUG
 
 	double InvLambda_m = pRadAccessData->eStart*806546.577258;
 	double InvLambda_m_d_Length = InvLambda_m/Length;
@@ -376,6 +379,7 @@ int srTDriftSpace::PropagateRadiationSimple_PropToWaist(srTSRWRadStructAccessDat
 
 	CGenMathFFT2D FFT2D;
 
+	//To remove this?
 	srTDataPtrsForWfrEdgeCorr DataPtrsForWfrEdgeCorr;
 	if(result = SetupWfrEdgeCorrData(pRadAccessData, pRadAccessData->pBaseRadX, pRadAccessData->pBaseRadZ, DataPtrsForWfrEdgeCorr)) return result;
 
@@ -384,6 +388,7 @@ int srTDriftSpace::PropagateRadiationSimple_PropToWaist(srTSRWRadStructAccessDat
 	FFT2DInfo.pData = pRadAccessData->pBaseRadZ;
 	if(result = FFT2D.Make2DFFT(FFT2DInfo)) return result;
 
+	//To remove this?
 	if(DataPtrsForWfrEdgeCorr.WasSetup)
 	{
 		MakeWfrEdgeCorrection(pRadAccessData, pRadAccessData->pBaseRadX, pRadAccessData->pBaseRadZ, DataPtrsForWfrEdgeCorr);
@@ -469,12 +474,12 @@ int srTDriftSpace::PropagateRadiationSimple_AnalytTreatQuadPhaseTerm(srTSRWRadSt
 
 	SetupPropBufVars_AnalytTreatQuadPhaseTerm(pRadAccessData);
 	if(pRadAccessData->Pres != 0) if(result = SetRadRepres(pRadAccessData, 0)) return result;
-
+		
 	PropBufVars.PassNo = 1; //Remove quadratic term from the Phase in coord. repres.
 	if(result = TraverseRadZXE(pRadAccessData)) return result;
 
 		//testOC09302011
-		//if(Length == 130.) return 0;
+		//if(Length == 34.63) return 0;
 
 	double xStartOld = pRadAccessData->xStart, zStartOld = pRadAccessData->zStart;
 	pRadAccessData->xStart = -(pRadAccessData->nx >> 1)*pRadAccessData->xStep;

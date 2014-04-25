@@ -51,6 +51,8 @@ public:
 	{
 		if((OrigF == 0) || (InOrigNp == 0)) throw MATH_INTERP_STRUCT_WAS_NOT_SETUP;
 
+		mSplineY2Arr = mSplineArgTabArr = mSplineValTabArr = 0; //OC011213
+
         AllCf = 0;
 		PlnCf = 0;
         OrigNp = InOrigNp;
@@ -64,7 +66,7 @@ public:
 	CGenMathInterp()
 	{
 		mMethNo = 0;
-        mSplineY2Arr = 0; mSplineArgTabArr = 0; mSplineValTabArr = 0;
+        mSplineY2Arr = mSplineArgTabArr = mSplineValTabArr = 0;
 		mArgStep = 0; mArgStart = 0;
 		mSplineTabNp = 0;
 

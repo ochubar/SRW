@@ -227,6 +227,7 @@ public:
 	int SetupSliceConstEorT(long ie, float* pInEx, float* pInEz);
 
 	int ShiftWfrByInterpolVsXZ(double shiftX, double shiftY);
+	void FlipFieldData(bool flipOverX, bool flipOverZ);
 
 	int SetRepresCA(char CoordOrAng); //set Coordinate or Angular representation
 	int SetRepresFT(char FreqOrTime); //set Frequency or Time representation
@@ -852,6 +853,42 @@ public:
 				if(WfrQuadTermCanBeTreatedAtResizeZ) PhaseAddZ = ConstRzE*zE2;
 			}
 			ePh += eStep;
+		}
+	}
+
+	void CopySymEnergySlice(float* pOrigDataEx, float* pOrigDataEz, float* pSymDataEx, float* pSymDataEz, bool ChangeSignEx, bool ChangeSignEz)
+	{
+		float *tOrigEx = pOrigDataEx, *tSymEx = pSymDataEx;
+		float *tOrigEz = pOrigDataEz, *tSymEz = pSymDataEz;
+		for(int ie = 0; ie < ne; ie++)
+		{
+			*tSymEx = *(tOrigEx++); *(tSymEx + 1) = *(tOrigEx++);
+			if(ChangeSignEx) { *tSymEx = -(*tSymEx); *(tSymEx + 1) *= -(*(tSymEx + 1)); }
+			tSymEx += 2;
+
+			*tSymEz = *(tOrigEz++); *(tSymEz + 1) = *(tOrigEz++);
+			if(ChangeSignEz) { *tSymEz = -(*tSymEz); *(tSymEz + 1) *= -(*(tSymEz + 1)); }
+			tSymEz += 2;
+		}
+	}
+
+	void SwapDataInEnergySlice(float* pOrigDataEx, float* pOrigDataEz, float* pSymDataEx, float* pSymDataEz, bool treatEx=true, bool treatEz=true)
+	{
+		float auxE;
+		float *tOrigEx = pOrigDataEx, *tSymEx = pSymDataEx;
+		float *tOrigEz = pOrigDataEz, *tSymEz = pSymDataEz;
+		for(int ie = 0; ie < ne; ie++)
+		{
+			if(treatEx)
+			{
+				auxE = *tOrigEx; *(tOrigEx++) = *tSymEx; *(tSymEx++) = auxE;
+				auxE = *tOrigEx; *(tOrigEx++) = *tSymEx; *(tSymEx++) = auxE;
+			}
+			if(treatEz)
+			{
+				auxE = *tOrigEz; *(tOrigEz++) = *tSymEz; *(tSymEz++) = auxE;
+				auxE = *tOrigEz; *(tOrigEz++) = *tSymEz; *(tSymEz++) = auxE;
+			}
 		}
 	}
 

@@ -145,6 +145,8 @@ public:
 		//	LocalPropMode = 3; return;
 		//end OC test
 
+/**
+//OC240114 (commented-out)
 		int LocPropToWaistCanBeApplied = PropToWaistCanBeApplied(pRadAccessData);
 		if(LocPropToWaistCanBeApplied)
 		{
@@ -174,8 +176,17 @@ public:
 		{
 			LocalPropMode = -1; return;
 		}
+**/
 
 		LocalPropMode = 0; // Normal, through ang. repres.
+
+		//OC240114
+		if((ParPrecWfrPropag.AnalTreatment == 1) || (ParPrecWfrPropag.AnalTreatment == 2)) 
+		{
+			LocalPropMode = 3; PropBufVars.AnalytTreatSubType = ParPrecWfrPropag.AnalTreatment;
+		}
+		else if(ParPrecWfrPropag.AnalTreatment == 3) LocalPropMode = 2; //Propagation From Waist
+		else if(ParPrecWfrPropag.AnalTreatment == 4) LocalPropMode = 1; //Propagation To Waist
 	}
 
 	int PropToWaistCanBeApplied(srTSRWRadStructAccessData* pRadAccessData)
@@ -211,6 +222,7 @@ public:
 	{
 		if(LocalPropMode == 0) return PropagateRadiationSimple_AngRepres(pRadAccessData);
 		else if(LocalPropMode == 1) return PropagateRadiationSimple_PropToWaist(pRadAccessData);
+		else if(LocalPropMode == 2) return PropagateRadiationSimple_PropFromWaist(pRadAccessData); //OC240114 (added)
 		else if(LocalPropMode == 3) return PropagateRadiationSimple_AnalytTreatQuadPhaseTerm(pRadAccessData);
 		else return 0;
 	}
@@ -302,7 +314,7 @@ public:
 		PropBufVars.xc = pRadAccessData->xc;
 		PropBufVars.zc = pRadAccessData->zc;
 		PropBufVars.ExtraConstPhase = Pi_d_LambdaM*(pRadAccessData->xc*pRadAccessData->xc/pRadAccessData->RobsX 
-												+ pRadAccessData->zc*pRadAccessData->zc/pRadAccessData->RobsZ);
+												  + pRadAccessData->zc*pRadAccessData->zc/pRadAccessData->RobsZ);
 
 		double TwoPi_d_LambdaM = 2.*Pi_d_LambdaM;
 		PropBufVars.TwoPiXc_d_LambdaMRx = TwoPi_d_LambdaM*pRadAccessData->xc/pRadAccessData->RobsX;
@@ -394,14 +406,14 @@ public:
 		double rx = EXZ.x, rz = EXZ.z;
 		double PhaseShift = PropBufVars.Pi_d_LambdaM_d_Length*(rx*rx + rz*rz);
 
-		if(PropBufVars.PassNo == 3) 
-		{
-			//if(*(EPtrs.pExRe) != 0)
-			//{
-			//	int aha = 1;
-			//}
-			return;
-		}
+		//if(PropBufVars.PassNo == 3) 
+		//{
+		//	//if(*(EPtrs.pExRe) != 0)
+		//	//{
+		//	//	int aha = 1;
+		//	//}
+		//	return;
+		//}
 
 		if(PropBufVars.PassNo == 1) 
 		{

@@ -2182,12 +2182,12 @@ int srTSRWRadStructAccessData::FindAverageDistanceToSource(srTTrjDat& TrjDat, do
 	double MisFitZFiLast = (zEnd - *pZ)*InvRobsLoc - *pBtz;
 	double midObsX = 0.5*(xStart + xEnd);
 	double midObsZ = 0.5*(zStart + zEnd);
-	double MisFitXMidLast = (midObsX - *pX)*InvRobsLoc - *pBtx;
-	double MisFitZMidLast = (midObsZ - *pZ)*InvRobsLoc - *pBtz;
+	//double MisFitXMidLast = (midObsX - *pX)*InvRobsLoc - *pBtx;
+	//double MisFitZMidLast = (midObsZ - *pZ)*InvRobsLoc - *pBtz;
 
 	const double VeryLarge = 1.E+23;
 	double RobsXSt = VeryLarge, RobsXFi = VeryLarge, RobsZSt = VeryLarge, RobsZFi = VeryLarge;
-	double RobsXMid = VeryLarge, RobsZMid = VeryLarge;
+	//double RobsXMid = VeryLarge, RobsZMid = VeryLarge;
 
 	for(int is=1; is<NpVsS; is++)
 	{
@@ -2205,10 +2205,59 @@ int srTSRWRadStructAccessData::FindAverageDistanceToSource(srTTrjDat& TrjDat, do
 			double MisFitXFi = (xEnd - *pX)*InvRobsLoc - *pBtx;
 			if(MisFitXFi*MisFitXFiLast < 0.) RobsXFi = RobsLoc;
 		}
-		if(RobsXMid == VeryLarge)
+		//if(RobsXMid == VeryLarge)
+		//{
+		//	double MisFitXMid = (midObsX - *pX)*InvRobsLoc - *pBtx;
+		//	if(MisFitXMid*MisFitXMidLast < 0.) RobsXMid = RobsLoc;
+		//}
+		if(RobsZSt == VeryLarge)
 		{
-			double MisFitXMid = (midObsX - *pX)*InvRobsLoc - *pBtx;
-			if(MisFitXMid*MisFitXMidLast < 0.) RobsXMid = RobsLoc;
+			double MisFitZSt = (zStart - *pZ)*InvRobsLoc - *pBtz;
+			if(MisFitZSt*MisFitZStLast < 0.) RobsZSt = RobsLoc;
+		}
+		if(RobsZFi == VeryLarge)
+		{
+			double MisFitZFi = (zEnd - *pZ)*InvRobsLoc - *pBtz;
+			if(MisFitZFi*MisFitZFiLast < 0.) RobsZFi = RobsLoc;
+		}
+		//if(RobsZMid == VeryLarge)
+		//{
+		//	double MisFitZMid = (midObsZ - *pZ)*InvRobsLoc - *pBtz;
+		//	if(MisFitZMid*MisFitZMidLast < 0.) RobsZMid = RobsLoc;
+		//}
+
+		if((RobsXSt != VeryLarge) && (RobsXFi != VeryLarge) && (RobsZSt != VeryLarge) && (RobsZFi != VeryLarge)) break; //OC190414
+	}
+
+	double MinRobsX = (RobsXSt < RobsXFi)? RobsXSt : RobsXFi; //OC test roll back 130208
+	double MinRobsZ = (RobsZSt < RobsZFi)? RobsZSt : RobsZFi;
+	double MinRobs = (MinRobsX < MinRobsZ)? MinRobsX : MinRobsZ;
+
+	//Estimating MaxRobs OC190414
+	pBtx = BtxArr; pBtz = BtzArr; pX = xArr; pZ = zArr;
+	RobsLoc = yStart - sStart;
+	InvRobsLoc = 1./RobsLoc;
+	MisFitXStLast = (xStart - *pX)*InvRobsLoc - *pBtx;
+	MisFitXFiLast = (xEnd - *pX)*InvRobsLoc - *pBtx;
+	MisFitZStLast = (zStart - *pZ)*InvRobsLoc - *pBtz;
+	MisFitZFiLast = (zEnd - *pZ)*InvRobsLoc - *pBtz;
+	RobsXSt = VeryLarge; RobsXFi = VeryLarge; RobsZSt = VeryLarge; RobsZFi = VeryLarge;
+
+	for(int is=1; is<NpVsS; is++)
+	{
+		RobsLoc -= TrjDat.sStep;
+		InvRobsLoc = 1./RobsLoc;
+		pBtx++; pBtz++; pX++; pZ++;
+
+		if(RobsXSt == VeryLarge)
+		{
+			double MisFitXSt = (xStart - *pX)*InvRobsLoc - *pBtx;
+			if(MisFitXSt*MisFitXStLast < 0.) RobsXSt = RobsLoc;
+		}
+		if(RobsXFi == VeryLarge)
+		{
+			double MisFitXFi = (xEnd - *pX)*InvRobsLoc - *pBtx;
+			if(MisFitXFi*MisFitXFiLast < 0.) RobsXFi = RobsLoc;
 		}
 		if(RobsZSt == VeryLarge)
 		{
@@ -2220,20 +2269,27 @@ int srTSRWRadStructAccessData::FindAverageDistanceToSource(srTTrjDat& TrjDat, do
 			double MisFitZFi = (zEnd - *pZ)*InvRobsLoc - *pBtz;
 			if(MisFitZFi*MisFitZFiLast < 0.) RobsZFi = RobsLoc;
 		}
-		if(RobsZMid == VeryLarge)
-		{
-			double MisFitZMid = (midObsZ - *pZ)*InvRobsLoc - *pBtz;
-			if(MisFitZMid*MisFitZMidLast < 0.) RobsZMid = RobsLoc;
-		}
 	}
 
-	double MinRobsX = (RobsXSt < RobsXFi)? RobsXSt : RobsXFi; //OC test roll back 130208
-	double MinRobsZ = (RobsZSt < RobsZFi)? RobsZSt : RobsZFi;
+	double MaxRobsX = (RobsXSt < RobsXFi)? RobsXSt : RobsXFi; 
+	double MaxRobsZ = (RobsZSt < RobsZFi)? RobsZSt : RobsZFi;
+	double MaxRobs = (MinRobsX < MinRobsZ)? MaxRobsX : MaxRobsZ;
 
-	double MinRobs = (MinRobsX < MinRobsZ)? MinRobsX : MinRobsZ;
-	if(MinRobs != VeryLarge)
+	double Ravg = 0.5*(MinRobs + MaxRobs); //OC190414
+	if(MinRobs == VeryLarge)
 	{
-		Robs = MinRobs;
+		if(MaxRobs == VeryLarge) Ravg = VeryLarge;
+		else Ravg = MaxRobs;
+	}
+	else
+	{
+		if(MaxRobs == VeryLarge) Ravg = MinRobs;
+	}
+
+	//if(MinRobs != VeryLarge)
+	if(Ravg != VeryLarge)
+	{
+		Robs = Ravg;
 		RobsAbsErr = 0.25*sRange;
         Ysrc = yStart - Robs;
 	}
@@ -3198,6 +3254,76 @@ int srTSRWRadStructAccessData::ShiftWfrByInterpolVsXZ(double shiftX, double shif
 	if(pAuxBaseRadX != 0) delete[] pAuxBaseRadX;
 	if(pAuxBaseRadZ != 0) delete[] pAuxBaseRadZ;
 	return 0;
+}
+
+//*************************************************************************
+
+void srTSRWRadStructAccessData::FlipFieldData(bool flipOverX, bool flipOverZ)
+{
+	long PerX = ne << 1;
+	long PerZ = PerX*nx;
+
+	long halfNz = nz >> 1, nz_mi_1 = nz - 1;
+	long halfNx = nx >> 1, nx_mi_1 = nx - 1;
+
+	bool treatEx = (pBaseRadX != 0);
+	bool treatEz = (pBaseRadZ != 0);
+
+	if(flipOverZ)
+	{
+		if(flipOverX)
+		{
+			for(long iz=0; iz<halfNz; iz++)
+			{
+				long izPerZ = iz*PerZ;
+				for(long ix=0; ix<halfNx; ix++)
+				{
+					long offset = izPerZ + ix*PerX;
+					float* pOrigDataEx = pBaseRadX + offset;
+					float* pOrigDataEz = pBaseRadZ + offset;
+
+					long offsetSym = izPerZ + (nx_mi_1 - ix)*PerX;
+					float* pSymDataEx = pBaseRadX + offsetSym;
+					float* pSymDataEz = pBaseRadZ + offsetSym;
+					SwapDataInEnergySlice(pOrigDataEx, pOrigDataEz, pSymDataEx, pSymDataEz, treatEx, treatEz);
+				}
+			}
+		}
+		for(long iz=0; iz<halfNz; iz++)
+		{
+			long izPerZ = iz*PerZ, BufZ = (nz_mi_1 - iz)*PerZ;
+			for(long ix=0; ix<nx; ix++)
+			{			
+				long ixPerX = ix*PerX;
+				long offset = izPerZ + ixPerX;
+				float* pOrigDataEx = pBaseRadX + offset;
+				float* pOrigDataEz = pBaseRadZ + offset;
+
+				long offsetSym = BufZ + ixPerX;
+				float* pSymDataEx = pBaseRadX + offsetSym;
+				float* pSymDataEz = pBaseRadZ + offsetSym;
+				SwapDataInEnergySlice(pOrigDataEx, pOrigDataEz, pSymDataEx, pSymDataEz, treatEx, treatEz);
+			}
+		}
+	}
+	else if(flipOverX)
+	{
+		for(long iz=0; iz<nz; iz++)
+		{
+			long izPerZ = iz*PerZ;
+			for(long ix=0; ix<halfNx; ix++)
+			{
+				long offset = izPerZ + ix*PerX;
+				float* pOrigDataEx = pBaseRadX + offset;
+				float* pOrigDataEz = pBaseRadZ + offset;
+
+				long offsetSym = izPerZ + (nx_mi_1 - ix)*PerX;
+				float* pSymDataEx = pBaseRadX + offsetSym;
+				float* pSymDataEz = pBaseRadZ + offsetSym;
+				SwapDataInEnergySlice(pOrigDataEx, pOrigDataEz, pSymDataEx, pSymDataEz, treatEx, treatEz);
+			}
+		}
+	}
 }
 
 //*************************************************************************
