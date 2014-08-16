@@ -1,10 +1,11 @@
 #############################################################################
 # SRWLIB Example#3: Calculating synchrotron (undulator) radiation emitted by an electron travelling in ellipsoidal undulator
-# v 0.06
+# v 0.07
 #############################################################################
 
 from __future__ import print_function #Python 2.7 compatibility
 from srwlib import *
+from uti_plot import *
 import os
 
 print('SRWLIB Python Example # 3:')

@@ -228,6 +228,7 @@ public:
 
 	int ShiftWfrByInterpolVsXZ(double shiftX, double shiftY);
 	void FlipFieldData(bool flipOverX, bool flipOverZ);
+	void TransposeFieldData();
 
 	int SetRepresCA(char CoordOrAng); //set Coordinate or Angular representation
 	int SetRepresFT(char FreqOrTime); //set Frequency or Time representation

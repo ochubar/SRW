@@ -15,9 +15,9 @@
 
 //*************************************************************************
 
-double srTCalcUtils::ChargeEl = 1.602189246E-19;
-double srTCalcUtils::MassEl_kg = 9.10953447E-31;
-double srTCalcUtils::MassEl_MeV = 0.511003414;
+double srTCalcUtils::ChargeEl = 1.60217646263E-19; //1.602189246E-19;
+double srTCalcUtils::MassEl_kg = 9.1093818872E-31; //9.10953447E-31;
+double srTCalcUtils::MassEl_MeV = 0.51099890221; //0.511003414;
 double srTCalcUtils::SpeedLight = 2.9979245812E+08;
 double srTCalcUtils::Pi = 3.14159265358979;
 
@@ -26,7 +26,8 @@ double srTCalcUtils::Pi = 3.14159265358979;
 double srTCalcUtils::ConvertWavelengthM_ToPhotEnergy(double WavelengthM, int iOutUnit)
 {
 	//iOutUnit = 1- keV; 2- eV; 3- 1/cm; 4- Å; 5- nm; 6- µm; 7- mm
-	const double Mult = 1.239854;
+	//const double Mult = 1.239854;
+	const double Mult = 1.239842; //following "X-ray Data Booklet"
 	double OutRes = WavelengthM;
 
 	if(iOutUnit == 1) 

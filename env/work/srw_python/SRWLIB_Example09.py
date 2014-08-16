@@ -1,13 +1,13 @@
 ###########################################################################
 # SRWLIB Example#9: Simulating propagation of a Gaussian X-ray beam through a Beamline containing an Imperfect Mirror
-# v 0.01
+# v 0.02
 #############################################################################
 
 from __future__ import print_function #Python 2.7 compatibility
 from srwlib import *
+from uti_plot import * #required for plotting
 import os
 import sys
-import math
 
 print('SRWLIB Python Example # 9:')
 print('Simulating propagation of a Coherent Gaussian X-ray beam through a Beamline containing Imperfect Mirrors')
@@ -34,7 +34,7 @@ def AuxReadInDataColumns(filePath, nCol, strSep):
 def AuxTransmAddSurfHeightProfile(optSlopeErr, heightProfData, dim, ang):
     argHeightProfData = heightProfData[0]
     valHeightProfData = heightProfData[1]
-    sinAng = math.sin(ang)
+    sinAng = sin(ang)
     npData = len(heightProfData[0])
     
     #xStep = optSlopeErr.rx/(optSlopeErr.nx - 1)

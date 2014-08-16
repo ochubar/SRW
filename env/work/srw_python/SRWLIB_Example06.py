@@ -2,15 +2,16 @@
 # SRWLIB Example#6: Calculating spectral flux of undulator radiation 
 # by finite-emittance electron beam collected through a finite aperture
 # and power density distribution of this radiation (integrated over all photon energies)
-# v 0.04
+# v 0.02
 #############################################################################
 
 from __future__ import print_function #Python 2.7 compatibility
 from srwlib import *
+from uti_plot import *
 import os
 import sys
 
-print('SRWLIB Python Example # 6:')
+print('SRWLIB Extended Example # 6:')
 print('Calculating spectral flux of undulator radiation by finite-emittance electron beam collected through a finite aperture and power density distribution of this radiation (integrated over all photon energies)')
 
 #**********************Input Parameters:

@@ -1,11 +1,12 @@
 #############################################################################
 # SRWLIB Example#4: Calculating synchrotron (undulator) radiation electric field (from one electron)
 # and simulating wavefront propagation through a simple optical system
-# v 0.05
+# v 0.06
 #############################################################################
 
 from __future__ import print_function #Python 2.7 compatibility
 from srwlib import *
+from uti_plot import *
 import os
 
 print('SRWLIB Python Example # 4:')

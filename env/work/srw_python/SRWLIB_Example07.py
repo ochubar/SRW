@@ -1,13 +1,12 @@
 ###########################################################################
 # SRWLIB Example#7: Simulating propagation of a Gaussian X-ray beam through a simple optical scheme containing CRL
-# v 0.04
+# v 0.06
 #############################################################################
 
 from __future__ import print_function #Python 2.7 compatibility
 from srwlib import *
+from uti_plot import * #required for plotting
 import os
-#import sys
-#import math
 import random
 import copy
 
@@ -116,8 +115,8 @@ if(opCRLperf != None):
 if(opCRLdist != None):
     print('Setting-up CRL Distorted by \"voids\" in volume (takes time)...')
     #Generating array of Void Centers and Radii, and a CRL with these (spherical) Voids:
-    nVoidInRectPar = 1000 #parameter controlling density of voids
-    baseNx = 201 #(auxiliary) numbers of points in tabulated functions to be used (in rejectrion method)
+    nVoidInRectPar = 100 #1000 #parameter controlling density of voids
+    baseNx = 201 #(auxiliary) numbers of points in tabulated functions to be used (in the rejection method)
     baseNy = 201
     rMinVoid = 2e-06 #min. void radius
     rMaxVoid = 25e-06 #max. void radius

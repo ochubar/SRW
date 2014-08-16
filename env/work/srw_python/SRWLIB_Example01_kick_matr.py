@@ -1,10 +1,11 @@
 #############################################################################
 # SRWLIB Example#1: Calculating electron trajectory in 3D magnetic field of an APPLE-II undulator
-# v 0.04
+# v 0.05
 #############################################################################
 
 from __future__ import print_function #Python 2.7 compatibility
 from srwlib import *
+from uti_plot import *
 import os
 
 print('SRWLIB Python Example # 1:')

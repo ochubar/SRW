@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #############################################################################
 # SRWLIB Example View Data File: View data stored in a file
-# v 0.01
+# v 0.02
 #############################################################################
 
 from __future__ import print_function #Python 2.7 compatibility
@@ -27,5 +27,6 @@ if __name__=='__main__':
         quit()
 
     #print(opt.joined)
+    uti_plot_init('TkAgg')
     uti_data_file_plot(opt.infile, opt.readlab, opt.e, opt.x, opt.y, opt.joined)
     uti_plot_show()

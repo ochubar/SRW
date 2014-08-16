@@ -235,8 +235,8 @@ public:
 	{// Assume lengths in m and field in Tesla at the input
 	 // then output beta is in radians
 	
-		const double e = 1.602189246E-19; // Charge of electron in Coulomb
-		const double m = 9.10953447E-31; // Mass of electron in kg
+		const double e = 1.60217646263E-19; //1.602189246E-19; // Charge of electron in Coulomb
+		const double m = 9.1093818872E-31; //9.10953447E-31; // Mass of electron in kg
 		const double c = 2.99792458E+08; // Speed of light in m/s
 
 		BetaNormConst = -e/(EbmDat.Gamma*m*c);

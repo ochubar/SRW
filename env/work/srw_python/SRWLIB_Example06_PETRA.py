@@ -2,11 +2,12 @@
 # SRWLIB Example#6: Calculating spectral flux of undulator radiation 
 # by finite-emittance electron beam collected through a finite aperture
 # and power density distribution of this radiation (integrated over all photon energies)
-# v 0.02
+# v 0.03
 #############################################################################
 
 from __future__ import print_function #Python 2.7 compatibility
 from srwlib import *
+#from uti_plot import * #required for plotting
 import os
 import sys
 
@@ -215,7 +216,6 @@ def AuxSaveTrajData(traj, filePath):
 
 print('   Saving spectral flux [ph/s/.1%bw], flux per unit surface [ph/s/.1%bw/mm^2], poower density [W/mm^2], and electron trajectory data to files ... ', end='')
 
-#AuxSaveS0Data(stkF, os.path.join(os.getcwd(), strExDataFolderName, strFluxOutFileName))
 srwl_uti_save_intens_ascii(stkF.arS, stkF.mesh, os.path.join(os.getcwd(), strExDataFolderName, strFluxOutFileName), 0, ['Photon Energy', '', '', 'Flux'], _arUnits=['eV', '', '', 'ph/s/.1%bw'])
 
 AuxSaveTrajData(partTraj, os.path.join(os.getcwd(), strExDataFolderName, strTrjOutFileName))
@@ -223,10 +223,8 @@ srwl_uti_save_intens_ascii(arIS, wfrS.mesh, os.path.join(os.getcwd(), strExDataF
 
 srwl_uti_save_intens_ascii(arI, wfrI.mesh, os.path.join(os.getcwd(), strExDataFolderName, strSingleElIntOutFileName))
 
-#AuxSaveS0Data(stkP, os.path.join(os.getcwd(), strExDataFolderName, strPowOutFileName))
 srwl_uti_save_intens_ascii(stkP.arS, stkP.mesh, os.path.join(os.getcwd(), strExDataFolderName, strPowOutFileName), 0, ['', 'Horizontal Position', 'Vertical Position', 'Power Density'], _arUnits=['', 'm', 'm', 'W/mm^2'])
 
-#AuxSaveS0Data(stkP1, os.path.join(os.getcwd(), strExDataFolderName, strPowTrjOutFileName))
 srwl_uti_save_intens_ascii(stkP1.arS, stkP1.mesh, os.path.join(os.getcwd(), strExDataFolderName, strPowTrjOutFileName), 0, ['', 'Horizontal Position', 'Vertical Position', 'Power Density'], _arUnits=['', 'm', 'm', 'W/mm^2'])
 
 #AuxSaveS0Data(stkFS, os.path.join(os.getcwd(), strExDataFolderName, strSpecIntOutFileName))

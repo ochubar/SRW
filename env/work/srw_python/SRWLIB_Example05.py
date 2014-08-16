@@ -1,11 +1,12 @@
 ###########################################################################
 # SRWLIB Example#5: Calculating electron trajectory and spontaneous emission
 # from a very long segmented undulator (transversely-uniform magnetic field defined)
-# v 0.06 (based on tests of G. Geloni)
+# v 0.07 (based on tests of G. Geloni)
 #############################################################################
 
 from __future__ import print_function #Python 2.7 compatibility
 from srwlib import *
+from uti_plot import *
 import os
 
 print('SRWLIB Python Example # 5:')

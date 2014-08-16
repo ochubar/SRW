@@ -27,7 +27,7 @@ struct srTOptCrystMeshTrf {
 	double xStart, xStep;
 	double zStart, zStep;
 	double matrKLabRef[2][3];
-	bool crossTermsAreLarge, xMeshTrfIsReq, zMeshTrfIsReq;
+	bool crossTermsAreLarge, xMeshTrfIsReq, zMeshTrfIsReq; //, dataTranspIsReq;
 };
 
 //*************************************************************************
@@ -270,8 +270,29 @@ public:
 		TMatrix3d mRxl(vSt0_Rxl, vSt1_Rxl, vSt2_Rxl);
 
 		//Default reflected beam reference frame base vectors in the Lab (i.e. input beam) frame:
-		vX1 = mRxl*vX1p; vZ1 = mRxl*vZ1p;
-		vX1.Normalize(); vZ1.Normalize(); //just in case
+		vZ1 = mRxl*vZ1p; vZ1.Normalize(); //just in case
+		
+		//vX1 = mRxl*vX1p; vX1.Normalize(); 
+		//OC150514
+		//Selecting "Horizontal" and "Vertical" directions of the Output beam frame
+		//trying to use "minimum deviation" from the corresponding "Horizontal" and "Vertical" directions of the Input beam frame
+		TVector3d vEz0(0, 0, 1);
+		TVector3d vE1 = vZ1^vEz0;
+
+		double absE1x = ::fabs(vE1.x), absE1y = ::fabs(vE1.y);
+		if(absE1x >= absE1y)
+		{
+			if(vE1.x > 0) vX1 = vE1;
+			else vX1 = (-1)*vE1;
+		}
+		else
+		{
+			TVector3d vY1(0, 1, 0);
+			if(vE1.y > 0) vY1 = vE1;
+			else vY1 = (-1)*vE1;
+			vX1 = vY1^vZ1;
+		}
+		vX1.Normalize(); 
 	}
 
 	void FindRXtRef(TVector3d& vZ1, TVector3d& vX1, double RLabXt[3][3], double resRXtRef[3][3])
@@ -312,15 +333,42 @@ public:
 	}
 
 	//void FindGridTransformMatrAngRepres(TVector3d& vtv, TVector3d& vsv, double HXAi[3], double RXtRef[3][3], srTSRWRadStructAccessData* pRad, double resKLabRef[2][3])
-	void FindAngMeshTransformMatr(TVector3d& vtv, TVector3d& vsv, double HXAi[3], double RXtRef[3][3], double phEn, double absMaxAng, double resKLabRef[2][3])
-	{//Transform Kin to Kout
+	//void FindAngMeshTransformMatr(TVector3d& vtv, TVector3d& vsv, double HXAi[3], double RXtRef[3][3], double phEn, double absMaxAng, double resKLabRef[2][3])
+	void FindAngMeshTransformMatr(TVector3d& vtv, TVector3d& vsv, double HXAi[3], double RXtRef[3][3], double phEn, double resKLabRef[2][3])
+	{//Transform Kin to Kout (Kout = resKLabRef*Kin)
+	 //The output parameter is double resKLabRef[2][3]
 	 //This transformation is photon energy dependent; and, strictly speaking, is different for each photon energy "layer";
 	 //however, we assume that the photon energy interval is small, and the transformation can be calculated for an average photon energy.
 
 		const double eAconv = 12398.4193009;
 		double alamA = eAconv/phEn; //alamA = eAconv / EceV; //OC: wavelength in [A]?
-		double k0Ai = 1./alamA;
+		
+		double tZ = vtv.z + alamA*HXAi[2]; //tv[2] + alamA*HXAi[2]; 
+		double nY = sqrt(1. - vsv.z*vsv.z - tZ*tZ); //sqrt(1. - sv[2]*sv[2] - tZ*tZ); 
 
+		double aX[] = {vsv.x, -(vsv.z*vsv.x + tZ*vtv.x)/nY, vtv.x};
+		//aX[0] = sv[0]; 
+		//aX[1] = -(sv[2]*sv[0] + tZ*tv[0])/nY;
+		//aX[2] = tv[0]; 
+		double aY[] = {vsv.y, -(vsv.z*vsv.y + tZ*vtv.y)/nY, vtv.y};
+		//aY[0] = sv[1];
+		//aY[1] = -(sv[2]*sv[1] + tZ*tv[1])/nY;
+		//aY[2] = tv[1]; 
+		double aZ[] = {vsv.z, nY, tZ};
+		//aZ[0] = sv[2];
+		//aZ[1] = nY;
+		//aZ[2] = tZ;
+		resKLabRef[0][0] = RXtRef[0][0]*aX[0] + RXtRef[0][1]*aX[1] + RXtRef[0][2]*aX[2]; 
+		resKLabRef[1][0] = RXtRef[1][0]*aX[0] + RXtRef[1][1]*aX[1] + RXtRef[1][2]*aX[2]; 
+		resKLabRef[0][1] = RXtRef[0][0]*aY[0] + RXtRef[0][1]*aY[1] + RXtRef[0][2]*aY[2]; 
+		resKLabRef[1][1] = RXtRef[1][0]*aY[0] + RXtRef[1][1]*aY[1] + RXtRef[1][2]*aY[2]; 
+		resKLabRef[0][2] = RXtRef[0][0]*aZ[0] + RXtRef[0][1]*aZ[1] + RXtRef[0][2]*aZ[2]; 
+		resKLabRef[1][2] = RXtRef[1][0]*aZ[0] + RXtRef[1][1]*aZ[1] + RXtRef[1][2]*aZ[2]; 
+
+/**
+//OC130514: replaced by the block above, following suggestion of A.Suvorov
+
+		double k0Ai = 1./alamA;
 		double k0XAi[3], k0HAi[3], k1HAi[3]; //,KLabRef[2][3]; 
 
 		//double k0xAi,k0yAi,k0zAi; 
@@ -363,6 +411,7 @@ public:
 
 		resKLabRef[0][1] = (k1HAi[0] - k0HAi[0])/k0xAi;
 		resKLabRef[1][1] = (k1HAi[1] - k0HAi[1])/k0xAi;
+**/
 	}
 
 	int FindAngMeshTrf(srTSRWRadStructAccessData* pRad, srTOptCrystMeshTrf* pMeshTrf)
@@ -386,7 +435,7 @@ public:
 		int nMesh = 1;
 		if(pRad->ne > 1) nMesh = pRad->ne + 1;
 
-		const double tolCrossTerm = 1.e-04; //to steer
+		const double tolCrossTerm = 1.e-03; //1.e-04; //to steer
 		const double tolFractStepMeshChange = 0.1; //to steer
 
 		srTOptCrystMeshTrf *tMeshTrf = pMeshTrf;
@@ -396,33 +445,51 @@ public:
 			if(i == 1) phEn = pRad->eStart;
 
 			double waveLength_m = 1.23984193009e-06/phEn;
-			double absMaxAngRadians = absMaxAng*waveLength_m;
+			//double absMaxAngRadians = absMaxAng*waveLength_m;
 
-			FindAngMeshTransformMatr(m_tv, m_sv, m_HXAi, m_RXtRef, phEn, absMaxAngRadians, tMeshTrf->matrKLabRef);
+			//FindAngMeshTransformMatr(m_tv, m_sv, m_HXAi, m_RXtRef, phEn, absMaxAngRadians, tMeshTrf->matrKLabRef);
+			FindAngMeshTransformMatr(m_tv, m_sv, m_HXAi, m_RXtRef, phEn, tMeshTrf->matrKLabRef); //OC130514
 
 			double &a11 = tMeshTrf->matrKLabRef[0][0], &a12 = tMeshTrf->matrKLabRef[0][1], &a13 =  tMeshTrf->matrKLabRef[0][2];
 			double &a21 = tMeshTrf->matrKLabRef[1][0], &a22 = tMeshTrf->matrKLabRef[1][1], &a23 =  tMeshTrf->matrKLabRef[1][2];
 
 			tMeshTrf->crossTermsAreLarge = (::fabs(a12) > ::fabs(a11*tolCrossTerm)) || (::fabs(a21) > ::fabs(a22*tolCrossTerm));
+			if(tMeshTrf->crossTermsAreLarge)
+			{
+				if((::fabs(a12*tolCrossTerm) > ::fabs(a11)) && (::fabs(a21*tolCrossTerm) > ::fabs(a22)))
+				{//The case of rotation, i.e. the cross-terms strongly dominate over the diagonal terms; it also doesn't need the interpolations
+					//tMeshTrf->dataTranspIsReq = true;
+					tMeshTrf->crossTermsAreLarge = false;
+				}
+			}
+			//tMeshTrf->crossTermsAreLarge = ((::fabs(a12) > ::fabs(a11*tolCrossTerm)) && (::fabs(a12*tolCrossTerm) < ::fabs(a11))) //OC130514 (i.e. a12 is comparable to a11)
+			//							|| ((::fabs(a21) > ::fabs(a22*tolCrossTerm)) && (::fabs(a21*tolCrossTerm) < ::fabs(a22))); //(i.e. a21 is comparable to a22)
 
 			double k0 = 1./waveLength_m;
-			tMeshTrf->xStart = (pRad->xStart)*a11 + k0*a13;
-			double xEndNew = xEndOld*a11 + k0*a13;
+
+			//tMeshTrf->xStart = (pRad->xStart)*a11 + k0*a13;
+			//double xEndNew = xEndOld*a11 + k0*a13;
+			tMeshTrf->xStart = (pRad->xStart)*a11 + (pRad->zStart)*a12 + k0*a13; //OC130514 (?)
+			double xEndNew = xEndOld*a11 + zEndOld*a12 + k0*a13;
+			tMeshTrf->xStep = 0; if(pRad->nx > 1) tMeshTrf->xStep = (xEndNew - (tMeshTrf->xStart))/(pRad->nx - 1);
+
 			//OCTEST
 			//tMeshTrf->xStart = (pRad->xStart)*a11; //+ k0*a13;
 			//double xEndNew = xEndOld*a11; //+ k0*a13;
 			//END OCTEST
 
-			tMeshTrf->xStep = 0; if(pRad->nx > 1) tMeshTrf->xStep = (xEndNew - (tMeshTrf->xStart))/(pRad->nx - 1);
+			//tMeshTrf->zStart = (pRad->zStart)*a22 + k0*a23;
+			//double zEndNew = zEndOld*a22 + k0*a23;
+			tMeshTrf->zStart = (pRad->xStart)*a21 + (pRad->zStart)*a22 + k0*a23; //OC130514 (?)
+			double zEndNew = xEndOld*a21 + zEndOld*a22 + k0*a23;
+			tMeshTrf->zStep = 0; if(pRad->nz > 1) tMeshTrf->zStep = (zEndNew - (tMeshTrf->zStart))/(pRad->nz - 1);
 
-			tMeshTrf->zStart = (pRad->zStart)*a22 + k0*a23;
-			double zEndNew = zEndOld*a22 + k0*a23;
 			//OCTEST
 			//tMeshTrf->zStart = (pRad->zStart)*a22; //+ k0*a23;
 			//double zEndNew = zEndOld*a22; //+ k0*a23;
 			//END OCTEST
 
-			tMeshTrf->zStep = 0; if(pRad->nz > 1) tMeshTrf->zStep = (zEndNew - (tMeshTrf->zStart))/(pRad->nz - 1);
+			//tMeshTrf->dataTranspIsReq = (!tMeshTrf->crossTermsAreLarge) && (::fabs(a12) > ::fabs(a11*tolCrossTerm)) && (::fabs(a21) > ::fabs(a22*tolCrossTerm));
 
 			double absTolFractStepMeshChangeX = ::fabs(pRad->xStep)*tolFractStepMeshChange;
 			double absTolFractStepMeshChangeZ = ::fabs(pRad->zStep)*tolFractStepMeshChange;
@@ -477,6 +544,11 @@ public:
 						pRad->zStart = pMeshTrf->zStart; pRad->zStep = pMeshTrf->zStep;
 					}
 				}
+
+				//if(pMeshTrf->dataTranspIsReq)
+				//{
+				//	pRad->TransposeFieldData();
+				//}
 			}
 		}
 		else
@@ -606,7 +678,7 @@ public:
 		const double pi = 4.*atan(1.);
 		const complex<double> iC(0., 1.);
 
-		const double DBMaxFact = 0.1; //to tune
+		const double DBMaxFact = 0.01; //0.1; //to tune
 		const double logDBMax = log(DBMaxFact*(numeric_limits<double>::max()));
 
 		double alamA = eAconv/EXZ.e; //alamA = eAconv / EceV; //OC: wavelength in [A]?

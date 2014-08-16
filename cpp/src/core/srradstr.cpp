@@ -3328,6 +3328,67 @@ void srTSRWRadStructAccessData::FlipFieldData(bool flipOverX, bool flipOverZ)
 
 //*************************************************************************
 
+void srTSRWRadStructAccessData::TransposeFieldData()
+{//To improve (make more memory-economic version)
+
+	double xStartOld = xStart, xStepOld = xStep;
+	long nxOld = nx;
+	xStart = zStart; xStep = zStep; nx = nz;
+	zStart = xStartOld; zStep = xStepOld; nz = nxOld;
+
+	long PerX = ne << 1;
+	long PerZ = PerX*nx;
+
+	long nTot = (ne << 1)*nx*nz;
+	float *arE = new float[nTot];
+
+	if(pBaseRadX != 0)
+	{
+		float *t_arE = arE;
+		float *t_pRad = pBaseRadX;
+		for(long i=0; i<nTot; i++) *(t_arE++) = *(t_pRad++);
+
+		t_arE = arE;
+		for(long ix = 0; ix < nx; ix++)
+		{
+			for(long iz = 0; iz < nz; iz++)
+			{
+				long ofst0 = iz*PerZ + ix*PerX;
+				for(long ie = 0; ie < ne; ie++)
+				{
+					long ofst = ofst0 + (ie << 1);
+					*(pBaseRadX + ofst) = *(t_arE++);
+					*(pBaseRadX + ofst + 1) = *(t_arE++);
+				}
+			}
+		}
+	}
+	if(pBaseRadZ != 0)
+	{
+		float *t_arE = arE;
+		float *t_pRad = pBaseRadZ;
+		for(long i=0; i<nTot; i++) *(t_arE++) = *(t_pRad++);
+
+		t_arE = arE;
+		for(long ix = 0; ix < nx; ix++)
+		{
+			for(long iz = 0; iz < nz; iz++)
+			{
+				long ofst0 = iz*PerZ + ix*PerX;
+				for(long ie = 0; ie < ne; ie++)
+				{
+					long ofst = ofst0 + (ie << 1);
+					*(pBaseRadZ + ofst) = *(t_arE++);
+					*(pBaseRadZ + ofst + 1) = *(t_arE++);
+				}
+			}
+		}
+	}
+	if(arE != 0) delete[] arE;
+}
+
+//*************************************************************************
+
 int srTSRWRadStructAccessData::SetRepresCA(char CoordOrAng)
 {//Copied from srTGenOptElem::SetRadRepres(srTSRWRadStructAccessData*, char);
 // 'c' or 'C' or 0- to coord.; 'a' or 'A' or 1- to ang.

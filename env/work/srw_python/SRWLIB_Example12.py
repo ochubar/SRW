@@ -3,11 +3,12 @@
 #############################################################################
 # SRWLIB Example # 12: Simulating Wavefront Propagation through initial part of a Soft X-Ray Undulator Radiation Beamline containing Variable Line Spacing (VLS) Grating
 # Based on input and comtributions of N. Canestrari, E. Vescovo, V. Bisogni (BNL)
-# v 0.01
+# v 0.02
 #############################################################################
 
 from __future__ import print_function #Python 2.7 compatibility
 from srwlib import *
+from uti_plot import *
 import os
 import sys
 import time
@@ -32,9 +33,9 @@ be sure that a folder data_esm is present in the current working directory.
 
 #*********************************File Names
 strExDataFolderName = 'data_example_12' #example data sub-folder name
-strIntSE_OutFilePath = os.path.join(os.getcwd(), strExDataFolderName, 'int_se') #file name for output initial single-electron SR intensity data
-strIntPropSE_OutFilePath = os.path.join(os.getcwd(), strExDataFolderName, 'int_prop_se') #file name for output propagated single-electron SR intensity data
-strIntPropME_OutFilePath = os.path.join(os.getcwd(), strExDataFolderName, 'int_prop_me') #file name for output propagated multi-electron SR intensity data
+strIntSE_OutFilePath = os.path.join(os.getcwd(), strExDataFolderName, 'ex12_res_int_se') #file name for output initial single-electron SR intensity data
+strIntPropSE_OutFilePath = os.path.join(os.getcwd(), strExDataFolderName, 'ex12_res_int_prop_se') #file name for output propagated single-electron SR intensity data
+strIntPropME_OutFilePath = os.path.join(os.getcwd(), strExDataFolderName, 'ex12_res_int_prop_me') #file name for output propagated multi-electron SR intensity data
 
 #*********************************Undulator	
 def setUndulator(_en, _bd=0):
@@ -356,7 +357,7 @@ if __name__=="__main__":
   p.add_option('-i',  '--isamp',  dest='isamp',  metavar="NUMBER",  default=0.07,  type="float",  help="initial wavefront sampling factor")
   p.add_option('-e',  '--energy',  dest='en',  metavar="NUMBER",  default=1000,  type="float",  help="energy [eV]")
   p.add_option('-d',  '--delta',  dest='de',  metavar="NUMBER",  default=0,  type="float",  help="delta energy [eV]")
-  p.add_option('-b',  '--bdetune',  dest='bd',  metavar="NUMBER",  default=0,  type="float",  help="relative detuning of magnetic field from resonant value")
+  p.add_option('-b',  '--bdetune',  dest='bd',  metavar="NUMBER",  default=0,  type="float",  help="relative detuning of undulator magnetic field from resonant value")
   p.add_option('-m',  '--melec',  dest='melec',  metavar="NUMBER",  default=1,  type="int",  help="number of macro-electrons to take into account")
   p.add_option('-a',  '--melavg',  dest='melavg',  metavar="NUMBER",  default=10,  type="int",  help="number of mmacro-electrons (wavefronts) to average on each node (for MPI calculations)")
   p.add_option('-s',  '--melsaveper',  dest='melsaveper',  metavar="NUMBER",  default=10,  type="int",  help="Saving periodicity (in terms of macro-electrons) of the resulting intensity")

@@ -2,7 +2,7 @@
 #############################################################################
 # SRWLIB Example # 10: Simulating emission and propagation of partially-coherent undulator radiation 
 # through a microscopy beamline with a secondary source aperture and ellopsoidal K-B mirrors used for final focusing
-# v 0.05
+# v 0.06
 #############################################################################
 
 from __future__ import print_function #Python 2.7 compatibility
@@ -123,6 +123,7 @@ Drift_VKB_HKB = SRWLOptD(0.5) #Distance between centers of Vertically and Horizo
 
 angHKB = 2.5e-03 #[rad]
 HKB = SRWLOptMirEl(_p=11.5, _q=0.5, _ang_graz=angHKB, _r_sag=1.e+40, _size_tang=0.5, _nvx=cos(angHKB), _nvy=0, _nvz=-sin(angHKB), _tvx=-sin(angHKB), _tvy=0, _x=0, _y=0, _treat_in_out=1) #HKB Ellipsoidal Mirror
+#HKB = SRWLOptL(_Fx=11.5*0.5/(11.5 + 0.5))
 
 Drift_HKB_Sample = SRWLOptD(0.5) #Drift from HKB Center to Sample
 
@@ -132,7 +133,8 @@ ppDrift_Slits_HFM =  [ 0,  0, 1.0,  1,  0, 4.0, 4.0, 3.0, 3.0,  0,  0,   0]
 ppHFM =              [ 0,  0, 1.0,  0,  0, 1.0, 1.0, 1.0, 1.0,  0,  0,   0]
 ppDrift_HFM_SSA =    [ 0,  0, 1.0,  1,  0, 1.0, 1.0, 1.0, 1.0,  0,  0,   0]
 #ppSSA =              [ 0,  0, 1.0,  0,  0, 1.0, 3.0, 1.0, 4.0,  0,  0,   0]
-ppSSA =              [ 0,  0, 1.0,  0,  0, 1.0, 3.0, 1.0, 1.0,  0,  0,   0]
+#ppSSA =              [ 0,  0, 1.0,  0,  0, 1.0, 3.0, 1.0, 1.0,  0,  0,   0]
+ppSSA =              [ 0,  0, 1.0,  0,  0, 1.0, 6.0, 1.0, 1.0,  0,  0,   0]
 ppDrift_SSA_VKB =    [ 0,  0, 1.0,  1,  0, 1.0, 1.0, 1.0, 1.0,  0,  0,   0]
 
 ppTwoSlit_Ap = None
@@ -150,8 +152,7 @@ ppVKB =              [ 0,  0, 1.0,  1,  0, 1.0, 1.0, 1.0, 1.0,  0,  0,   0]
 ppDrift_VKB_HKB =    [ 0,  0, 1.0,  1,  0, 1.0, 1.0, 1.0, 1.0,  0,  0,   0]
 ppHKB =              [ 0,  0, 1.0,  1,  0, 1.0, 1.0, 1.0, 1.0,  0,  0,   0]
 ppDrift_HKB_Sample = [ 0,  0, 1.0,  1,  0, 1.0, 1.0, 1.0, 1.0,  0,  0,   0]
-#ppFinal =            [ 0,  0, 1.0,  0,  1, 0.2, 2.0, 0.2, 4.0,  0,  0,   0]
-ppFinal =            [ 0,  0, 1.0,  0,  1, 0.2, 1.0, 0.2, 4.0,  0,  0,   0]
+ppFinal =            [ 0,  0, 1.0,  0,  1, 0.2, 2.0, 0.2, 4.0,  0,  0,   0]
 
 #[ 0]: Auto-Resize (1) or not (0) Before propagation
 #[ 1]: Auto-Resize (1) or not (0) After propagation

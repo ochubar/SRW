@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #############################################################################
 # SRWLIB Example#8: Simulating partially-coherent UR focusing with a CRL
-# v 0.05
+# v 0.06
 #############################################################################
 
 from __future__ import print_function #Python 2.7 compatibility
@@ -103,8 +103,8 @@ meshInitPartCoh = deepcopy(wfr2.mesh)
 wfr2.partBeam = elecBeam
 
 #***********Optical Elements and Propagation Parameters
-fx = 1e+23 #Focal length in Horizontal plane
-fy = 19.0939 #Focal length in Horizontal plane
+fx = 1e+23 #Focal Length in Horizontal plane
+fy = 19.0939 #Focal Length in Vertical plane
 optLens = SRWLOptL(fx, fy) #Ideal Lens
 
 delta = 4.3712962E-06 #Refractive index decrement of Be at 8830 eV
@@ -117,11 +117,9 @@ wallThick = 50E-06 #[m] wall thickness of CRL
 
 optCRL = srwl_opt_setup_CRL(2, delta, attenLen, 1, geomApertNF, geomApertF, rMin, nCRL, wallThick, 0, 0) #1D CRL
 print('   Saving CRL transmission data to files (for viewing/debugging)...', end='')
-#AuxSaveOpTransmData(optCRL, 2, os.path.join(os.getcwd(), strExDataFolderName, strOpTrFileName))
 optTrIntCRL = optCRL.get_data(2, 3)
 srwl_uti_save_intens_ascii(optTrIntCRL, optCRL.mesh, os.path.join(os.getcwd(), strExDataFolderName, strOpTrFileName), 0, ['', 'Horizontal Position', 'Vertical Position', 'Intensity Transmission'], _arUnits=['', 'm', 'm', 'r.u.'])
 
-#AuxSaveOpTransmData(optCRL, 3, os.path.join(os.getcwd(), strExDataFolderName, strOpPathDifFileName))
 optPathDifCRL = optCRL.get_data(3, 3)
 srwl_uti_save_intens_ascii(optPathDifCRL, optCRL.mesh, os.path.join(os.getcwd(), strExDataFolderName, strOpPathDifFileName), 0, ['', 'Horizontal Position', 'Vertical Position', 'Opt. Path Diff.'], _arUnits=['', 'm', 'm', 'm'])
 print('done')

@@ -151,7 +151,11 @@ char* GetPyArrayBuf(PyObject* obj, vector<Py_buffer>* pvBuf, Py_ssize_t* pSizeBu
 	{
 		//if(bufFlag != PyBUF_WRITABLE) return 0;
 		PyObject *pOldBuf = PyBuffer_FromReadWriteObject(obj, 0, Py_END_OF_BUFFER);
-		if(pOldBuf == 0) return 0;
+		//if(pOldBuf == 0) return 0;
+		if(pOldBuf == 0) //RN010814
+		{
+			PyErr_Clear(); return 0;
+		}
 
 		void *pVoidBuffer = 0;
 		Py_ssize_t sizeBuf;
@@ -2790,7 +2794,9 @@ void UpdatePyStokes(PyObject* oStk, SRWLStokes* pStk)
 	if(PyObject_SetAttrString(oStk, "presCA", Py_BuildValue("i", pStk->presCA))) throw strEr_BadStokes;
 	if(PyObject_SetAttrString(oStk, "presFT", Py_BuildValue("i", pStk->presFT))) throw strEr_BadStokes;
 	//if(PyObject_SetAttrString(oStk, "numTypeStokes", Py_BuildValue("C", pStk->numTypeStokes))) throw strEr_BadStokes; //doesn't work with Py2.7
-	if(PyObject_SetAttrString(oStk, "numTypeStokes", Py_BuildValue("c", pStk->numTypeStokes))) throw strEr_BadStokes;
+	//if(PyObject_SetAttrString(oStk, "numTypeStokes", Py_BuildValue("c", pStk->numTypeStokes))) throw strEr_BadStokes;
+	char sNumTypeStokes[] = {pStk->numTypeStokes, '\0'}; //OC060714 (because the above generates a byte, not a string, in Py)
+	if(PyObject_SetAttrString(oStk, "numTypeStokes", Py_BuildValue("s", sNumTypeStokes))) throw strEr_BadStokes;
 	if(PyObject_SetAttrString(oStk, "unitStokes", Py_BuildValue("i", pStk->unitStokes))) throw strEr_BadStokes;
 }
 
