@@ -127,19 +127,42 @@ EXP int CALL srwlUtiGetErrText(char* t, int errNo)
 
 //-------------------------------------------------------------------------
 
-EXP int CALL srwlCalcMagFld(SRWLMagFldC* pDispMagFld, SRWLMagFldC* pMagFld)
+EXP int CALL srwlCalcMagFld(SRWLMagFldC* pDispMagFld, SRWLMagFldC* pMagFld, double* precPar)
 {
 	if((pDispMagFld == 0) || (pMagFld == 0)) return SRWL_NO_FUNC_ARG_DATA;
 	if((pDispMagFld->nElem != 1) || (pDispMagFld->arMagFldTypes[0] != 'a')) return SRWL_INCORRECT_PARAM_FOR_MAG_FLD_COMP;
 	try 
 	{
-		TVector3d vZeroCenP(0,0,0);
-		srTMagFldCont magCont(*pMagFld, vZeroCenP);
+		//TVector3d vZeroCenP(0,0,0);
+		//srTMagFldCont magCont(*pMagFld, vZeroCenP);
+		TVector3d vZero(0,0,0);
+		srTMagFldCont magCont(*pMagFld, vZero, vZero); //OC170615
 
 		SRWLMagFld3D *pFld3D = (SRWLMagFld3D*)(pDispMagFld->arMagFld[0]);
-		TVector3d vDispCenP(pDispMagFld->arXc[0], pDispMagFld->arYc[0], pDispMagFld->arZc[0]);
-		srTMagFld3d magFld3d(pFld3D->rx, pFld3D->nx, pFld3D->ry, pFld3D->ny, pFld3D->rz, pFld3D->nz, pFld3D->arX, pFld3D->arY, pFld3D->arZ, pFld3D->arBx, pFld3D->arBy, pFld3D->arBz, pFld3D->nRep, pFld3D->interp, 0, vDispCenP);
-		magFld3d.tabulateB(&magCont);
+
+		TVector3d vDispCenP(0.,0.,0.);
+		if((pDispMagFld->arXc != 0) && (pDispMagFld->arYc != 0) && (pDispMagFld->arZc != 0))
+		{
+			vDispCenP.x = pDispMagFld->arXc[0]; 
+			vDispCenP.y = pDispMagFld->arYc[0]; 
+			vDispCenP.z = pDispMagFld->arZc[0];
+		}
+		TVector3d vDispAxV(0.,0.,0.);
+		if((pDispMagFld->arVx != 0) && (pDispMagFld->arVy != 0) && (pDispMagFld->arVz != 0))
+		{
+			vDispAxV.x = pDispMagFld->arVx[0]; 
+			vDispAxV.y = pDispMagFld->arVy[0]; 
+			vDispAxV.z = pDispMagFld->arVz[0];
+		}
+		double ang = 0.;
+		if(pDispMagFld->arAng != 0) ang = pDispMagFld->arAng[0];
+
+		//srTMagFld3d magFld3d(pFld3D->rx, pFld3D->nx, pFld3D->ry, pFld3D->ny, pFld3D->rz, pFld3D->nz, pFld3D->arX, pFld3D->arY, pFld3D->arZ, pFld3D->arBx, pFld3D->arBy, pFld3D->arBz, pFld3D->nRep, pFld3D->interp, 0, vDispCenP);
+		srTMagFld3d magFld3d(pFld3D->rx, pFld3D->nx, pFld3D->ry, pFld3D->ny, pFld3D->rz, pFld3D->nz, pFld3D->arX, pFld3D->arY, pFld3D->arZ, pFld3D->arBx, pFld3D->arBy, pFld3D->arBz, pFld3D->nRep, pFld3D->interp, 0, vDispCenP, vDispAxV, ang); //OC170615
+		
+		int typeCalc = int(precPar[0]);
+		if(typeCalc == 0) magFld3d.tabulateB(&magCont);
+		else if((typeCalc > 0) && (typeCalc < 3)) magFld3d.tabInterpB(magCont, precPar, pMagFld->arPar1, pMagFld->arPar2, pMagFld->arPar3, pMagFld->arPar4);
 
 		UtiWarnCheck();
 	}
@@ -164,15 +187,19 @@ EXP int CALL srwlCalcPartTraj(SRWLPrtTrj* pTrj, SRWLMagFldC* pMagFld, double* pr
 		double arMom1[] = {(part.gamma)*(part.relE0)*elecEn0, part.x, part.xp, part.y, part.yp, part.z};
 		srTEbmDat elecBeam(1., 1., arMom1, 6, 0, 0, part.z, part.nq); //to check what is more appropriate for s0: part.z or pTrj->ctStart
 
-		TVector3d vZeroCenP(0,0,0);
-		CSmartPtr<srTMagElem> hMagElem(new srTMagFldCont(*pMagFld, vZeroCenP));
+		//TVector3d vZeroCenP(0,0,0);
+		//CSmartPtr<srTMagElem> hMagElem(new srTMagFldCont(*pMagFld, vZeroCenP));
+		TVector3d vZero(0,0,0);
+		CSmartPtr<srTMagElem> hMagElem(new srTMagFldCont(*pMagFld, vZero, vZero)); //OC170615
 
 		double &sSt = pTrj->ctStart, &sEn = pTrj->ctEnd;
 		if(sSt >= sEn) 
 		{//set sSt and sEn to full range of magnetic field defined
 			hMagElem.rep->GetMagnFieldLongLim(sSt, sEn);
-			double totLengthFract = (sEn - sSt)*0.01;
-			sSt -= totLengthFract; sEn += totLengthFract;
+
+			//OC150815 (commented-out)
+			//double totLengthFract = (sEn - sSt)*0.01;
+			//sSt -= totLengthFract; sEn += totLengthFract;
 
 			if(sSt > part.z) sSt = part.z; //OC130312
 			if(sEn < part.z) sEn = part.z;
@@ -245,6 +272,7 @@ EXP int CALL srwlCalcElecFieldSR(SRWLWfr* pWfr, SRWLPrtTrj* pTrj, SRWLMagFldC* p
 			pTrj = new SRWLPrtTrj();
 
 			int npTraj = 100000;
+			//int npTraj = 10000; //OCTEST160815
 			if((nPrecPar <= 0) || (nPrecPar > 4)) npTraj = (int)precPar[4];
 			pTrj->arX = new double[npTraj];
 			pTrj->arXp = new double[npTraj];
@@ -356,8 +384,11 @@ EXP int CALL srwlCalcStokesUR(SRWLStokes* pStokes, SRWLPartBeam* pElBeam, SRWLMa
 		double s0 = part.z; //??? //this corresponds to ct = 0
 		srTEbmDat eBeam(pElBeam->Iavg, pElBeam->nPart, arMom1, 6, pElBeam->arStatMom2, 21, s0, part.nq);
 
-		TVector3d inUndCenP(0,0,0);
-		srTMagFieldPeriodic und(*pUnd, inUndCenP);
+		//TVector3d inUndCenP(0,0,0);
+		//srTMagFieldPeriodic und(*pUnd, inUndCenP);
+		TVector3d vZero(0,0,0);
+		srTMagFieldPeriodic und(*pUnd, vZero, vZero); //OC170615
+
 		//srTWfrSmp wfrSmp(pStokes->zStart, pStokes->xStart, pStokes->xFin, pStokes->nx, pStokes->yStart, pStokes->yFin, pStokes->ny, 0, pStokes->eStart, pStokes->eFin, pStokes->ne, "eV");
 		SRWLStructRadMesh &mesh = pStokes->mesh;
 		srTWfrSmp wfrSmp(mesh.zStart, mesh.xStart, mesh.xFin, mesh.nx, mesh.yStart, mesh.yFin, mesh.ny, 0, mesh.eStart, mesh.eFin, mesh.ne, "eV");
@@ -553,6 +584,9 @@ EXP int CALL srwlResizeElecField(SRWLWfr* pWfr, char type, double* par)
 			resPar.pxd = (double)par[2]; //horizontal resolution
 			resPar.pzm = (double)par[3]; //vertical range
 			resPar.pzd = (double)par[4]; //vertical resolution
+			//OC071014
+			resPar.RelCenPosX = (double)par[5]; //relative horizontal wavefront center position (default is 0.5)
+			resPar.RelCenPosZ = (double)par[6]; //relative vertical wavefront center position (default is 0.5)
 
 			if(locErNo = GenOptElem.RadResizeGen(wfr, resPar)) return locErNo; //to make it static or put it into srTSRWRadStructAccessData eventually?
 		}
@@ -560,6 +594,8 @@ EXP int CALL srwlResizeElecField(SRWLWfr* pWfr, char type, double* par)
 		{
 			resPar.pem = (double)par[1]; //photon energy / time range
 			resPar.ped = (double)par[2]; //photon energy / time resolution
+			//OC071014
+			resPar.RelCenPosE = (double)par[3]; //relative photon energy / time center position (default is 0.5)
 
 			if(locErNo = GenOptElem.RadResizeGenE(wfr, resPar)) return locErNo; //to make it static or put it into srTSRWRadStructAccessData eventually?
 		}
@@ -616,6 +652,7 @@ EXP int CALL srwlPropagElecField(SRWLWfr* pWfr, SRWLOptC* pOpt)
 		srTCompositeOptElem optCont(*pOpt);
 		srTSRWRadStructAccessData wfr(pWfr);
 		if(locErNo = optCont.CheckRadStructForPropagation(&wfr)) return locErNo;
+
 		if(locErNo = optCont.PropagateRadiationGuided(wfr)) return locErNo;
 
 		wfr.OutSRWRadPtrs(*pWfr);
@@ -624,6 +661,264 @@ EXP int CALL srwlPropagElecField(SRWLWfr* pWfr, SRWLOptC* pOpt)
 	}
 	catch(int erNo)
 	{
+		return erNo;
+	}
+	return 0;
+}
+
+//-------------------------------------------------------------------------
+
+EXP int CALL srwlUtiFFT(char* pcData, char typeData, double* arMesh, int nMesh, int dir)
+{
+	if((pcData == 0) || (arMesh == 0) || (typeData != 'f') || (nMesh < 3) || (dir == 0)) return SRWL_INCORRECT_PARAM_FOR_FFT;
+	//to support typeData == 'd' later
+	int locErNo = 0;
+	try 
+	{
+		long nx = (long)arMesh[2];
+		if(nx <= 1) return SRWL_INCORRECT_PARAM_FOR_FFT;
+		long ny = 1;
+		if(nMesh >= 6) ny = (long)arMesh[5];
+
+		int dimFFT = 1;
+		if(ny > 1) dimFFT = 2;
+
+		float *pfData = (float*)pcData;
+
+		if(dimFFT == 1)
+		{
+			CGenMathFFT1DInfo FFT1DInfo;
+			FFT1DInfo.pInData = pfData;
+			FFT1DInfo.pOutData = pfData; //does this ensure in-place FFT?
+			FFT1DInfo.Dir = (char)dir;
+			FFT1DInfo.xStart = arMesh[0];
+			FFT1DInfo.xStep = arMesh[1];
+			FFT1DInfo.Nx = nx;
+			FFT1DInfo.HowMany = 1;
+			FFT1DInfo.UseGivenStartTrValue = 0;
+
+			CGenMathFFT1D FFT1D;
+			if(locErNo = FFT1D.Make1DFFT(FFT1DInfo)) return locErNo;
+
+			arMesh[0] = FFT1DInfo.xStartTr;
+			arMesh[1] = FFT1DInfo.xStepTr;
+		}
+		else
+		{
+			CGenMathFFT2DInfo FFT2DInfo;
+			FFT2DInfo.pData = pfData;
+			FFT2DInfo.Dir = (char)dir;
+			FFT2DInfo.xStart = arMesh[0];
+			FFT2DInfo.xStep = arMesh[1];
+			FFT2DInfo.Nx = nx;
+			FFT2DInfo.yStart = arMesh[3];
+			FFT2DInfo.yStep = arMesh[4];
+			FFT2DInfo.Ny = ny;
+			FFT2DInfo.UseGivenStartTrValues = 0;
+
+			CGenMathFFT2D FFT2D;
+			if(locErNo = FFT2D.Make2DFFT(FFT2DInfo)) return locErNo;
+
+			arMesh[0] = FFT2DInfo.xStartTr;
+			arMesh[1] = FFT2DInfo.xStepTr;
+			arMesh[3] = FFT2DInfo.yStartTr;
+			arMesh[4] = FFT2DInfo.yStepTr;
+		}
+
+		UtiWarnCheck();
+	}
+	catch(int erNo)
+	{
+		return erNo;
+	}
+	return 0;
+}
+
+//-------------------------------------------------------------------------
+
+EXP int CALL srwlUtiConvWithGaussian(char* pcData, char typeData, double* arMesh, int nMesh, double* arSig)
+{
+	if((pcData == 0) || (arMesh == 0) || (typeData != 'f') || (nMesh < 3)) return SRWL_INCORRECT_PARAM_FOR_CONV_WITH_GAUS;
+	//to support typeData == 'd' later
+	int locErNo = 0;
+	try 
+	{
+		long nx = (long)arMesh[2];
+		if(nx <= 1) return SRWL_INCORRECT_PARAM_FOR_FFT;
+		double xStart = arMesh[0], xStep = arMesh[1];
+
+		long ny = 1;
+		double yStart = 0., yStep = 0.;
+		if(nMesh >= 6) 
+		{
+			yStart = arMesh[3];
+			yStep = arMesh[4];
+			ny = (long)arMesh[5];
+		}
+
+		int dimFFT = 1;
+		if(ny > 1) dimFFT = 2;
+
+		//Create auxiliary complex array
+		long nTot = nx*ny;
+
+		long nxAdj = nx;
+		if(((nx >> 1) << 1) != nx) nxAdj++;
+		long nyAdj = ny;
+		if((ny != 1) && (((ny >> 1) << 1) != ny)) nyAdj++;
+
+		long nTotC = (nxAdj*nyAdj) << 1;
+		float *arDataC = new float[nTotC];
+
+		float *pfData = (float*)pcData;
+		float *t_arDataC = arDataC, *tfData = pfData;
+
+		if((nxAdj == nx) && (nyAdj == ny))
+		{
+			for(long i=0; i<nTot; i++) { *(t_arDataC++) = *(tfData++); *(t_arDataC++) = 0.;}
+		}
+		else
+		{
+			for(long iy=0; iy<ny; iy++)
+			{
+				long iy_nx = iy*nx;
+				for(long ix=0; ix<nx; ix++)
+				{
+					long ofst = iy_nx + ix;
+					long ofst2 = ofst << 1;
+					arDataC[ofst2] = pfData[ofst]; arDataC[ofst2+1] = 0.;
+				}
+				if(nxAdj > nx) 
+				{
+					long ofst = iy_nx + nx;
+					long ofst2 = ofst << 1;
+					arDataC[ofst2] = 0.; arDataC[ofst2+1] = 0.;
+				}
+			}
+			if(nyAdj > ny)
+			{
+				long ny_nx = ny*nx;
+				for(long ix=0; ix<nx; ix++)
+				{
+					long ofst = ny_nx + ix;
+					long ofst2 = ofst << 1;
+					arDataC[ofst2] = 0.; arDataC[ofst2+1] = 0.;
+				}
+				if(nxAdj > nx) 
+				{
+					long ofst = ny_nx + nx;
+					long ofst2 = ofst << 1;
+					arDataC[ofst2] = 0.; arDataC[ofst2+1] = 0.;
+				}
+			}
+		}
+
+		arMesh[2] = nxAdj; arMesh[5] = nyAdj;
+		if(locErNo = srwlUtiFFT((char*)arDataC, typeData, arMesh, nMesh, 1)) return locErNo;
+
+		double xStartTr = arMesh[0];
+		double xStepTr = arMesh[1];
+		double yStartTr = arMesh[3];
+		double yStepTr = arMesh[4];
+
+		double sigX = *arSig, sigY = 0., alp = 0.;
+		if(dimFFT > 1) 
+		{
+			sigY = *(arSig + 1);
+			alp = *(arSig + 2);
+		}
+
+		const double pi = 3.14159265358979;
+		//const double c0 = 2.*pi*pi;
+		double c0 = 2.*pi*pi;
+		double sigXe2 = sigX*sigX, sigYe2 = sigY*sigY;
+		
+		double cxy = 0.;
+		if(alp != 0.) 
+		{
+			double alp_sigXe2_sigYe2 = alp*sigXe2*sigYe2;
+			c0 /= (1. - alp*alp_sigXe2_sigYe2);
+			cxy = c0*2*alp_sigXe2_sigYe2;
+		}
+
+		double cx = c0*sigXe2;
+		double cy = c0*sigYe2;
+
+		double y = yStartTr; //yStart;
+		double argTot;
+		float factExp;
+		t_arDataC = arDataC;
+		for(long iy=0; iy<nyAdj; iy++)
+		{
+			double argTermY = cy*y*y;
+			double x = xStartTr; //xStart;
+			for(long ix=0; ix<nxAdj; ix++)
+			{
+				argTot = -argTermY - cx*x*x;
+				if(alp != 0.) argTot += cxy*x*y;
+
+				factExp = (float)exp(argTot);
+				*(t_arDataC++) *= factExp;
+				*(t_arDataC++) *= factExp;
+				x += xStepTr; //xStep;
+			}
+			y += yStepTr; //yStep;
+		}
+
+		if(locErNo = srwlUtiFFT((char*)arDataC, typeData, arMesh, nMesh, -1)) return locErNo;
+		arMesh[2] = nx; arMesh[5] = ny;
+
+		if((nxAdj == nx) && (nyAdj == ny))
+		{
+			t_arDataC = arDataC; tfData = pfData;
+			for(long i=0; i<nTot; i++) { *(tfData++) = *(t_arDataC++); t_arDataC++;}
+		}
+		else
+		{
+			for(long iy=0; iy<ny; iy++)
+			{
+				long iy_nx = iy*nx;
+				for(long ix=0; ix<nx; ix++)
+				{
+					long ofst = iy_nx + ix;
+					pfData[ofst] = arDataC[ofst << 1];
+				}
+			}
+		}
+		delete[] arDataC;
+		UtiWarnCheck();
+	}
+	catch(int erNo)
+	{
+		return erNo;
+	}
+	return 0;
+}
+
+//-------------------------------------------------------------------------
+
+EXP int CALL srwlUtiUndFromMagFldTab(SRWLMagFldC* pUndCnt, SRWLMagFldC* pMagCnt, double* arPrecPar)
+{
+	if((pUndCnt == 0) || (pMagCnt == 0) || (arPrecPar == 0)) return SRWL_INCORRECT_PARAM_FOR_CONV_MAG_2_PER;
+	if((pUndCnt->nElem != 1) || (pMagCnt->nElem != 1)) return SRWL_INCORRECT_PARAM_FOR_CONV_MAG_2_PER;
+
+	try 
+	{
+		SRWLMagFld3D *pFld3D = (SRWLMagFld3D*)(pMagCnt->arMagFld[0]);
+		double sStart = pMagCnt->arZc[0] - 0.5*pFld3D->rz;
+		double sStep = (pFld3D->nz <= 1)? 0. : pFld3D->rz/(pFld3D->nz - 1);
+		srTMagFldTrUnif magFldTrUnif(sStart, sStep, pFld3D->nz, pFld3D->arBx, pFld3D->arBy, 0);
+
+		srTMagFieldPeriodic *pMagFldPer = magFldTrUnif.CreateAndSetupMagFieldPeriodic(arPrecPar[0], (int)arPrecPar[1], arPrecPar[2]);
+		SRWLMagFldU *pMagFldU = (SRWLMagFldU*)(pUndCnt->arMagFld[0]);
+		pMagFldPer->SetupExtMagFldU(*pMagFldU, pUndCnt->arZc[0]);
+		pUndCnt->arXc[0] = 0.; pUndCnt->arYc[0] = 0.;
+
+		if(pMagFldPer != 0) delete pMagFldPer;
+		UtiWarnCheck();
+	}
+	catch(int erNo) 
+	{ 
 		return erNo;
 	}
 	return 0;

@@ -333,8 +333,11 @@ int srTGenOptElem::ReInterpolateWfrDataOnNewTransvMesh(vector<srTSRWRadStructAcc
 	//if(pAuxRadSingleE->nx <= pRadRes->nx) return 0; //to fire error?
 	if(pAuxRadSingleE->nx != pRadRes->nx) return 0; //to fire error?
 
-	double xAbsTol = 0.000001*pRadRes->xStep;
-	double zAbsTol = 0.000001*pRadRes->zStep;
+	//double xAbsTol = 0.000001*pRadRes->xStep;
+	//double zAbsTol = 0.000001*pRadRes->zStep;
+	double xAbsTol = 0.0001*pRadRes->xStep; //OC271214
+	double zAbsTol = 0.0001*pRadRes->zStep;
+
 	int result = 0;
 
 	float *pOrigBufEX = pAuxRadSingleE->pBaseRadX, *pOrigBufEZ = pAuxRadSingleE->pBaseRadZ;

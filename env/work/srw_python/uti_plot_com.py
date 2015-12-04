@@ -2,13 +2,14 @@
 
 .. moduleauthor:: 
 """
-import numpy as np
 from copy import *
 from array import *
+import traceback
 #import sys
-#from array import *
-#from math import *
+#import numpy as np
+
 import uti_math
+import uti_io
 
 #****************************************************************************
 #def srw_ascii_load(fname):
@@ -20,17 +21,18 @@ def file_load(_fname, _read_labels=1):
         for i in range(nLinesHead):
             hlp.append(f.readline())
   
-  #ne, nx, ny, ns    = [   int(hlp[i].replace('#','').split()[0]) for i in [3,6,9,10] ]
+    #ne, nx, ny, ns    = [   int(hlp[i].replace('#','').split()[0]) for i in [3,6,9,10] ]
     ne, nx, ny = [int(hlp[i].replace('#','').split()[0]) for i in [3,6,9]]
     ns = 1
     testStr = hlp[nLinesHead - 1]
     if testStr[0] == '#':
         ns = int(testStr.replace('#','').split()[0])
+    else: nLinesHead -= 1
 
     e0,e1,x0,x1,y0,y1 = [float(hlp[i].replace('#','').split()[0]) for i in [1,2,4,5,7,8]]
 
-    #data = np.squeeze( np.loadtxt(_fname, dtype=np.float64).reshape(ns,ny,nx,ne)[0] ) #get data from file.
-    data = np.squeeze(np.loadtxt(_fname, dtype=np.float64)) #get data from file (C-aligned flat)
+    #data = np.squeeze(np.loadtxt(_fname, dtype=np.float64)) #get data from file (C-aligned flat)
+    data = uti_io.read_ascii_data_cols(_fname, '\t', _i_col_start=0, _i_col_end=0, _n_line_skip=nLinesHead)[0]
 
     allrange = e0, e1, ne, x0, x1, nx, y0, y1, ny
 
@@ -113,9 +115,22 @@ def rescale_range(allrange, _ar_units, _ec=0, _xc=0, _yc=0):
     """
     e0, e1, ne, x0, x1, nx, y0, y1, ny = allrange
 
-    em = abs(np.array([e0,e1])).max()
-    xm = abs(np.array([x0,x1])).max()
-    ym = abs(np.array([y0,y1])).max()
+    #em = abs(np.array([e0,e1])).max()
+    #xm = abs(np.array([x0,x1])).max()
+    #ym = abs(np.array([y0,y1])).max()
+
+    abs_e0 = abs(e0); abs_e1 = abs(e1)
+    em = abs_e0
+    if(em < abs_e1): em = abs_e1
+
+    abs_x0 = abs(x0); abs_x1 = abs(x1)
+    xm = abs_x0
+    if(xm < abs_x1): xm = abs_x1
+
+    abs_y0 = abs(y0); abs_y1 = abs(y1)
+    ym = abs_y0
+    if(ym < abs_y1): ym = abs_y1
+    
     #mult_e, str_e = _rescale(em,"eV")
     #mult_x, str_x = _rescale(xm,"m")
     #mult_y, str_y = _rescale(ym,"m")
@@ -150,7 +165,11 @@ def rescale_dim(_range, _base_unit=None):
     :return: tuple containing new adjusted range and unit
     """
 
-    xm = abs(np.array([_range[0], _range[1]])).max()
+    #xm = abs(np.array([_range[0], _range[1]])).max()
+    abs_x0 = abs(_range[0]); abs_x1 = abs(_range[1])
+    xm = abs_x0
+    if(xm < abs_x1): xm = abs_x1
+    
     mult, unit = rescale(xm, _base_unit)
     newrange = deepcopy(_range)
     newrange[0] *= mult; newrange[1] *= mult

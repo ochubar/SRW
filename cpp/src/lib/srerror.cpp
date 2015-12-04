@@ -234,6 +234,9 @@ CErrWarn::CErrWarn()
 	error.push_back("Failed to interpolate electric field.\0"); //#178
 
 	error.push_back("Incorrect or insufficient parameters for magnetic field calculation.\0"); //#179
+	error.push_back("Incorrect input parameters for FFT procedure.\0"); //#180
+	error.push_back("Incorrect input parameters for convolution with Gaussian.\0"); //#181
+	error.push_back("Incorrect input parameters for conversion of tabulated magnetic field to periodic.\0"); //#182
 
 //};
 

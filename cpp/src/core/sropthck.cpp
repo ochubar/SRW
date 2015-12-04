@@ -531,9 +531,9 @@ int srTMirror::WfrInterpolOnOrigGrid(srTSRWRadStructAccessData* pWfr, double* ar
 	bool isCoordRepres = (pWfr->Pres == 0);
 	bool isFreqRepres = (pWfr->PresT == 0);
 	bool waveFrontTermWasTreated = false;
-	//test!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-	//if(false)
-	if(isFreqRepres && isCoordRepres && WaveFrontTermCanBeTreated(*pWfr))
+
+	//if(isFreqRepres && isCoordRepres && WaveFrontTermCanBeTreated(*pWfr))
+	if(isFreqRepres && isCoordRepres && WaveFrontTermCanBeTreated(*pWfr, false)) //OC300914
 	{
 		float *pPrevBaseRadX = pWfr->pBaseRadX; 
 		float *pPrevBaseRadZ = pWfr->pBaseRadZ;
@@ -1245,7 +1245,7 @@ void srTMirror::RadPointModifier_ThinElem(srTEXZ& EXZ, srTEFieldPtrs& EPtrs)
 int srTMirror::PropagateRadiationSimple_LocRayTracing(srTSRWRadStructAccessData* pRadAccessData)
 {
 	int res = 0;
-	char LocWaveFrontTermCanBeTreated = WaveFrontTermCanBeTreated(*pRadAccessData); //checks if quad. term can be treated and set local variables
+	//char LocWaveFrontTermCanBeTreated = WaveFrontTermCanBeTreated(*pRadAccessData); //checks if quad. term can be treated and set local variables
 
 	if((m_treatInOut == 2) && (m_extAlongOptAxIn != 0.))
 	{//Propagate wavefront back (by -m_extAlongOptAxIn) to the beginning of the optical element using Wavefront Propagation through a Drift

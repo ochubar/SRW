@@ -2,7 +2,7 @@
 # SRWLIB Example#6: Calculating spectral flux of undulator radiation 
 # by finite-emittance electron beam collected through a finite aperture
 # and power density distribution of this radiation (integrated over all photon energies)
-# v 0.02
+# v 0.03
 #############################################################################
 
 from __future__ import print_function #Python 2.7 compatibility
@@ -128,59 +128,12 @@ srwl.CalcPowDenSR(stkP, eBeam, 0, magFldCnt, arPrecP)
 print('done')
 
 #**********************Saving results
-#Auxiliary function to write tabulated resulting Intensity data to ASCII file:
-#def AuxSaveS0Data(stk, filePath):
-#    f = open(filePath, 'w')
-#    f.write('#C-aligned Intensity (inner loop is vs photon energy, outer loop vs vertical position)\n')
-#    f.write('#' + repr(stk.mesh.eStart) + ' #Initial Photon Energy [eV]\n')
-#    f.write('#' + repr(stk.mesh.eFin) + ' #Final Photon Energy [eV]\n')
-#    f.write('#' + repr(stk.mesh.ne) + ' #Number of points vs Photon Energy\n')
-#    f.write('#' + repr(stk.mesh.xStart) + ' #Initial Horizontal Position [m]\n')
-#    f.write('#' + repr(stk.mesh.xFin) + ' #Final Horizontal Position [m]\n')
-#    f.write('#' + repr(stk.mesh.nx) + ' #Number of points vs Horizontal Position\n')
-#    f.write('#' + repr(stk.mesh.yStart) + ' #Initial Vertical Position [m]\n')
-#    f.write('#' + repr(stk.mesh.yFin) + ' #Final Vertical Position [m]\n')
-#    f.write('#' + repr(stk.mesh.ny) + ' #Number of points vs Vertical Position\n')
-#    for i in range(stk.mesh.ne*stk.mesh.nx*stk.mesh.ny): #write all data into one column using "C-alignment" as a "flat" 1D array
-#        f.write(' ' + repr(stk.arS[i]) + '\n')
-#    f.close()
-
-#Auxiliary function to write tabulated Trajectory data to ASCII file:
-def AuxSaveTrajData(traj, filePath):
-    f = open(filePath, 'w')
-    resStr = '#ct [m], X [m], BetaX [rad], Y [m], BetaY [rad], Z [m], BetaZ [rad]'
-    if(hasattr(traj, 'arBx')):
-        resStr += ', Bx [T]'
-    if(hasattr(traj, 'arBy')):
-        resStr += ', By [T]'
-    if(hasattr(traj, 'arBz')):
-        resStr += ', Bz [T]'
-    f.write(resStr + '\n')
-    ctStep = 0
-    if traj.np > 0:
-        ctStep = (traj.ctEnd - traj.ctStart)/(traj.np - 1)
-    ct = traj.ctStart
-    for i in range(traj.np):
-        resStr = str(ct) + '\t' + repr(traj.arX[i]) + '\t' + repr(traj.arXp[i]) + '\t' + repr(traj.arY[i]) + '\t' + repr(traj.arYp[i]) + '\t' + repr(traj.arZ[i]) + '\t' + repr(traj.arZp[i])
-        if(hasattr(traj, 'arBx')):
-            resStr += '\t' + repr(traj.arBx[i])
-        if(hasattr(traj, 'arBy')):
-            resStr += '\t' + repr(traj.arBy[i])
-        if(hasattr(traj, 'arBz')):
-            resStr += '\t' + repr(traj.arBz[i])
-        f.write(resStr + '\n')        
-        ct += ctStep
-    f.close()
-
 #print('   Saving trajectory data to file ... ', end='')
-#AuxSaveTrajData(partTraj, os.path.join(os.getcwd(), strExDataFolderName, strTrjOutFileName))
+#partTraj.save_ascii(os.path.join(os.getcwd(), strExDataFolderName, strTrjOutFileName))
 #print('done')
 
 print('   Saving intensity data to file ... ', end='')
-#AuxSaveS0Data(stkF, os.path.join(os.getcwd(), strExDataFolderName, strFluxOutFileName))
 srwl_uti_save_intens_ascii(stkF.arS, stkF.mesh, os.path.join(os.getcwd(), strExDataFolderName, strFluxOutFileName), 0, ['Photon Energy', '', '', 'Flux'], _arUnits=['eV', '', '', 'ph/s/.1%bw'])
-
-#AuxSaveS0Data(stkP, os.path.join(os.getcwd(), strExDataFolderName, strPowOutFileName))
 srwl_uti_save_intens_ascii(stkP.arS, stkP.mesh, os.path.join(os.getcwd(), strExDataFolderName, strPowOutFileName), 0, ['', 'Horizontal Position', 'Vertical Position', 'Power Density'], _arUnits=['', 'm', 'm', 'W/mm^2'])
 print('done')
 
@@ -205,5 +158,3 @@ uti_plot1d(powDenVsY, plotMeshY, ['Vertical Position [mm]', 'Power Density [W/mm
 
 uti_plot_show() #show all graphs (blocks script execution; close all graph windows to proceed)
 print('done')
-
-

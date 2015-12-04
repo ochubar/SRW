@@ -1,5 +1,5 @@
 #############################################################################
-# SRWLib for Python v 0.11
+# SRWLib for Python v 0.12
 #############################################################################
 
 from __future__ import print_function #Python 2.7 compatibility
@@ -216,22 +216,52 @@ class SRWLMagFld3D(SRWLMagFld):
         self.nRep = _nRep
         self.interp = _interp
 
+    def add_const(self, _bx=0, _by=0, _bz=0):
+        """Adds constant magnetic field to the entire tabulated field (to simulate e.g. background magnetic field effects)
+        :param _bx: horizontal magnetic field component to add [T]
+        :param _by: vertical magnetic field component to add [T]
+        :param _bz: longitudinal magnetic field component to add [T]
+        """
+        nTot = self.nx*self.ny*self.nz
+        for i in range(nTot):
+            self.arBx[i] += _bx
+            self.arBy[i] += _by
+            self.arBz[i] += _bz
+
+    def save_ascii(self, _file_path, _xc=0, _yc=0, _zc=0):
+        """Auxiliary function to write tabulated Arbitrary 3D Magnetic Field data to ASCII file"""
+        sHead = '#Bx [T], By [T], Bz [T] on 3D mesh: inmost loop vs X (horizontal transverse position), outmost loop vs Z (longitudinal position)\n'
+        sHead += '#' + repr(-0.5*self.rx + _xc) + ' #initial X position [m]\n'
+        sHead += '#' + repr(0. if(self.nx <= 1) else  self.rx/(self.nx - 1)) + ' #step of X [m]\n'
+        sHead += '#' + repr(self.nx) + ' #number of points vs X\n'
+        sHead += '#' + repr(-0.5*self.ry + _yc) + ' #initial Y position [m]\n'
+        sHead += '#' + repr(0. if(self.ny <= 1) else  self.ry/(self.ny - 1)) + ' #step of Y [m]\n'
+        sHead += '#' + repr(self.ny) + ' #number of points vs Y\n'
+        sHead += '#' + repr(-0.5*self.rz + _zc) + ' #initial Z position [m]\n'
+        sHead += '#' + repr(0. if(self.nz <= 1) else  self.rz/(self.nz - 1)) + ' #step of Z [m]\n'
+        sHead += '#' + repr(self.nz) + ' #number of points vs Z\n'
+        arColsWr = [self.arBx, self.arBy, self.arBz]
+        srwl_uti_write_data_cols(_file_path, arColsWr, '\t', sHead)       
+
 class SRWLMagFldM(SRWLMagFld):
     """Magnetic Field: Multipole Magnet"""
     
-    def __init__(self, _G=0, _m=2, _n_or_s='n', _Leff=0, _Ledge=0):
+    #def __init__(self, _G=0, _m=2, _n_or_s='n', _Leff=0, _Ledge=0):
+    def __init__(self, _G=0, _m=2, _n_or_s='n', _Leff=0, _Ledge=0, _R=0):
         """
         :param _G: field parameter [T] for dipole, [T/m] for quadrupole (negative means defocusing for x), [T/m^2] for sextupole, [T/m^3] for octupole
         :param _m: multipole order 1 for dipole, 2 for quadrupoole, 3 for sextupole, 4 for octupole
         :param _n_or_s: normal ('n') or skew ('s')
         :param _Leff: effective length [m]
         :param _Ledge: "soft" edge length for field variation from 10% to 90% [m]; G/(1 + ((z-zc)/d)^2)^2 fringe field dependence is assumed
+        :param _R: radius of curvature of central trajectory [m] (for simulating e.g. quadrupole component integrated to a bending magnet; effective if > 0)
         """
         self.G = _G
         self.m = _m
         self.n_or_s = _n_or_s
         self.Leff = _Leff
         self.Ledge = _Ledge
+        self.R = _R
 
 class SRWLMagFldS(SRWLMagFld):
     """Magnetic Field: Solenoid"""
@@ -277,7 +307,9 @@ class SRWLMagFldU(SRWLMagFld):
         self.nPer = _nPer
 
     def allocate(self, _nHarm):
-        self.arHarm = [SRWLMagFldH()]*_nHarm
+        #self.arHarm = [SRWLMagFldH()]*_nHarm
+        arHarmLoc = []
+        for i in range(_nHarm): arHarm.append(SRWLMagFldH())
 
     def set_sin(self, _per=0.02, _len=1, _bx=0, _by=0, _phx=0, _phy=0, _sx=1, _sy=1):
         """Setup basic undulator with sinusoidal magnetic field
@@ -341,23 +373,188 @@ class SRWLMagFldU(SRWLMagFld):
 class SRWLMagFldC(SRWLMagFld):
     """Magnetic Field: Container"""
     
-    def __init__(self, _arMagFld=None, _arXc=None, _arYc=None, _arZc=None):
+    def __init__(self, _arMagFld=None, _arXc=None, _arYc=None, _arZc=None, _arVx=None, _arVy=None, _arVz=None, _arAng=None):
+    #def __init__(self, _arMagFld=None, _arXc=None, _arYc=None, _arZc=None):
         """
         :param _arMagFld: magnetic field structures array
         :param _arXc: horizontal center positions of magnetic field elements in arMagFld array [m]
         :param _arYc: vertical center positions of magnetic field elements in arMagFld array [m]
         :param _arZc: longitudinal center positions of magnetic field elements in arMagFld array [m]
+        :param _arVx: horizontal components of axis vectors of magnetic field elements in arMagFld array [rad]
+        :param _arVy: vertical components of axis vectors of magnetic field elements in arMagFld array [rad]
+        :param _arVz: longitudinal components of axis vectors of magnetic field elements in arMagFld array [rad]
+        :param _arAng: rotation angles of magnetic field elements about their axes [rad]
         """
-        self.arMagFld = [] if _arMagFld is None else _arMagFld
-        self.arXc = array('d') if _arXc is None else _arXc
-        self.arYc = array('d') if _arYc is None else _arYc
-        self.arZc = array('d') if _arZc is None else _arZc
+        #self.arMagFld = [] if _arMagFld is None else _arMagFld
+
+        if(_arMagFld == None):
+            self.arMagFld = []
+            self.arXc = array('d') if _arXc is None else _arXc
+            self.arYc = array('d') if _arYc is None else _arYc
+            self.arZc = array('d') if _arZc is None else _arZc
+            self.arVx = array('d') if _arVx is None else _arVx
+            self.arVy = array('d') if _arVy is None else _arVy
+            self.arVz = array('d') if _arVz is None else _arVz
+            self.arAng = array('d') if _arAng is None else _arAng
+        else:
+            if(not(isinstance(_arMagFld, list) or isinstance(_arMagFld, array) or isinstance(_arMagFld, tuple))):
+                self.arMagFld = [_arMagFld] #to allow for simple initialization by one element
+                nElem = 1
+            else:
+                self.arMagFld = _arMagFld
+                nElem = len(_arMagFld)
+
+            if(_arXc == None):
+                self.arXc = array('d', [0]*nElem)
+            elif(isinstance(_arXc, array)):
+                self.arXc = _arXc
+            elif(isinstance(_arXc, list)): #or isinstance(_arXc, tuple)):
+                self.arXc = array('d', _arXc)
+            elif(nElem == 1):
+                self.arXc = array('d', [0])
+                self.arXc[0] = _arXc
+
+            if(_arYc == None):
+                self.arYc = array('d', [0]*nElem)
+            #elif(isinstance(_arYc, list) or isinstance(_arYc, array) or isinstance(_arYc, tuple)):
+            #    self.arYc = _arYc
+            elif(isinstance(_arYc, array)):
+                self.arYc = _arYc
+            elif(isinstance(_arYc, list)): #or isinstance(_arYc, tuple)):
+                self.arYc = array('d', _arYc)
+            elif(nElem == 1):
+                self.arYc = array('d', [0])
+                self.arYc[0] = _arYc
+
+            if(_arZc == None):
+                self.arZc = array('d', [0]*nElem)
+            #elif(isinstance(_arZc, list) or isinstance(_arZc, array) or isinstance(_arZc, tuple)):
+            #    self.arZc = _arZc
+            elif(isinstance(_arZc, array)):
+                self.arZc = _arZc
+            elif(isinstance(_arZc, list)): #or isinstance(_arZc, tuple)):
+                self.arZc = array('d', _arZc)
+            elif(nElem == 1):
+                self.arZc = array('d', [0])
+                self.arZc[0] = _arZc
+
+            arVxWasSubm = False
+            if(_arVx == None):
+                self.arVx = array('d', [0]*nElem)
+            elif(isinstance(_arVx, array)):
+                self.arVx = _arVx
+                arVxWasSubm = True
+            elif(isinstance(_arVx, list)):
+                self.arVx = array('d', _arVx)
+                arVxWasSubm = True
+            elif(nElem == 1):
+                self.arVx = array('d', [0])
+                self.arVx[0] = _arVx
+
+            arVyWasSubm = False
+            if(_arVy == None):
+                self.arVy = array('d', [0]*nElem)
+            elif(isinstance(_arVy, array)):
+                self.arVy = _arVy
+                arVyWasSubm = True
+            elif(isinstance(_arVy, list)):
+                self.arVy = array('d', _arVy)
+                arVyWasSubm = True
+            elif(nElem == 1):
+                self.arVy = array('d', [0])
+                self.arVy[0] = _arVy
+                
+            if(_arVz == None):
+                self.arVz = array('d', [1]*nElem)
+                if(arVxWasSubm and arVyWasSubm):
+                    lenArVx = len(_arVx)
+                    lenArVy = len(_arVy)
+                    if(lenArVx == lenArVy):
+                        for i in range(lenArVx):
+                            self.arVz[i] = sqrt(1. - _arVx[i]*_arVx[i] - _arVy[i]*_arVy[i])
+            elif(isinstance(_arVz, array)):
+                self.arVz = _arVz
+            elif(isinstance(_arVz, list)):
+                self.arVz = array('d', _arVz)
+            elif(nElem == 1):
+                self.arVz = array('d', [1])
+                self.arVz[0] = _arVz
+
+            if(_arAng == None):
+                self.arAng = array('d', [0]*nElem)
+            elif(isinstance(_arAng, array)):
+                self.arAng = _arAng
+            elif(isinstance(_arAng, list)):
+                self.arAng = array('d', _arAng)
+            elif(nElem == 1):
+                self.arAng = array('d', [0])
+                self.arAng[0] = _arAng
 
     def allocate(self, _nElem):
         self.arMagFld = [SRWLMagFld()]*_nElem
         self.arXc = array('d', [0]*_nElem)
         self.arYc = array('d', [0]*_nElem)
         self.arZc = array('d', [0]*_nElem)
+        self.arVx = array('d', [0]*_nElem)
+        self.arVy = array('d', [0]*_nElem)
+        self.arVz = array('d', [1]*_nElem)
+        self.arAng = array('d', [0]*_nElem)
+
+    def add(self, _mag, _xc=None, _yc=None, _zc=None, _vx=None, _vy=None, _vz=None, _ang=None):
+        """Adds magnetic element to container
+        :param _mag: magnetic element (or array of elements) to be added
+        :param _xc: horizontal center position (or array of center positions) of magnetic field element to be added [m]
+        :param _yc: vertical center positions (or array of center positions) of magnetic field element to be added [m]
+        :param _zc: longitudinal center positions (or array of center positions) of magnetic field element to be added [m]
+        :param _vx: horizontal component of axis vectors of magnetic field element to be added [rad]
+        :param _vy: vertical component of axis vectors of magnetic field element to be added [rad]
+        :param _vz: longitudinal components of axis vector of magnetic field element to be added [rad]
+        :param _ang: rotation angle about axis [rad]
+        """
+        if(_mag == None):
+            raise Exception("No magnetic field elements were supplied for adding to container") 
+        if(isinstance(_mag, list) or isinstance(_mag, array)):
+            lenMag = len(_mag)
+            if((_xc == None) and (_yc == None) and (_zc == None) and
+               (_vx == None) and (_vy == None) and (_vz == None) and (_ang == None)):
+                for i in range(lenMag): self.add(_mag[i])
+            elif((isinstance(_xc, list) or isinstance(_xc, array)) and
+                 (isinstance(_yc, list) or isinstance(_yc, array)) and
+                 (isinstance(_zc, list) or isinstance(_zc, array)) and
+                 (isinstance(_vx, list) or isinstance(_vx, array)) and
+                 (isinstance(_vy, list) or isinstance(_vy, array)) and
+                 (isinstance(_vz, list) or isinstance(_vz, array)) and
+                 (isinstance(_ang, list) or isinstance(_ang, array))):
+                lenXc = len(_xc)
+                lenYc = len(_yc)
+                lenZc = len(_zc)
+                lenVx = len(_vx)
+                lenVy = len(_vy)
+                lenVz = len(_vz)
+                lenAng = len(_ang)
+                if((lenXc == lenMag) and (lenYc == lenMag) and (lenZc == lenMag) and
+                   (lenVx == lenMag) and (lenVy == lenMag) and (lenVz == lenMag) and (lenAng == lenMag)):
+                    for i in range(lenMag): self.add(_mag[i], _xc[i], _yc[i], _zc[i], _vx[i], _vy[i], _vz[i])
+                else: raise Exception("Inconsistent magnetic element positions data") 
+        else:
+            self.arMagFld.append(_mag)
+            if(_xc == None): _xc = 0
+            if(_yc == None): _yc = 0
+            if(_zc == None): _zc = 0
+            if(_vx == None): _vx = 0
+            if(_vy == None): _vy = 0
+            if(_vz == None):
+                _vz = 1.
+                if((_vx != None) and (_vy != None)):
+                    _vz = sqrt(1. - _vx*_vx - _vy*_vy)
+            if(_ang == None): _ang = 0
+            self.arXc.append(_xc)
+            self.arYc.append(_yc)
+            self.arZc.append(_zc)
+            self.arVx.append(_vx)
+            self.arVy.append(_vy)
+            self.arVz.append(_vz)
+            self.arAng.append(_ang)
 
 #****************************************************************************
 class SRWLPrtTrj(object):
@@ -379,18 +576,26 @@ class SRWLPrtTrj(object):
         :param _ctEnd: end value of independent variable (c*t) for which the trajectory should be (/is) calculated (is constant step enough?)
         :param _partInitCond: particle type and initial conditions for which the trajectory should be (/is) calculated
         """
-        self.arX = array('d') if _arX is None else _arX
-        self.arY = array('d') if _arY is None else _arY
-        self.arZ = array('d') if _arZ is None else _arZ
-        self.arXp = array('d') if _arXp is None else _arXp
-        self.arYp = array('d') if _arYp is None else _arYp
-        self.arZp = array('d') if _arZp is None else _arZp
-        if _arBx != None: #by default, arBx, _arBy, arBz is not created
-            self.arBx = _arBx
-        if _arBy != None:
-            self.arBy = _arBy
-        if _arBz != None:
-            self.arBz = _arBz
+
+        if(_np > 0):
+            self.arX = array('d', [0]*_np) if _arX is None else _arX
+            self.arY = array('d', [0]*_np) if _arY is None else _arY
+            self.arZ = array('d', [0]*_np) if _arZ is None else _arZ
+            self.arXp = array('d', [0]*_np) if _arXp is None else _arXp
+            self.arYp = array('d', [0]*_np) if _arYp is None else _arYp
+            self.arZp = array('d', [0]*_np) if _arZp is None else _arZp
+        else:
+            self.arX = array('d') if _arX is None else _arX
+            self.arY = array('d') if _arY is None else _arY
+            self.arZ = array('d') if _arZ is None else _arZ
+            self.arXp = array('d') if _arXp is None else _arXp
+            self.arYp = array('d') if _arYp is None else _arYp
+            self.arZp = array('d') if _arZp is None else _arZp
+            
+        if _arBx != None: self.arBx = _arBx #by default, arBx, _arBy, arBz are not created
+        if _arBy != None: self.arBy = _arBy
+        if _arBz != None: self.arBz = _arBz
+            
         self.np = _np
         self.ctStart = _ctStart
         self.ctEnd = _ctEnd
@@ -398,17 +603,17 @@ class SRWLPrtTrj(object):
 
     def allocate(self, _np, _allB=False):
         _np = int(_np)
-        self.arX = array('d', [0] * _np)
-        self.arXp = array('d', [0] * _np)
-        self.arY = array('d', [0] * _np)
-        self.arYp = array('d', [0] * _np)
-        self.arZ = array('d', [0] * _np)
-        self.arZp = array('d', [0] * _np)
+        self.arX = array('d', [0]*_np)
+        self.arXp = array('d', [0]*_np)
+        self.arY = array('d', [0]*_np)
+        self.arYp = array('d', [0]*_np)
+        self.arZ = array('d', [0]*_np)
+        self.arZp = array('d', [0]*_np)
         self.np = _np
         if _allB == True:
-            self.arBx = array('d', [0] * _np)
-            self.arBy = array('d', [0] * _np)
-            self.arBz = array('d', [0] * _np)
+            self.arBx = array('d', [0]*_np)
+            self.arBy = array('d', [0]*_np)
+            self.arBz = array('d', [0]*_np)
 
     def save_ascii(self, _file_path):
         """Auxiliary function to write tabulated Trajectory data to ASCII file"""
@@ -550,8 +755,8 @@ class SRWLRadMesh(object):
         self.arSurf = _arSurf
 
     def set_from_other(self, _mesh):
-        self.eStart = _mesh.eStart; self.eFin = _mesh.eFin; self.ne = _mesh.ne; 
-        self.xStart = _mesh.xStart; self.xFin = _mesh.xFin; self.nx = _mesh.nx; 
+        self.eStart = _mesh.eStart; self.eFin = _mesh.eFin; self.ne = _mesh.ne;
+        self.xStart = _mesh.xStart; self.xFin = _mesh.xFin; self.nx = _mesh.nx;
         self.yStart = _mesh.yStart; self.yFin = _mesh.yFin; self.ny = _mesh.ny;
         self.zStart = _mesh.zStart
 
@@ -614,7 +819,6 @@ class SRWLStokes(object):
         #    s3needed = 1
         #if((s0needed > 0) or (s1needed > 0) or (s2needed > 0) or (s3needed > 0)):
         #    self.allocate(_ne, _nx, _ny, s0needed, s1needed, s2needed, s3needed)
-
 
     #def allocate(self, _ne, _nx, _ny, s0needed=1, s1needed=1, s2needed=1, s3needed=1, _typeStokes='f'):
     def allocate(self, _ne, _nx, _ny, _typeStokes='f', _mutual=0):
@@ -1252,32 +1456,79 @@ class SRWLWfr(object):
         if(EXNeeded > 0) or (EYNeeded > 0):
             self.allocate(_ne, _nx, _ny, EXNeeded, EYNeeded)
 
-    def allocate(self, _ne, _nx, _ny, EXNeeded=1, EYNeeded=1, typeE='f'):
+    #def allocate(self, _ne, _nx, _ny, EXNeeded=1, EYNeeded=1, typeE='f'):
+    def allocate(self, _ne, _nx, _ny, _EXNeeded=1, _EYNeeded=1, _typeE='f', _backupNeeded=0): #OC141115
+        """Allocate Electric Field data
+        :param _ne: number of points vs photon energy / time
+        :param _nx: number of points vs horizontal position / angle
+        :param _ny: number of points vs vertical position / angle
+        :param _EXNeeded: switch specifying whether Ex data is necessary or not (1 or 0)
+        :param _EYNeeded: switch specifying whether Ey data is necessary or not (1 or 0)
+        :param _typeE: numerical type of Electric Field data: float (single precision) or double ('f' or 'd'); double is not yet supported
+        :param _backupNeeded: switch specifying whether backup of Electric Field data (arExAux, arEyAux) should be created or not (1 or 0)
+        """
         #print('') #debugging
         #print('          (re-)allocating: old point numbers: ne=',self.mesh.ne,' nx=',self.mesh.nx,' ny=',self.mesh.ny) #,' type:',self.numTypeElFld)
         #print('                           new point numbers: ne=',_ne,' nx=',_nx,' ny=',_ny) #,' type:',typeE)
+        #print('                           backupNeeded',_backupNeeded)
+        
         nTot = 2*_ne*_nx*_ny #array length to store one component of complex electric field
         nMom = 11*_ne
-        if EXNeeded:
-            #print('          trying to (re-)allocate Ex ... ', end='')  
-            del self.arEx
-            self.arEx = array(typeE, [0]*nTot)
+        if _EXNeeded:
+            #print('          trying to (re-)allocate Ex ... ', end='')
+            #del self.arEx
+            if _backupNeeded: #OC141115
+                self.arExAux = self.arEx
+                #print('          self.arExAux assigned') #debugging
+            #else:
+            #    del self.arEx
+            #self.arEx = array(typeE, [0]*nTot)
+            self.arEx = srwl_uti_array_alloc(_typeE, nTot)
             #print('done')           
             if len(self.arMomX) != nMom:
                 del self.arMomX
                 self.arMomX = array('d', [0]*nMom)
-        if EYNeeded:
-            #print('          trying to (re-)allocate Ey ... ', end='')  
+        if _EYNeeded:
+            #print('          trying to (re-)allocate Ey ... ', end='')
             #del self.arEy
-            self.arEy = array(typeE, [0]*nTot)
+            if _backupNeeded: #OC141115
+                self.arEyAux = self.arEy
+                #print('          self.arEyAux assigned') #debugging
+            #else:
+            #    del self.arEy
+            #self.arEy = array(typeE, [0]*nTot)
+            self.arEy = srwl_uti_array_alloc(_typeE, nTot)
             #print('done')
             if len(self.arMomY) != nMom:
                 del self.arMomY
                 self.arMomY = array('d', [0]*nMom)
-        self.numTypeElFld = typeE
+        self.numTypeElFld = _typeE
         self.mesh.ne = _ne
         self.mesh.nx = _nx
         self.mesh.ny = _ny
+
+    def delE(self, _type=0, _treatEX=1, _treatEY=1): #OC151115
+        """Delete Electric Field data
+        :param _type: type of data to be deleted: 0- arEx, arEy, arExAux, arEyAux; 1- arEx, arEy only; 2- arExAux, arEyAux only
+        :param _treatEX: switch specifying whether Ex data should be deleted or not (1 or 0)
+        :param _treatEY: switch specifying whether Ey data should be deleted or not (1 or 0)
+        """
+        if _treatEX:
+            if((_type == 0) or (_type == 1)):
+                if(self.arEx != None):
+                    del self.arEx; self.arEx = None
+            if((_type == 0) or (_type == 2)):
+                if(hasattr(self, 'arExAux')):
+                    if(self.arExAux != None):
+                        del self.arExAux; self.arExAux = None
+        if _treatEY:
+            if((_type == 0) or (_type == 1)):
+                if(self.arEy != None):
+                    del self.arEy; self.arEy = None
+            if((_type == 0) or (_type == 2)):
+                if(hasattr(self, 'arEyAux')):
+                    if(self.arEyAux != None):
+                        del self.arEyAux; self.arEyAux = None
 
     def addE(self, _wfr, _meth=0):
         """Add Another Electric Field Wavefront
@@ -1573,7 +1824,6 @@ class SRWLWfr(object):
                                     _stokes.arS[ir + nTot2] = -reEx*reEyT - reExT*reEy - imEx*imEyT - imExT*imEy #-2*(reEx*reEy + imEx*imEy) #check sign
                                     _stokes.arS[ir + nTot3] = -reEx*reEyT - reExT*reEy + imEx*imEyT + imExT*imEy #2*(-reEx*reEy + imEx*imEy) #check sign
                                     ir += 1
-
             del auxArEx
             del auxArEy
         
@@ -1695,7 +1945,7 @@ class SRWLOptT(SRWLOpt):
     
     def __init__(self, _nx=1, _ny=1, _rx=1e-03, _ry=1e-03, _arTr=None, _extTr=0, _Fx=1e+23, _Fy=1e+23, _x=0, _y=0, _ne=1, _eStart=0, _eFin=0):
         """
-        :param _nx: number of transmission data points in the horizontaldirection
+        :param _nx: number of transmission data points in the horizontal direction
         :param _ny: number of transmission data points in the vertical direction
         :param _rx: range of the horizontal coordinate [m] for which the transmission is defined
         :param _ry: range of the vertical coordinate [m] for which the transmission is defined
@@ -2127,6 +2377,10 @@ class SRWLOptCryst(SRWLOpt):
         """Finds optimal crystal orientation in the input beam frame (i.e. surface normal and tangential vectors) and the orientation of the output beam frame (i.e. coordinates of the longitudinal and horizontal vectors in the input beam frame)
         :param _en: photon energy [eV]
         :param _ang_dif_pl: diffraction plane angle (0 corresponds to the vertical deflection; pi/2 to the horizontal deflection; any value in between is allowed)
+        :return: list of two triplets of vectors:
+                out[0] is the list of 3 base vectors [tangential, saggitan, normal] defining the crystal orientation
+                out[1] is the list of 3 base vectors [ex, ey, ez] defining orientation of the output beam frame
+                the cartesian coordinates of all these vectors are given in the frame of the input beam
         """
         #dSi = 5.43096890 # Si lattice constant (A)
         eV2wA = 12398.4193009 # energy to wavelength conversion factor 12398.41930092394
@@ -2230,9 +2484,9 @@ class SRWLOptC(SRWLOpt):
             [3]: Allow (1) or not (0) for semi-analytical treatment of the quadratic (leading) phase terms at the propagation
             [4]: Do any Resizing on Fourier side, using FFT, (1) or not (0)
             [5]: Horizontal Range modification factor at Resizing (1. means no modification)
-            [6]: Horizontal Resolution modification factor at Resizing
-            [7]: Vertical Range modification factor at Resizing
-            [8]: Vertical Resolution modification factor at Resizing
+            [6]: Horizontal Resolution modification factor at Resizing (1. means no modification)
+            [7]: Vertical Range modification factor at Resizing (1. means no modification)
+            [8]: Vertical Resolution modification factor at Resizing (1. means no modification)
             [9]: Optional: Type of wavefront Shift before Resizing (vs which coordinates; to be implemented)
             [10]: Optional: New Horizontal wavefront Center position after Shift (to be implemented)
             [11]: Optional: New Vertical wavefront Center position after Shift (to be implemented)
@@ -2475,7 +2729,7 @@ def srwl_opt_setup_cyl_fiber(_foc_plane, _delta_ext, _delta_core, _atten_len_ext
     return opT
 
 #****************************************************************************
-def srwl_opt_setup_surf_height_1d(_height_prof_data, _dim, _ang, _ang_r=0, _amp_coef=1, _ar_arg_long=None, _nx=0, _ny=0, _size_x=0, _size_y=0):
+def srwl_opt_setup_surf_height_1d(_height_prof_data, _dim, _ang, _ang_r=0, _amp_coef=1, _ar_arg_long=None, _nx=0, _ny=0, _size_x=0, _size_y=0, _xc=0, _yc=0):
     """
     Setup Transmission type optical element with 1D (mirror or grating) surface Heght Profile data
     :param _height_prof_data: two- or one-column table containing, in case of two columns: longitudinal position in [m] (1st column) and the Height Profile in [m] (2nd column) data; in case of one column, it contains the Height Profile data
@@ -2488,6 +2742,8 @@ def srwl_opt_setup_surf_height_1d(_height_prof_data, _dim, _ang, _ang_r=0, _amp_
     :param _ny: optional number of points in vertical dimension of the output transmission optical element
     :param _size_x: optional horizontal transverse size of the output transmission optical element (if <=0: _height_prof_data, _dim, _ar_arg_long, _ar_arg_tr data is used)
     :param _size_y: optional vertical transverse size of the output transmission optical element (if <=0: _height_prof_data, _dim, _ar_arg_long, _ar_arg_tr data is used)
+    :param _xc: optional horizontal center position of the output transmission optical element
+    :param _yc: optional vertical center position of the output transmission optical element
     :return: transmission (SRWLOptT) type optical element which simulates the effect of surface height error
     """
     #To test all options!
@@ -2529,13 +2785,15 @@ def srwl_opt_setup_surf_height_1d(_height_prof_data, _dim, _ang, _ang_r=0, _amp_
         sizeY = sizeTr
         if('y' in _dim): sizeY = sizeLongProj
 
-    optSlopeErr = SRWLOptT(nx, ny, sizeX, sizeY)
+    #optSlopeErr = SRWLOptT(nx, ny, sizeX, sizeY)
+    optSlopeErr = SRWLOptT(nx, ny, sizeX, sizeY, _x=_xc, _y=_yc)
 
     auxMesh = optSlopeErr.mesh
     xStep = (auxMesh.xFin - auxMesh.xStart)/(auxMesh.nx - 1)
     yStep = (auxMesh.yFin - auxMesh.yStart)/(auxMesh.ny - 1)
 
-    y = auxMesh.yStart
+    #y = auxMesh.yStart
+    y = auxMesh.yStart - _yc #to make sure that only the mesh moves
     hApprox = 0
     ipStart = 0
     #for iy in range(optSlopeErr.ny):
@@ -2553,8 +2811,8 @@ def srwl_opt_setup_surf_height_1d(_height_prof_data, _dim, _ang, _ang_r=0, _amp_
                     break
                 y1 = y2
 
-        #x = optSlopeErr.x - 0.5*optSlopeErr.rx
-        x = auxMesh.xStart
+        #x = auxMesh.xStart
+        x = auxMesh.xStart - _xc #to make sure that only the mesh moves
         
         #for ix in range(optSlopeErr.nx):
         for ix in range(auxMesh.nx):
@@ -2573,7 +2831,7 @@ def srwl_opt_setup_surf_height_1d(_height_prof_data, _dim, _ang, _ang_r=0, _amp_
             #ofst = 2*ix + (2*optSlopeErr.nx)*iy
             ofst = 2*ix + (2*auxMesh.nx)*iy
 
-            optSlopeErr.arTr[ofst] = 1. #Amplitude Transmission
+            optSlopeErr.arTr[ofst] = 1. #Amplitude Transmission #consider taking into account reflectivity
             optSlopeErr.arTr[ofst + 1] = 0. #Optical Path Difference
             if(hApprox != 0):
                 #optSlopeErr.arTr[ofst + 1] = -2*sinAng*hApprox #Optical Path Difference (to check sign!)
@@ -2655,7 +2913,7 @@ def srwl_opt_setup_surf_height_2d(_height_prof_data, _dim, _ang, _ang_r=0, _amp_
     xStep = (auxMesh.xFin - auxMesh.xStart)/(auxMesh.nx - 1)
     yStep = (auxMesh.yFin - auxMesh.yStart)/(auxMesh.ny - 1)
 
-    print(auxMesh.xStart, auxMesh.xFin, auxMesh.nx, xStep)
+    #print(auxMesh.xStart, auxMesh.xFin, auxMesh.nx, xStep)
     #print(xStep, yStep)
 
     y = auxMesh.yStart
@@ -2758,6 +3016,8 @@ def srwl_opt_setup_surf_height_2d(_height_prof_data, _dim, _ang, _ang_r=0, _amp_
                 if('y' in _dim):
                     f01 = _height_prof_data[ipStartTr][ipStart+1]
                 else:
+                    #OC_TEST
+                    #print('ipStartTr=', ipStartTr, 'ipStart=', ipStart)
                     f01 = _height_prof_data[ipStartTr+1][ipStart]
             if((x2 != x1) and (y2 != y1)): f11 = _height_prof_data[ipStartTr+1][ipStart+1]
             
@@ -2790,210 +3050,9 @@ def srwl_opt_setup_surf_height_2d(_height_prof_data, _dim, _ang, _ang_r=0, _amp_
 #Auxiliary utility functions
 #****************************************************************************
 #****************************************************************************
-#Moved to uti_math.py
+#Moved to uti_math.py:
 ##def srwl_uti_interp_1d(_x, _x_min, _x_step, _nx, _ar_f, _ord=3, _ix_per=1, _ix_ofst=0):
-##    """
-##    Interpolate 1D function value tabulated on equidistant mesh, using polynomial interpolation
-##    :param _x: argument at which function value should be calculated
-##    :param _x_min: minimal argument value of the tabulated function
-##    :param _x_step: step of mesh at which function is tabulated
-##    :param _nx: number of points in mesh at which function is tabulated
-##    :param _ar_f: tabulated function list or array
-##    :param _ord: order of polynomial interpolation (1- linear, 2- quadratic, 3- cubic)
-##    :param _ix_per: argument index period of function data alignment (e.g. to interpolate one component of complex data, or in one dimension of multi-dimensional data)
-##    :param _ix_ofst: argument index offset of function data alignment
-##    :return: function value found by polynomial interpolation
-##    """
-##    if(_ord == 1):
-##        i0 = int(trunc((_x - _x_min)/_x_step + 1.e-09))
-##        if(i0 < 0):
-##            i0 = 0
-##        elif(i0 >= _nx - 1):
-##            i0 = _nx - 2
-##        i1 = i0 + 1
-##        f0 = _ar_f[i0*_ix_per + _ix_ofst]
-##        f1 = _ar_f[i1*_ix_per + _ix_ofst]
-##        t = (_x - (_x_min + _x_step*i0))/_x_step
-##        return f0 + (f1 - f0)*t
-##    elif(_ord == 2):
-##        i0 = int(round((_x - _x_min)/_x_step))
-##        if(i0 < 1):
-##            i0 = 1
-##        elif(i0 >= _nx - 1):
-##            i0 = _nx - 2
-##        im1 = i0 - 1
-##        i1 = i0 + 1
-##        t = (_x - (_x_min + _x_step*i0))/_x_step
-##        a0 = _ar_f[i0*_ix_per + _ix_ofst]
-##        fm1 = _ar_f[im1*_ix_per + _ix_ofst]
-##        f1 = _ar_f[i1*_ix_per + _ix_ofst]
-##        a1 = 0.5*(f1 - fm1)
-##        a2 = 0.5*(fm1 + f1 - 2*a0)
-##        return a0 + t*(a1 + t*a2)
-##    elif(_ord == 3):
-##        i0 = int(trunc((_x - _x_min)/_x_step + 1.e-09))
-##        if(i0 < 1):
-##            i0 = 1
-##        elif(i0 >= _nx - 2):
-##            i0 = _nx - 3
-##        im1 = i0 - 1
-##        i1 = i0 + 1
-##        i2 = i0 + 2
-##        t = (_x - (_x_min + _x_step*i0))/_x_step
-##        a0 = _ar_f[i0*_ix_per + _ix_ofst]
-##        fm1 = _ar_f[im1*_ix_per + _ix_ofst]
-##        f1 = _ar_f[i1*_ix_per + _ix_ofst]
-##        f2 = _ar_f[i2*_ix_per + _ix_ofst]
-##        a1 = -0.5*a0 + f1 - f2/6. - fm1/3.
-##        a2 = -a0 + 0.5*(f1 + fm1)
-##        a3 = 0.5*(a0 - f1) + (f2 - fm1)/6.
-##        return a0 + t*(a1 + t*(a2 + t*a3))
-##    return 0
-
-#****************************************************************************
 ##def srwl_uti_interp_2d(_x, _y, _x_min, _x_step, _nx, _y_min, _y_step, _ny, _ar_f, _ord=3, _ix_per=1, _ix_ofst=0):
-#Moved to uti_math.py
-##    """
-##    Interpolate 2D function value tabulated on equidistant rectangular mesh and represented by C-aligned flat array, using polynomial interpolation
-##    :param _x: first argument at which function value should be calculated
-##    :param _y: second argument at which function value should be calculated
-##    :param _x_min: minimal value of the first argument of the tabulated function
-##    :param _x_step: step of the first argument at which function is tabulated
-##    :param _nx: number of points vs first argument at which function is tabulated
-##    :param _y_min: minimal value of the second argument of the tabulated function
-##    :param _y_step: step of the second argument at which function is tabulated
-##    :param _ny: number of points vs second argument at which function is tabulated
-##    :param _ar_f: function tabulated on 2D mesh, aligned as "flat" C-type list or array (first argument is changing most frequently)
-##    :param _ord: "order" of polynomial interpolation (1- bi-linear (on 4 points), 2- "bi-quadratic" (on 6 points), 3- "bi-cubic" (on 12 points))
-##    :param _ix_per: period of first argument index of the function data alignment (e.g. to interpolate one component of complex data, or in one dimension of multi-dimensional data)
-##    :param _ix_ofst: offset of the first argument index in function data alignment
-##    :return: function value found by 2D polynomial interpolation
-##    """
-##    if(_ord == 1): #bi-linear interpolation based on 4 points
-##        ix0 = int(trunc((_x - _x_min)/_x_step + 1.e-09))
-##        if(ix0 < 0):
-##            ix0 = 0
-##        elif(ix0 >= _nx - 1):
-##            ix0 = _nx - 2
-##        ix1 = ix0 + 1
-##        tx = (_x - (_x_min + _x_step*ix0))/_x_step
-##        
-##        iy0 = int(trunc((_y - _y_min)/_y_step + 1.e-09))
-##        if(iy0 < 0):
-##            iy0 = 0
-##        elif(iy0 >= _ny - 1):
-##            iy0 = _ny - 2
-##        iy1 = iy0 + 1
-##        ty = (_y - (_y_min + _y_step*iy0))/_y_step
-##
-##        nx_ix_per = _nx*_ix_per
-##        iy0_nx_ix_per = iy0*nx_ix_per
-##        iy1_nx_ix_per = iy1*nx_ix_per
-##        ix0_ix_per_p_ix_ofst = ix0*_ix_per + _ix_ofst
-##        ix1_ix_per_p_ix_ofst = ix1*_ix_per + _ix_ofst
-##        a00 = _ar_f[iy0_nx_ix_per + ix0_ix_per_p_ix_ofst]
-##        f10 = _ar_f[iy0_nx_ix_per + ix1_ix_per_p_ix_ofst]
-##        f01 = _ar_f[iy1_nx_ix_per + ix0_ix_per_p_ix_ofst]
-##        f11 = _ar_f[iy1_nx_ix_per + ix1_ix_per_p_ix_ofst]
-##        a10 = f10 - a00
-##        a01 = f01 - a00
-##        a11 = a00 - f01 - f10 + f11
-##        return a00 + tx*(a10 + ty*a11) + ty*a01
-##
-##    elif(_ord == 2): #bi-quadratic interpolation based on 6 points
-##        ix0 = int(round((_x - _x_min)/_x_step))
-##        if(ix0 < 1):
-##            ix0 = 1
-##        elif(ix0 >= _nx - 1):
-##            ix0 = _nx - 2
-##        ixm1 = ix0 - 1
-##        ix1 = ix0 + 1
-##        tx = (_x - (_x_min + _x_step*ix0))/_x_step
-##
-##        iy0 = int(round((_y - _y_min)/_y_step))
-##        if(iy0 < 1):
-##            iy0 = 1
-##        elif(iy0 >= _ny - 1):
-##            iy0 = _ny - 2
-##        iym1 = iy0 - 1
-##        iy1 = iy0 + 1
-##        ty = (_y - (_y_min + _y_step*iy0))/_y_step
-##
-##        nx_ix_per = _nx*_ix_per
-##        iym1_nx_ix_per = iym1*nx_ix_per
-##        iy0_nx_ix_per = iy0*nx_ix_per
-##        iy1_nx_ix_per = iy1*nx_ix_per
-##        ixm1_ix_per_p_ix_ofst = ixm1*_ix_per + _ix_ofst
-##        ix0_ix_per_p_ix_ofst = ix0*_ix_per + _ix_ofst
-##        ix1_ix_per_p_ix_ofst = ix1*_ix_per + _ix_ofst
-##        fm10 = _ar_f[iy0_nx_ix_per + ixm1_ix_per_p_ix_ofst]
-##        a00 = _ar_f[iy0_nx_ix_per + ix0_ix_per_p_ix_ofst]
-##        f10 = _ar_f[iy0_nx_ix_per + ix1_ix_per_p_ix_ofst]
-##        f0m1 = _ar_f[iym1_nx_ix_per + ix0_ix_per_p_ix_ofst]
-##        f01 = _ar_f[iy1_nx_ix_per + ix0_ix_per_p_ix_ofst]
-##        f11 = _ar_f[iy1_nx_ix_per + ix1_ix_per_p_ix_ofst]
-##        a10 = 0.5*(f10 - fm10)
-##        a01 = 0.5*(f01 - f0m1)
-##        a11 = a00 - f01 - f10 + f11
-##        a20 = 0.5*(f10 + fm10) - a00
-##        a02 = 0.5*(f01 + f0m1) - a00
-##        return a00 + tx*(a10 + tx*a20 + ty*a11) + ty*(a01 + ty*a02)
-##    
-##    elif(_ord == 3): #bi-cubic interpolation based on 12 points
-##        ix0 = int(trunc((_x - _x_min)/_x_step + 1.e-09))
-##        if(ix0 < 1):
-##            ix0 = 1
-##        elif(ix0 >= _nx - 2):
-##            ix0 = _nx - 3
-##        ixm1 = ix0 - 1
-##        ix1 = ix0 + 1
-##        ix2 = ix0 + 2
-##        tx = (_x - (_x_min + _x_step*ix0))/_x_step
-##
-##        iy0 = int(trunc((_y - _y_min)/_y_step + 1.e-09))
-##        if(iy0 < 1):
-##            iy0 = 1
-##        elif(iy0 >= _ny - 2):
-##            iy0 = _ny - 3
-##        iym1 = iy0 - 1
-##        iy1 = iy0 + 1
-##        iy2 = iy0 + 2
-##        ty = (_y - (_y_min + _y_step*iy0))/_y_step
-##
-##        nx_ix_per = _nx*_ix_per
-##        iym1_nx_ix_per = iym1*nx_ix_per
-##        iy0_nx_ix_per = iy0*nx_ix_per
-##        iy1_nx_ix_per = iy1*nx_ix_per
-##        iy2_nx_ix_per = iy2*nx_ix_per
-##        ixm1_ix_per_p_ix_ofst = ixm1*_ix_per + _ix_ofst
-##        ix0_ix_per_p_ix_ofst = ix0*_ix_per + _ix_ofst
-##        ix1_ix_per_p_ix_ofst = ix1*_ix_per + _ix_ofst
-##        ix2_ix_per_p_ix_ofst = ix2*_ix_per + _ix_ofst
-##        f0m1 = _ar_f[iym1_nx_ix_per + ix0_ix_per_p_ix_ofst]
-##        f1m1 = _ar_f[iym1_nx_ix_per + ix1_ix_per_p_ix_ofst]
-##        fm10 = _ar_f[iy0_nx_ix_per + ixm1_ix_per_p_ix_ofst]
-##        a00 = _ar_f[iy0_nx_ix_per + ix0_ix_per_p_ix_ofst]
-##        f10 = _ar_f[iy0_nx_ix_per + ix1_ix_per_p_ix_ofst]
-##        f20 = _ar_f[iy0_nx_ix_per + ix2_ix_per_p_ix_ofst]
-##        fm11 = _ar_f[iy1_nx_ix_per + ixm1_ix_per_p_ix_ofst]
-##        f01 = _ar_f[iy1_nx_ix_per + ix0_ix_per_p_ix_ofst]
-##        f11 = _ar_f[iy1_nx_ix_per + ix1_ix_per_p_ix_ofst]
-##        f21 = _ar_f[iy1_nx_ix_per + ix2_ix_per_p_ix_ofst]
-##        f02 = _ar_f[iy2_nx_ix_per + ix0_ix_per_p_ix_ofst]
-##        f12 = _ar_f[iy2_nx_ix_per + ix1_ix_per_p_ix_ofst]
-##        a10 = -0.5*a00 + f10 - f20/6 - fm10/3
-##        a01 = -0.5*a00 + f01 - f02/6 - f0m1/3
-##        a11 = -0.5*(f01 + f10) + (f02 - f12 + f20 - f21)/6 + (f0m1 - f1m1 + fm10 - fm11)/3 + f11
-##        a20 = -a00 + 0.5*(f10 + fm10)
-##        a02 = -a00 + 0.5*(f01 + f0m1)
-##        a21 = a00 - f01 + 0.5*(f11 - f10 - fm10 + fm11)
-##        a12 = a00 - f10 + 0.5*(f11 - f01 - f0m1 + f1m1)
-##        a30 = 0.5*(a00 - f10) + (f20 - fm10)/6
-##        a03 = 0.5*(a00 - f01) + (f02 - f0m1)/6
-##        a31 = 0.5*(f01 + f10 - f11 - a00) + (f21 + fm10 - f20 - fm11)/6
-##        a13 = 0.5*(f10 - f11 - a00 + f01) + (f0m1 + f12 - f02 - f1m1)/6
-##        return a00 + tx*(a10 + tx*(a20 + tx*(a30 + ty*a31) + ty*a21) + ty*a11) + ty*(a01 + ty*(a02 + ty*(a03 + tx*a13) + tx*a12))
-##    return 0
 
 #****************************************************************************
 def srwl_uti_ph_en_conv(_x, _in_u='keV', _out_u='nm'):
@@ -3019,7 +3078,7 @@ def srwl_uti_ph_en_conv(_x, _in_u='keV', _out_u='nm'):
     elif _out_u == '1/cm': x /= (_Light_eV_mu*1.e-07)
     elif _out_u == 'A': x = 10*_Light_eV_mu/x
     elif _out_u == 'nm': x = _Light_eV_mu/x
-    elif _out_u == 'um': x = (_Light_eV_mu*1.e-03)/x #this had to be modofoed because of non-ascii "mu" symbol that did not compile on Py 2.7
+    elif _out_u == 'um': x = (_Light_eV_mu*1.e-03)/x #this had to be modifoed because of non-ascii "mu" symbol that did not compile on Py 2.7
     elif _out_u == 'mm': x = (_Light_eV_mu*1.e-06)/x
     elif _out_u == 'm': x = (_Light_eV_mu*1.e-09)/x
     elif _out_u == 'THz': x /= (_Light_eV_mu*1000./_LightSp) #sout="THz";outputval=outputval/(4.1356672e-06)
@@ -3118,10 +3177,13 @@ def srwl_uti_proc_is_master():
     Check if process is Master (in parallel processing sense)
     """
     try:
-        #resImpMPI4Py = __import__('mpi4py', globals(), locals(), ['MPI'], -1) #MPI module dynamic load
-        resImpMPI4Py = __import__('mpi4py', globals(), locals(), ['MPI'], 0) #MPI module dynamic load
-        #multiply re-import won't hurt; but it would be better to avoid this(?)
-        MPI = resImpMPI4Py.MPI
+        ##resImpMPI4Py = __import__('mpi4py', globals(), locals(), ['MPI'], -1) #MPI module dynamic load
+        #resImpMPI4Py = __import__('mpi4py', globals(), locals(), ['MPI'], 0) #MPI module dynamic load
+        ##multiple re-import won't hurt; but it would be better to avoid this(?)
+        #MPI = resImpMPI4Py.MPI
+        
+        from mpi4py import MPI #OC091014
+        
         comMPI = MPI.COMM_WORLD
         rankMPI = comMPI.Get_rank()
         if(rankMPI == 0):
@@ -3135,7 +3197,21 @@ def srwl_uti_proc_is_master():
 def srwl_uti_save_intens_ascii(_ar_intens, _mesh, _file_path, _n_stokes=1, _arLabels=['Photon Energy', 'Horizontal Position', 'Vertical Position', 'Intensity'], _arUnits=['eV', 'm', 'm', 'ph/s/.1%bw/mm^2'], _mutual=0):
     f = open(_file_path, 'w')
     arLabelUnit = [_arLabels[i] + ' [' + _arUnits[i] + ']' for i in range(4)]
-    f.write('#' + arLabelUnit[3] + ' (C-aligned, inner loop is vs ' + _arLabels[0] + ', outer loop vs ' + _arLabels[2] + ')\n')
+
+    sUnitEnt = arLabelUnit[3]
+
+    if(_mutual != 0):
+        sUnitEntParts = ['']
+        if((sUnitEnt != None) and (len(sUnitEnt) > 0)): sUnitEntParts = sUnitEnt.split(' ')
+        sUnitEntTest = sUnitEnt
+        if(len(sUnitEntParts) > 0): sUnitEntTest = sUnitEntParts[0]
+        sUnitEntTest = sUnitEntTest.replace(' ', '')
+        if(sUnitEntTest.lower != 'mutual'):
+            sPrefix = 'Mutual' #this prefix is a switch meaning eventual special processing in viewing utilities
+            if(sUnitEnt.startswith(' ') == False): sPrefix += ' '
+            sUnitEnt = sPrefix + sUnitEnt
+    
+    f.write('#' + sUnitEnt + ' (C-aligned, inner loop is vs ' + _arLabels[0] + ', outer loop vs ' + _arLabels[2] + ')\n')
     f.write('#' + repr(_mesh.eStart) + ' #Initial ' + arLabelUnit[0] + '\n')
     f.write('#' + repr(_mesh.eFin) + ' #Final ' + arLabelUnit[0] + '\n')
     f.write('#' + repr(_mesh.ne) + ' #Number of points vs ' + _arLabels[0] + '\n')
@@ -3145,9 +3221,22 @@ def srwl_uti_save_intens_ascii(_ar_intens, _mesh, _file_path, _n_stokes=1, _arLa
     f.write('#' + repr(_mesh.yStart) + ' #Initial ' + arLabelUnit[2] + '\n')
     f.write('#' + repr(_mesh.yFin) + ' #Final ' + arLabelUnit[2] + '\n')
     f.write('#' + repr(_mesh.ny) + ' #Number of points vs ' + _arLabels[2] + '\n')
+
+    #strOut =  '#' + sUnitEnt + ' (C-aligned, inner loop is vs ' + _arLabels[0] + ', outer loop vs ' + _arLabels[2] + ')\n'
+    #strOut += '#' + repr(_mesh.eStart) + ' #Initial ' + arLabelUnit[0] + '\n'
+    #strOut += '#' + repr(_mesh.eFin) + ' #Final ' + arLabelUnit[0] + '\n'
+    #strOut += '#' + repr(_mesh.ne) + ' #Number of points vs ' + _arLabels[0] + '\n'
+    #strOut += '#' + repr(_mesh.xStart) + ' #Initial ' + arLabelUnit[1] + '\n'
+    #strOut += '#' + repr(_mesh.xFin) + ' #Final ' + arLabelUnit[1] + '\n'
+    #strOut += '#' + repr(_mesh.nx) + ' #Number of points vs ' + _arLabels[1] + '\n'
+    #strOut += '#' + repr(_mesh.yStart) + ' #Initial ' + arLabelUnit[2] + '\n'
+    #strOut += '#' + repr(_mesh.yFin) + ' #Final ' + arLabelUnit[2] + '\n'
+    #strOut += '#' + repr(_mesh.ny) + ' #Number of points vs ' + _arLabels[2] + '\n'
+            
     nComp = 1
     if _n_stokes > 0:
         f.write('#' + repr(_n_stokes) + ' #Number of components\n')
+        #strOut += '#' + repr(_n_stokes) + ' #Number of components\n'
         nComp = _n_stokes
     nRadPt = _mesh.ne*_mesh.nx*_mesh.ny
     if(_mutual > 0): nRadPt *= nRadPt
@@ -3155,7 +3244,43 @@ def srwl_uti_save_intens_ascii(_ar_intens, _mesh, _file_path, _n_stokes=1, _arLa
     nVal = nRadPt*nComp #_mesh.ne*_mesh.nx*_mesh.ny*nComp
     for i in range(nVal): #write all data into one column using "C-alignment" as a "flat" 1D array
         f.write(' ' + repr(_ar_intens[i]) + '\n')
+        #strOut += ' ' + repr(_ar_intens[i]) + '\n'
+
+    #f = open(_file_path, 'w')
+    #f.write(strOut)
     f.close()
+
+#**********************Auxiliary function to read-in tabulated  Intensity data from an ASCII file (format is defined in srwl_uti_save_intens_ascii)
+def srwl_uti_read_intens_ascii(_file_path, _num_type='f'):
+
+    sCom = '#'
+    f = open(_file_path, 'r')
+    lines = f.readlines()
+
+    resMesh = SRWLRadMesh()
+
+    curParts = lines[1].split(sCom); resMesh.eStart = float(curParts[1]) #to check
+    curParts = lines[2].split(sCom); resMesh.eFin = float(curParts[1]) #to check
+    curParts = lines[3].split(sCom); resMesh.ne = int(curParts[1]) #to check
+    
+    curParts = lines[4].split(sCom); resMesh.xStart = float(curParts[1]) #to check
+    curParts = lines[5].split(sCom); resMesh.xFin = float(curParts[1]) #to check
+    curParts = lines[6].split(sCom); resMesh.nx = int(curParts[1]) #to check
+
+    curParts = lines[7].split(sCom); resMesh.yStart = float(curParts[1]) #to check
+    curParts = lines[8].split(sCom); resMesh.yFin = float(curParts[1]) #to check
+    curParts = lines[9].split(sCom); resMesh.ny = int(curParts[1]) #to check
+
+    iStart = 10
+    if((lines[10])[0] == sCom): iStart = 11
+    
+    nRows = len(lines)
+    arInt = []
+    for i in range(iStart, nRows):
+        curLine = lines[i]
+        if(len(curLine) > 0): arInt.append(float(curLine))
+    f.close()
+    return array(_num_type, arInt), resMesh
 
 #**********************Auxiliary function to write auxiliary/debugging information to an ASCII file:
 def srwl_uti_save_text(_text, _file_path):
@@ -3168,9 +3293,9 @@ def srwl_uti_read_data_cols(_file_path, _str_sep, _i_col_start=0, _i_col_end=-1,
     """
     Auxiliary function to read-in data comumns from ASCII file (2D table)
     :param _file_path: full path (including file name) to the file
+    :param _str_sep: column separation symbol(s) (string)
     :param _i_col_start: initial data column to read
     :param _i_col_end: final data column to read
-    :param _str_sep: column separation symbol(s) (string)
     :param _n_line_skip: number of lines to skip in the beginning of the file
     :return: 2D list containing data columns read
     """
@@ -3205,6 +3330,119 @@ def srwl_uti_read_data_cols(_file_path, _str_sep, _i_col_start=0, _i_col_end=-1,
     f.close()
     return resCols #attn: returns lists, not arrays!
 
+#**********************Auxiliary function to write (save) data comumns to ASCII file (2D table):
+def srwl_uti_write_data_cols(_file_path, _cols, _str_sep, _str_head=None, _i_col_start=0, _i_col_end=-1):
+    """
+    Auxiliary function to write tabulated data (columns, i.e 2D table) to ASCII file
+    :param _file_path: full path (including file name) to the file to be (over-)written
+    :param _cols: array of data columns to be saves to file
+    :param _str_sep: column separation symbol(s) (string)
+    :param _str_head: header (string) to write before data columns
+    :param _i_col_start: initial data column to write
+    :param _i_col_end: final data column to write
+    """
+    f = open(_file_path, 'w')
+
+    if(_str_head != None):
+        lenStrHead = len(_str_head)
+        if(lenStrHead > 0):
+            strHead = _str_head
+            if(_str_head[lenStrHead - 1] != '\n'):
+                strHead = copy(_str_head) + '\n'
+            f.write(strHead)
+    if(_cols == None):
+        f.close(); return
+        
+    nCols = len(_cols)
+    if(nCols <= 0):
+        f.close(); return
+
+    nLines = len(_cols[0])
+    for i in range(1, nCols):
+        newLen = len(_cols[i])
+        if(nLines < newLen): nLines = newLen
+
+    strSep = '\t'
+    if(_str_sep != None):
+        if(len(_str_sep) > 0): strSep = _str_sep
+
+    strTot = ''
+    iColEndP1 = nCols
+    if((_i_col_end >= 0) and (_i_col_end < nCols)): iColEndP1 = _i_col_end + 1
+    iColEnd = iColEndP1 - 1
+    nLinesM1 = nLines - 1
+        
+    for i in range(nLines):
+        curLine = ''
+        for j in range(_i_col_start, iColEndP1):
+            curElem = ' '
+            if(i < len(_cols[j])): curElem = repr(_cols[j][i])
+            curLine += curElem
+            if(j < iColEnd): curLine += strSep
+        if(i < nLinesM1): curLine += '\n'
+        strTot += curLine
+        
+    f.write(strTot)
+    f.close()
+
+#**********************Auxiliary function to read tabulated 3D Magnetic Field data from ASCII file:
+def srwl_uti_read_mag_fld_3d(_fpath, _scom='#'):
+    f = open(_fpath, 'r')
+    f.readline() #1st line: just pass
+    xStart = float(f.readline().split(_scom, 2)[1]) #2nd line: initial X position [m]; it will not actually be used
+    xStep = float(f.readline().split(_scom, 2)[1]) #3rd line: step vs X [m]
+    xNp = int(f.readline().split(_scom, 2)[1]) #4th line: number of points vs X
+    yStart = float(f.readline().split(_scom, 2)[1]) #5th line: initial Y position [m]; it will not actually be used
+    yStep = float(f.readline().split(_scom, 2)[1]) #6th line: step vs Y [m]
+    yNp = int(f.readline().split(_scom, 2)[1]) #7th line: number of points vs Y
+    zStart = float(f.readline().split(_scom, 2)[1]) #8th line: initial Z position [m]; it will not actually be used
+    zStep = float(f.readline().split(_scom, 2)[1]) #9th line: step vs Z [m]
+    zNp = int(f.readline().split(_scom, 2)[1]) #10th line: number of points vs Z
+    totNp = xNp*yNp*zNp
+    locArBx = array('d', [0]*totNp)
+    locArBy = array('d', [0]*totNp)
+    locArBz = array('d', [0]*totNp)
+    strSep = '\t'
+    for i in range(totNp):
+        curLineParts = f.readline().split(strSep)
+        locArBx[i] = float(curLineParts[0])
+        locArBy[i] = float(curLineParts[1])
+        locArBz[i] = float(curLineParts[2])
+    f.close()
+    xRange = xStep
+    if xNp > 1: xRange = (xNp - 1)*xStep
+    yRange = yStep
+    if yNp > 1: yRange = (yNp - 1)*yStep
+    zRange = zStep
+    if zNp > 1: zRange = (zNp - 1)*zStep
+    
+    xc = xStart + 0.5*xStep*(xNp - 1)
+    yc = yStart + 0.5*yStep*(yNp - 1)
+    zc = zStart + 0.5*zStep*(zNp - 1)
+    return SRWLMagFldC(SRWLMagFld3D(locArBx, locArBy, locArBz, xNp, yNp, zNp, xRange, yRange, zRange, 1), xc, yc, zc)
+
+#**********************Auxiliary function to allocate array
+#(to walk-around the problem that simple allocation "array(type, [0]*n)" at large n is usually very time-consuming)
+def srwl_uti_array_alloc(_type, _n):
+    nPartMax = 10000000 #to tune
+    if(_n <= nPartMax): return array(_type, [0]*_n)
+        #resAr = array(_type, [0]*_n)
+        #print('Array requested:', _n, 'Allocated:', len(resAr))
+        #return resAr
+
+    nEqualParts = int(_n/nPartMax)
+    nResid = int(_n - nEqualParts*nPartMax)
+    resAr = array(_type, [0]*nPartMax)
+    if(nEqualParts > 1):
+        auxAr = deepcopy(resAr)
+        for i in range(nEqualParts - 1): resAr.extend(auxAr)
+    if(nResid > 0):
+        auxAr = array(_type, [0]*nResid)
+        resAr.extend(auxAr)
+
+    #print('Array requested:', _n, 'Allocated:', len(resAr))
+    return resAr
+
 #**********************Auxiliary function to generate Halton sequence (to replace pseudo-random numbers)
 #Contribution from R. Lindberg, X. Shi (APS)
 def srwl_uti_math_seq_halton(i, base=2):
@@ -3225,7 +3463,9 @@ def srwl_uti_math_seq_halton(i, base=2):
 #Wavefront manipulation functions
 #****************************************************************************
 #****************************************************************************
-def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_part_tot, _n_part_avg_proc=1, _n_save_per=100, _file_path=None, _sr_samp_fact=-1, _opt_bl=None, _pres_ang=0, _char=0, _x0=0, _y0=0, _e_ph_integ=0, _rand_meth=1):
+def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_part_tot, _n_part_avg_proc=1, _n_save_per=100,
+                               _file_path=None, _sr_samp_fact=-1, _opt_bl=None, _pres_ang=0, _char=0, _x0=0, _y0=0, _e_ph_integ=0,
+                               _rand_meth=1, _tryToUseMPI=True):
     """
     Calculate Stokes Parameters of Emitted (and Propagated, if beamline is defined) Partially-Coherent SR
     :param _e_beam: Finite-Emittance e-beam (SRWLPartBeam type)
@@ -3240,7 +3480,7 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
     :param _sr_samp_fact: oversampling factor for calculating of initial wavefront for subsequent propagation (effective if >0)
     :param _opt_bl: optical beamline (container) to propagate the radiation through (SRWLOptC type)
     :param _pres_ang: switch specifying presentation of the resulting Stokes parameters: coordinate (0) or angular (1)
-    :param _char: radiation characteristic to calculate: 0- Intensity (s0); 1- Four Stokes components; 2- Mutual Intensity Cut vs X; 3- Mutual Intensity Cut vs Y; 4- Mutual Intensity Cut vs X & Y
+    :param _char: radiation characteristic to calculate: 0- Intensity (s0); 1- Four Stokes components; 2- Mutual Intensity Cut vs X; 3- Mutual Intensity Cut vs Y; 4- Mutual Intensity Cut vs X & Y; 10- Flux
     :param _x0: horizontal center position for mutual intensity calculation
     :param _y0: vertical center position for mutual intensity calculation
     :param _e_ph_integ: integration over photon energy is required (1) or not (0); if the integration is required, the limits are taken from _mesh
@@ -3248,28 +3488,33 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
         1- standard pseudo-random number generator
         2- Halton sequences
         3- LPtau sequences (to be implemented)
+    :param _tryToUseMPI: switch specifying whether MPI should be attempted to be used
     """
 
     nProc = 1
     rank = 1
     MPI = None
     comMPI = None
-    try:
-        #DEBUG
-        #resImpMPI4Py = __import__('mpi4py', globals(), locals(), ['MPI'], -1) #MPI module load
-        resImpMPI4Py = __import__('mpi4py', globals(), locals(), ['MPI'], 0) #MPI module load
-        #print('__import__ passed')
 
-        MPI = resImpMPI4Py.MPI
-        comMPI = MPI.COMM_WORLD
-        rank = comMPI.Get_rank()
-        nProc = comMPI.Get_size()
+    if(_tryToUseMPI):
+        try:
+            ##DEBUG
+            ##resImpMPI4Py = __import__('mpi4py', globals(), locals(), ['MPI'], -1) #MPI module load
+            #resImpMPI4Py = __import__('mpi4py', globals(), locals(), ['MPI'], 0) #MPI module load
+            ##print('__import__ passed')
+            #MPI = resImpMPI4Py.MPI
 
-    except:
-        print('Calculation will be sequential (non-parallel), because "mpi4py" module can not be loaded')
+            from mpi4py import MPI #OC091014
+        
+            comMPI = MPI.COMM_WORLD
+            rank = comMPI.Get_rank()
+            nProc = comMPI.Get_size()
 
-    #print(MPI)
-    #print(rank, nProc)
+        except:
+            print('Calculation will be sequential (non-parallel), because "mpi4py" module can not be loaded')
+
+    #print('DEBUG:', MPI)
+    #print('DEBUG: rank, nProc:', rank, nProc)
 
     #if(nProc <= 1): #OC050214
     #    _n_part_avg_proc = _n_part_tot
@@ -3278,7 +3523,8 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
     wfr.allocate(_mesh.ne, _mesh.nx, _mesh.ny) #Numbers of points vs Photon Energy, Horizontal and Vertical Positions
     wfr.mesh.set_from_other(_mesh)    
     wfr.partBeam = deepcopy(_e_beam)
-    arPrecParSR = [_sr_meth, _sr_rel_prec, 0, 0, 50000, 0, _sr_samp_fact]
+    #arPrecParSR = [_sr_meth, _sr_rel_prec, 0, 0, 50000, 0, _sr_samp_fact] #to add npTraj, useTermin ([4], [5]) terms as input parameters
+    arPrecParSR = [_sr_meth, _sr_rel_prec, 0, 0, 50000, 1, _sr_samp_fact] #to add npTraj, useTermin ([4], [5]) terms as input parameters
 
     #meshRes = SRWLRadMesh()
     meshRes = SRWLRadMesh(_mesh.eStart, _mesh.eFin, _mesh.ne, _mesh.xStart, _mesh.xFin, _mesh.nx, _mesh.yStart, _mesh.yFin, _mesh.ny, _mesh.zStart) #to ensure correct final mesh if _opt_bl==None
@@ -3293,6 +3539,11 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
         meshRes.eStart = eAvg
         meshRes.eFin = eAvg
         meshRes.ne = 1
+
+    calcSpecFluxSrc = False
+    if((_char == 10) and (_mesh.nx == 1) and (_mesh.ny == 1)):
+        calcSpecFluxSrc = True
+        ePhIntegMult *= 1.e+06*(_mesh.xFin - _mesh.xStart)*(_mesh.yFin - _mesh.yStart) #to obtain Flux from Intensity (Flux/mm^2)
 
     elecX0 = _e_beam.partStatMom1.x
     elecXp0 = _e_beam.partStatMom1.xp
@@ -3364,14 +3615,18 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
 
         if(useGsnBmSrc):
             srwl.CalcElecFieldGaussian(wfr, _mag, arPrecParSR)
+            #print('DEBUG: Commented-out: CalcElecFieldGaussian')
         else:
             srwl.CalcElecFieldSR(wfr, 0, _mag, arPrecParSR)
+            #print('DEBUG: Commented-out: CalcElecFieldSR')
             
         #print('DEBUG MESSAGE: Central Wavefront calculated')
         srwl.PropagElecField(wfr, _opt_bl)
+        #print('DEBUG: Commented-out: PropagElecField')
         #print('DEBUG MESSAGE: Central Wavefront propagated')
         if(_pres_ang > 0):
             srwl.SetRepresElecField(wfr, 'a')
+            #print('DEBUG: Commented-out: SetRepresElecField')
         
         meshRes.set_from_other(wfr.mesh)
 
@@ -3391,6 +3646,7 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
             #comMPI.Bcast([arMesh, MPI.FLOAT], root=MPI.ROOT)
             #comMPI.Bcast([arMesh, MPI.FLOAT])
 
+            #print('DEBUG MESSAGE: Rank0 is about to broadcast mesh of Propagated central wavefront')
             for iRank in range(nProc - 1):
                 dst = iRank + 1
                 #print("msg %d: sending data from %d to %d" % (iRank, rank, dst)) #an he
@@ -3517,6 +3773,15 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
                 if(_e_ph_integ == 1):
                      print('Eph=', wfr.mesh.eStart)
 
+            if(calcSpecFluxSrc): #consider taking into account _rand_meth != 1 here
+                xObs = random.uniform(_mesh.xStart, _mesh.xFin)
+                wfr.mesh.xStart = xObs
+                wfr.mesh.xFin = xObs
+                yObs = random.uniform(_mesh.yStart, _mesh.yFin)
+                wfr.mesh.yStart = yObs
+                wfr.mesh.yFin = yObs
+                #print('xObs=', xObs, 'yObs=', yObs)
+
             try:
                 if(useGsnBmSrc):
                     _mag.x = wfr.partBeam.partStatMom1.x
@@ -3524,15 +3789,19 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
                     _mag.y = wfr.partBeam.partStatMom1.y
                     _mag.yp = wfr.partBeam.partStatMom1.yp
                     srwl.CalcElecFieldGaussian(wfr, _mag, arPrecParSR)
+                    #print('DEBUG: Commented-out: CalcElecFieldGaussian')
                     #print('Gaussian wavefront calc. done')
                 else:
                     srwl.CalcElecFieldSR(wfr, 0, _mag, arPrecParSR) #calculate Electric Field emitted by current electron
+                    #print('DEBUG: Commented-out: CalcElecFieldSR')
 
                 if(_opt_bl != None):
                     srwl.PropagElecField(wfr, _opt_bl) #propagate Electric Field emitted by the electron
+                    #print('DEBUG: Commented-out: PropagElecField')
 
                 if(_pres_ang > 0):
                     srwl.SetRepresElecField(wfr, 'a')
+                    #print('DEBUG: Commented-out: SetRepresElecField')
 
             except:
                 traceback.print_exc()
@@ -3695,3 +3964,240 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
 #****************************************************************************
 from srwl_uti_src import *
 
+#****************************************************************************
+#****************************************************************************
+# Help to main functions implemented in C/C++ (available through srwlpy.pyd/.so)
+#****************************************************************************
+#****************************************************************************
+helpCalcMagnField = """CalcMagnField(_outMagFld3DC, _inMagFldC)
+function calculates (tabulates) 3D magnetic field created by different magnetic field sources / elements
+:param _outMagFld3DC: output magnetic field container (instance of SRWLMagFldC) with the tabulated 3D magnetic field element
+       (instance of SRWLMagFld3D) 
+:param _inMagFldC: input magnetic field container (instance of SRWLMagFldC) of magnetic field sources / elements
+"""
+helpCalcPartTraj = """CalcPartTraj(_prtTrj, _inMagFldC, _inPrec)
+function calculates charged particle trajectory in external 3D magnetic field (in Cartesian laboratory frame)
+:param _prtTrj: input / output trajectory structure (instance of SRWLPrtTrj);
+       note that all data arrays should be allocated in Python script before calling this function;
+       initial conditions and particle type must be specified in _prtTrj.partInitCond;
+       the initial conditions are assumed to be given for ct = 0,
+       however the trajectory will be calculated for the mesh defined by _prtTrj.np, _prtTrj.ctStart, _prtTrj.ctEnd
+:param _inMagFldC: input magnetic field container structure (instance of SRWLMagFldC)
+:param _inPrec: input list of calculation method ID and precision parameters;
+       _inPrec[0]: integration method ID:
+                   =1 -use the fourth-order Runge-Kutta (R-K), wit hthe precision driven by number of points
+                   =2 -use the fifth-order R-K
+       _inPrec[1],[2],[3],[4],[5]: optional absolute precision values for X[m],X'[rad],Y[m],Y'[rad],Z[m] 
+                   to be taken into account only for R-K fifth order or higher (yet to be tested!!)
+       _inPrec[6]: tolerance (default = 1) for R-K fifth order or higher
+       _inPrec[7]: maximal number of auto-steps for R-K fifth order or higher (default = 5000)
+"""
+helpCalcPartTrajFromKickMatr = """CalcPartTrajFromKickMatr(_prtTrj, _inKickM, _inPrec)
+function calculates charged particle trajectory from one or a list of kick-matrices
+:param _prtTrj: input / output trajectory structure (instance of SRWLPrtTrj);
+       note that all data arrays should be allocated in Python script before calling this function;
+       initial conditions and particle type must be specified in _partTraj.partInitCond;
+       the initial conditions are assumed to be given for ct = 0,
+       however the trajectory will be calculated for the mesh defined by _prtTrj.np, _prtTrj.ctStart, _prtTrj.ctEnd
+:param _inKickM: input kick-matrix (instance of SRWLKickM) or a list of such kick-matrices
+:param _inPrec: input list of calculation parameters:
+       _inPrec[0]: switch specifying whether the new trajectory data should be added to pre-existing trajectory data (=1, default)
+       or it should override any pre-existing trajectory data (=0)
+"""
+helpCalcElecFieldSR = """CalcElecFieldSR(_wfr, _inPrtTrj, _inMagFldC, _inPrec)
+function calculates Electric Field (Wavefront) of Synchrotron Radiation by a relativistic charged particle
+traveling in external 3D magnetic field
+:param _wfr: input / output resulting Wavefront structure (instance of SRWLWfr);
+       all data arrays should be allocated in Python script before calling this function;
+       the emitting particle beam, radiation mesh, presentation, etc., should be specified in this structure at input
+:param _inPrtTrj: optional input pre-calculated particle trajectory structure (instance of SRWLPrtTrj);
+       the initial conditions and particle type must be specified in _inPrtTrj.partInitCond;
+       if the trajectory data arrays (_inPrtTrj.arX, _inPrtTrj.arXp, _inPrtTrj.arY, _inPrtTrj.arYp) are defined,
+       the SR will be calculated from these data; if these arrays are not defined, or if _inPrtTrj =0, the function will attempt
+       to calculate the SR from the magnetic field data (_inMagFldC) which has to be supplied
+:param _inMagFldC: optional input magnetic field (container) structure (instance of SRWLMagFldC);
+       to be taken into account only if particle trajectroy arrays (_inPrtTrj.arX, _inPrtTrj.arXp, _inPrtTrj.arY, _inPrtTrj.arYp)
+       are not defined
+:param _inPrec: input list of precision parameters:
+       _inPrec[0]: method ID: =0 -"manual", =1 -"auto-undulator", =2 -"auto-wiggler")
+       _inPrec[1]: step size (for "manual" method, i.e. if _inPrec[0]=0) or relative precision
+                   (for "auto-undulator" or "auto-wiggler" methods, i.e. if _inPrec[0]=1 or _inPrec[0]=2)
+       _inPrec[2]: longitudinal position [m] to start integration (effective if _inPrec[2] < _inPrec[3])
+       _inPrec[3]: longitudinal position [m] to finish integration (effective if _inPrec[2] < _inPrec[3])
+       _inPrec[4]: number of points to use for trajectory calculation 
+       _inPrec[5]: calculate terminating terms or not:
+                   =0 -don't calculate two terms,
+                   =1 -do calculate two terms,
+                   =2 -calculate only upstream term,
+                   =3 -calculate only downstream term
+       _inPrec[6]: sampling factor (for propagation, effective if > 0)
+"""
+helpCalcElecFieldGaussian = """CalcElecFieldGaussian(_wfr, _inGsnBm, _inPrec)
+function calculates Electric Field (Wavefront) of a coherent Gaussian beam
+:param _wfr: input / output resulting Wavefront structure (instance of SRWLWfr);
+       all data arrays should be allocated in Python script before calling this function;
+       the emitting particle beam, radiation mesh, presentation, etc., should be specified in this structure at input
+:param _inGsnBm: input coherent Gaussian beam parameters structure (instance of SRWLGsnBm)
+:param _inPrec: input list of precision parameters:
+       _inPrec[0]: sampling factor (for propagation, effective if > 0)
+"""
+helpCalcStokesUR = """CalcStokesUR(_stk, _inElBeam, _inUnd, _inPrec)
+function calculates Stokes parameters of Undulator Radiation (UR) by a relativistic finite-emittance electron beam
+traveling in periodic magnetic field of an undulator
+:param _stk: input / output resulting Stokes structure (instance of SRWLStokes);
+       all data arrays should be allocated in Python script before calling this function; the mesh, presentation, etc.,
+       should be specified in this structure at input
+:param _inElBeam: input electron beam structure (instance of SRWLPartBeam)
+:param _inUnd: input undulator (periodic magnetic field) structure (instance of SRWLMagFldU)
+:param _inPrec: input list of precision parameters:
+       _inPrec[0]: initial harmonic of UR spectrum
+       _inPrec[1]: final harmonic of UR spectrum
+       _inPrec[2]: longitudinal integration precision parameter (nominal value is 1.0, for better accuracy make it > 1.0)
+       _inPrec[3]: azimuthal integration precision parameter (nominal value is 1.0, for better accuracy make it > 1.0)
+       _inPrec[4]: calculate flux (=1) or intensity (=2)
+"""
+helpCalcPowDenSR = """CalcPowDenSR(_stk, _inElBeam, _inPrtTrj, _inMagFldC, _inPrec)
+function calculates Power Density distribution of Synchrotron Radiation by a relativistic finite-emittance electron beam
+traveling in arbitrary magnetic field
+:param _stk: input / output resulting Stokes structure (instance of SRWLStokes); 
+       all data arrays should be allocated in Python script before calling this function; the mesh, presentation, etc.,
+       should be specified in this structure at input; the Power Density data will be written to _stk.arS
+:param _inElBeam: input electron beam structure (instance of SRWLPartBeam)
+:param _inPrtTrj: input trajectory structure (instance of SRWLPrtTrj);
+       can be =0; in such case, the power density is calculated based on _inElBeam and _inMagFldC
+:param _inMagFldC: input magnetic field container structure (instance of SRWLMagFldC);
+       can be =0; in such case, power density is calculated from _inPrtTrj (if _inPrtTrj != 0) and _inElBeam (if _inElBeam != 0))
+:param _inPrec: input list of precision parameters:
+       _inPrec[0]: precision factor (=1.0 default, >1.0 for more precision)
+       _inPrec[1]: power density computation method (=1 -"near field" (default), =2 -"far field")
+       _inPrec[2]: initial longitudinal position [m] (effective if < _inPrec[3])
+       _inPrec[3]: final longitudinal position [m] (effective if > _inPrec[2])
+       _inPrec[4]: number of points to use for trajectory calculation 
+"""
+helpCalcIntFromElecField = """CalcIntFromElecField(_arI, _inWfr, _inPol, _inIntType, _inDepType, _inE, _inX, _inY)
+function calculates/"extracts" Intensity from pre-calculated Electric Field
+:param _arI: output resulting Intensity array (should be allocated in Python script before calling this function)
+:param _inWfr: input pre-calculated Wavefront structure (instance of SRWLWfr)
+:param _inPol: input switch specifying polarization component to be extracted:
+               =0 -Linear Horizontal; 
+               =1 -Linear Vertical; 
+               =2 -Linear 45 degrees; 
+               =3 -Linear 135 degrees;
+               =4 -Circular Right; 
+               =5 -Circular Left; 
+               =6 -Total
+:param _inIntType: input switch specifying "type" of a characteristic to be extracted:
+               =0 -"Single-Electron" Intensity; 
+               =1 -"Multi-Electron" Intensity; 
+               =2 -"Single-Electron" Flux; 
+               =3 -"Multi-Electron" Flux; 
+               =4 -"Single-Electron" Radiation Phase; 
+               =5 -Re(E): Real part of Single-Electron Electric Field;
+               =6 -Im(E): Imaginary part of Single-Electron Electric Field;
+               =7 -"Single-Electron" Intensity, integrated over Time or Photon Energy (i.e. Fluence)
+:param _inDepType: input switch specifying type of dependence to be extracted:
+               =0 -vs e (photon energy or time);
+               =1 -vs x (horizontal position or angle);
+               =2 -vs y (vertical position or angle);
+               =3 -vs x&y (horizontal and vertical positions or angles);
+               =4 -vs e&x (photon energy or time and horizontal position or angle);
+               =5 -vs e&y (photon energy or time and vertical position or angle);
+               =6 -vs e&x&y (photon energy or time, horizontal and vertical positions or angles);
+:param _inE: input photon energy [eV] or time [s] to keep fixed (to be taken into account for dependences vs x, y, x&y)
+:param _inX: input horizontal position [m] to keep fixed (to be taken into account for dependences vs e, y, e&y)
+:param _inY: input vertical position [m] to keep fixed (to be taken into account for dependences vs e, x, e&x)
+"""
+helpResizeElecField = """ResizeElecField(_wfr, _inType, _inPar)
+function resizes Electric Field Wavefront vs transverse positions / angles or photon energy / time
+:param _wfr: input / output Wavefront structure (instance of SRWLWfr)
+:param _inType: input character specifying whether the resizing should be done vs positions / angles ('c')
+       or vs photon energy / time ('f')
+:param _inPar: input list of parameters (meaning depends on value of _inType):
+       if(_inType == 'c'):
+           _inPar[0]: method (=0 -regular method, without FFT, =1 -"special" method involving FFT)
+           _inPar[1]: range resizing factor for horizontal position / angle
+                      (range will be decreased if 0 < _inPar[1] < 1. and increased if _inPar[1] > 1.)
+           _inPar[2]: resolution resizing factor for horizontal position / angle
+                      (resolution will be decreased if 0 < _inPar[2] < 1. and increased if _inPar[2] > 1.)
+           _inPar[3]: range resizing factor for vertical position / angle
+                      (range will be decreased if 0 < _inPar[3] < 1. and increased if _inPar[3] > 1.)
+           _inPar[4]: resolution resizing factor for vertical position / angle
+                      (resolution will be decreased if 0 < _inPar[4] < 1. and increased if _inPar[4] > 1.)
+           _inPar[5]: relative horizontal wavefront center position / angle at resizing
+                      (default is 0.5; in that case the resizing will be symmetric)
+           _inPar[6]: relative vertical wavefront center position / angle at resizing
+                      (default is 0.5; in that case the resizing will be symmetric)
+       if(_inType == 'f'):
+           _inPar[0]: method (=0 -regular method, without FFT, =1 -"special" method involving FFT)
+           _inPar[1]: range resizing factor for photon energy / time
+                      (range will be decreased if 0 < _inPar[1] < 1. and increased if _inPar[1] > 1.)
+           _inPar[2]: resolution resizing factor for photon energy / time
+                      (resolution will be decreased if 0 < _inPar[2] < 1. and increased if _inPar[2] > 1.)
+           _inPar[3]: relative photon energy / time center position at resizing
+                      (default is 0.5; in that case the resizing will be symmetric)
+"""
+helpSetRepresElecField = """SetRepresElecField(_wfr, _inRepr)
+function changes Representation of Electric Field: positions <-> angles, frequency <-> time
+:param _wfr: input / output Wavefront structure (instance of SRWLWfr)
+:param _inRepr: input character specifying desired representation:
+                ='c' for coordinate, ='a' for angle, ='f' for frequency, ='t' for time
+"""
+helpPropagElecField = """PropagElecField(_wfr, _inOptC)
+function propagates Electric Field Wavefront through Optical Elements and free space
+:param _wfr: input / output Wavefront structure (instance of SRWLWfr)
+:param _inOptC: input container of optical elements (instance of SRWLOptC) the propagation should be done through;
+       note that lists of optical elements and the corresponding propagation parameters have to be defined in
+       _inOptC.arOpt and _inOptC.arProp respectively (see help/comments to SRWLOptC class)
+"""
+helpUtiFFT = """UtiFFT(_data, _mesh, _inDir)
+function performs 1D or 2D in-place Fast Fourier Transform (as defined by arguments)
+:param _data: input / output float (single-precision) type array of data to be Fourier-transformed;
+       in the case of a 2D transform, the data should be "C-aligned" in 1D array,
+       with the first dimension being "inner" (i.e. most frequently changing);
+       the FFT is performed "in place", i.e. the input _data will be replaced by a resulting data
+:param _mesh: input / output list specifying (equidistant, regular) mesh of the data to be transformed:
+       _mesh[0]: start value of the first argument
+       _mesh[1]: step size value of the first argument
+       _mesh[2]: number of points over the first argument
+       _mesh[3]: (optional, to be used for 2D FFT) start value of the second argument
+       _mesh[4]: (optional, to be used for 2D FFT) step size value of the second argument
+       _mesh[5]: (optional, to be used for 2D FFT) number of points of the second argument
+       if len(_mesh) == 3, 1D FFT will be performed
+       else if len(_mesh) == 6, 2D FFT will be performed
+       the input _mesh will be replaced by a resulting mesh
+:param _inDir: input integer number specifying FFT "direction": >0 means forward FFT, <0 means backward FFT
+"""
+helpUtiConvWithGaussian = """UtiConvWithGaussian(_data, _inMesh, _inSig)
+function performs convolution of 1D or 2D data wave with 1D or 2D Gaussian (as defined by arguments)
+:param _data: input / output float (single-precision) type array of data to be convolved with Gaussian;
+       in the case of a 2D convolution, the data should be "C-aligned" in 1D array,
+       with the first dimension being "inner" (i.e. most frequently changing);
+       the convolution is performed "in place", i.e. the input _data will be replaced by a resulting data
+:param _inMesh: input list specifying (equidistant, regular) mesh of the data to be transformed:
+       _inMesh[0]: start value of the first argument
+       _inMesh[1]: step size value of the first argument
+       _inMesh[2]: number of points over the first argument
+       _inMesh[3]: (optional, to be used for 2D convolution) start value of the second argument
+       _inMesh[4]: (optional, to be used for 2D convolution) step size value of the second argument
+       _inMesh[5]: (optional, to be used for 2D convolution) number of points of the second argument
+       if len(_mesh) == 3, 1D convolution will be performed
+       else if len(_mesh) == 6, 2D convolution will be performed
+:param _inSig: input list of central 2nd order statistical moments of 1D or 2D Gaussian,
+       and possibly a coefficient before cross-term:
+       _inSig[0]: RMS size of teh Gaussian in first dimension
+       _inSig[1]: (optional) RMS size of a 2D Gaussian in second dimension
+       _inSig[2]: (optional) coefficient before cross-term in exponent argument of a 2D Gaussian
+       i.e. _inSig[] = [sigX, sigY, alp} defines a "tilted" normalized 2D Gaussian (vs x, y): 
+       (sqrt(1 - (alp*sigX*sigY)**2)/(2*Pi*sigX*sigY))*exp(-x**2/(2*sigX**2) - y**2/(2*sigY^2) - alp*x*y)
+"""
+helpUtiUndFromMagFldTab = """UtiUndFromMagFldTab(_undMagFldC, _inMagFldC, _inPrec)
+function attempts to create periodic undulator structure from tabulated magnetic field
+:param _undMagFldC: input / output magnetic field container structure (instance of SRWLMagFldC) with undulator structure
+       to be set up being allocated in _undMagFldC.arMagFld[0]
+:param _inMagFldC: input magnetic field container structure with tabulated field structure to be analyzed;
+       the tabulated field structure (instance of SRWLMagFld3D) has to be defined in _inMagFldC.arMagFld[0]
+:param _inPrec: input list of precision parameters:
+       _inPrec[0]: relative accuracy threshold (nominal value is 0.01)
+       _inPrec[1]: maximal number of magnetic field harmonics to attempt to create
+       _inPrec[2]: maximal magnetic period length to consider
+"""

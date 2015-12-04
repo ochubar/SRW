@@ -240,6 +240,9 @@ int srTGsnBeam::CreateWavefrontElFieldFreqDomain(srTSRWRadStructAccessData& RadA
 	//x0Prop = EbmDat.x0 + EbmDat.dxds0*LongDist;
 	//z0Prop = EbmDat.z0 + EbmDat.dzds0*LongDist;
 
+	double ActNormConstElField = NormConstElField; //OC081014
+	if(RadAccessData.ElecFldUnit == 2) ActNormConstElField *= sqrt(1.602176462e-16); //case of field units: sqrt(J/eV/mm^2) or sqrt(W/mm^2)
+
 	double InvLongDist = 1./LongDist;
 
 	float* tRadX = RadAccessData.pBaseRadX;
@@ -300,7 +303,8 @@ int srTGsnBeam::CreateWavefrontElFieldFreqDomain(srTSRWRadStructAccessData& RadA
 				double ExpAr = exp(argForExp);
 				double HermX = HermitePolynomial(mx, x*PropInvSigX), HermZ = HermitePolynomial(mz, z*PropInvSigZ);
 
-				double BufA = NormConstElField*sqrt(PropInvSigX*PropInvSigZ)*ExpAr*HermX*HermZ;
+				//double BufA = NormConstElField*sqrt(PropInvSigX*PropInvSigZ)*ExpAr*HermX*HermZ;
+				double BufA = ActNormConstElField*sqrt(PropInvSigX*PropInvSigZ)*ExpAr*HermX*HermZ; //OC081014
 				double ReA = BufA*CosPh, ImA = BufA*SinPh;
 
 				SetupProperPolariz(ReA, ImA, tRadX, tRadZ);

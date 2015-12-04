@@ -126,7 +126,8 @@ SubMenu "Periodic Magnetic Field"
 "Duplicate...",SrwMagPerDupl()
 end
 "-"
-"Compute Stokes...",SrwPerStoCreate()
+//"Compute Stokes...",SrwPerStoCreate()
+"Compute Stokes...",SrwPerStokesCreate()
 "Compute Power Density...",SrwPowCreate()
 SubMenu "Estimate Brilliance"
 "Following \"X-Ray Data Booklet\"...",SrwBrilUnd()

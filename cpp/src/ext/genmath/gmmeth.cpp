@@ -104,68 +104,68 @@ double CGenMathMeth::Integ1D_FuncWithEdgeDer(double (*pF)(double), double x1, do
 }
 
 //-------------------------------------------------------------------------
-
-double CGenMathMeth::Integ1D_FuncDefByArray(double* FuncArr, long Np, double Step)
-{
-	if((FuncArr == 0) || (Np < 2) || (Step == 0)) return 0;
-
-	double *tFuncArr = FuncArr + 1;
-	bool NpIsEven = (Np == ((Np >> 1) << 1));
-	if(NpIsEven)
-	{//apply method of trapeth
-		double Sum = 0;
-		for(long i=1; i<(Np - 1); i++)
-		{
-            Sum += *(tFuncArr++);
-		}
-		Sum += 0.5*((*tFuncArr) + FuncArr[0]);
-		return Sum*Step;
-	}
-	else
-	{//apply Simplson method, to check!!!
-		double Sum1 = 0, Sum2 = 0;
-		for(long i=1; i<((Np - 3) >> 1); i++)
-		{
-            Sum1 += *(tFuncArr++);
-            Sum2 += *(tFuncArr++);
-		}
-		Sum1 += *(tFuncArr++);
-		return (Step/3.)*(FuncArr[0] + 4.*Sum1 + 2.*Sum2 + (*tFuncArr));
-	}
-}
-
+//
+//double CGenMathMeth::Integ1D_FuncDefByArray(double* FuncArr, long Np, double Step)
+//{
+//	if((FuncArr == 0) || (Np < 2) || (Step == 0)) return 0;
+//
+//	double *tFuncArr = FuncArr + 1;
+//	bool NpIsEven = (Np == ((Np >> 1) << 1));
+//	if(NpIsEven)
+//	{//apply method of trapeth
+//		double Sum = 0;
+//		for(long i=1; i<(Np - 1); i++)
+//		{
+//            Sum += *(tFuncArr++);
+//		}
+//		Sum += 0.5*((*tFuncArr) + FuncArr[0]);
+//		return Sum*Step;
+//	}
+//	else
+//	{//apply Simplson method, to check!!!
+//		double Sum1 = 0, Sum2 = 0;
+//		for(long i=1; i<((Np - 3) >> 1); i++)
+//		{
+//            Sum1 += *(tFuncArr++);
+//            Sum2 += *(tFuncArr++);
+//		}
+//		Sum1 += *(tFuncArr++);
+//		return (Step/3.)*(FuncArr[0] + 4.*Sum1 + 2.*Sum2 + (*tFuncArr));
+//	}
+//}
+//
 //-------------------------------------------------------------------------
-
-double CGenMathMeth::Integ1D_FuncDefByArray(float* FuncArr, long Np, double Step)
-{
-	if((FuncArr == 0) || (Np < 2) || (Step == 0)) return 0;
-
-	float *tFuncArr = FuncArr + 1;
-	bool NpIsEven = (Np == ((Np >> 1) << 1));
-	if(NpIsEven)
-	{//apply method of trapeth
-		double Sum = 0;
-		for(long i=1; i<(Np - 1); i++)
-		{
-            Sum += *(tFuncArr++);
-		}
-		Sum += 0.5*((*tFuncArr) + FuncArr[0]);
-		return Sum*Step;
-	}
-	else
-	{//apply Simplson method, to check!!!
-		double Sum1 = 0, Sum2 = 0;
-		for(long i=1; i<((Np - 3) >> 1); i++)
-		{
-            Sum1 += *(tFuncArr++);
-            Sum2 += *(tFuncArr++);
-		}
-		Sum1 += *(tFuncArr++);
-		//return (Step/3.)*(FuncArr[0] + 4.*Sum1 + 2.*Sum1 + (*tFuncArr));
-		return (Step/3.)*(FuncArr[0] + 4.*Sum1 + 2.*Sum2 + (*tFuncArr));
-	}
-}
-
+//
+//double CGenMathMeth::Integ1D_FuncDefByArray(float* FuncArr, long Np, double Step)
+//{
+//	if((FuncArr == 0) || (Np < 2) || (Step == 0)) return 0;
+//
+//	float *tFuncArr = FuncArr + 1;
+//	bool NpIsEven = (Np == ((Np >> 1) << 1));
+//	if(NpIsEven)
+//	{//apply method of trapeth
+//		double Sum = 0;
+//		for(long i=1; i<(Np - 1); i++)
+//		{
+//            Sum += *(tFuncArr++);
+//		}
+//		Sum += 0.5*((*tFuncArr) + FuncArr[0]);
+//		return Sum*Step;
+//	}
+//	else
+//	{//apply Simplson method, to check!!!
+//		double Sum1 = 0, Sum2 = 0;
+//		for(long i=1; i<((Np - 3) >> 1); i++)
+//		{
+//            Sum1 += *(tFuncArr++);
+//            Sum2 += *(tFuncArr++);
+//		}
+//		Sum1 += *(tFuncArr++);
+//		//return (Step/3.)*(FuncArr[0] + 4.*Sum1 + 2.*Sum1 + (*tFuncArr));
+//		return (Step/3.)*(FuncArr[0] + 4.*Sum1 + 2.*Sum2 + (*tFuncArr));
+//	}
+//}
+//
 //-------------------------------------------------------------------------
 
 

@@ -32,6 +32,7 @@ Modules:
 import sys
 import uti_plot_com
 import traceback
+
 _backend = None
 
 DEFAULT_BACKEND = '<default>'
@@ -57,7 +58,7 @@ def uti_plot_init(backend=DEFAULT_BACKEND, fname_format=None):
             return
         except:
             traceback.print_exc()
-            print(backend + ': unable to import specified backend; no plots')
+            print(backend + ': unable to import specified backend (or its dependency); no plots')
     elif fname_format is not None:
         raise Value(fname_format + ': fname_format must be null if backend is None')
     _backend = _BackendNone()
@@ -81,7 +82,8 @@ def uti_plot1d(ar1d, x_range, labels=('energy [eV]', 'ph/s/0.1%bw'), units=None)
         units = [x_unit, units[1]]
         strTitle = '' if(len(labels) < 3) else labels[2]
         labels = (labels[0] + ' [' + units[0] + ']', labels[1] + ' [' + units[1] + ']', strTitle)
-    
+
+    #print('*****In uti_plot1d')    
     _backend.uti_plot1d(ar1d, x_range, labels)
 
 def uti_plot2d(ar2d, x_range, y_range, labels=('Horizontal position [m]','Vertical position [m]'), units=None):
@@ -130,8 +132,18 @@ def uti_plot2d1d(ar2d, x_range, y_range, x=0, y=0, labels=('Horizontal position'
         strTitle = 'At ' + labels[0] + ': ' + str(x)
         if x != 0: strTitle += ' ' + units[0]
         label1Y = (labels[1] + ' [' + units[1] + ']', labels[2] + ' [' + units[2] + ']', strTitle)
+        
+    else: #OC081115
+        strTitle = labels[2]
+        label2D = (labels[0], labels[1], strTitle)
 
-        labels = [label2D, label1X, label1Y]
+        strTitle = 'At ' + labels[1] + ': ' + str(y)
+        label1X = (labels[0], labels[2], strTitle)
+
+        strTitle = 'At ' + labels[0] + ': ' + str(x)
+        label1Y = (labels[1], labels[2], strTitle)
+
+    labels = [label2D, label1X, label1Y]
 
     _backend.uti_plot2d1d(ar2d, x_range, y_range, x, y, labels, graphs_joined)
     

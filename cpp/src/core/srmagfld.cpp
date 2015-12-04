@@ -25,6 +25,7 @@
 #include "srmagcnt.h"
 #include "srwlib.h"
 #include <algorithm>
+#include <functional>
 
 //*************************************************************************
 
@@ -66,9 +67,15 @@ int srTMagElem::FindMagElemWithSmallestLongPos(CObjCont<CGenObject>& AuxCont)
         srTMagElem* pMag = dynamic_cast<srTMagElem*>(((*iter).second).rep);
 		if(pMag == 0) continue;
 
-		if(MinLongPos > pMag->gsStart) 
+		//Taking into account elements orientations here(?)
+		double sSt=0, sEn=0;
+		pMag->GetMagnFieldLongLim(sSt, sEn); //OC170615
+
+		//if(MinLongPos > pMag->gsStart) 
+		if(MinLongPos > sSt) //OC170615
 		{
-			MinLongPos = pMag->gsStart;
+			//MinLongPos = pMag->gsStart;
+			MinLongPos = sSt;
 			ElemInd = (*iter).first;
 		}
 	}
@@ -109,13 +116,16 @@ srTMagFieldPeriodic::srTMagFieldPeriodic(double Per, double L, double In_sCen, s
 			HarmVect.push_back(HarmArr[k]);
 		}
 	}
+	sort(HarmVect.begin(), HarmVect.end(), greater<srTMagHarm>());
+
 	gsStart = In_sCen - 0.5*L;
     gsEnd = In_sCen + 0.5*L;
 }
 
 //*************************************************************************
 
-srTMagFieldPeriodic::srTMagFieldPeriodic(const SRWLMagFldU& inUnd, const TVector3d& inCenP) : srTMagElem(inCenP) //SRWLIB
+//srTMagFieldPeriodic::srTMagFieldPeriodic(const SRWLMagFldU& inUnd, const TVector3d& inCenP) : srTMagElem(inCenP) //SRWLIB
+srTMagFieldPeriodic::srTMagFieldPeriodic(const SRWLMagFldU& inUnd, const TVector3d& inCenP, const TVector3d& inAxV, double inAng) : srTMagElem(inCenP, inAxV, inAng) //OC170615
 {//for SRWLIB
 	PerLength = inUnd.per;
 	if(PerLength <= 0) throw INCORRECT_MAG_FIELD_PER;
@@ -208,6 +218,32 @@ void srTMagFieldPeriodic::SetupWigSASE(srTWigComSASE& WigCom) //sets up SASE wig
 
 //*************************************************************************
 
+void srTMagFieldPeriodic::SetupExtMagFldU(SRWLMagFldU& resU, double& sc)
+{
+	resU.per = PerLength;
+	resU.nPer = int(TotLength/PerLength); //?
+	if(resU.nHarm > AmOfHarm) resU.nHarm = AmOfHarm;
+
+	SRWLMagFldH *t_arHarm = resU.arHarm;
+	for(int i=0; i<resU.nHarm; i++)
+	{
+		srTMagHarm &curHarm = HarmVect[i];
+		t_arHarm->n = curHarm.HarmNo;
+		t_arHarm->h_or_v = ((curHarm.XorZ == 'x') || (curHarm.XorZ == 'X'))? 'h' : 'v';
+		t_arHarm->B = curHarm.K/(93.37290417576577*PerLength); //?
+		//double curK = 93.37290417576577*PerLength*t_FldH->B; //lengths are in [m]
+		t_arHarm->ph = curHarm.Phase;
+
+		//To update: (!)
+		t_arHarm->s = 1; //curHarm.s; 
+		t_arHarm->a = 1.; //curHarm.TrA;
+		t_arHarm++;
+	}
+	sc = sCen;
+}
+
+//*************************************************************************
+
 srTGenTrjDat* srTMagFieldPeriodic::CreateAndSetupNewTrjDat(srTEbmDat* pEbmDat)
 {
 	srTPerTrjDat* pOut = new srTPerTrjDat();
@@ -261,8 +297,12 @@ void srTMagMult::SetupWigSASE(srTWigComSASE& WigCom) //sets up SASE wiggler for 
 
 	m = 2; //to ensure that this is quad
 
-	WigCom.qfdx = mCenP.x; //TransvCenPoint.x;
-	WigCom.qfdy = mCenP.y; //TransvCenPoint.y;
+	//WigCom.qfdx = mCenP.x; //TransvCenPoint.x;
+	//WigCom.qfdy = mCenP.y; //TransvCenPoint.y;
+	TVector3d cenP(0.,0.,0.);
+	cenP = mTrans.TrPoint(cenP);
+	WigCom.qfdx = cenP.x; //OC170615 ??
+	WigCom.qfdy = cenP.y; 
 }
 
 //*************************************************************************
@@ -471,6 +511,76 @@ srTMagFieldPeriodic* srTMagFldTrUnif::CreateAndSetupMagFieldPeriodic(double RelP
 	const double RelFldTolForPerSearch = 2.E-01; //1.E-02; //OC190112
 
 	double Per_HorFld = 0, Per_VertFld = 0, L_HorFld = 0, L_VertFld = 0, sCen_HorFld = 0, sCen_VertFld = 0;
+	//double sStartPer_HorFld = 0, sStartPer_VertFld = 0;
+	double *ar_sStartPer_HorFld=0, *ar_sStartPer_VertFld=0;
+	int nPer_HorFld=0, nPer_VertFld=0;
+	double MaxAbsBx = 0., MaxAbsBz = 0.;
+
+	if(HorFieldIsDefined)
+	{
+		MaxAbsBx = FindMaxAbsVal(BxArr, Np);
+		if(MaxAbsBx > AbsFldTol)
+		{
+            FindBasicFieldPeriodicParamAr(BxArr, Np, sStart, sStep, RelFldTolForPerSearch*MaxAbsBx, Per_HorFld, L_HorFld, sCen_HorFld, ar_sStartPer_HorFld, nPer_HorFld);
+		}
+		else HorFieldIsDefined = false;
+	}
+	if(VertFieldIsDefined)
+	{
+		MaxAbsBz = FindMaxAbsVal(BzArr, Np);
+		if(MaxAbsBz > AbsFldTol)
+		{
+            FindBasicFieldPeriodicParamAr(BzArr, Np, sStart, sStep, RelFldTolForPerSearch*MaxAbsBz, Per_VertFld, L_VertFld, sCen_VertFld, ar_sStartPer_VertFld, nPer_VertFld);
+		}
+		else VertFieldIsDefined = false;
+	}
+
+	double Per = MaxPerLen_m, L = 0, sCen = 0, *ar_sStartPer = 0;
+	int nPer = 0;
+	ChooseDominantBasicFieldPeriodicParamAr(Per_HorFld, L_HorFld, sCen_HorFld, ar_sStartPer_HorFld, nPer_HorFld, MaxAbsBx, Per_VertFld, L_VertFld, sCen_VertFld, ar_sStartPer_VertFld, nPer_VertFld, MaxAbsBz, Per, L, sCen, ar_sStartPer, nPer);
+
+    srTMagHarm *MagHarmArr_HorFld = 0, *MagHarmArr_VertFld = 0;
+	int NumHarm_HorFld = 0, NumHarm_VertFld = 0;
+
+	if(HorFieldIsDefined)
+	{
+		NumHarm_HorFld = MaxHarm;
+		FindFieldHarmonicsAr(BxArr, Np, sStart, sStep, Per, ar_sStartPer, nPer, RelPrec, 'x', NumHarm_HorFld, MagHarmArr_HorFld);
+	}
+	if(VertFieldIsDefined)
+	{
+		NumHarm_VertFld = MaxHarm;
+		FindFieldHarmonicsAr(BzArr, Np, sStart, sStep, Per, ar_sStartPer, nPer, RelPrec, 'z', NumHarm_VertFld, MagHarmArr_VertFld);
+	}
+
+	srTMagHarm *TotHarmArr = 0;
+	int TotAmOfHarm = 0;
+	SumUpFieldHarmonics(MagHarmArr_HorFld, NumHarm_HorFld, MagHarmArr_VertFld, NumHarm_VertFld, TotHarmArr, TotAmOfHarm);
+
+	srTMagFieldPeriodic* pMagFieldPeriodic = new srTMagFieldPeriodic(Per, L, sCen, TotHarmArr, TotAmOfHarm, 0, 0);
+
+	if(MagHarmArr_HorFld != 0) delete[] MagHarmArr_HorFld;
+	if(MagHarmArr_VertFld != 0) delete[] MagHarmArr_VertFld;
+	if(TotHarmArr != 0) delete[] TotHarmArr;
+	return pMagFieldPeriodic;
+
+	if(ar_sStartPer_HorFld != 0) delete[] ar_sStartPer_HorFld;
+	if(ar_sStartPer_VertFld != 0) delete[] ar_sStartPer_VertFld;
+	return 0;
+}
+
+//*************************************************************************
+
+srTMagFieldPeriodic* srTMagFldTrUnif::CreateAndSetupMagFieldPeriodicOld(double RelPrec, int MaxHarm, double MaxPerLen_m)
+{
+	bool HorFieldIsDefined = ((BxArr != 0) && (Np > 0));
+	bool VertFieldIsDefined = ((BzArr != 0) && (Np > 0));
+	if((!HorFieldIsDefined) && (!VertFieldIsDefined)) return 0;
+
+	const double AbsFldTol = 1.E-06; //[T]
+	const double RelFldTolForPerSearch = 2.E-01; //1.E-02; //OC190112
+
+	double Per_HorFld = 0, Per_VertFld = 0, L_HorFld = 0, L_VertFld = 0, sCen_HorFld = 0, sCen_VertFld = 0;
 	double sStartPer_HorFld = 0, sStartPer_VertFld = 0;
 	double MaxAbsBx = 0., MaxAbsBz = 0.;
 
@@ -524,6 +634,29 @@ srTMagFieldPeriodic* srTMagFldTrUnif::CreateAndSetupMagFieldPeriodic(double RelP
 
 //*************************************************************************
 
+void srTMagFldTrUnif::FindBasicFieldPeriodicParamAr(double* pB, int nB, double sInit, double sDelta, double absTolB, double& Per, double& L, double& sCen, double*& ar_sStartOnePer, int& nStartPer)
+{// Improve the procedure of finding proper period !!!
+	Per = 0;
+	if((pB == 0) || (nB <= 0)) return;
+
+	const int MaxAmOfZeros = 50000;
+	double ArgFldZerosIncr[MaxAmOfZeros], ArgFldZerosDecr[MaxAmOfZeros];
+	int AmOfZeros = MaxAmOfZeros;
+	FindFieldZeros(pB, nB, sInit, sDelta, absTolB, ArgFldZerosIncr, ArgFldZerosDecr, AmOfZeros);
+	if(AmOfZeros <= 1) return;
+
+	ar_sStartOnePer = new double[AmOfZeros];
+
+	FindOnePeriodAr(ArgFldZerosIncr, AmOfZeros, Per, ar_sStartOnePer, nStartPer);
+	//FindOnePeriod(ArgFldZerosIncr, AmOfZeros, sStartOnePer, Per);
+	if(Per <= 0.) return;
+
+	L = ArgFldZerosIncr[AmOfZeros - 1] - *ArgFldZerosIncr; // to improve?
+	sCen = *ArgFldZerosIncr + 0.5*L;
+}
+
+//*************************************************************************
+
 void srTMagFldTrUnif::FindBasicFieldPeriodicParam(double* pB, int nB, double sInit, double sDelta, double absTolB, double& Per, double& L, double& sCen, double& sStartOnePer)
 {// Improve the procedure of finding proper period !!!
 	Per = 0;
@@ -540,6 +673,39 @@ void srTMagFldTrUnif::FindBasicFieldPeriodicParam(double* pB, int nB, double sIn
 
 	L = ArgFldZerosIncr[AmOfZeros - 1] - *ArgFldZerosIncr; // to improve?
 	sCen = *ArgFldZerosIncr + 0.5*L;
+}
+
+//*************************************************************************
+
+void srTMagFldTrUnif::FindFieldHarmonicsAr(double* pB, int nB, double sInit, double sDelta, double Per, double* ar_sStartOnePer, int nPer, double RelPrec, char XorZ, int& NumHarm, srTMagHarm*& MarHarmArr)
+{
+	if((pB == 0) || (nB <= 0)) return;
+
+	const int AmOfInterpolPoints = 128; //100;
+	double OnePerB[AmOfInterpolPoints];
+	double AvgOnePerB[AmOfInterpolPoints];
+
+	double *tAvgOnePerB = AvgOnePerB, *tOnePerB;
+	for(int j=0; j<1; j++) *tAvgOnePerB = 0.;
+
+	for(int i=0; i<nPer; i++)
+	{
+		double sStartOnePer = ar_sStartOnePer[i];
+		InterpolateOnePeriodData(pB, nB, sInit, sDelta, sStartOnePer, Per, OnePerB, AmOfInterpolPoints);
+
+		double inv_ip1 = 1./(i + 1);
+		tOnePerB = OnePerB; tAvgOnePerB = AvgOnePerB;
+		for(int j=0; j<AmOfInterpolPoints; j++)
+		{
+			*tAvgOnePerB = ((*tAvgOnePerB)*i + (*(tOnePerB++)))*inv_ip1; //to check!
+			tAvgOnePerB++;
+		}
+	}
+
+	RotateOnePeriodData(OnePerB, AmOfInterpolPoints);
+	AnalyzeForHarmonics(OnePerB, AmOfInterpolPoints, Per, RelPrec, XorZ, NumHarm, MarHarmArr);
+	//RotateOnePeriodData(AvgOnePerB, AmOfInterpolPoints);
+	//AnalyzeForHarmonics(AvgOnePerB, AmOfInterpolPoints, Per, RelPrec, XorZ, NumHarm, MarHarmArr);
 }
 
 //*************************************************************************
@@ -623,6 +789,64 @@ void srTMagFldTrUnif::FindFieldZeros(double* pB, int nB, double sStart, double s
         AmOfZeros = ZerosIncrCount;
         if(AmOfZeros > ZerosDecrCount) AmOfZeros = ZerosDecrCount;
 	}
+}
+
+//*************************************************************************
+
+void srTMagFldTrUnif::FindOnePeriodAr(double* ArgFldZerosIncr, int AmOfZeros, double& Per, double* ar_sStartOnePer, int& nStartPer)
+{
+	nStartPer = 0;
+	Per = 0.;
+	if((ArgFldZerosIncr == 0) || (AmOfZeros <= 1)) return;
+
+	if(AmOfZeros == 2)
+	{
+		ar_sStartOnePer[0] = *ArgFldZerosIncr;
+		nStartPer = 1;
+		Per = *(ArgFldZerosIncr + 1) - *ArgFldZerosIncr;
+		return;
+	}
+
+	double minPerEstim = 0.5*(::fabs(*(ArgFldZerosIncr + (AmOfZeros - 1)) - *ArgFldZerosIncr)/(AmOfZeros - 1)); //to tune
+
+	int iStartSearch = 0, iEndSearch = AmOfZeros - 2;
+	if(AmOfZeros > 3) 
+	{
+		iStartSearch = 1; iEndSearch = AmOfZeros - 3;
+	}
+
+	int iPerStart = -1;
+	for(int i=iStartSearch; i<iEndSearch; i++)
+	{
+		double *pStart = (ArgFldZerosIncr + i);
+		double curPer = *(pStart+1) - *pStart;
+		if(curPer > minPerEstim)
+		{
+			iPerStart = i; break;
+		}
+	}
+	if(iPerStart < 0) return;
+
+	int iPerEnd = -1;
+	for(int i=iEndSearch; i>iStartSearch; i--)
+	{
+		double *pStart = (ArgFldZerosIncr + i);
+		double curPer = *(pStart+1) - *pStart;
+		if(curPer > minPerEstim)
+		{
+			iPerEnd = i; break;
+		}
+	}
+	if(iPerStart > iPerEnd) return;
+
+	nStartPer = iPerEnd - iPerStart + 1;
+	double *tZero = ArgFldZerosIncr + iPerStart;
+	double *t_sStartOnePer = ar_sStartOnePer;
+	for(int i=iPerStart; i<=iPerEnd; i++)
+	{
+		*(t_sStartOnePer++) = *(tZero++);
+	}
+	Per = (ar_sStartOnePer[nStartPer - 1] - ar_sStartOnePer[0])/(nStartPer - 1);
 }
 
 //*************************************************************************
@@ -837,6 +1061,54 @@ void srTMagFldTrUnif::AnalyzeForHarmonics_DeleteAuxArrays(float*& AuxDataContIn,
 	if(CkArr != 0) { delete[] CkArr; CkArr = 0;}
 	if(PhikArr != 0) { delete[] PhikArr; PhikArr = 0;}
 	if(HarmNoArr != 0) { delete[] HarmNoArr; HarmNoArr = 0;}
+}
+
+//*************************************************************************
+
+void srTMagFldTrUnif::ChooseDominantBasicFieldPeriodicParamAr(
+	double Per_HorFld, double L_HorFld, double sCen_HorFld, double* ar_sStartPer_HorFld, int nPer_HorFld, double MaxAbsHorFld,
+	double Per_VertFld, double L_VertFld, double sCen_VertFld, double* ar_sStartPer_VertFld, int nPer_VertFld, double MaxAbsVertFld,
+	double& Per, double& L, double& sCen, double*& ar_sStartPer, int& nPer)
+{
+	Per = 0.; L = 0.; sCen = 0.; ar_sStartPer = 0; nPer = 0;
+
+	if((Per_HorFld <= 0) && (Per_VertFld <= 0)) 
+	{
+		CErrWarn::AddWarningMessage(&gVectWarnNos, NO_MAGNETIC_FIELD_HARMONICS_FOUND);
+		return;
+	}
+
+	//if(Per > 0)
+	//{
+	//	if(Per_HorFld > Per) Per_HorFld = Per;
+	//	if(Per_VertFld > Per) Per_VertFld = Per;
+	//}
+
+	bool SetFromVertFld = true;
+
+	if((Per_HorFld > 0) && (Per_VertFld <= 0)) SetFromVertFld = false;
+	else if((Per_VertFld > 0) && (Per_HorFld <= 0)) SetFromVertFld = true;
+	else if((Per_HorFld > 0) && (Per_VertFld > 0))
+	{
+		if(MaxAbsVertFld > 2.*MaxAbsHorFld) SetFromVertFld = true;
+		else if(MaxAbsHorFld > 2.*MaxAbsVertFld) SetFromVertFld = false;
+		else if(Per_HorFld > 0.8*Per_VertFld) SetFromVertFld = false;
+		else SetFromVertFld = true;
+	}
+
+	if(SetFromVertFld)
+	{
+        Per = Per_VertFld; L = L_VertFld; sCen = sCen_VertFld; ar_sStartPer = ar_sStartPer_VertFld; nPer = nPer_VertFld;
+	}
+	else
+	{
+        Per = Per_HorFld; L = L_HorFld; sCen = sCen_HorFld; ar_sStartPer = ar_sStartPer_HorFld; nPer = nPer_HorFld;
+	}
+
+	if(Per <= 0)
+	{
+		CErrWarn::AddWarningMessage(&gVectWarnNos, NO_MAGNETIC_FIELD_HARMONICS_FOUND);
+	}
 }
 
 //*************************************************************************
@@ -1143,3 +1415,145 @@ void srTMagFldCont::DetermineLongStartAndEndPos()
 
 //*************************************************************************
 
+void srTMagFld3d::tabInterpB(srTMagFldCont& magCont, double* arPrecPar, double* arPar1, double* arPar2, double* arCoefBx, double* arCoefBy)
+{
+	if((arPrecPar == 0) || (arPar1 == 0)) return;
+
+	int dimInterp = (int)arPrecPar[0];
+	double par1 = arPrecPar[1];
+	double par2 = arPrecPar[2];
+	int ordInterp = (int)arPrecPar[3];
+
+	int nMag = magCont.size();
+	int nMag_mi_1 = nMag - 1;
+	if(ordInterp > nMag_mi_1) ordInterp = nMag_mi_1;
+
+	//int im1 = -2, i0 = -2, ip1 = -2, ip2 = -2;
+	int i0 = -2;
+	if(dimInterp == 1)
+	{
+		for(int i=0; i<nMag; i++)
+		{
+			if(par1 < arPar1[i]) { i0 = i - 1; break;}
+		}
+		
+		if(ordInterp == 1)
+		{
+			if(i0 < 0) i0 = 0;
+			else if(i0 == -2) i0 = nMag - 2;
+		}
+		else if(ordInterp == 2)
+		{
+			//if(i0 < 0) i0 = 1;
+			if(i0 < 1) i0 = 1; //OC280114
+			else if(i0 == -2) i0 = nMag - 2;
+		}
+		else if(ordInterp == 3)
+		{
+			//if(i0 < 0) i0 = 1;
+			if(i0 < 1) i0 = 1; //OC280114
+			else if(i0 == -2) i0 = nMag - 3;
+		}
+	}
+	int im1 = i0 - 1, ip1 = i0 + 1, ip2 = i0 + 2;
+	double relPar1 = (par1 - arPar1[i0])/(arPar1[ip1] - arPar1[i0]);
+
+	double relPar1_hmdhp1 = 0., relPar1_hp2dhp1 = 0.;
+	if(ordInterp > 1)
+	{
+		relPar1_hmdhp1 = (arPar1[i0] - arPar1[im1])/(arPar1[ip1] - arPar1[i0]);
+		if(ordInterp > 2)
+		{
+			relPar1_hp2dhp1 = (arPar1[ip2] - arPar1[i0])/(arPar1[ip1] - arPar1[i0]);
+		}
+	}
+
+	TVector3d vP, vB, vBm1, vB0, vBp1, vBp2;
+	double *tBx = BxArr, *tBy = ByArr, *tBz = BzArr;
+	double z = zStart; //+ mCenP.z; //OC170615
+	for(int iz=0; iz<nz; iz++)
+	{
+		if(zArr != 0) z = zArr[iz]; //+ mCenP.z; //OC170615
+		//vP.z = z;
+		double y = yStart; //+ mCenP.y; //OC170615
+		for(int iy=0; iy<ny; iy++)
+		{
+			if(yArr != 0) y = yArr[iy]; //+ mCenP.y; //OC170615
+			//vP.y = y;
+			double x = xStart; //+ mCenP.x; //OC170615
+			for(int ix=0; ix<nx; ix++)
+			{
+				if(xArr != 0) x = xArr[ix]; //+ mCenP.x; //OC170615
+				//vP.x = x;
+				vP.x = x; vP.y = y; vP.z = z;
+				vP = mTrans.TrPoint(vP); //OC170615
+
+				if(dimInterp == 1)
+				{
+					vB0.x = vB0.y = vB0.z = 0.;
+					magCont.compB_i(vP, vB0, i0);
+					vB0 = mTrans.TrVectField_inv(vB0); //OC170615??
+					if(arCoefBx != 0) vB0.x *= arCoefBx[i0];
+					if(arCoefBy != 0) vB0.y *= arCoefBy[i0];
+					//if(arCoefBz != 0) vB0.z *= arCoefBz[i0]; //to add?
+
+					vBp1.x = vBp1.y = vBp1.z = 0.;
+					magCont.compB_i(vP, vBp1, ip1);
+					vBp1 = mTrans.TrVectField_inv(vBp1); //OC170615??
+					if(arCoefBx != 0) vBp1.x *= arCoefBx[ip1];
+					if(arCoefBy != 0) vBp1.y *= arCoefBy[ip1];
+					//if(arCoefBz != 0) vBp1.z *= arCoefBz[ip1]; //to add?
+
+					if(ordInterp > 1)
+					{
+						vBm1.x = vBm1.y = vBm1.z = 0.;
+						magCont.compB_i(vP, vBm1, im1);
+						vBm1 = mTrans.TrVectField_inv(vBm1); //OC170615??
+						if(arCoefBx != 0) vBm1.x *= arCoefBx[im1];
+						if(arCoefBy != 0) vBm1.y *= arCoefBy[im1];
+						//if(arCoefBz != 0) vBm1.z *= arCoefBz[im1]; //to add?
+
+						if(ordInterp > 2)
+						{
+							vBp2.x = vBp2.y = vBp2.z = 0.;
+							magCont.compB_i(vP, vBp2, ip2);
+							vBp2 = mTrans.TrVectField_inv(vBp2); //OC170615??
+							if(arCoefBx != 0) vBp2.x *= arCoefBx[ip2];
+							if(arCoefBy != 0) vBp2.y *= arCoefBy[ip2];
+							//if(arCoefBz != 0) vBp2.z *= arCoefBz[ip2]; //to add?
+						}
+					}
+
+					if(ordInterp == 1)
+					{
+						vB.x = CGenMathInterp::Interp1dLinRel(relPar1, vB0.x, vBp1.x);
+						vB.y = CGenMathInterp::Interp1dLinRel(relPar1, vB0.y, vBp1.y);
+						vB.z = CGenMathInterp::Interp1dLinRel(relPar1, vB0.z, vBp1.z);
+					}
+					else if(ordInterp == 2)
+					{
+						vB.x = CGenMathInterp::Interp1dQuadVarRel(relPar1, relPar1_hmdhp1, vBm1.x, vB0.x, vBp1.x);
+						vB.y = CGenMathInterp::Interp1dQuadVarRel(relPar1, relPar1_hmdhp1, vBm1.y, vB0.y, vBp1.y);
+						vB.z = CGenMathInterp::Interp1dQuadVarRel(relPar1, relPar1_hmdhp1, vBm1.z, vB0.z, vBp1.z);
+					}
+					else if(ordInterp == 3)
+					{
+						vB.x = CGenMathInterp::Interp1dCubVarRel(relPar1, relPar1_hmdhp1, relPar1_hp2dhp1, vBm1.x, vB0.x, vBp1.x, vBp2.x);
+						vB.y = CGenMathInterp::Interp1dCubVarRel(relPar1, relPar1_hmdhp1, relPar1_hp2dhp1, vBm1.y, vB0.y, vBp1.y, vBp2.y);
+						vB.z = CGenMathInterp::Interp1dCubVarRel(relPar1, relPar1_hmdhp1, relPar1_hp2dhp1, vBm1.z, vB0.z, vBp1.z, vBp2.z);
+					}
+				}
+
+				if(BxArr != 0) *(tBx++) = vB.x;
+				if(ByArr != 0) *(tBy++) = vB.y;
+				if(BzArr != 0) *(tBz++) = vB.z;
+
+				x += xStep;
+			}
+			y += yStep;
+		}
+		z += zStep;
+	}
+}
+
+//*************************************************************************

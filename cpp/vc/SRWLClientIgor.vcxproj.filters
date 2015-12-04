@@ -1,0 +1,641 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="core">
+      <UniqueIdentifier>{72f8c2f1-7d41-4f35-98b0-67e83f97d1ec}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="genesis">
+      <UniqueIdentifier>{c92b8e9d-94be-4656-a350-7216988a694f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="igor">
+      <UniqueIdentifier>{c2d0cc8d-f083-41ac-9ac9-ea124bc8ab6c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="lib">
+      <UniqueIdentifier>{1a624500-eb1e-4356-9565-404b7feaa5f2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="f2c">
+      <UniqueIdentifier>{eacd0f35-0507-4077-9d45-842f0e600200}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\src\ext\auxparse\auxparse.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ext\genmath\gmfft.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ext\genmath\gmfit.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ext\genmath\gminterp.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ext\genmath\gmmeth.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ext\genmath\gmtrans.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\core\srclcuti.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\core\srcradint.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\core\srctrjdt.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\core\sremitpr.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\core\srgsnbm.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\core\srgtrjdt.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\core\srisosrc.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\core\srmagcnt.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\core\srmagfld.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\core\srmatsta.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\core\sroptapt.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\core\sroptcnt.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\core\sroptdrf.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\core\sroptel2.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\core\sroptel3.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\core\sroptelm.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\core\sroptfoc.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\core\sroptgrat.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\core\sroptgtr.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\core\sropthck.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\core\sroptmat.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\core\sroptpsh.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\core\sroptshp.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\core\sroptsmr.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\core\sroptwgr.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\core\sroptzp.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\core\sroptzps.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\core\srpersto.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\core\srpowden.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\core\srprdint.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\core\srprgind.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\core\srpropme.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\core\srptrjdt.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\core\srradinc.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\core\srradint.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\core\srradmnp.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\core\srradstr.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\core\srremflp.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\core\srsase.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\core\srsend.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\core\srstowig.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\core\srsysuti.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\core\srthckbm.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\core\srthckbm2.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\core\srtrjaux.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\core\srtrjdat.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\core\srtrjdat3d.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ext\genesis\genesis_july08\all_com.c">
+      <Filter>genesis</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ext\genesis\genesis_july08\check.c">
+      <Filter>genesis</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ext\genesis\genesis_july08\diagno.c">
+      <Filter>genesis</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ext\genesis\genesis_july08\esource.c">
+      <Filter>genesis</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ext\genesis\genesis_july08\field.c">
+      <Filter>genesis</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ext\genesis\genesis_july08\incoherent.c">
+      <Filter>genesis</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ext\genesis\genesis_july08\initrun.c">
+      <Filter>genesis</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ext\genesis\genesis_july08\input.c">
+      <Filter>genesis</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ext\genesis\genesis_july08\loadbeam.c">
+      <Filter>genesis</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ext\genesis\genesis_july08\loadrad.c">
+      <Filter>genesis</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ext\genesis\genesis_july08\magfield.c">
+      <Filter>genesis</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ext\genesis\genesis_july08\main.c">
+      <Filter>genesis</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ext\genesis\genesis_july08\math.c">
+      <Filter>genesis</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ext\genesis\genesis_july08\mpi.c">
+      <Filter>genesis</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ext\genesis\genesis_july08\output.c">
+      <Filter>genesis</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ext\genesis\genesis_july08\partsim.c">
+      <Filter>genesis</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ext\genesis\genesis_july08\pushp.c">
+      <Filter>genesis</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ext\genesis\genesis_july08\rpos.c">
+      <Filter>genesis</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ext\genesis\genesis_july08\scan.c">
+      <Filter>genesis</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ext\genesis\genesis_july08\source.c">
+      <Filter>genesis</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ext\genesis\genesis_july08\stepz.c">
+      <Filter>genesis</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ext\genesis\genesis_july08\string.c">
+      <Filter>genesis</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ext\genesis\genesis_july08\tdepend.c">
+      <Filter>genesis</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ext\genesis\genesis_july08\timerec.c">
+      <Filter>genesis</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ext\genesis\genesis_july08\track.c">
+      <Filter>genesis</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\clients\igor\srappl.cpp">
+      <Filter>igor</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\clients\igor\srigintr.cpp">
+      <Filter>igor</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\clients\igor\srigsend.cpp">
+      <Filter>igor</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\lib\srentry.cpp">
+      <Filter>lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\lib\srerror.cpp">
+      <Filter>lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\core\sroptcryst.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ext\f2c_min\CLOSE.C">
+      <Filter>f2c</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ext\f2c_min\DFE.C">
+      <Filter>f2c</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ext\f2c_min\DOLIO.C">
+      <Filter>f2c</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ext\f2c_min\DUE.C">
+      <Filter>f2c</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ext\f2c_min\D_CNJG.C">
+      <Filter>f2c</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ext\f2c_min\D_IMAG.C">
+      <Filter>f2c</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ext\f2c_min\D_MOD.C">
+      <Filter>f2c</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ext\f2c_min\D_SIGN.C">
+      <Filter>f2c</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ext\f2c_min\ENDFILE.C">
+      <Filter>f2c</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ext\f2c_min\ERR.C">
+      <Filter>f2c</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ext\f2c_min\FMT.C">
+      <Filter>f2c</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ext\f2c_min\FMTLIB.C">
+      <Filter>f2c</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ext\f2c_min\IIO.C">
+      <Filter>f2c</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ext\f2c_min\ILNW.C">
+      <Filter>f2c</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ext\f2c_min\INQUIRE.C">
+      <Filter>f2c</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ext\f2c_min\I_DNNT.C">
+      <Filter>f2c</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ext\f2c_min\I_INDX.C">
+      <Filter>f2c</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ext\f2c_min\I_LEN.C">
+      <Filter>f2c</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ext\f2c_min\LREAD.C">
+      <Filter>f2c</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ext\f2c_min\LWRITE.C">
+      <Filter>f2c</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ext\f2c_min\OPEN.C">
+      <Filter>f2c</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ext\f2c_min\POW_II.C">
+      <Filter>f2c</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ext\f2c_min\POW_RI.C">
+      <Filter>f2c</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ext\f2c_min\RDFMT.C">
+      <Filter>f2c</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ext\f2c_min\REWIND.C">
+      <Filter>f2c</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ext\f2c_min\RSFE.C">
+      <Filter>f2c</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ext\f2c_min\RSLI.C">
+      <Filter>f2c</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ext\f2c_min\RSNE.C">
+      <Filter>f2c</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ext\f2c_min\SFE.C">
+      <Filter>f2c</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ext\f2c_min\SIG_DIE.C">
+      <Filter>f2c</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ext\f2c_min\S_CAT.C">
+      <Filter>f2c</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ext\f2c_min\S_CMP.C">
+      <Filter>f2c</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ext\f2c_min\S_COPY.C">
+      <Filter>f2c</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ext\f2c_min\S_STOP.C">
+      <Filter>f2c</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ext\f2c_min\TYPESIZE.C">
+      <Filter>f2c</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ext\f2c_min\UIO.C">
+      <Filter>f2c</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ext\f2c_min\UTIL.C">
+      <Filter>f2c</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ext\f2c_min\WREF.C">
+      <Filter>f2c</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ext\f2c_min\WRTFMT.C">
+      <Filter>f2c</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ext\f2c_min\WSFE.C">
+      <Filter>f2c</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ext\f2c_min\WSLE.C">
+      <Filter>f2c</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ext\f2c_min\WSNE.C">
+      <Filter>f2c</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ext\f2c_min\XWSNE.C">
+      <Filter>f2c</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ext\f2c_min\Z_DIV.C">
+      <Filter>f2c</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ext\f2c_min\Z_EXP.C">
+      <Filter>f2c</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\src\ext\auxparse\auxparse.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\ext\genmath\cmplxd.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\ext\genmath\gmercode.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\ext\genmath\gmfft.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\ext\genmath\gmfit.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\ext\genmath\gmfunc.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\ext\genmath\gminterp.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\ext\genmath\gmintrk.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\ext\genmath\gmmeth.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\ext\genmath\gmrand.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\ext\genmath\gmtrans.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\ext\genmath\gmvect.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\core\srclcuti.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\core\srcradint.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\core\srctrjdt.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\core\srebmdat.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\core\sremitpr.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\core\srgsnbm.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\core\srgtrjdt.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\core\srisosrc.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\core\srmagcnt.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\core\srmagelem.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\core\srmagfld.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\core\srmatsta.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\core\srmemory.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\core\srmlttsk.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\core\srobject.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\core\sroptang.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\core\sroptapt.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\core\sroptcnt.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\core\sroptcryst.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\core\sroptdrf.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\core\sroptelm.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\core\sroptfoc.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\core\sroptgrat.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\core\sroptgtr.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\core\sropthck.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\core\sroptmat.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\core\sroptpsh.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\core\sroptshp.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\core\sroptsmr.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\core\sroptwgr.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\core\sroptzp.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\core\sroptzps.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\core\srpersto.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\core\srpowden.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\core\srprdint.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\core\srprgind.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\core\srpropme.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\core\srptrjdt.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\core\srradinc.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\core\srradind.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\core\srradint.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\core\srradmnp.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\core\srradstr.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\core\srremflp.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\core\srsase.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\core\srsend.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\core\srstowig.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\core\srstraux.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\core\srsysuti.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\core\srthckbm.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\core\srtrjaux.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\core\srtrjdat.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\core\srtrjdat3d.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\core\srwfrsmp.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\ext\auxparse\stlstart.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\clients\igor\srappl.h">
+      <Filter>igor</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\clients\igor\srigintr.h">
+      <Filter>igor</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\clients\igor\srigsend.h">
+      <Filter>igor</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\ext\auxparse\objcont.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\ext\auxparse\smartptr.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\core\srercode.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\lib\srerror.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\lib\srinterf.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="..\src\clients\igor\srigintw.rc">
+      <Filter>igor</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+</Project>

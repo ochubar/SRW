@@ -12,7 +12,8 @@
  ***************************************************************************/
 
 #ifndef __SRSASE_H
-#define __SRSTOWIG_H
+//#define __SRSTOWIG_H
+#define __SRSASE_H
 
 //#ifdef __IGOR_PRO__
 #ifndef __SRSEND_H

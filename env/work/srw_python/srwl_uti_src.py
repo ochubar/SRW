@@ -7,7 +7,8 @@
 from srwlib import *
 
 #****************************************************************************
-def srwl_uti_src_e_beam(_nm):
+def srwl_uti_src_e_beam(_nm, _Iavg=None, _e=None, _sig_e=None, _emit_x=None, _beta_x=None, _alpha_x=None, _eta_x=None, _eta_x_pr=None, _emit_y=None, _beta_y=None, _alpha_y=None):
+#def srwl_uti_src_e_beam(_nm):
     """Instantiates electron beam structures describing different existing sources
     :param _name: string identifying a source
     :return: SRWLPartBeam object
@@ -15,10 +16,14 @@ def srwl_uti_src_e_beam(_nm):
 
     #E-Beam params in the order: _Iavg, _e, _sig_e, _emit_x, _beta_x, _alpha_x, _eta_x, _eta_x_pr, _emit_y, _beta_y, _alpha_y
     allBeams = [
-        ['NSLS-II Low Beta Day 1',  [0.5,    3,  0.89e-03,   0.9e-09,  2.02,     0,     0,      0,     8e-12,   1.06,      0]],
-        ['NSLS-II Low Beta Final',  [0.5,    3,  0.89e-03,  0.55e-09,  2.02,     0,     0,      0,     8e-12,   1.06,      0]],
-        ['NSLS-II High Beta Day 1', [0.5,    3,  0.89e-03,   0.9e-09, 20.85,     0,     0,      0,     8e-12,    3.4,      0]],
-        ['NSLS-II High Beta Final', [0.5,    3,  0.89e-03,  0.55e-09, 20.85,     0,     0,      0,     8e-12,    3.4,      0]],
+        #['NSLS-II Low Beta Day 1',  [0.5,    3,  0.89e-03,   0.9e-09,  2.02,     0,     0,      0,     8e-12,   1.06,      0]],
+        #['NSLS-II Low Beta Final',  [0.5,    3,  0.89e-03,  0.55e-09,  2.02,     0,     0,      0,     8e-12,   1.06,      0]],
+        ['NSLS-II Low Beta Day 1',  [0.5,    3,  0.89e-03,   0.9e-09,  1.84,     0,     0,      0,     8e-12,   1.17,      0]],
+        ['NSLS-II Low Beta Final',  [0.5,    3,  0.89e-03,  0.55e-09,  1.84,     0,     0,      0,     8e-12,   1.17,      0]],
+        #['NSLS-II High Beta Day 1', [0.5,    3,  0.89e-03,   0.9e-09, 20.85,     0,     0,      0,     8e-12,    3.4,      0]],
+        #['NSLS-II High Beta Final', [0.5,    3,  0.89e-03,  0.55e-09, 20.85,     0,     0,      0,     8e-12,    3.4,      0]],
+        ['NSLS-II High Beta Day 1', [0.5,    3,  0.89e-03,   0.9e-09,  20.1,     0,     0,      0,     8e-12,    3.4,      0]],
+        ['NSLS-II High Beta Final', [0.5,    3,  0.89e-03,  0.55e-09,  20.1,     0,     0,      0,     8e-12,    3.4,      0]],
         ['NSLS-II 3PW Day 1',       [0.5,    3,  0.89e-03,   0.9e-09, 2.956, 1.932, 0.137, -0.105,     8e-12, 19.653, -0.806]],
         ['NSLS-II 3PW Final',       [0.5,    3,  0.89e-03,  0.55e-09, 2.956, 1.932, 0.137, -0.105,     8e-12, 19.653, -0.806]],
         ['NSLS-II BM Day 1',        [0.5,    3,  0.89e-03,   0.9e-09,   1.5,     0, 0.137,   -0.1,     8e-12,   22.5,   -0.9]],
@@ -49,6 +54,17 @@ def srwl_uti_src_e_beam(_nm):
         curStr = curStr.capitalize()
         if sTest == curStr:
             ar = curInf[1]
+            if(_Iavg != None): ar[0] = _Iavg
+            if(_e != None): ar[1] = _e
+            if(_sig_e != None): ar[2] = _sig_e
+            if(_emit_x != None): ar[3] = _emit_x
+            if(_beta_x != None): ar[4] = _beta_x
+            if(_alpha_x != None): ar[5] = _alpha_x
+            if(_eta_x != None): ar[6] = _eta_x
+            if(_eta_x_pr != None): ar[7] = _eta_x_pr
+            if(_emit_y != None): ar[8] = _emit_y
+            if(_beta_y != None): ar[9] = _beta_y
+            if(_alpha_y != None): ar[10] = _alpha_y
             resBeam.from_Twiss(_Iavg=ar[0], _e=ar[1], _sig_e=ar[2], _emit_x=ar[3], _beta_x=ar[4], _alpha_x=ar[5], _eta_x=ar[6], _eta_x_pr=ar[7], _emit_y=ar[8], _beta_y=ar[9], _alpha_y=ar[10])
             return resBeam
     return None

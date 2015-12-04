@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
       <Configuration>Debug</Configuration>
@@ -25,25 +25,25 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
-    <PlatformToolset>v120</PlatformToolset>
+    <PlatformToolset>v140</PlatformToolset>
     <UseOfMfc>false</UseOfMfc>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
-    <PlatformToolset>v120</PlatformToolset>
+    <PlatformToolset>v140</PlatformToolset>
     <UseOfMfc>false</UseOfMfc>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
-    <PlatformToolset>v120</PlatformToolset>
+    <PlatformToolset>v140</PlatformToolset>
     <UseOfMfc>false</UseOfMfc>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
-    <PlatformToolset>v120</PlatformToolset>
+    <PlatformToolset>v140</PlatformToolset>
     <UseOfMfc>false</UseOfMfc>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
@@ -106,7 +106,7 @@
       <Optimization>MaxSpeed</Optimization>
       <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
       <AdditionalIncludeDirectories>..\src\core;..\src\clients\igor;..\src\lib;..\src\ext\genmath;..\src\ext\auxparse;..\..\ext_lib\igor\XOPSupport;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;SRW_EXPORTS;__VC__;__IGOR_PRO__;ALPHA_NONE;_MT;_GM_WITHOUT_BASE;_CRT_SECURE_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;SRW_EXPORTS;__VC__;__IGOR_PRO__;ALPHA_NONE;_MT;_GM_WITHOUT_BASE;_CRT_SECURE_NO_DEPRECATE;NON_UNIX_STDIO;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <StructMemberAlignment>2Bytes</StructMemberAlignment>
@@ -116,7 +116,7 @@
       <PrecompiledHeaderOutputFile />
       <AssemblerListingLocation />
       <ObjectFileName>$(IntDir)</ObjectFileName>
-      <ProgramDataBaseFileName>$(IntDir)vc90.pdb</ProgramDataBaseFileName>
+      <ProgramDataBaseFileName>$(IntDir)vc$(PlatformToolsetVersion).pdb</ProgramDataBaseFileName>
       <BrowseInformation />
       <WarningLevel>Level3</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
@@ -130,7 +130,7 @@
     </ResourceCompile>
     <Link>
       <AdditionalOptions>/MACHINE:I386 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalDependencies>version.lib;odbc32.lib;odbccp32.lib;..\..\ext_lib\fftw_f.lib;..\..\ext_lib\libf2c.lib;..\..\ext_lib\igor\XOPSupport\IGOR.lib;..\..\ext_lib\igor\XOPSupport\VC8\XOPSupport.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>version.lib;odbc32.lib;odbccp32.lib;..\..\ext_lib\fftw_f.lib;..\..\ext_lib\igor\XOPSupport\IGOR.lib;..\..\ext_lib\igor\XOPSupport\VC8\XOPSupport.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>SRW.xop</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <IgnoreSpecificDefaultLibraries>LIBC;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
@@ -167,7 +167,7 @@
       <PrecompiledHeaderOutputFile />
       <AssemblerListingLocation />
       <ObjectFileName>$(IntDir)</ObjectFileName>
-      <ProgramDataBaseFileName>$(IntDir)vc90.pdb</ProgramDataBaseFileName>
+      <ProgramDataBaseFileName>$(IntDir)vc$(PlatformToolsetVersion).pdb</ProgramDataBaseFileName>
       <BrowseInformation />
       <WarningLevel>Level3</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
@@ -207,7 +207,7 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>..\src\core;..\src\clients\igor;..\src\lib;..\src\ext\genmath;..\src\ext\auxparse;..\..\ext_lib\igor\XOPSupport;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;SRW_EXPORTS;__VC__;__IGOR_PRO__;ALPHA_NONE;_MT;_GM_WITHOUT_BASE;_CRT_SECURE_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;SRW_EXPORTS;__VC__;__IGOR_PRO__;ALPHA_NONE;_MT;_GM_WITHOUT_BASE;_CRT_SECURE_NO_DEPRECATE;NON_UNIX_STDIO;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
@@ -231,7 +231,7 @@
     </ResourceCompile>
     <Link>
       <AdditionalOptions>/MACHINE:I386 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalDependencies>version.lib;odbc32.lib;odbccp32.lib;..\..\ext_lib\fftw_f.lib;..\..\ext_lib\libf2c.lib;..\..\ext_lib\igor\XOPSupport\IGOR.lib;..\..\ext_lib\igor\XOPSupport\VC8\XOPSupport.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>version.lib;odbc32.lib;odbccp32.lib;..\..\ext_lib\fftw_f.lib;..\..\ext_lib\igor\XOPSupport\IGOR.lib;..\..\ext_lib\igor\XOPSupport\VC8\XOPSupport.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>SRW.xop</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <IgnoreSpecificDefaultLibraries>LIBC;LIBCD;LIBCMT;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
@@ -268,7 +268,7 @@
       <AssemblerListingLocation />
       <ObjectFileName>$(IntDir)</ObjectFileName>
       <ProgramDataBaseFileName>$(IntDir)vc90.pdb</ProgramDataBaseFileName>
-      <BrowseInformation>true</BrowseInformation>
+      <BrowseInformation>false</BrowseInformation>
       <WarningLevel>Level3</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
@@ -297,7 +297,53 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\src\core\sroptcryst.cpp" />
     <ClCompile Include="..\src\ext\auxparse\auxparse.cpp" />
+    <ClCompile Include="..\src\ext\f2c_min\CLOSE.C" />
+    <ClCompile Include="..\src\ext\f2c_min\DFE.C" />
+    <ClCompile Include="..\src\ext\f2c_min\DOLIO.C" />
+    <ClCompile Include="..\src\ext\f2c_min\DUE.C" />
+    <ClCompile Include="..\src\ext\f2c_min\D_CNJG.C" />
+    <ClCompile Include="..\src\ext\f2c_min\D_IMAG.C" />
+    <ClCompile Include="..\src\ext\f2c_min\D_MOD.C" />
+    <ClCompile Include="..\src\ext\f2c_min\D_SIGN.C" />
+    <ClCompile Include="..\src\ext\f2c_min\ENDFILE.C" />
+    <ClCompile Include="..\src\ext\f2c_min\ERR.C" />
+    <ClCompile Include="..\src\ext\f2c_min\FMT.C" />
+    <ClCompile Include="..\src\ext\f2c_min\FMTLIB.C" />
+    <ClCompile Include="..\src\ext\f2c_min\IIO.C" />
+    <ClCompile Include="..\src\ext\f2c_min\ILNW.C" />
+    <ClCompile Include="..\src\ext\f2c_min\INQUIRE.C" />
+    <ClCompile Include="..\src\ext\f2c_min\I_DNNT.C" />
+    <ClCompile Include="..\src\ext\f2c_min\I_INDX.C" />
+    <ClCompile Include="..\src\ext\f2c_min\I_LEN.C" />
+    <ClCompile Include="..\src\ext\f2c_min\LREAD.C" />
+    <ClCompile Include="..\src\ext\f2c_min\LWRITE.C" />
+    <ClCompile Include="..\src\ext\f2c_min\OPEN.C" />
+    <ClCompile Include="..\src\ext\f2c_min\POW_II.C" />
+    <ClCompile Include="..\src\ext\f2c_min\POW_RI.C" />
+    <ClCompile Include="..\src\ext\f2c_min\RDFMT.C" />
+    <ClCompile Include="..\src\ext\f2c_min\REWIND.C" />
+    <ClCompile Include="..\src\ext\f2c_min\RSFE.C" />
+    <ClCompile Include="..\src\ext\f2c_min\RSLI.C" />
+    <ClCompile Include="..\src\ext\f2c_min\RSNE.C" />
+    <ClCompile Include="..\src\ext\f2c_min\SFE.C" />
+    <ClCompile Include="..\src\ext\f2c_min\SIG_DIE.C" />
+    <ClCompile Include="..\src\ext\f2c_min\S_CAT.C" />
+    <ClCompile Include="..\src\ext\f2c_min\S_CMP.C" />
+    <ClCompile Include="..\src\ext\f2c_min\S_COPY.C" />
+    <ClCompile Include="..\src\ext\f2c_min\S_STOP.C" />
+    <ClCompile Include="..\src\ext\f2c_min\TYPESIZE.C" />
+    <ClCompile Include="..\src\ext\f2c_min\UIO.C" />
+    <ClCompile Include="..\src\ext\f2c_min\UTIL.C" />
+    <ClCompile Include="..\src\ext\f2c_min\WREF.C" />
+    <ClCompile Include="..\src\ext\f2c_min\WRTFMT.C" />
+    <ClCompile Include="..\src\ext\f2c_min\WSFE.C" />
+    <ClCompile Include="..\src\ext\f2c_min\WSLE.C" />
+    <ClCompile Include="..\src\ext\f2c_min\WSNE.C" />
+    <ClCompile Include="..\src\ext\f2c_min\XWSNE.C" />
+    <ClCompile Include="..\src\ext\f2c_min\Z_DIV.C" />
+    <ClCompile Include="..\src\ext\f2c_min\Z_EXP.C" />
     <ClCompile Include="..\src\ext\genmath\gmfft.cpp" />
     <ClCompile Include="..\src\ext\genmath\gmfit.cpp" />
     <ClCompile Include="..\src\ext\genmath\gminterp.cpp" />

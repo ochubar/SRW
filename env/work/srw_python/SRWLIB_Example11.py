@@ -1,7 +1,8 @@
+# -*- coding: utf-8 -*-
 #############################################################################
 # SRWLIB Example # 11: Calculating spectral flux of undulator radiation by finite-emittance electron beam
 # and performing partially-coherent wavefront propagation through a simple optical system containing dispersive CRL
-# v 0.02
+# v 0.03
 #############################################################################
 
 from __future__ import print_function #Python 2.7 compatibility
@@ -13,34 +14,6 @@ import time
 print('SRWLIB Example # 11:')
 print('Calculating spectral flux of undulator radiation by finite-emittance electron beam and performing partially-coherent wavefront propagation')
 print('through a simple optical system containing dispersive CRL')
-
-#**********************Auxiliary Functions
-#Auxiliary function to write tabulated Trajectory data to ASCII file:
-def AuxSaveTrajData(traj, filePath):
-    f = open(filePath, 'w')
-    resStr = '#ct [m], X [m], BetaX [rad], Y [m], BetaY [rad], Z [m], BetaZ [rad]'
-    if(hasattr(traj, 'arBx')):
-        resStr += ', Bx [T]'
-    if(hasattr(traj, 'arBy')):
-        resStr += ', By [T]'
-    if(hasattr(traj, 'arBz')):
-        resStr += ', Bz [T]'
-    f.write(resStr + '\n')
-    ctStep = 0
-    if traj.np > 0:
-        ctStep = (traj.ctEnd - traj.ctStart)/(traj.np - 1)
-    ct = traj.ctStart
-    for i in range(traj.np):
-        resStr = str(ct) + '\t' + repr(traj.arX[i]) + '\t' + repr(traj.arXp[i]) + '\t' + repr(traj.arY[i]) + '\t' + repr(traj.arYp[i]) + '\t' + repr(traj.arZ[i]) + '\t' + repr(traj.arZp[i])
-        if(hasattr(traj, 'arBx')):
-            resStr += '\t' + repr(traj.arBx[i])
-        if(hasattr(traj, 'arBy')):
-            resStr += '\t' + repr(traj.arBy[i])
-        if(hasattr(traj, 'arBz')):
-            resStr += '\t' + repr(traj.arBz[i])
-        f.write(resStr + '\n')        
-        ct += ctStep
-    f.close()
 
 #**********************Input Parameters:
 strDataFolderName = 'data_example_11' #example data sub-folder name
@@ -308,7 +281,7 @@ if(srwl_uti_proc_is_master()):
     #***********Saving some intermediate results
     print('   Saving spectral flux [ph/s/.1%bw], flux per unit surface [ph/s/.1%bw/mm^2], and electron trajectory data to files ... ', end='')
     srwl_uti_save_intens_ascii(stkF.arS, stkF.mesh, os.path.join(os.getcwd(), strDataFolderName, strFluxOutFileName))
-    AuxSaveTrajData(partTraj, os.path.join(os.getcwd(), strDataFolderName, strTrjOutFileName))
+    partTraj.save_ascii(os.path.join(os.getcwd(), strDataFolderName, strTrjOutFileName))
     srwl_uti_save_intens_ascii(arIS, wfrS.mesh, os.path.join(os.getcwd(), strDataFolderName, strSingleElSpecOutFileName))
 
     strI0 = strSingleElIntOutFileName

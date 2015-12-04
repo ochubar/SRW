@@ -39,7 +39,8 @@ public:
 		if((pMagElem == 0) || (nMagElem <= 0)) return;
 		AddElements(pMagElem, nMagElem);
 	}
-	srTMagFldCont(const SRWLMagFldC& inMagCnt, const TVector3d&); //SRWLIB
+	//srTMagFldCont(const SRWLMagFldC& inMagCnt, const TVector3d&); //SRWLIB
+	srTMagFldCont(const SRWLMagFldC& inMagCnt, const TVector3d&, const TVector3d&, double =0); //SRWLIB
 	srTMagFldCont() {}
 
 	void AddElements(int* pMagElemInd, int nMagElem)
@@ -84,10 +85,35 @@ public:
 	{
 		if(gMagElems.data.empty()) return;
 
-		TVector3d relP = inP - mCenP;
+		//TVector3d relP = inP - mCenP;
+		TVector3d Bloc = mTrans.TrVectField_inv(outB); //OC170615
+		TVector3d Ploc = mTrans.TrPoint_inv(inP);
+
 		for(CMHGenObj::const_iterator iter = gMagElems.data.begin(); iter != gMagElems.data.end(); ++iter)
 		{
-			((srTMagElem*)((*iter).second.rep))->compB(relP, outB);
+			//((srTMagElem*)((*iter).second.rep))->compB(relP, outB);
+			((srTMagElem*)((*iter).second.rep))->compB(Ploc, Bloc); //OC170615
+		}
+		outB = mTrans.TrVectField(Bloc); //OC170615
+	}
+
+	void compB_i(TVector3d& inP, TVector3d& outB, int i) //virtual in srTMagElem
+	{//Calculates Magnetic field of i-th element
+	 //NOTE: here at the input i is assumed to be 0-based (whereas in gMagElems.data it seems to be 1-based)
+	 //NOTE: Space transformation applied to entire container is taken into account here
+		if(gMagElems.data.empty()) return;
+
+		//srTMagElem *pMag = (srTMagElem*)gMagElems.getPtr(i);
+		srTMagElem *pMag = (srTMagElem*)gMagElems.getPtr(i + 1); //?
+
+		if(pMag != 0) 
+		{
+			//TVector3d relP = inP - mCenP;
+			//pMag->compB(relP, outB);
+			TVector3d Bloc = mTrans.TrVectField_inv(outB); //OC170615
+			TVector3d Ploc = mTrans.TrPoint_inv(inP);
+			pMag->compB(Ploc, Bloc);
+			outB = mTrans.TrVectField(Bloc); //OC170615
 		}
 	}
 
@@ -96,6 +122,7 @@ public:
 	void PrepareContForParticlePropag();
 	void SortContVsStartPos();
 	void DetermineLongStartAndEndPos();
+	int size() { return gMagElems.size();}
 };
 
 //-------------------------------------------------------------------------

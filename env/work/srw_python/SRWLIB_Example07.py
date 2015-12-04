@@ -1,6 +1,6 @@
-###########################################################################
+#############################################################################
 # SRWLIB Example#7: Simulating propagation of a Gaussian X-ray beam through a simple optical scheme containing CRL
-# v 0.06
+# v 0.07
 #############################################################################
 
 from __future__ import print_function #Python 2.7 compatibility
@@ -14,7 +14,7 @@ print('SRWLIB Python Example # 7:')
 print('Simulating propagation of a Gaussian X-ray beam through a simple optical scheme containing CRL')
 
 #**********************Input Parameters and structures:
-    
+
 strDataFolderName = 'data_example_07' #data sub-folder name
 strIntOutFileName1 = 'ex07_res_int_in.dat' #file name for output SR intensity data
 strPhOutFileName1 = 'ex07_res_ph_in.dat' #file name for output SR phase data
@@ -39,7 +39,7 @@ GsnBm.repRate = 1 #Rep. Rate [Hz] - to be corrected
 GsnBm.polar = 1 #1- linear hoirizontal
 GsnBm.sigX = 23e-06/2.35 #Horiz. RMS size at Waist [m]
 GsnBm.sigY = GsnBm.sigX #Vert. RMS size at Waist [m]
-GsnBm.sigT = 10e-15 #Pulse duration [fs] (not used?)
+GsnBm.sigT = 10e-15 #Pulse duration [s] (not used?)
 GsnBm.mx = 0 #Transverse Gauss-Hermite Mode Orders
 GsnBm.my = 0
 
@@ -68,7 +68,6 @@ arPrecPar = [sampFactNxNyForProp]
 srwl.CalcElecFieldGaussian(wfr, GsnBm, arPrecPar)
 arI0 = array('f', [0]*wfr.mesh.nx*wfr.mesh.ny) #"flat" array to take 2D intensity data
 srwl.CalcIntFromElecField(arI0, wfr, 6, 0, 3, wfr.mesh.eStart, 0, 0) #extracts intensity
-#AuxSaveIntData(arI0, wfr.mesh, os.path.join(os.getcwd(), strDataFolderName, "res_int_in.dat"))
 srwl_uti_save_intens_ascii(arI0, wfr.mesh, os.path.join(os.getcwd(), strDataFolderName, strIntOutFileName1), 0)
 
 arI0x = array('f', [0]*wfr.mesh.nx) #array to take 1D intensity data
@@ -76,7 +75,6 @@ srwl.CalcIntFromElecField(arI0x, wfr, 6, 0, 1, wfr.mesh.eStart, 0, 0) #extracts 
 
 arP0 = array('d', [0]*wfr.mesh.nx*wfr.mesh.ny) #"flat" array to take 2D phase data (note it should be 'd')
 srwl.CalcIntFromElecField(arP0, wfr, 0, 4, 3, wfr.mesh.eStart, 0, 0) #extracts radiation phase
-#AuxSaveIntData(arP0, wfr.mesh, os.path.join(os.getcwd(), strDataFolderName, strPhOutFileName1))
 srwl_uti_save_intens_ascii(arP0, wfr.mesh, os.path.join(os.getcwd(), strDataFolderName, strPhOutFileName1), 0, ['', 'Horizontal Position', 'Vertical Position', 'Phase'], _arUnits=['', 'm', 'm', 'rad'])
 
 mesh0 = deepcopy(wfr.mesh)
@@ -103,9 +101,7 @@ if(opCRLperf != None):
     print('Setting-up Perfect CRL...')
     opCRLperf = srwl_opt_setup_CRL(3, delta, attenLen, 1, diamCRL, diamCRL, rMinCRL, nCRL, wallThickCRL, 0, 0)
     print('done')
-    #Saving transmission data to file
-    #AuxSaveOpTransmData(opCRLperf, 3, os.path.join(os.getcwd(), strDataFolderName, strOpPathOutFileName2))
-    #Extracting transmission data characteristic for subsequent plotting
+    #Extracting transmission data characteristic for subsequent plotting and saving it to a file
     opPathDifCRL = opCRLperf.get_data(3, 3)
     srwl_uti_save_intens_ascii(opPathDifCRL, opCRLperf.mesh, os.path.join(os.getcwd(), strDataFolderName, strOpPathOutFileName2), 0, ['', 'Horizontal Position', 'Vertical Position', 'Opt. Path Diff.'], _arUnits=['', 'm', 'm', 'm'])
     opPathDifCRLx = opCRLperf.get_data(3, 1, _y=0)
@@ -155,8 +151,7 @@ if(opCRLdist != None):
     #Generating distorted CRL, with voids
     opCRLdist = srwl_opt_setup_CRL(3, delta, attenLen, 1, diamCRL, diamCRL, rMinCRL, nCRL, wallThickCRL, 0, 0, arVoidCenCoordInCRL)
     print('done')
-    #AuxSaveOpTransmData(opCRLdist, 3, os.path.join(os.getcwd(), strDataFolderName, strOpPathOutFileName1))
-    #Extracting transmission data characteristic for subsequent plotting
+    #Extracting transmission data characteristic for subsequent plotting and saving it to a file
     opPathDifCRL = opCRLdist.get_data(3, 3)
     srwl_uti_save_intens_ascii(opPathDifCRL, opCRLdist.mesh, os.path.join(os.getcwd(), strDataFolderName, strOpPathOutFileName1), 0, ['', 'Horizontal Position', 'Vertical Position', 'Opt. Path Diff.'], _arUnits=['', 'm', 'm', 'm'])   
     opPathDifCRLx = opCRLdist.get_data(3, 1, _y=0)
@@ -182,7 +177,9 @@ opDrCRL_Waist = SRWLOptD(9.7075) #Drift space from CRL to Waist (for 12.4 keV)
 #[9]: Type of wavefront Shift before Resizing (not yet implemented)
 #[10]: New Horizontal wavefront Center position after Shift (not yet implemented)
 #[11]: New Vertical wavefront Center position after Shift (not yet implemented)
-prParRes1 = [0, 0, 1., 1, 0, 1.1, 8., 1.1, 8., 0, 0, 0]
+#prParRes1 = [0, 0, 1., 1, 0, 1.1, 8., 1.1, 8., 0, 0, 0]
+prParRes1 = [0, 0, 1., 1, 0, 1.1, 10., 1.1, 10., 0, 0, 0]
+
 prParRes0 = [0, 0, 1., 1, 0, 1.0, 1.0, 1.0, 1.0, 0, 0, 0]
 
 #"Beamline" - Container of Optical Elements (together with the corresponding wavefront propagation instructions)
@@ -217,7 +214,6 @@ if(opCRLdist != None):
     mesh1 = deepcopy(wfr1.mesh)
     arI1 = array('f', [0]*mesh1.nx*mesh1.ny) #"flat" array to take 2D intensity data
     srwl.CalcIntFromElecField(arI1, wfr1, 6, 0, 3, mesh1.eStart, 0, 0) #extracts intensity
-    #AuxSaveIntData(arI1, mesh1, os.path.join(os.getcwd(), strDataFolderName, strIntPropOutFileName1))
     srwl_uti_save_intens_ascii(arI1, mesh1, os.path.join(os.getcwd(), strDataFolderName, strIntPropOutFileName1), 0)
     
     arI1x = array('f', [0]*mesh1.nx) #array to take 1D intensity data
@@ -226,7 +222,6 @@ if(opCRLdist != None):
     srwl.CalcIntFromElecField(arI1y, wfr1, 6, 0, 2, mesh1.eStart, 0, 0) #extracts intensity
     arP1 = array('d', [0]*mesh1.nx*mesh1.ny) #"flat" array to take 2D phase data (note it should be 'd')
     srwl.CalcIntFromElecField(arP1, wfr1, 0, 4, 3, mesh1.eStart, 0, 0) #extracts radiation phase
-    #AuxSaveIntData(arP1, mesh1, os.path.join(os.getcwd(), strDataFolderName, "res_phase_dist_crl_short_drift.dat"))
     srwl_uti_save_intens_ascii(arP1, mesh1, os.path.join(os.getcwd(), strDataFolderName, strPhPropOutFileName1), 0, ['', 'Horizontal Position', 'Vertical Position', 'Phase'], _arUnits=['', 'm', 'm', 'rad'])
     del wfr1
     print('done')
@@ -238,7 +233,6 @@ if(opCRLdist != None):
     mesh2 = deepcopy(wfr2.mesh)
     arI2 = array('f', [0]*mesh2.nx*mesh2.ny) #"flat" array to take 2D intensity data
     srwl.CalcIntFromElecField(arI2, wfr2, 6, 0, 3, mesh2.eStart, 0, 0) #extracts intensity
-    #AuxSaveIntData(arI2, mesh2, os.path.join(os.getcwd(), strDataFolderName, "res_int_dist_crl_waist.dat"))
     srwl_uti_save_intens_ascii(arI2, mesh2, os.path.join(os.getcwd(), strDataFolderName, strIntPropOutFileName2), 0)
     
     arI2x = array('f', [0]*mesh2.nx) #array to take 1D intensity data
@@ -247,7 +241,6 @@ if(opCRLdist != None):
     srwl.CalcIntFromElecField(arI2y, wfr2, 6, 0, 2, mesh2.eStart, 0, 0) #extracts intensity
     arP2 = array('d', [0]*mesh2.nx*mesh2.ny) #"flat" array to take 2D phase data (note it should be 'd')
     srwl.CalcIntFromElecField(arP2, wfr2, 0, 4, 3, mesh2.eStart, 0, 0) #extracts radiation phase
-    #AuxSaveIntData(arP2, mesh2, os.path.join(os.getcwd(), strDataFolderName, "res_phase_dist_crl_waist.dat"))
     srwl_uti_save_intens_ascii(arP2, mesh2, os.path.join(os.getcwd(), strDataFolderName, strPhPropOutFileName2), 0, ['', 'Horizontal Position', 'Vertical Position', 'Phase'], _arUnits=['', 'm', 'm', 'rad'])
     del wfr2
     print('done')
@@ -260,7 +253,6 @@ if(opCRLperf != None):
     mesh3 = deepcopy(wfr.mesh)
     arI3 = array('f', [0]*mesh3.nx*mesh3.ny) #"flat" array to take 2D intensity data
     srwl.CalcIntFromElecField(arI3, wfr, 6, 0, 3, mesh3.eStart, 0, 0) #extracts intensity
-    #AuxSaveIntData(arI1, mesh1, os.path.join(os.getcwd(), strDataFolderName, "res_int_perf_crl_waist.dat"))
     srwl_uti_save_intens_ascii(arI3, mesh3, os.path.join(os.getcwd(), strDataFolderName, strIntPropOutFileName3), 0)
     
     arI3x = array('f', [0]*mesh3.nx) #array to take 1D intensity data
@@ -269,7 +261,6 @@ if(opCRLperf != None):
     srwl.CalcIntFromElecField(arI3y, wfr, 6, 0, 2, mesh3.eStart, 0, 0) #extracts intensity
     arP3 = array('d', [0]*mesh3.nx*mesh3.ny) #"flat" array to take 2D phase data (note it should be 'd')
     srwl.CalcIntFromElecField(arP3, wfr, 0, 4, 3, mesh3.eStart, 0, 0) #extracts radiation phase
-    #AuxSaveIntData(arP1, mesh1, os.path.join(os.getcwd(), strDataFolderName, "res_phase_perf_crl_waist.dat"))
     srwl_uti_save_intens_ascii(arP3, mesh3, os.path.join(os.getcwd(), strDataFolderName, strPhPropOutFileName3), 0, ['', 'Horizontal Position', 'Vertical Position', 'Phase'], _arUnits=['', 'm', 'm', 'rad'])
     print('done')
 

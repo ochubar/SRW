@@ -213,7 +213,9 @@ BEGIN
 	"Failed to interpolate electric field.\0", //#178
 
 	"Incorrect or insufficient parameters for magnetic field calculation.\0", //#179
-
+	"Incorrect input parameters for FFT procedure.\0", //#180
+	"Incorrect input parameters for convolution with Gaussian.\0", //#181
+	"Incorrect input parameters for conversion of tabulated magnetic field to periodic.\0", //#182
 	"\0"						// NOTE: NULL required to terminate the resource.
 END
 

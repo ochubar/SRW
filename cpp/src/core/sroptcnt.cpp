@@ -290,6 +290,7 @@ int srTCompositeOptElem::PropagateRadiationGuided(srTSRWRadStructAccessData& wfr
 		srTParPrecWfrPropag precParWfrPropag(methNo, useResizeBefore, useResizeAfter, precFact, underSampThresh, analTreatment, (char)0, vLxO, vLyO, vLzO, vHxO, vHyO);
 		srTRadResizeVect auxResizeVect;
 		if(res = ((srTGenOptElem*)(it->rep))->PropagateRadiation(&wfr, precParWfrPropag, auxResizeVect)) return res;
+
 		//maybe to use "PropagateRadiationGuided" for srTCompositeOptElem?
 
 		elemCount++;

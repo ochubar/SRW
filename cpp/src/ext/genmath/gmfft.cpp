@@ -289,6 +289,7 @@ int CGenMathFFT2D::Make2DFFT(CGenMathFFT2DInfo& FFT2DInfo)
 	if(NeedsShiftAfterY) FillArrayShift('y', t0SignMult*y0_After, FFT2DInfo.yStepTr);
 	if(NeedsShiftAfterX || NeedsShiftAfterY) TreatShifts(DataToFFT);
 
+	//OC_NERSC: to comment-out the following line for NERSC (to avoid crash with "python-mpi")
 	fftwnd_destroy_plan(Plan2DFFT);
 
 	if(ArrayShiftX != 0) 
@@ -388,7 +389,9 @@ int CGenMathFFT1D::Make1DFFT(CGenMathFFT1DInfo& FFT1DInfo)
 		if(result) return result;
 	}
 
+	//OC_NERSC: to comment-out the following line for NERSC (to avoid crash with "python-mpi")
 	fftw_destroy_plan(Plan1DFFT);
+
 	if(m_ArrayShiftX != 0) 
 	{
 		delete[] m_ArrayShiftX; m_ArrayShiftX = 0;

@@ -80,33 +80,33 @@ endif
 
 variable ElecWavePresent = 1, MagWavePresent = 1, ObsWavePresent = 1
 if(cmpstr(ElecName,"_none_")==0)
-	ElecWavePresent = 0;
+	ElecWavePresent = 0
 endif
 if(cmpstr(MagName,"_none_")==0)
-	MagWavePresent = 0;
+	MagWavePresent = 0
 endif
 if(cmpstr(ObsName,"_none_")==0)
-	ObsWavePresent = 0;
+	ObsWavePresent = 0
 endif
 if(ElecWavePresent==0)
-	SrwElecFilament();
+	SrwElecFilament()
 	if((MagWavePresent == 1) %& (ObsWavePresent == 1))
-		SrwWfrCreate(); 
+		SrwWfrCreate()
 		Return;
 	endif
 endif
 if(MagWavePresent==0)
-	SrwMagFieldCreate();
-	DoAlert 0, SrwPAlertGenMagFieldNeeded;
-	Abort;
+	SrwMagFieldCreate()
+	DoAlert 0, SrwPAlertGenMagFieldNeeded
+	Abort
 endif
 if(ObsWavePresent==0)
 	if(SrwStartMacrosAfterRadSmp == 0)
-		SrwStartMacrosAfterRadSmp = 2;
+		SrwStartMacrosAfterRadSmp = 2
 	endif
-	SrwStartMacrosAfterRadSmp2 *= -1;
-	SrwRadSamplDialog(SrwSmpType); 
-	Return;
+	SrwStartMacrosAfterRadSmp2 *= -1
+	SrwRadSamplDialog(SrwSmpType)
+	Return
 endif
 
 if(ObsNxNzForProp<1)
@@ -134,14 +134,20 @@ endif
 SrwRadName=RadName
 
 // Preparing data for srLoop
-//Make/D/O/N=6 waveprec
 Make/D/O/N=7 waveprec
 
-waveprec=str2num($MagName[p+2])
+//waveprec=str2num($MagName[p+2]) //produces warning with IGOR Pro 6.32
+variable j = 0
+do
+	waveprec[j] =str2num($MagName[j+2])
+	j += 1
+while(j < 4)
+
 waveprec[4]=str2num($MagName[7])   // Maximum memory [MB] SRW can use (obsolete)
 waveprec[5]=1   // TryToApplyNearFieldResidual
 
-if(exists("SrwUtiShowProgrIndic") == 2)
+waveprec[6]=1 //Do show Progress Indicator by default
+if(exists("SrwUtiShowProgrIndic") == 2) //To change default behavior
 	waveprec[6]=SrwUtiShowProgrIndic
 endif
 
@@ -153,7 +159,7 @@ SrwRadGenTotName=RadName
 
 srLoop($ElecName, $MagName, $ObsName, waveprec, AuxObsTreat, $RadName)
 
-KillWaves/Z  waveprec, AuxObsTreat;
+KillWaves/Z  waveprec, AuxObsTreat
 end 
 
 //+++++++++++++++++++++++++++++++++++++++

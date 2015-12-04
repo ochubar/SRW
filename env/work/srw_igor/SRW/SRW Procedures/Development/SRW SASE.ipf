@@ -601,7 +601,13 @@ do
 	UndStructName = $MagName[i*2 - 1]
 	CurSegmLen = str2num($UndStructName[IndLengthInUndStruct])
 	UndSegmEnd = UndSegmStart + CurSegmLen
-	NextUndSegmStart = str2num($MagName[i*2])
+	
+	//NextUndSegmStart = str2num($MagName[i*2])
+	NextUndSegmStart = UndSegmEnd
+	if(dimsize($MagName, 0) > i*2) //to program better: wave may be not long enough here
+		NextUndSegmStart = str2num($MagName[i*2])
+	endif
+
 	CurGapLen = NextUndSegmStart - UndSegmEnd
 	CurOffset = (CurGapLen - TotFocLen)*0.5
 	//CurOffset = (CurGapLen - TotFocLen)*0.5 + F1St
@@ -698,7 +704,12 @@ do
 	UndStructName = $MagName[i*2 - 1]
 	CurSegmLen = str2num($UndStructName[IndLengthInUndStruct])
 	UndSegmEnd = UndSegmStart + CurSegmLen
-	NextUndSegmStart = str2num($MagName[i*2])
+	
+	NextUndSegmStart = UndSegmEnd
+	if(dimsize($MagName, 0) > i*2) //to program better: wave may be not long enough here
+		NextUndSegmStart = str2num($MagName[i*2])
+	endif
+	
 	CurGapLen = NextUndSegmStart - UndSegmEnd
 	CurOffset = (CurGapLen - TotFocLen)*0.5
 	//CurOffset = (CurGapLen - TotFocLen)*0.5 + F1St

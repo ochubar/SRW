@@ -6,7 +6,7 @@
 from __future__ import print_function #Python 2.7 compatibility
 from array import *
 from math import *
-#from copy import *
+from copy import *
 #import random
 #import sys
 #import os
@@ -70,6 +70,132 @@ def interp_1d(_x, _x_min, _x_step, _nx, _ar_f, _ord=3, _ix_per=1, _ix_ofst=0):
         a3 = 0.5*(a0 - f1) + (f2 - fm1)/6.
         return a0 + t*(a1 + t*(a2 + t*a3))
     return 0
+
+#****************************************************************************
+#def interp_1d_lin_var(_x, _ar_x, _ar_f):
+def interp_1d_var(_x, _ar_x, _ar_f, _ord=3):
+    """
+    Interpolate linearly 1D function value tabulated on non-equidistant (irregular) mesh
+    :param _x: argument at which function value should be calculated
+    :param _ar_x: array or list of increasing argument values, at which the function is tabulated
+    :param _ar_f: array or list of tabulated values corresponding to arguments in _ar_x
+    :param _ord: order of polynomial interpolation (1- linear, 2- quadratic, 3- cubic)    
+    :return: function value found by polynomial interpolation
+    """
+
+    sErrBadArrays = 'Incorrect/incompatible lengths of argument and function value arrays.'
+
+    nx = len(_ar_x)
+    if(nx <= 0): raise Exception(sErrBadArrays)
+    nf = len(_ar_f)
+    if(nf <= 0): raise Exception(sErrBadArrays)
+    
+    if(nx > nf): nx = nf
+    if(nx < 2): raise Exception(sErrBadArrays)
+    
+    nx_mi_1 = nx - 1
+
+    if(_x <= _ar_x[0]): return _ar_f[0]
+    elif(_x >= _ar_x[nx_mi_1]): return _ar_f[nx_mi_1]
+
+    if(_ord > nx_mi_1): _ord = nx_mi_1
+
+    i0 = 0
+    for i in range(1, nx):
+        if(_x < _ar_x[i]):
+            i0 = i - 1
+            break
+
+    if(_ord == 1):
+        #return interp_1d(_x, _ar_x[i0], _ar_x[i0+1] - _ar_x[i0], 2, [_ar_f[i0], _ar_f[i0+1]], 1)
+        x0 = _ar_x[i0]
+        step = _ar_x[i0+1] - x0
+        t = (_x - x0)/step
+        f0 = _ar_f[i0]
+        return f0 + (_ar_f[i0+1] - f0)*t
+
+    elif(_ord == 2):
+        im1 = i0 - 1
+        ip1 = i0 + 1
+        #nm1 = nx - 1
+        if(ip1 < 0):
+            im1 = 0
+            i0 = 1
+            ip1 = 2
+        elif(ip1 > nx_mi_1):
+            im1 = nx - 3
+            i0 = nx - 2
+            ip1 = nx_mi_1
+
+        xm1 = _ar_x[im1]
+        x0 = _ar_x[i0]
+        xp1 = _ar_x[ip1]
+        dxm1 = abs(_x - xm1)
+        dx0 = abs(_x - x0)
+        dxp1 = abs(_x - xp1)
+        if(dxm1 < dx0):
+            if(im1 > 0):
+                im1 -= 1
+                i0 -= 1
+                ip1 -= 1
+        elif(dxp1 < dx0):
+            if(ip1 < nx_mi_1):
+                im1 += 1
+                i0 += 1
+                ip1 += 1
+
+        x0 = _ar_x[i0]
+        dxm1 = _ar_x[im1] - x0
+        dxp1 = _ar_x[ip1] - x0
+        fm1 = _ar_f[im1]
+        f0 = _ar_f[i0]
+        fp1 = _ar_f[ip1]
+
+        invD = 1./(dxm1* dxp1*(dxm1 - dxp1))
+        a = ((dxm1 - dxp1)*f0 + dxp1*fm1 - dxm1*fp1)*invD
+        b = (dxp1*dxp1*(f0 - fm1) + dxm1*dxm1*(fp1 - f0))*invD
+        dx = _x - x0
+        return (a*dx + b)*dx + f0
+
+    elif(_ord == 3):
+        im1 = i0 - 1
+        ip1 = i0 + 1
+        ip2 = i0 + 2
+        if(im1 < 0):
+            im1 = 0
+            i0 = 1
+            ip1 = 2
+            ip2 = 3
+        elif(ip2 > nx_mi_1):
+            im1 = nx - 4
+            i0 = nx - 3
+            ip1 = nx - 2
+            ip2 = nx_mi_1
+            
+        x0 = _ar_x[i0]
+        dxm1 = _ar_x[im1] - x0
+        dxp1 = _ar_x[ip1] - x0
+        dxp2 = _ar_x[ip2] - x0
+        fm1 = _ar_f[im1]
+        f0 = _ar_f[i0]
+        fp1 = _ar_f[ip1]
+        fp2 = _ar_f[ip2]
+        #print(_x - x0, dxm1, dxp1, dxp2)
+        #print(fm1, f0, fp1, fp2)
+
+        invD = 1./(dxm1*dxp1*dxp2*(dxm1 - dxp1)*(dxm1 - dxp2)*(dxp1 - dxp2))
+        invD1 = 1./(dxm1*dxp1*dxp2)
+        dxm1e2 = dxm1*dxm1
+        dxm1e3 = dxm1e2*dxm1
+        dxp1e2 = dxp1*dxp1
+        dxp1e3 = dxp1e2*dxp1
+        dxp2e2 = dxp2*dxp2
+        dxp2e3 = dxp2e2*dxp2
+        a1 = (-dxp1e2*(dxp1 - dxp2)*dxp2e2*(f0 - fm1) + dxm1e2*(dxp2e3*(fp1 - f0) + dxp1e3*(f0 - fp2)) + dxm1e3*(dxp2e2*(f0 - fp1) + dxp1e2*(fp2 - f0)))*invD
+        a2 = ((dxm1 + dxp1 + dxp2)*f0)*invD1 + (dxm1*dxp2*(dxm1e2 - dxp2e2)*fp1 + dxp1e3*(dxm1*fp2 - dxp2*fm1) + dxp1*(dxp2e3*fm1 - dxm1e3*fp2))*invD
+        a3 = -f0*invD1 + (dxm1*dxp2*(dxp2 - dxm1)*fp1 + dxp1e2*(dxp2*fm1 - dxm1*fp2) + dxp1*(dxm1e2*fp2 - dxp2e2*fm1))*invD
+        dx = _x - x0
+        return ((a3*dx + a2)*dx + a1)*dx + f0
 
 #****************************************************************************
 def interp_2d(_x, _y, _x_min, _x_step, _nx, _y_min, _y_step, _ny, _ar_f, _ord=3, _ix_per=1, _ix_ofst=0):
@@ -217,11 +343,103 @@ def interp_2d(_x, _y, _x_min, _x_step, _nx, _y_min, _y_step, _ny, _ar_f, _ord=3,
 
 #****************************************************************************
 def num_round(_x, _ndig=8):
-    if(_x == 0.): return _x
-    sgn = 1
-    if(_x < 0.):
-        _x = -_x
-        sgn = -1
-    order = round(log10(_x))
-    fact = 10**order
-    return round(_x/fact, _ndig)*fact*sgn
+##    if(_x == 0.): return _x
+##    sgn = 1.
+##    if(_x < 0.):
+##        _x = -_x
+##        sgn = -1
+##    order = round(log10(_x))
+##    fact = 10**order
+##    roundNum = round(_x/fact, _ndig)
+##    res = roundNum*fact*sgn
+    res = round(_x, _ndig)
+    return res
+
+#****************************************************************************
+def integ_array(_ar, _h, _dupl=False):
+    """
+    Integrates array (or list), eventually making a copy of it before the integration
+    :param _ar: array to integrate
+    :param _h: step size
+    :param _dupl: duplicate the magnetic field object or not
+    """
+    ar = None
+    if(_dupl): ar = deepcopy(_ar)
+    else: ar = _ar
+
+    hd2 = 0.5*_h
+    auxInt = 0
+    lenAr = len(_ar)
+    for i in range(lenAr - 1):
+        ar_i = _ar[i] #in case if array has to be integrated in place
+        ar[i] = auxInt
+        auxInt += hd2*(ar_i + _ar[i + 1])
+    ar[lenAr - 1] = auxInt
+    return ar
+
+#****************************************************************************
+def matr_prod(_A, _B):
+    """
+    Multiplies matrix _A by matrix _B 
+    """
+    # Matrix multiplication
+    B0 = _B[0]
+    lenB = len(_B)
+    lenA = len(_A)
+    if(len(_A[0]) != lenB): # Check matrix dimensions        
+        Exception('Matrices have wrong dimensions')
+    if(isinstance(B0, list) or isinstance(B0, array) or isinstance(B0, tuple)): #_B is matrix
+        lenB0 = len(B0)
+        C = [[0 for row in range(lenB0)] for col in range(lenA)]
+        for i in range(lenA):
+            for j in range(lenB0):
+                for k in range(lenB):
+                    C[i][j] += _A[i][k]*_B[k][j]
+    else: #_B is vector
+        C = [0 for row in range(lenB)]
+        for i in range(lenA):
+            for k in range(lenB):
+                C[i] += _A[i][k]*_B[k]
+    return C
+
+#****************************************************************************
+def matr_print(_A):
+    """
+    Prints matrix _A
+    """
+    for i in range(len(_A)):
+        print(_A[i])
+ 
+#****************************************************************************
+def trf_rotation(_V, _ang, _P):
+    """
+    Sets up matrix and vector describing rotation about axis _V passing through a point _P about an angle _ang
+    :param _V: vector (array of 3 Cartesian coordinates) rdefining rotation axis
+    :param _ang: rotation angle [rad]
+    :param _P: point (array of 3 Cartesian coordinates) rotation axis passes through
+    :returns list containing the 3x3 matrix and 3-element vector
+    """
+    normFact = 1./sqrt(_V[0]*_V[0] + _V[1]*_V[1] + _V[2]*_V[2]);
+    axVect = [normFact*_V[0], normFact*_V[1], normFact*_V[2]]
+    VxVx = axVect[0]*axVect[0]
+    VyVy = axVect[1]*axVect[1]
+    VzVz = axVect[2]*axVect[2]
+    cosAng = cos(_ang)
+    sinAng = sin(_ang)
+    one_m_cos = 1. - cosAng
+    one_m_cosVxVy = one_m_cos*axVect[0]*axVect[1]
+    one_m_cosVxVz = one_m_cos*axVect[0]*axVect[2]
+    one_m_cosVyVz = one_m_cos*axVect[1]*axVect[2]
+    sinVx = sinAng*axVect[0]
+    sinVy = sinAng*axVect[1]
+    sinVz = sinAng*axVect[2]
+    st0 = [VxVx + cosAng*(VyVy + VzVz), one_m_cosVxVy - sinVz, one_m_cosVxVz + sinVy]
+    st1 = [one_m_cosVxVy + sinVz, VyVy + cosAng*(VxVx + VzVz), one_m_cosVyVz - sinVx]
+    st2 = [one_m_cosVxVz - sinVy, one_m_cosVyVz + sinVx, VzVz + cosAng*(VxVx + VyVy)]
+    M = [st0, st1, st2]
+    st00 = [1. - st0[0], -st0[1], -st0[2]]
+    st01 = [-st1[0], 1. - st1[1], -st1[2]]
+    st02 = [-st2[0], -st2[0], 1. - st2[2]]
+    M0 = [st00, st01, st02]
+    V = matr_prod(M0, _P)
+    return [M, V]

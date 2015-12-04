@@ -66,6 +66,7 @@ public:
 
 	bool BaseRadWasEmulated;
 	float *pBaseRadX, *pBaseRadZ;
+	float *pBaseRadXaux, *pBaseRadZaux; //OC151115
 	waveHndl wRad, wRadX, wRadZ;
 	int hStateRadX, hStateRadZ;
 	double eStep, eStart, xStep, xStart, zStep, zStart;
@@ -73,6 +74,8 @@ public:
 
 	double xStartTr, zStartTr;
 	bool UseStartTrToShiftAtChangingRepresToCoord;
+	//double tStartTr; //OC091115 //to check!
+	//bool UseStartTrToShiftAtChangingRepresToTime; //OC091115 
 
 	double RobsX, RobsZ; //these values should be treated as distances to waists
 	double RobsXAbsErr, RobsZAbsErr;
@@ -80,6 +83,7 @@ public:
 	double xWfrMin, xWfrMax, zWfrMin, zWfrMax; // Exact borders of the Wavefront
 	char WfrEdgeCorrShouldBeDone; // To switch off/on manually
 	double avgPhotEn; //averarage photon energy for time-domain simulations
+	double avgT; //OC101115 //averarage tiem (auxiliary value)
 
 	double UnderSamplingX, UnderSamplingZ;
 	char AllowAutoSwitchToPropInUnderSamplingMode;
@@ -97,6 +101,7 @@ public:
 
 	bool WfrQuadTermCanBeTreatedAtResizeX; // is used at the time of one resize only
 	bool WfrQuadTermCanBeTreatedAtResizeZ;
+	double wfrReffX, wfrReffZ; //effective wavefront radii (to be used e.g. at resize) //OC150914
 
 	char ElectronBeamEmulated; // 0 by def.
 	DOUBLE *pElecBeam;
@@ -205,7 +210,10 @@ public:
 	void OutSRWRadPtrs(SRWLWfr&);
 
 	//srTSRWRadInData* CreateCorrespSRWRadInData();
-	int ModifyWfrNeNxNz(char PolarizComp = 0);
+	//int ModifyWfrNeNxNz(char PolarizComp = 0);
+	int ModifyWfrNeNxNz(char PolarizComp = 0, bool backupIsReq = false); //OC131115
+	int DeleteWfrBackupData(char PolarizComp = 0); //OC151115
+
 	int GetWfrStructNames(srTSRWRadStructWaveNames& RadStructNames);
 	int CreateNewWfrStruct(srTSRWRadStructWaveNames& Names);
 	int DeleteWfrStructWaves(srTSRWRadStructWaveKeys& RadKeys);
@@ -233,6 +241,9 @@ public:
 	int SetRepresCA(char CoordOrAng); //set Coordinate or Angular representation
 	int SetRepresFT(char FreqOrTime); //set Frequency or Time representation
 	int ComputeRadMoments();
+
+	//void EstimWfrRadCen(double& resR, double& resCen, char cutX_or_Z, char fldX_or_Z=0, double relArgRange=0.2, double relArgCenOther=0.5);
+	bool CheckIfQuadTermTreatIsBenefit(char cutX_or_Z, char fldX_or_Z=0);
 
 	void SetupSrwWfrAuxData()
 	{

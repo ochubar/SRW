@@ -134,7 +134,14 @@ public:
 
 	int PropagateRadiationMeth_0(srTSRWRadStructAccessData* pRadAccessData) //virtual in srTGenOptElem
 	{//because for the Drift, the following works for many photon energies too!
-		return PropagateRadiationSingleE_Meth_0(pRadAccessData, 0);
+		//return PropagateRadiationSingleE_Meth_0(pRadAccessData, 0);
+		//OC251214
+		if((LocalPropMode == 0) || (LocalPropMode == 3) || (pRadAccessData->ne == 1)) return PropagateRadiationSingleE_Meth_0(pRadAccessData, 0);
+		else
+		{
+			pRadAccessData->SetNonZeroWavefrontLimitsToFullRange();
+			return srTGenOptElem::PropagateRadiationMeth_0(pRadAccessData); //since (LocalPropMode == 1) and (LocalPropMode == 2) - propagation to/from waist introduces some dispersion and can potentially modify mesh
+		}
 	}
 
 	int PropagateRadiationMeth_1(srTSRWRadStructAccessData*);
@@ -187,6 +194,9 @@ public:
 		}
 		else if(ParPrecWfrPropag.AnalTreatment == 3) LocalPropMode = 2; //Propagation From Waist
 		else if(ParPrecWfrPropag.AnalTreatment == 4) LocalPropMode = 1; //Propagation To Waist
+
+		//OC100914 Aux. methods for testing / benchmarking
+		else if(ParPrecWfrPropag.AnalTreatment >= 100) LocalPropMode = 100; //Propagation To Waist
 	}
 
 	int PropToWaistCanBeApplied(srTSRWRadStructAccessData* pRadAccessData)
@@ -224,6 +234,10 @@ public:
 		else if(LocalPropMode == 1) return PropagateRadiationSimple_PropToWaist(pRadAccessData);
 		else if(LocalPropMode == 2) return PropagateRadiationSimple_PropFromWaist(pRadAccessData); //OC240114 (added)
 		else if(LocalPropMode == 3) return PropagateRadiationSimple_AnalytTreatQuadPhaseTerm(pRadAccessData);
+
+		//OC100914 Aux. methods for testing / benchmarking
+		else if(LocalPropMode == 100) return PropagateRadiationSimple_NumIntFresnel(pRadAccessData);
+
 		else return 0;
 	}
 	int PropagateRadiationSimple_AngRepres(srTSRWRadStructAccessData* pRadAccessData)
@@ -267,6 +281,7 @@ public:
 	int PropagateRadiationSimple_PropToWaist(srTSRWRadStructAccessData* pRadAccessData);
 	int PropagateRadiationSimple_PropFromWaist(srTSRWRadStructAccessData* pRadAccessData);
 	int PropagateRadiationSimple_AnalytTreatQuadPhaseTerm(srTSRWRadStructAccessData* pRadAccessData);
+	int PropagateRadiationSimple_NumIntFresnel(srTSRWRadStructAccessData* pRadAccessData); //OC100914 Aux. method for testing / benchmarking
 
 	int PropagateRadiationSimple1D(srTRadSect1D* pSect1D)
 	{

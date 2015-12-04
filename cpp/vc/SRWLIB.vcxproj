@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
       <Configuration>Debug</Configuration>
@@ -25,25 +25,25 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
-    <PlatformToolset>v120</PlatformToolset>
+    <PlatformToolset>v140</PlatformToolset>
     <UseOfMfc>false</UseOfMfc>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
-    <PlatformToolset>v120</PlatformToolset>
+    <PlatformToolset>v140</PlatformToolset>
     <UseOfMfc>false</UseOfMfc>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
-    <PlatformToolset>v120</PlatformToolset>
+    <PlatformToolset>v140</PlatformToolset>
     <UseOfMfc>false</UseOfMfc>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
-    <PlatformToolset>v120</PlatformToolset>
+    <PlatformToolset>v140</PlatformToolset>
     <UseOfMfc>false</UseOfMfc>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
@@ -102,7 +102,7 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>..\src\core;..\src\lib;..\src\ext\genmath;..\src\ext\auxparse;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>_DEBUG;WIN32;_WINDOWS;_USRDLL;__VC__;SRWLIB_STATIC;_GM_WITHOUT_BASE;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;WIN32;_WINDOWS;_USRDLL;__VC__;SRWLIB_STATIC;_GM_WITHOUT_BASE;_CRT_SECURE_NO_WARNINGS;NON_UNIX_STDIO;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <StructMemberAlignment>Default</StructMemberAlignment>
@@ -140,7 +140,7 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>..\src\core;..\src\lib;..\src\ext\genmath;..\src\ext\auxparse;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>_DEBUG;WIN32;_WINDOWS;_USRDLL;__VC__;SRWLIB_STATIC;_GM_WITHOUT_BASE;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;WIN32;_WINDOWS;_USRDLL;__VC__;SRWLIB_STATIC;_GM_WITHOUT_BASE;_CRT_SECURE_NO_WARNINGS;NON_UNIX_STDIO;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <StructMemberAlignment>Default</StructMemberAlignment>
@@ -177,9 +177,9 @@
     </Midl>
     <ClCompile>
       <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
-      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <FavorSizeOrSpeed>Neither</FavorSizeOrSpeed>
       <AdditionalIncludeDirectories>..\src\lib;..\src\core;..\src\ext\genmath;..\src\ext\auxparse;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>NDEBUG;WIN32;_WINDOWS;_USRDLL;__VC__;SRWLIB_STATIC;_GM_WITHOUT_BASE;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;WIN32;_WINDOWS;_USRDLL;__VC__;SRWLIB_STATIC;_GM_WITHOUT_BASE;_CRT_SECURE_NO_WARNINGS;NON_UNIX_STDIO;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <FunctionLevelLinking>true</FunctionLevelLinking>
@@ -191,6 +191,7 @@
       <WarningLevel>Level3</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <CompileAs>Default</CompileAs>
+      <StructMemberAlignment>Default</StructMemberAlignment>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -213,13 +214,13 @@
       <TypeLibraryName>.\Release/SRWLIB.tlb</TypeLibraryName>
     </Midl>
     <ClCompile>
-      <InlineFunctionExpansion>Default</InlineFunctionExpansion>
+      <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <AdditionalIncludeDirectories>..\src\lib;..\src\core;..\src\ext\genmath;..\src\ext\auxparse;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>NDEBUG;WIN32;_WINDOWS;_USRDLL;__VC__;SRWLIB_STATIC;_GM_WITHOUT_BASE;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;WIN32;_WINDOWS;_USRDLL;__VC__;SRWLIB_STATIC;_GM_WITHOUT_BASE;_CRT_SECURE_NO_WARNINGS;NON_UNIX_STDIO;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
-      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <FunctionLevelLinking>false</FunctionLevelLinking>
       <RuntimeTypeInfo>true</RuntimeTypeInfo>
       <PrecompiledHeaderOutputFile />
       <AssemblerListingLocation />
@@ -229,6 +230,10 @@
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <DebugInformationFormat />
       <CompileAs>Default</CompileAs>
+      <OmitFramePointers>true</OmitFramePointers>
+      <Optimization>MaxSpeed</Optimization>
+      <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
+      <FloatingPointModel>Precise</FloatingPointModel>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -237,13 +242,61 @@
     <Lib>
       <AdditionalDependencies>..\..\ext_lib\fftw64_f.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>srw_x64.lib</OutputFile>
+      <AdditionalOptions>
+      </AdditionalOptions>
     </Lib>
     <PostBuildEvent>
       <Command>copy $(SolutionDir)$(TargetName)$(TargetExt) "$(SolutionDir)..\..\env\work\srw_python\lib\"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\src\core\sroptcryst.cpp" />
     <ClCompile Include="..\src\ext\auxparse\auxparse.cpp" />
+    <ClCompile Include="..\src\ext\f2c_min\CLOSE.C" />
+    <ClCompile Include="..\src\ext\f2c_min\DFE.C" />
+    <ClCompile Include="..\src\ext\f2c_min\DOLIO.C" />
+    <ClCompile Include="..\src\ext\f2c_min\DUE.C" />
+    <ClCompile Include="..\src\ext\f2c_min\D_CNJG.C" />
+    <ClCompile Include="..\src\ext\f2c_min\D_IMAG.C" />
+    <ClCompile Include="..\src\ext\f2c_min\D_MOD.C" />
+    <ClCompile Include="..\src\ext\f2c_min\D_SIGN.C" />
+    <ClCompile Include="..\src\ext\f2c_min\ENDFILE.C" />
+    <ClCompile Include="..\src\ext\f2c_min\ERR.C" />
+    <ClCompile Include="..\src\ext\f2c_min\FMT.C" />
+    <ClCompile Include="..\src\ext\f2c_min\FMTLIB.C" />
+    <ClCompile Include="..\src\ext\f2c_min\IIO.C" />
+    <ClCompile Include="..\src\ext\f2c_min\ILNW.C" />
+    <ClCompile Include="..\src\ext\f2c_min\INQUIRE.C" />
+    <ClCompile Include="..\src\ext\f2c_min\I_DNNT.C" />
+    <ClCompile Include="..\src\ext\f2c_min\I_INDX.C" />
+    <ClCompile Include="..\src\ext\f2c_min\I_LEN.C" />
+    <ClCompile Include="..\src\ext\f2c_min\LREAD.C" />
+    <ClCompile Include="..\src\ext\f2c_min\LWRITE.C" />
+    <ClCompile Include="..\src\ext\f2c_min\OPEN.C" />
+    <ClCompile Include="..\src\ext\f2c_min\POW_II.C" />
+    <ClCompile Include="..\src\ext\f2c_min\POW_RI.C" />
+    <ClCompile Include="..\src\ext\f2c_min\RDFMT.C" />
+    <ClCompile Include="..\src\ext\f2c_min\REWIND.C" />
+    <ClCompile Include="..\src\ext\f2c_min\RSFE.C" />
+    <ClCompile Include="..\src\ext\f2c_min\RSLI.C" />
+    <ClCompile Include="..\src\ext\f2c_min\RSNE.C" />
+    <ClCompile Include="..\src\ext\f2c_min\SFE.C" />
+    <ClCompile Include="..\src\ext\f2c_min\SIG_DIE.C" />
+    <ClCompile Include="..\src\ext\f2c_min\S_CAT.C" />
+    <ClCompile Include="..\src\ext\f2c_min\S_CMP.C" />
+    <ClCompile Include="..\src\ext\f2c_min\S_COPY.C" />
+    <ClCompile Include="..\src\ext\f2c_min\S_STOP.C" />
+    <ClCompile Include="..\src\ext\f2c_min\TYPESIZE.C" />
+    <ClCompile Include="..\src\ext\f2c_min\UIO.C" />
+    <ClCompile Include="..\src\ext\f2c_min\UTIL.C" />
+    <ClCompile Include="..\src\ext\f2c_min\WREF.C" />
+    <ClCompile Include="..\src\ext\f2c_min\WRTFMT.C" />
+    <ClCompile Include="..\src\ext\f2c_min\WSFE.C" />
+    <ClCompile Include="..\src\ext\f2c_min\WSLE.C" />
+    <ClCompile Include="..\src\ext\f2c_min\WSNE.C" />
+    <ClCompile Include="..\src\ext\f2c_min\XWSNE.C" />
+    <ClCompile Include="..\src\ext\f2c_min\Z_DIV.C" />
+    <ClCompile Include="..\src\ext\f2c_min\Z_EXP.C" />
     <ClCompile Include="..\src\ext\genmath\gmfft.cpp" />
     <ClCompile Include="..\src\ext\genmath\gmfit.cpp" />
     <ClCompile Include="..\src\ext\genmath\gminterp.cpp" />
@@ -397,9 +450,6 @@
     <ClInclude Include="..\src\lib\srerror.h" />
     <ClInclude Include="..\src\lib\srigorre.h" />
     <ClInclude Include="..\src\lib\srwlib.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <Text Include="..\src\core\todo.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

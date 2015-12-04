@@ -157,8 +157,54 @@ public:
 	static bool VectCheckIfCollinear(double xV1, double yV1, double zV1, double xV2, double yV2, double zV2, double RelPrec);
 
 	static double Integ1D_FuncWithEdgeDer(double (*pF)(double), double x1, double x2, double dFdx1, double dFdx2, double RelPrec);
-	static double Integ1D_FuncDefByArray(double* FuncArr, long Np, double Step);
-	static double Integ1D_FuncDefByArray(float* FuncArr, long Np, double Step);
+
+	//static double Integ1D_FuncDefByArray(double* FuncArr, long Np, double Step);
+	//static double Integ1D_FuncDefByArray(float* FuncArr, long Np, double Step);
+	template <class T> static double Integ1D_FuncDefByArray(T* FuncArr, long Np, double Step)
+	{
+		if((FuncArr == 0) || (Np < 2) || (Step == 0)) return 0;
+		if(Np == 2) return (double)(0.5*(FuncArr[0] + FuncArr[1]));
+
+		T *tFuncArr = FuncArr + 1;
+		bool NpIsEven = (Np == ((Np >> 1) << 1));
+
+		long NpSim = Np;
+		if(NpIsEven) NpSim--;
+
+		//Simpson part
+		double Sum1 = 0, Sum2 = 0;
+		for(long i = 1; i < ((NpSim - 3) >> 1); i++)
+		{
+			Sum1 += *(tFuncArr++);
+			Sum2 += *(tFuncArr++);
+		}
+		Sum1 += *(tFuncArr++);
+		double res = (Step/3.)*(FuncArr[0] + 4.*Sum1 + 2.*Sum2 + (*tFuncArr));
+
+		//if(NpIsEven) res += (double)(0.5*(FuncArr[NpSim - 1] + FuncArr[NpSim])); //Last step is "trapethoidal"
+		//OC291214
+		if(NpIsEven) res += (double)(0.5*Step*(FuncArr[NpSim - 1] + FuncArr[NpSim])); //Last step is "trapethoidal"
+
+		return res;
+	}
+
+	template <class T> static double Integ2D_FuncDefByArray(T* arFlatFunc, long np1, long np2, double step1, double step2)
+	{
+		if((arFlatFunc == 0) || (np1 < 2) || (step1 == 0) || (np2 < 2) || (step2 == 0)) return 0;
+
+		double *arResInt1D = new double[np2];
+		double *t_arResInt1D = arResInt1D;
+		T *p_arFlatFunc = arFlatFunc;
+		for(long i2 = 0; i2 < np2; i2++)
+		{
+			*(t_arResInt1D++) = Integ1D_FuncDefByArray(p_arFlatFunc, np1, step1);
+			p_arFlatFunc += np1;
+		}
+		double res = Integ1D_FuncDefByArray(arResInt1D, np2, step2);
+
+		if(arResInt1D != 0) delete[] arResInt1D;
+		return res;
+	}
 
 	template <class T> static T tabFunc2D(int ix, int iy, int nx, T* pF)
 	{//just function value

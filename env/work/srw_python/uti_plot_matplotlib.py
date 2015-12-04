@@ -70,6 +70,7 @@ class Backend(object):
         if _graphs_joined:
             #fig = _pl.figure(figsize=(12,5))
             fig = self._pl.figure(figsize=(15,5.3))
+           
             self._plot_2D(data, x_range, y_range, label2D, fig, 131) #showing graphs in one panel
         else: self.uti_plot2d(data, x_range, y_range, label2D)
 
@@ -97,6 +98,8 @@ class Backend(object):
             yy += yStep
         if _graphs_joined: self._plot_1D(arCutY, y_range, label1V, fig, 133)
         else: self.uti_plot1d(arCutY, y_range, label1V)
+
+        if _graphs_joined: self._pl.tight_layout() #OC081115
 
         return self._maybe_savefig(fig)
 

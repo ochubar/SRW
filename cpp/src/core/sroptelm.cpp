@@ -1059,7 +1059,8 @@ void srTGenOptElem::MakeWfrEdgeCorrection1D(srTRadSect1D* pRadSect1D, float* pDa
 
 //*************************************************************************
 
-int srTGenOptElem::SetRadRepres(srTSRWRadStructAccessData* pRadAccessData, char CoordOrAng)
+//int srTGenOptElem::SetRadRepres(srTSRWRadStructAccessData* pRadAccessData, char CoordOrAng)
+int srTGenOptElem::SetRadRepres(srTSRWRadStructAccessData* pRadAccessData, char CoordOrAng, double* ar_xStartInSlicesE, double* ar_zStartInSlicesE)
 {// 0- to coord.; 1- to ang.
 	int result;
 
@@ -1099,6 +1100,9 @@ int srTGenOptElem::SetRadRepres(srTSRWRadStructAccessData* pRadAccessData, char 
 			}
 		}
 
+		if(ar_xStartInSlicesE != 0) FFT2DInfo.xStart = *ar_xStartInSlicesE;
+		if(ar_zStartInSlicesE != 0) FFT2DInfo.yStart = *ar_zStartInSlicesE;
+
 		FFT2DInfo.pData = pRadAccessData->pBaseRadX;
 		if(result = FFT2D.Make2DFFT(FFT2DInfo)) return result;
 		FFT2DInfo.pData = pRadAccessData->pBaseRadZ;
@@ -1118,13 +1122,28 @@ int srTGenOptElem::SetRadRepres(srTSRWRadStructAccessData* pRadAccessData, char 
 	}
 	else
 	{
+		////OC151014 (test)
+		//if(!WfrEdgeCorrShouldBeTreated)
+		//{
+		//	FFT2DInfo.howMany = pRadAccessData->ne;
+		//	FFT2DInfo.iStride = pRadAccessData->ne; //periodicity for extracting next element of 2D array
+		//	FFT2DInfo.iDist = 1; //periodicity for starting extraction of next 2D array
+
+		//	FFT2DInfo.pData = pRadAccessData->pBaseRadX;
+		//	if(result = FFT2D.Make2DFFT(FFT2DInfo)) return result;
+		//	FFT2DInfo.pData = pRadAccessData->pBaseRadZ;
+		//	if(result = FFT2D.Make2DFFT(FFT2DInfo)) return result;
+		//}
+		//else
+		//{
+		//This is the original version; works by "slices"
 		long TwoNxNz = (pRadAccessData->nx*pRadAccessData->nz) << 1;
 		float* AuxEx = new float[TwoNxNz];
 		if(AuxEx == 0) return MEMORY_ALLOCATION_FAILURE;
 		float* AuxEz = new float[TwoNxNz];
 		if(AuxEz == 0) return MEMORY_ALLOCATION_FAILURE;
 
-		for(long ie=0; ie<pRadAccessData->ne; ie++)
+		for(long ie = 0; ie < pRadAccessData->ne; ie++)
 		{
 			if(result = ExtractRadSliceConstE(pRadAccessData, ie, AuxEx, AuxEz)) return result;
 
@@ -1136,6 +1155,10 @@ int srTGenOptElem::SetRadRepres(srTSRWRadStructAccessData* pRadAccessData, char 
 					if(result = SetupWfrEdgeCorrData(pRadAccessData, AuxEx, AuxEz, DataPtrsForWfrEdgeCorr)) return result;
 				}
 			}
+
+			//After the FFT, all slices will be authomatically brought to the same mesh
+			if(ar_xStartInSlicesE != 0) FFT2DInfo.xStart = ar_xStartInSlicesE[ie];
+			if(ar_zStartInSlicesE != 0) FFT2DInfo.yStart = ar_zStartInSlicesE[ie];
 
 			FFT2DInfo.pData = AuxEx;
 			if(result = FFT2D.Make2DFFT(FFT2DInfo)) return result;
@@ -1159,6 +1182,7 @@ int srTGenOptElem::SetRadRepres(srTSRWRadStructAccessData* pRadAccessData, char 
 
 		if(AuxEx != 0) delete[] AuxEx;
 		if(AuxEz != 0) delete[] AuxEz;
+		//}
 	}
 
 	pRadAccessData->xStep = FFT2DInfo.xStepTr;
@@ -1275,8 +1299,12 @@ int srTGenOptElem::ComputeRadMoments(srTSRWRadStructAccessData* pSRWRadStructAcc
 	bool IsFreqRepres = (pSRWRadStructAccessData->PresT == 0);
 
 	char WaveFrontTermWasTreated = 0;
+	//if(IsFreqRepres && IsCoordRepres && WaveFrontTermCanBeTreated(pSRWRadStructAccessData))
 	if(IsFreqRepres && IsCoordRepres && WaveFrontTermCanBeTreated(*pSRWRadStructAccessData))
 	{
+		pSRWRadStructAccessData->wfrReffX = -1.E+023; //sign to use only RobsX, RobsZ for Quad. Term treatment
+		pSRWRadStructAccessData->wfrReffZ = pSRWRadStructAccessData->wfrReffX;
+
 		TreatStronglyOscillatingTerm(*pSRWRadStructAccessData, 'r');
 		WaveFrontTermWasTreated = 1;
 	}
@@ -2080,8 +2108,9 @@ int srTGenOptElem::RadResizeGen(srTSRWRadStructAccessData& SRWRadStructAccessDat
 	if(!TreatPolarizSepar)
 	{
 		//if(pxmIn*pxdIn*pzmIn*pzdIn >= 1.)
-		if((pxmIn*pxdIn*pzmIn*pzdIn >= 1.) || (SRWRadStructAccessData.m_newExtWfrCreateNotAllowed)) //OC140311
-		{
+		//if((pxmIn*pxdIn*pzmIn*pzdIn >= 1.) || (SRWRadStructAccessData.m_newExtWfrCreateNotAllowed)) //OC140311
+		if(pxmIn*pxdIn*pzmIn*pzdIn >= 1.) //OC161115
+		{//Is this part really necessary?
 			OldRadXCopy = new float[TotAmOfOldData];
 			if(OldRadXCopy == 0) return MEMORY_ALLOCATION_FAILURE;
 			OldRadZCopy = new float[TotAmOfOldData];
@@ -2130,6 +2159,7 @@ int srTGenOptElem::RadResizeGen(srTSRWRadStructAccessData& SRWRadStructAccessDat
 			}
 			else
 			{
+#ifdef __IGOR_PRO__
 				//if(result = Send.GetRadStructNames(SRWRadStructAccessData, RadStructNames)) return result;
 				if(result = SRWRadStructAccessData.GetWfrStructNames(RadStructNames)) return result;
 				OldRadStructNames = RadStructNames;
@@ -2144,6 +2174,13 @@ int srTGenOptElem::RadResizeGen(srTSRWRadStructAccessData& SRWRadStructAccessDat
 				NewSRWRadStructAccessData.pBaseRadZ = 0; NewSRWRadStructAccessData.wRadZ = NIL;
 				//if(result = Send.CreateNewRadStruct(NewSRWRadStructAccessData, RadStructNames)) return result;
 				if(result = NewSRWRadStructAccessData.CreateNewWfrStruct(RadStructNames)) return result;		
+#endif
+#if defined(SRWLIB_STATIC) || defined(SRWLIB_SHARED) //OC161115
+				if(result = NewSRWRadStructAccessData.ModifyWfrNeNxNz(0, true)) return result;
+				//OCTEST
+				//SRWRadStructAccessData.pBaseRadX = NewSRWRadStructAccessData.pBaseRadXaux;
+				//SRWRadStructAccessData.pBaseRadZ = NewSRWRadStructAccessData.pBaseRadZaux;
+#endif
 			}
 			
 			float *tRadX = NewSRWRadStructAccessData.pBaseRadX, *tRadZ = NewSRWRadStructAccessData.pBaseRadZ;
@@ -2160,6 +2197,7 @@ int srTGenOptElem::RadResizeGen(srTSRWRadStructAccessData& SRWRadStructAccessDat
 			}
 			else
 			{
+#ifdef __IGOR_PRO__
 				srTSRWRadStructWaveKeys RadKeys;
 				RadKeys.wRad_= RadKeys.wRadX_= RadKeys.wRadZ_= 1;
 				//if(result = Send.DeleteRadStructWaves(SRWRadStructAccessData, RadKeys)) return result;
@@ -2167,14 +2205,19 @@ int srTGenOptElem::RadResizeGen(srTSRWRadStructAccessData& SRWRadStructAccessDat
 				
 				//if(result = Send.RenameRadStruct(NewSRWRadStructAccessData, OldRadStructNames)) return result;
 				if(result = NewSRWRadStructAccessData.RenameWfrStruct(OldRadStructNames)) return result;
+#endif
+#if defined(SRWLIB_STATIC) || defined(SRWLIB_SHARED) //OC161115
+				if(result = NewSRWRadStructAccessData.DeleteWfrBackupData()) return result;
+#endif
 			}
 		}
 	}
-	else
+	else //TreatPolarizSepar
 	{
 		//if(pxmIn*pxdIn*pzmIn*pzdIn >= 1.)
-		if((pxmIn*pxdIn*pzmIn*pzdIn >= 1.) || (SRWRadStructAccessData.m_newExtWfrCreateNotAllowed)) //OC140311
-		{
+		//if((pxmIn*pxdIn*pzmIn*pzdIn >= 1.) || (SRWRadStructAccessData.m_newExtWfrCreateNotAllowed)) //OC140311
+		if(pxmIn*pxdIn*pzmIn*pzdIn >= 1.) //OC161115
+		{//Is this part necessary at all?
 			if(ExIsOK) //OC13112011
 			{
 				OldRadXCopy = new float[TotAmOfOldData];
@@ -2238,6 +2281,7 @@ int srTGenOptElem::RadResizeGen(srTSRWRadStructAccessData& SRWRadStructAccessDat
 		}
 		else
 		{
+#ifdef __IGOR_PRO__
 			srTSRWRadStructWaveNames RadStructNames;
 			//if(result = Send.GetRadStructNames(SRWRadStructAccessData, RadStructNames)) return result;
 			if(result = SRWRadStructAccessData.GetWfrStructNames(RadStructNames)) return result;			
@@ -2247,36 +2291,66 @@ int srTGenOptElem::RadResizeGen(srTSRWRadStructAccessData& SRWRadStructAccessDat
 			strcpy(RadStructNames.NameRad, AuxRadName);
 			strcpy(RadStructNames.NameRadZ, AuxEzName);
 			strcpy(RadStructNames.NameRadX, AuxExName);
-//Ex
+
 			NewSRWRadStructAccessData.wRad = NIL;
-			NewSRWRadStructAccessData.pBaseRadX = 0; NewSRWRadStructAccessData.wRadX = NIL;
-			//if(result = Send.CreateNewRadStruct(NewSRWRadStructAccessData, RadStructNames)) return result;
-			if(result = NewSRWRadStructAccessData.CreateNewWfrStruct(RadStructNames)) return result;		
+#endif
+//Ex
+			if(ExIsOK)
+			{
+#ifdef __IGOR_PRO__
+				NewSRWRadStructAccessData.pBaseRadX = 0; NewSRWRadStructAccessData.wRadX = NIL;
+				//if(result = Send.CreateNewRadStruct(NewSRWRadStructAccessData, RadStructNames)) return result;
+				if(result = NewSRWRadStructAccessData.CreateNewWfrStruct(RadStructNames)) return result;		
+#endif
+#if defined(SRWLIB_STATIC) || defined(SRWLIB_SHARED) //OC161115
+				if (result = NewSRWRadStructAccessData.ModifyWfrNeNxNz('x', true)) return result;
+#endif
+				float *tRadX = NewSRWRadStructAccessData.pBaseRadX;
+				for(long j=0; j<TotAmOfNewData; j++) *(tRadX++) = 0.;
 
-			float *tRadX = NewSRWRadStructAccessData.pBaseRadX;
-			for(long j=0; j<TotAmOfNewData; j++) *(tRadX++) = 0.;
+				if(result = RadResizeCore(SRWRadStructAccessData, NewSRWRadStructAccessData, RadResizeStruct, 'x')) return result;
 
-			if(result = RadResizeCore(SRWRadStructAccessData, NewSRWRadStructAccessData, RadResizeStruct, 'x')) return result;
-
-			srTSRWRadStructWaveKeys Keys; Keys.wRadX_= 1;
-			//if(result = Send.DeleteRadStructWaves(SRWRadStructAccessData, Keys)) return result;
-			if(result = SRWRadStructAccessData.DeleteWfrStructWaves(Keys)) return result;
+#ifdef __IGOR_PRO__
+				srTSRWRadStructWaveKeys Keys;
+				//Keys.wRadX_= 1;
+				Keys.wRad_ = Keys.wRadX_= 1; Keys.wRadZ_ = 0; //OC161115
+				//if(result = Send.DeleteRadStructWaves(SRWRadStructAccessData, Keys)) return result;
+				if(result = SRWRadStructAccessData.DeleteWfrStructWaves(Keys)) return result;
+#endif
+#if defined(SRWLIB_STATIC) || defined(SRWLIB_SHARED) //OC161115
+				if (result = NewSRWRadStructAccessData.DeleteWfrBackupData('x')) return result;
+#endif
+			}
 //Ez
-			NewSRWRadStructAccessData.pBaseRadZ = 0; NewSRWRadStructAccessData.wRadZ = NIL;
-			//if(result = Send.CreateNewRadStruct(NewSRWRadStructAccessData, RadStructNames)) return result;
-			if(result = NewSRWRadStructAccessData.CreateNewWfrStruct(RadStructNames)) return result;		
+			if(EzIsOK)
+			{
+#ifdef __IGOR_PRO__
+				NewSRWRadStructAccessData.pBaseRadZ = 0; NewSRWRadStructAccessData.wRadZ = NIL;
+				//if(result = Send.CreateNewRadStruct(NewSRWRadStructAccessData, RadStructNames)) return result;
+				if (result = NewSRWRadStructAccessData.CreateNewWfrStruct(RadStructNames)) return result;
+#endif
+#if defined(SRWLIB_STATIC) || defined(SRWLIB_SHARED) //OC161115
+				if (result = NewSRWRadStructAccessData.ModifyWfrNeNxNz('z', true)) return result;
+#endif
+				float *tRadZ = NewSRWRadStructAccessData.pBaseRadZ;
+				for (long i = 0; i < TotAmOfNewData; i++) *(tRadZ++) = 0.;
 
-			float *tRadZ = NewSRWRadStructAccessData.pBaseRadZ;
-			for(long i=0; i<TotAmOfNewData; i++) *(tRadZ++) = 0.;
+				if (result = RadResizeCore(SRWRadStructAccessData, NewSRWRadStructAccessData, RadResizeStruct, 'z')) return result;
 
-			if(result = RadResizeCore(SRWRadStructAccessData, NewSRWRadStructAccessData, RadResizeStruct, 'z')) return result;
-
-			Keys.wRadX_= 0; Keys.wRad_= Keys.wRadZ_= 1;
-			//if(result = Send.DeleteRadStructWaves(SRWRadStructAccessData, Keys)) return result;
-			if(result = SRWRadStructAccessData.DeleteWfrStructWaves(Keys)) return result;
-
+#ifdef __IGOR_PRO__
+				srTSRWRadStructWaveKeys Keys;
+				Keys.wRadX_ = 0; Keys.wRad_ = Keys.wRadZ_ = 1;
+				//if(result = Send.DeleteRadStructWaves(SRWRadStructAccessData, Keys)) return result;
+				if (result = SRWRadStructAccessData.DeleteWfrStructWaves(Keys)) return result;
+#endif
+#if defined(SRWLIB_STATIC) || defined(SRWLIB_SHARED) //OC161115
+				if (result = NewSRWRadStructAccessData.DeleteWfrBackupData('z')) return result;
+#endif
+			}
+#ifdef __IGOR_PRO__
 			//if(result = Send.RenameRadStruct(NewSRWRadStructAccessData, OldRadStructNames)) return result;
 			if(result = NewSRWRadStructAccessData.RenameWfrStruct(OldRadStructNames)) return result;
+#endif
 		}
 	}
 
@@ -2339,6 +2413,9 @@ int srTGenOptElem::RadResizeCore(srTSRWRadStructAccessData& OldRadAccessData, sr
 		NewRadAccessData.WfrQuadTermCanBeTreatedAtResizeZ = OldRadAccessData.WfrQuadTermCanBeTreatedAtResizeZ;
 
 		TreatStronglyOscillatingTerm(OldRadAccessData, 'r', PolComp);
+
+		NewRadAccessData.wfrReffX = OldRadAccessData.wfrReffX;
+		NewRadAccessData.wfrReffZ = OldRadAccessData.wfrReffZ;
 
 		WaveFrontTermWasTreated = 1;
 	}
@@ -2682,8 +2759,9 @@ int srTGenOptElem::RadResizeGenE(srTSRWRadStructAccessData& SRWRadStructAccessDa
 	float *OldRadXCopy = 0, *OldRadZCopy = 0;
 	if(!TreatPolarizSepar)
 	{
-		if((pemIn*pedIn >= 1.) || SRWRadStructAccessData.m_newExtWfrCreateNotAllowed)
-		{
+		//if((pemIn*pedIn >= 1.) || SRWRadStructAccessData.m_newExtWfrCreateNotAllowed)
+		if(pemIn*pedIn >= 1.) //OC161115
+		{//Is this part necessary at all?
 			OldRadXCopy = new float[TotAmOfOldData];
 			if(OldRadXCopy == 0) return MEMORY_ALLOCATION_FAILURE;
 			OldRadZCopy = new float[TotAmOfOldData];
@@ -2722,7 +2800,7 @@ int srTGenOptElem::RadResizeGenE(srTSRWRadStructAccessData& SRWRadStructAccessDa
 			if(OldRadZCopy != 0) delete[] OldRadZCopy;
 		}
 		else
-		{
+		{//This processing saves more memory
 			srTSRWRadStructWaveNames RadStructNames, OldRadStructNames;
 			if(NewSRWRadStructAccessData.BaseRadWasEmulated) 
 			{
@@ -2730,6 +2808,7 @@ int srTGenOptElem::RadResizeGenE(srTSRWRadStructAccessData& SRWRadStructAccessDa
 			}
 			else
 			{
+#ifdef __IGOR_PRO__
 				if(result = SRWRadStructAccessData.GetWfrStructNames(RadStructNames)) return result;
 				OldRadStructNames = RadStructNames;
 
@@ -2742,6 +2821,10 @@ int srTGenOptElem::RadResizeGenE(srTSRWRadStructAccessData& SRWRadStructAccessDa
 				NewSRWRadStructAccessData.pBaseRadX = 0; NewSRWRadStructAccessData.wRadX = NIL;
 				NewSRWRadStructAccessData.pBaseRadZ = 0; NewSRWRadStructAccessData.wRadZ = NIL;
 				if(result = NewSRWRadStructAccessData.CreateNewWfrStruct(RadStructNames)) return result;
+#endif
+#if defined(SRWLIB_STATIC) || defined(SRWLIB_SHARED) //OC141115
+				if(result = NewSRWRadStructAccessData.ModifyWfrNeNxNz(0, true)) return result;
+#endif
 			}
 
 			float *tRadX = NewSRWRadStructAccessData.pBaseRadX, *tRadZ = NewSRWRadStructAccessData.pBaseRadZ;
@@ -2758,18 +2841,24 @@ int srTGenOptElem::RadResizeGenE(srTSRWRadStructAccessData& SRWRadStructAccessDa
 			}
 			else
 			{
+#ifdef __IGOR_PRO__
 				srTSRWRadStructWaveKeys RadKeys;
 				RadKeys.wRad_= RadKeys.wRadX_= RadKeys.wRadZ_= 1;
 				if(result = SRWRadStructAccessData.DeleteWfrStructWaves(RadKeys)) return result;
 				
 				if(result = NewSRWRadStructAccessData.RenameWfrStruct(OldRadStructNames)) return result;
+#endif
+#if defined(SRWLIB_STATIC) || defined(SRWLIB_SHARED)
+				if(result = NewSRWRadStructAccessData.DeleteWfrBackupData()) return result;
+#endif
 			}
 		}
 	}
 	else //TreatPolarizSepar
 	{
-		if((pemIn*pedIn >= 1.) || (SRWRadStructAccessData.m_newExtWfrCreateNotAllowed))
-		{
+		//if((pemIn*pedIn >= 1.) || (SRWRadStructAccessData.m_newExtWfrCreateNotAllowed))
+		if(pemIn*pedIn >= 1.) //OC161115
+		{//Is this part necessary at all?
 			if(ExIsOK)
 			{
 				OldRadXCopy = new float[TotAmOfOldData];
@@ -2831,6 +2920,7 @@ int srTGenOptElem::RadResizeGenE(srTSRWRadStructAccessData& SRWRadStructAccessDa
 		}
 		else
 		{
+#ifdef __IGOR_PRO__
 			srTSRWRadStructWaveNames RadStructNames;
 			if(result = SRWRadStructAccessData.GetWfrStructNames(RadStructNames)) return result;			
 			srTSRWRadStructWaveNames OldRadStructNames = RadStructNames;
@@ -2841,36 +2931,57 @@ int srTGenOptElem::RadResizeGenE(srTSRWRadStructAccessData& SRWRadStructAccessDa
 			strcpy(RadStructNames.NameRadX, AuxExName);
 
 			NewSRWRadStructAccessData.wRad = NIL;
-			
+#endif
 			if(ExIsOK)
 			{
+#ifdef __IGOR_PRO__
 				NewSRWRadStructAccessData.pBaseRadX = 0; NewSRWRadStructAccessData.wRadX = NIL;
 				if(result = NewSRWRadStructAccessData.CreateNewWfrStruct(RadStructNames)) return result;		
-
+#endif
+#if defined(SRWLIB_STATIC) || defined(SRWLIB_SHARED) //OC161115
+				if(result = NewSRWRadStructAccessData.ModifyWfrNeNxNz('x', true)) return result;
+#endif
 				float *tRadX = NewSRWRadStructAccessData.pBaseRadX;
 				for(long j=0; j<TotAmOfNewData; j++) *(tRadX++) = 0.;
 
 				if(result = RadResizeCoreE(SRWRadStructAccessData, NewSRWRadStructAccessData, RadResizeStruct, 'x')) return result;
 
+#ifdef __IGOR_PRO__
 				srTSRWRadStructWaveKeys Keys; 
 				Keys.wRad_= Keys.wRadX_= 1;
 				if(result = SRWRadStructAccessData.DeleteWfrStructWaves(Keys)) return result;
+#endif
+#if defined(SRWLIB_STATIC) || defined(SRWLIB_SHARED) //OC161115
+				if(result = NewSRWRadStructAccessData.DeleteWfrBackupData('x')) return result;
+#endif
 			}
-			if(ExIsOK)
+			//if(ExIsOK)
+			if(EzIsOK) //OC161115
 			{
+#ifdef __IGOR_PRO__
 				NewSRWRadStructAccessData.pBaseRadZ = 0; NewSRWRadStructAccessData.wRadZ = NIL;
 				if(result = NewSRWRadStructAccessData.CreateNewWfrStruct(RadStructNames)) return result;		
-
+#endif
+#if defined(SRWLIB_STATIC) || defined(SRWLIB_SHARED) //OC161115
+				if (result = NewSRWRadStructAccessData.ModifyWfrNeNxNz('z', true)) return result;
+#endif
 				float *tRadZ = NewSRWRadStructAccessData.pBaseRadZ;
 				for(long i=0; i<TotAmOfNewData; i++) *(tRadZ++) = 0.;
 
 				if(result = RadResizeCoreE(SRWRadStructAccessData, NewSRWRadStructAccessData, RadResizeStruct, 'z')) return result;
 
+#ifdef __IGOR_PRO__
 				srTSRWRadStructWaveKeys Keys; 
 				Keys.wRad_= Keys.wRadZ_= 1;
 				if(result = SRWRadStructAccessData.DeleteWfrStructWaves(Keys)) return result;
+#endif
+#if defined(SRWLIB_STATIC) || defined(SRWLIB_SHARED) //OC161115
+				if (result = NewSRWRadStructAccessData.DeleteWfrBackupData('z')) return result;
+#endif
 			}
+#ifdef __IGOR_PRO__
 			if(result = NewSRWRadStructAccessData.RenameWfrStruct(OldRadStructNames)) return result;
+#endif
 		}
 	}
 
@@ -2924,6 +3035,10 @@ int srTGenOptElem::RadResizeCoreE(srTSRWRadStructAccessData& OldRadAccessData, s
 		NewRadAccessData.WfrQuadTermCanBeTreatedAtResizeZ = OldRadAccessData.WfrQuadTermCanBeTreatedAtResizeZ;
 
 		TreatStronglyOscillatingTerm(OldRadAccessData, 'r', PolComp);
+
+		NewRadAccessData.wfrReffX = OldRadAccessData.wfrReffX;
+		NewRadAccessData.wfrReffZ = OldRadAccessData.wfrReffZ;
+
 		WaveFrontTermWasTreated = 1;
 	}
 
@@ -3108,7 +3223,8 @@ int srTGenOptElem::ReInterpolateWfrSliceSingleE(srTSRWRadStructAccessData& oldRa
 	bool OrigWfrQuadTermCanBeTreatedAtResizeX = oldRadSingleE.WfrQuadTermCanBeTreatedAtResizeX;
 	bool OrigWfrQuadTermCanBeTreatedAtResizeZ = oldRadSingleE.WfrQuadTermCanBeTreatedAtResizeZ;
 
-	if(WaveFrontTermCanBeTreated(oldRadSingleE))
+	//if(WaveFrontTermCanBeTreated(oldRadSingleE))
+	if(WaveFrontTermCanBeTreated(oldRadSingleE, true)) //OC251214
 	{
 		newRadMultiE.WfrQuadTermCanBeTreatedAtResizeX = oldRadSingleE.WfrQuadTermCanBeTreatedAtResizeX;
 		newRadMultiE.WfrQuadTermCanBeTreatedAtResizeZ = oldRadSingleE.WfrQuadTermCanBeTreatedAtResizeZ;
@@ -3761,7 +3877,7 @@ int srTGenOptElem::RadResizeCore1D(srTRadSect1D& OldRadSect1D, srTRadSect1D& New
 
 //*************************************************************************
 
-char srTGenOptElem::WaveFrontTermCanBeTreated(srTSRWRadStructAccessData& RadAccessData)
+char srTGenOptElem::WaveFrontTermCanBeTreated(srTSRWRadStructAccessData& RadAccessData, bool checkBenefit)
 {
 	//Later treat X and Z fully separately here and at removing the corresponding terms from Phase !!!
 
@@ -3786,11 +3902,11 @@ char srTGenOptElem::WaveFrontTermCanBeTreated(srTSRWRadStructAccessData& RadAcce
 		//RadAccessData.WfrQuadTermCanBeTreatedAtResizeZ = (AnglesZAreSmall && RobsZErrIsSmall);
 		//OC260114
 		//Removed requirement of small angles, because this was producing a buggy behavior for grazing-incidence mirrors
-		//Actually, the quadratic term can be subtracted and added even angles are large(?) 
+		//Actually, the quadratic term can be subtracted and added even if angles are large(?) 
 		RadAccessData.WfrQuadTermCanBeTreatedAtResizeX = RobsXErrIsSmall; 
 		RadAccessData.WfrQuadTermCanBeTreatedAtResizeZ = RobsZErrIsSmall;
 
-		return (RadAccessData.WfrQuadTermCanBeTreatedAtResizeX || RadAccessData.WfrQuadTermCanBeTreatedAtResizeZ);
+		//return (RadAccessData.WfrQuadTermCanBeTreatedAtResizeX || RadAccessData.WfrQuadTermCanBeTreatedAtResizeZ);
 	}
 	else // Ang
 	{// Not sure about this...
@@ -3826,8 +3942,17 @@ char srTGenOptElem::WaveFrontTermCanBeTreated(srTSRWRadStructAccessData& RadAcce
 		RadAccessData.WfrQuadTermCanBeTreatedAtResizeZ = RobsZErrIsSmall;
 
 		//return ((RadAccessData.WfrQuadTermCanBeTreatedAtResizeX || RadAccessData.WfrQuadTermCanBeTreatedAtResizeZ) && PhaseChangeIsLarge);
-		return (RadAccessData.WfrQuadTermCanBeTreatedAtResizeX || RadAccessData.WfrQuadTermCanBeTreatedAtResizeZ); //OC260114
+		//return (RadAccessData.WfrQuadTermCanBeTreatedAtResizeX || RadAccessData.WfrQuadTermCanBeTreatedAtResizeZ); //OC260114
 	}
+
+	//OC290914
+	if(checkBenefit)
+	{
+		if(RadAccessData.WfrQuadTermCanBeTreatedAtResizeX) RadAccessData.WfrQuadTermCanBeTreatedAtResizeX = RadAccessData.CheckIfQuadTermTreatIsBenefit('x');
+		if(RadAccessData.WfrQuadTermCanBeTreatedAtResizeZ) RadAccessData.WfrQuadTermCanBeTreatedAtResizeZ = RadAccessData.CheckIfQuadTermTreatIsBenefit('z');
+	}
+
+	return (RadAccessData.WfrQuadTermCanBeTreatedAtResizeX || RadAccessData.WfrQuadTermCanBeTreatedAtResizeZ);
 }
 
 //*************************************************************************
@@ -3843,7 +3968,98 @@ void srTGenOptElem::TreatStronglyOscillatingTerm(srTSRWRadStructAccessData& RadA
 	double Rz = RadAccessData.RobsZ;
 
 	const double Pi = 3.14159265358979;
-	double Const = Pi*1.E+06/1.239854; // Assumes m and eV
+	//double Const = Pi*1.E+06/1.239854; // Assumes m and eV
+	double Const = Pi*1.E+06/1.23984186; // Assumes m and eV
+
+/**
+	//Correcting Effective Wavefront Radius taking into account Rayleigh Length (relies on Stat. Moments...)
+	//This was introduced in attempt to improve the quality of resizing (before sample) at the CHX (NSLS-II) CDI experiment simulation;
+	//however later was found to introduce problems in simulations with grazing-incidence mirrors (SRWLIB_Example10.py) and with VLS Grating (SRWLIB_Example12.py)
+	//therefore "rolled back"
+	if(AddOrRem == 'r')
+	{
+		bool doTuneR = true;
+		if((::fabs(RadAccessData.wfrReffX + 1.E+023) < 1.E+18) && (::fabs(RadAccessData.wfrReffZ + 1.E+023) < 1.E+18)) doTuneR = false;
+
+		if(doTuneR)
+		{
+			int ieCen = 0;
+			double photEn0 = RadAccessData.eStart;
+			if ((RadAccessData.ne > 1) && (RadAccessData.eStep > 0))
+			{
+				photEn0 = RadAccessData.avgPhotEn;
+
+				double d_ieCen = (photEn0 - RadAccessData.eStart) / (RadAccessData.eStep);
+				ieCen = (int)d_ieCen;
+				if ((d_ieCen - ieCen) > 0.5) ieCen++;
+				if (ieCen < 0) ieCen = 0;
+				else if (ieCen >= RadAccessData.ne) ieCen = RadAccessData.ne - 1;
+			}
+
+			srTMomentsPtrs MomX(RadAccessData.pMomX, ieCen), MomZ(RadAccessData.pMomZ, ieCen);
+			char TreatExOrEz = (*(MomX.pTotPhot) >= *(MomZ.pTotPhot)) ? 'x' : 'z';
+			//double SigX=0, SigZ=0;
+			double SigXp = 0, SigZp = 0;
+			if (TreatExOrEz == 'x')
+			{
+				//if((!MomX.precCenMomIsOK) || (MomX.SqrtMxx == 0) || (MomX.SqrtMzz == 0))
+				////if((!MomX.precCenMomIsOK) || (MomX.SqrtMxpxp == 0) || (MomX.SqrtMzpzp == 0))
+				//{
+				//	ComputeRadMoments(&RadAccessData);
+				//	MomX.ComputeCentralMoments();
+				//}//OC150914: eliminated because ComputeRadMoments calls this function
+				//SigX = MomX.SqrtMxx;
+				SigXp = MomX.SqrtMxpxp;
+				//SigZ = MomX.SqrtMzz;
+				SigZp = MomX.SqrtMzpzp;
+			}
+			else
+			{
+				//if((!MomZ.precCenMomIsOK) || (MomZ.SqrtMxx == 0) || (MomZ.SqrtMzz == 0))
+				////if((!MomZ.precCenMomIsOK) || (MomZ.SqrtMxpxp == 0) || (MomZ.SqrtMzpzp == 0))
+				//{//OC13112010: uncommented
+				//	ComputeRadMoments(&RadAccessData);
+				//	MomZ.ComputeCentralMoments();
+				//}//OC150914: eliminated because ComputeRadMoments calls this function
+				//SigX = MomZ.SqrtMxx;
+				SigXp = MomZ.SqrtMxpxp;
+				//SigZ = MomZ.SqrtMzz;
+				SigZp = MomZ.SqrtMzpzp;
+			}
+
+			const double coefAngRange = 0.35; //0.2; //0.5; //0.1; //to tune
+			double apSigXp = coefAngRange*SigXp; //apparent RMS angular divergence
+			double apSigZp = coefAngRange*SigZp; //apparent RMS angular divergence
+
+			const double fourPi = 4.*Pi;
+			double lambM = 1.23984186E-06 / photEn0;
+			double absLenRayleighX = 0, absLenRayleighZ = 0;
+			if (apSigXp > 0.)
+			{
+				absLenRayleighX = lambM / (fourPi*apSigXp*apSigXp);
+				double ratRayleighX = absLenRayleighX / RadAccessData.RobsX;
+				Rx = RadAccessData.RobsX*(1. + ratRayleighX*ratRayleighX);
+			}
+			if (apSigZp > 0.)
+			{
+				absLenRayleighZ = lambM / (fourPi*apSigZp*apSigZp);
+				double ratRayleighZ = absLenRayleighZ / RadAccessData.RobsZ;
+				Rz = RadAccessData.RobsZ*(1. + ratRayleighZ*ratRayleighZ);
+			}
+		}
+		RadAccessData.wfrReffX = Rx;
+		RadAccessData.wfrReffZ = Rz;
+	}
+	else if(AddOrRem == 'a')
+	{
+		Rx = RadAccessData.wfrReffX;
+		Rz = RadAccessData.wfrReffZ;
+	}
+**/
+
+	//double RxEst=1.E+23, xcEst=0., RzEst=1.E+23, zcEst=0.;
+	//RadAccessData.EstimWfrRadCen(RxEst, xcEst, 'x', 0, 0.1);
+	//RadAccessData.EstimWfrRadCen(RzEst, zcEst, 'z', 0, 0.1);
 
 	double ConstRx = (RadAccessData.Pres == 0)? Const/Rx : -Const*Rx;
 	double ConstRz = (RadAccessData.Pres == 0)? Const/Rz : -Const*Rz;
@@ -3893,7 +4109,7 @@ void srTGenOptElem::TreatStronglyOscillatingTerm(srTSRWRadStructAccessData& RadA
 			ConstRzE *= Lambda_me2;
 		}
 
-		z = RadAccessData.zStart - RadAccessData.zc;
+		z = RadAccessData.zStart - RadAccessData.zc; //To check: this is probably not correct in Angular representation?
 
 		zE2 = z*z;
 		double PhaseAddZ = 0.;
@@ -3905,7 +4121,7 @@ void srTGenOptElem::TreatStronglyOscillatingTerm(srTSRWRadStructAccessData& RadA
 			float *pEX_StartForX = pEX0 + izPerZ;
 			float *pEZ_StartForX = pEZ0 + izPerZ;
 
-			x = RadAccessData.xStart - RadAccessData.xc;
+			x = RadAccessData.xStart - RadAccessData.xc; //To check: this is probably not correct in Angular representation?
 
 			for(int ix=0; ix<RadAccessData.nx; ix++)
 			{

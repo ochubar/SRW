@@ -1010,7 +1010,9 @@ void srTRadGenManip::PutConstPhotEnergySliceInExtractPlace(long ie, long NxSlice
 {
 	srTSRWRadStructAccessData& RadAccessData = *((srTSRWRadStructAccessData*)(hRadAccessData.ptr()));
 
-	float *pGen0 = RadExtract.pExtractedData, *pGenStart;
+	//float *pGen0 = RadExtract.pExtractedData, *pGenStart;
+	float *pGen0 = RadExtract.pExtractedData;
+	float *pGenStart = pGen0; //OC160815
 	float *pSlice0 = LocRadExtract.pExtractedData;
 
 	long Nx, Nz;

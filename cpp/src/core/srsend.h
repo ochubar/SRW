@@ -259,7 +259,7 @@ public:
 
 		long dataOffset;
 		if(result = MDAccessNumericWaveData(PhShData.wHndl, kMDWaveAccessMode0, &dataOffset)) return result;
-		PhShData.hState = MoveLockHandle(PhShData.wHndl);
+		PhShData.hState = 0; //MoveLockHandle(PhShData.wHndl);
 		PhShData.pWaveData = (char*)(*(PhShData.wHndl)) + dataOffset;
 		return 0;
 #else
@@ -586,7 +586,7 @@ public:
 	{
 		long dataOffset, result = 0;
 		if(result = MDAccessNumericWaveData(wavH, kMDWaveAccessMode0, &dataOffset)) return result;
-		hState = MoveLockHandle(wavH);
+		hState = 0; //MoveLockHandle(wavH);
 		DataPtr = (char*)(*wavH) + dataOffset;
 
 		return result;

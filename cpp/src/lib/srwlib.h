@@ -119,6 +119,7 @@ struct SRWLStructMagneticFieldMultipole {
 	char n_or_s; /* normal ('n') or skew ('s') */	
 	double Leff; /* effective length [m] */
 	double Ledge; /* "soft" edge length for field variation from 10% to 90% [m]; G/(1 + ((z-zc)/d)^2)^2 fringe field dependence is assumed */
+	double R; /* radius of curvature of central trajectory [m] (for simulating e.g. quadrupole component integrated to a bending magnet; effective if > 0) */
 };
 typedef struct SRWLStructMagneticFieldMultipole SRWLMagFldM;
 
@@ -165,9 +166,17 @@ typedef struct SRWLStructMagneticFieldUndulator SRWLMagFldU;
 struct SRWLStructMagneticFieldContainer {
 	void **arMagFld; /* array of pointers to magnetic field elements */
 	char *arMagFldTypes; /* types of magnetic field elements in arMagFld array */
-	double *arXc; /* horizontal center positions of magnetic field elements in arMagFld array */
-	double *arYc; /* vertical center positions of magnetic field elements in arMagFld array */
-	double *arZc; /* longitudinal center positions of magnetic field elements in arMagFld array */
+	double *arXc; /* horizontal center positions of magnetic field elements in arMagFld array [m] */
+	double *arYc; /* vertical center positions of magnetic field elements in arMagFld array [m] */
+	double *arZc; /* longitudinal center positions of magnetic field elements in arMagFld array [m] */
+	double *arVx; /* horizontal components of axis vectors of magnetic field elements in arMagFld array [rad] */
+	double *arVy; /* vertical components of axis vectors of magnetic field elements in arMagFld array [rad] */
+	double *arVz; /* longitudinal components of axis vectors of magnetic field elements in arMagFld array [rad] */
+	double *arAng; /* rotation angles of magnetic field elements about their axes [rad] */
+	double *arPar1; /* optional array of parameter values the elements of the magnet array correspond to (to be used e.g. for finding undulator magnetic field for a particular gap/phase value by interpolation) */
+	double *arPar2; /* optional array of parameter values the elements of the magnet array correspond to (to be used e.g. for finding undulator magnetic field for a particular gap/phase value by interpolation) */
+	double *arPar3; /* optional array of parameter values the elements of the magnet array correspond to */
+	double *arPar4; /* optional array of parameter values the elements of the magnet array correspond to */
 	int nElem; /* number of magnetic field elements in arMagFld array */
 };
 typedef struct SRWLStructMagneticFieldContainer SRWLMagFldC;
@@ -230,6 +239,7 @@ typedef struct SRWLStructRadMesh SRWLRadMesh;
  */
 struct SRWLStructWaveFront {
 	char *arEx, *arEy; /* horizontal and vertical electric field component arrays */
+	char *arExAux, *arEyAux; /* auxiliary horizontal and vertical electric field component arrays (to be used e.g. at resizing) */
 	//double eStart, eFin, xStart, xFin, yStart, yFin, zStart; /* initial and final values of photon energy (/time), horizontal, vertical and longitudinal positions */
 	//long ne, nx, ny; /* numbers of points vs photon energy, horizontal and vertical positions */
 	SRWLRadMesh mesh;
@@ -507,12 +517,17 @@ EXP int CALL srwlUtiGetErrText(char* t, int erNo);
 
 /** 
  * Calculates (tabulates) 3D magnetic field created by multiple elements
- * @param [in, out] pDispMagFld pointer to resulting magnetic field container with one element - 3D magnetic field structure to keep tabulated field data (all arrays should be allocated in a calling function/application)
+ * @param [in, out] pDispMagFld pointer to resulting magnetic field container with one element - 3D magnetic field structure to keep the tabulated field data (all arrays should be allocated in a calling function/application)
  * @param [in] pMagFld pointer to input magnetic field (container) structure
+ * @param [in] precPar optional array of precision parameters
+ *             precPar[0] defines the type of calculation: =0 -standard calculation, =1 -interpolation vs one parameter, =2 -interpolation vs two parameters
+ *             [1]: first parameter value the field has to be interpolated for
+ *             [2]: second parameter value the field has to be interpolated for
+ *             [3]: specifies type of interpolation: =1 -(bi-)linear, =2 -(bi-)quadratic, =3 -(bi-)cubic 
  * @return	integer error (>0) or warnig (<0) code
  * @see ...
  */
-EXP int CALL srwlCalcMagFld(SRWLMagFldC* pDispMagFld, SRWLMagFldC* pMagFld);
+EXP int CALL srwlCalcMagFld(SRWLMagFldC* pDispMagFld, SRWLMagFldC* pMagFld, double* precPar =0);
 
 /** 
  * Calculates charged particle trajectory in external 3D magnetic field (in Cartesian laboratory frame) 
@@ -521,8 +536,8 @@ EXP int CALL srwlCalcMagFld(SRWLMagFldC* pDispMagFld, SRWLMagFldC* pMagFld);
  * @param [in] precPar (optional) method ID and precision parameters; 
  *             if(precPar == 0) default 4th-order Runge-Kutta method is used; otherwise:
  *             precPar[0] is number of precision parameters that will follow
- *             [1] method number: 1- 4th-order Runge-Kutta; 2- 5th-order Runge-Kutta;
- *             [2] interpolation method to use for tabulated magnetic field: 1- simple bi-linear (3D); 2- bi-quadratic (3D); 3- bi-cubic (3D); 4- 1D cubic spline + 2D bi-cubic
+ *             [1]: method number: 1- 4th-order Runge-Kutta; 2- 5th-order Runge-Kutta;
+ *             [2]: interpolation method to use for tabulated magnetic field: 1- simple bi-linear (3D); 2- bi-quadratic (3D); 3- bi-cubic (3D); 4- 1D cubic spline + 2D bi-cubic
  *             [3],[4],[5],[6],[7]: absolute precision values for X[m],X'[rad],Y[m],Y'[rad],Z[m] (yet to be tested!!) - to be taken into account only for R-K fifth order or higher
  *             [8]: rel. tolerance for R-K fifth order or higher (default = 1) 
  *             [9]: max. number of auto-steps for R-K fifth order or higher (default = 5000)
@@ -576,8 +591,8 @@ EXP int CALL srwlCalcElecFieldGaussian(SRWLWfr* pWfr, SRWLGsnBm* pGsnBm, double*
 /** 
  * Calculates Spectral Flux (Stokes components) of Synchrotron Radiation by a relativistic finite-emittance electron beam traveling in periodic magnetic field of an Undulator
  * @param [in, out] pStokes pointer to the resulting Stokes structure; all data arrays should be allocated in a calling function/application; the mesh, presentation, etc., should be specified in this structure at input
- * @param [in] pElBeam  pointer to input electron beam structure
- * @param [in] pUnd  pointer to input undulator (periodic magnetic field) structure
+ * @param [in] pElBeam pointer to input electron beam structure
+ * @param [in] pUnd pointer to input undulator (periodic magnetic field) structure
  * @param [in] precPar precision parameters: 
  *             precPar[0]: initial harmonic
  *             [1]: final harmonic
@@ -614,7 +629,7 @@ EXP int CALL srwlCalcPowDenSR(SRWLStokes* pStokes, SRWLPartBeam* pElBeam, SRWLPr
  *             0- Linear Horizontal; 
  *             1- Linear Vertical; 
  *             2- Linear 45 degrees; 
- *             3- Linear 135 degrees; 
+ *             3- Linear 135 degrees;
  *             4- Circular Right; 
  *             5- Circular Left; 
  *             6- Total
@@ -648,11 +663,19 @@ EXP int CALL srwlCalcIntFromElecField(char* pInt, SRWLWfr* pWfr, char pol, char 
  * @param [in, out] pWfr pointer to pre-calculated Wavefront structure
  * @param [in] type character specifying whether the resizing should be done vs coordinates/angles ('c') or vs photon energy/time ('f') 
  * @param [in] par array of parameters: 
- *             [0]- method (0- regular method, without FFT, 1- "special" method involving FFT),
- *             [1]- range resizing factor for horizontal position / angle (if type == 'c') or for photon energy / time (if type == 'f')
- *             [2]- resolution resizing factor for horizontal position / angle (if type == 'c') or for photon energy / time (if type == 'f')
- *             [3]- range resizing factor for vertical position / angle (effective only if type == 'c')
- *             [4]- resolution resizing factor for vertical position / angle (effective only if type == 'c')
+ *			if(type == 'c'):
+ *             [0]- method (0- regular method, without FFT, 1- "special" method involving FFT)
+ *             [1]- range resizing factor for horizontal position / angle
+ *             [2]- resolution resizing factor for horizontal position / angle
+ *             [3]- range resizing factor for vertical position / angle
+ *             [4]- resolution resizing factor for vertical position / angle
+ *			   [5]- relative horizontal wavefront center position / angle at resizing (default is 0.5)
+ *			   [6]- relative vertical wavefront center position / angle at resizing (default is 0.5)
+ *			if(type == 'f'):
+ *             [0]- method (0- regular method, without FFT, 1- "special" method involving FFT)
+ *             [1]- range resizing factor for photon energy / time
+ *             [2]- resolution resizing factor for photon energy / time
+ *			   [3]- relative photon energy / time center position at resizing (default is 0.5)
  * @return	integer error (>0) or warnig (<0) code
  * @see ...
  */
@@ -689,6 +712,57 @@ EXP int CALL srwlPropagElecField(SRWLWfr* pWfr, SRWLOptC* pOpt);
  * @see ...
  */
 EXP int CALL srwlPropagRadMultiE(SRWLStokes* pStokes, SRWLWfr* pWfr0, SRWLOptC* pOpt, double* precPar, int (*pExtFunc)(int action, SRWLStokes* pStokesInst));
+
+/** 
+ * Performs FFT (1D or 2D, depending on arguments)
+ * @param [in, out] pcData (char) pointer to data to be FFT-ed
+ * @param [in] typeData character specifying data type ('f' for float, 'd' for double)
+ * @param [in] arMesh array describing mesh parameters of the data to be FFT-ed:
+ *             arMesh[0]: start value of the first argument
+ *             arMesh[1]: step value of the first argument
+ *             arMesh[2]: number of points of the first argument
+ *             arMesh[3]: (optional) start value of the second argument
+ *             arMesh[4]: (optional) step value of the second argument
+ *             arMesh[5]: (optional) number of points of the second argument
+ * @param [in] nMesh length of arMesh array (3 or 6 elements)
+ * @param [in] dir direction for the FFT (>0 means forward, <0 means backward)
+ * @return	integer error (>0) or warnig (<0) code
+ * @see ...
+ */
+EXP int CALL srwlUtiFFT(char* pcData, char typeData, double* arMesh, int nMesh, int dir);
+
+/** 
+ * Convolves real data with 1D or 2D Gaussian (depending on arguments)
+ * @param [in, out] pcData (char) pointer to data to be convolved
+ * @param [in] typeData character specifying data type ('f' for float, 'd' for double)
+ * @param [in] arMesh array describing mesh parameters of the data to be convolved:
+ *             arMesh[0]: start value of the first argument
+ *             arMesh[1]: step value of the first argument
+ *             arMesh[2]: number of points of the first argument
+ *             arMesh[3]: (optional) start value of the second argument
+ *             arMesh[4]: (optional) step value of the second argument
+ *             arMesh[5]: (optional) number of points of the second argument
+ * @param [in] nMesh length of arMesh array (3 or 6 elements)
+ * @param [in] arSig array of RMS values of the 2D Gaussian and, possibly, coefficient before cross-term;
+			   i.e. arSig[] = {SigX, SigY, Alp} defines a 'tilted' 2D Gaussian (normalized to 1): 
+			   (sqrt(1 - (Alp*SigX*SigY)^2)/(2*Pi*SigX*SigY))*Exp[-x^2/(2*SigX^2) - y^2/(2*SigY^2) - Alp*x*y]
+ * @return	integer error (>0) or warnig (<0) code
+ * @see ...
+ */
+EXP int CALL srwlUtiConvWithGaussian(char* pcData, char typeData, double* arMesh, int nMesh, double* arSig);
+
+/** 
+ * Attempts to deduce parameters of peridic undulator magnetic field from tabulated field and set up Undulator structure
+ * @param [in, out] pUndCnt pointer to magnetic field container structure with undulator structure to be set up
+ * @param [in] pMagCnt pointer to magnetic field container structure with tabulated field structure to be analyzed
+ * @param [in] arPrecPar array of precision parameters:
+ *             arPrecPar[0]: relative accuracy threshold
+ *             arPrecPar[1]: maximal number of magnetic field harmonics to attempt to create
+ *             arPrecPar[2]: maximal magnetic period length
+ * @return	integer error (>0) or warnig (<0) code
+ * @see ...
+ */
+EXP int CALL srwlUtiUndFromMagFldTab(SRWLMagFldC* pUndCnt, SRWLMagFldC* pMagCnt, double* arPrecPar);
 
 /***************************************************************************/
 

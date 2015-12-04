@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #############################################################################
 # SRWLIB Example#8: Simulating partially-coherent UR focusing with a CRL
-# v 0.06
+# v 0.07
 #############################################################################
 
 from __future__ import print_function #Python 2.7 compatibility
@@ -72,7 +72,7 @@ relPrec = 0.01 #relative precision
 zStartInteg = 0 #longitudinal position to start integration (effective if < zEndInteg)
 zEndInteg = 0 #longitudinal position to finish integration (effective if > zStartInteg)
 npTraj = 20000 #Number of points for trajectory calculation 
-useTermin = 1 #Use "terminating terms" (i.e. asymptotic expansions at zStartInteg and zEndInteg) or not (1 or 0 respectively)
+useTermin = 0 #1 #Use "terminating terms" (i.e. asymptotic expansions at zStartInteg and zEndInteg) or not (1 or 0 respectively)
 sampFactNxNyForProp = 0.25 #sampling factor for adjusting nx, ny (effective if > 0)
 arPrecPar = [meth, relPrec, zStartInteg, zEndInteg, npTraj, useTermin, 0]
 
@@ -116,7 +116,7 @@ nCRL = 3
 wallThick = 50E-06 #[m] wall thickness of CRL
 
 optCRL = srwl_opt_setup_CRL(2, delta, attenLen, 1, geomApertNF, geomApertF, rMin, nCRL, wallThick, 0, 0) #1D CRL
-print('   Saving CRL transmission data to files (for viewing/debugging)...', end='')
+print('Saving CRL transmission data to files (for viewing/debugging)...', end='')
 optTrIntCRL = optCRL.get_data(2, 3)
 srwl_uti_save_intens_ascii(optTrIntCRL, optCRL.mesh, os.path.join(os.getcwd(), strExDataFolderName, strOpTrFileName), 0, ['', 'Horizontal Position', 'Vertical Position', 'Intensity Transmission'], _arUnits=['', 'm', 'm', 'r.u.'])
 
@@ -128,7 +128,8 @@ optApert = SRWLOptA('r', 'a', geomApertNF, geomApertF) #Aperture
 
 optDrift = SRWLOptD(38.73) #Drift space
 
-propagParApert = [0, 0, 1., 0, 0, 1.5, 1.0, 1.1, 8., 0, 0, 0]
+#propagParApert = [0, 0, 1., 0, 0, 1.5, 1.0, 1.1, 8., 0, 0, 0]
+propagParApert = [0, 0, 1., 0, 0, 1.5, 1.0, 1.1, 6., 0, 0, 0]
 propagParLens =  [0, 0, 1., 0, 0, 1.0, 1.0, 1.0, 1., 0, 0, 0]
 propagParDrift = [0, 0, 1., 1, 0, 1.0, 1.2, 1.0, 1., 0, 0, 0]
 
@@ -150,44 +151,44 @@ optBL = SRWLOptC([optApert, optCRL, optDrift], [propagParApert, propagParLens, p
 
 #****************************Calculation (SRWLIB function calls)
 if(srwl_uti_proc_is_master()):
-    print('   Performing Electric Field Wavefront calculation ... ', end='')
+    print('Performing Electric Field Wavefront calculation ... ', end='')
     srwl.CalcElecFieldSR(wfr1, 0, magFldCnt, arPrecPar)
     print('done')
-    print('   Extracting Intensity from the Calculated Electric Field ... ', end='')
+    print('Extracting Intensity from the Calculated Electric Field ... ', end='')
     arI1 = array('f', [0]*wfr1.mesh.ne)
     srwl.CalcIntFromElecField(arI1, wfr1, 6, 0, 0, wfr1.mesh.eStart, wfr1.mesh.xStart, wfr1.mesh.yStart)
     print('done')
-    print('   Saving the radiation spectrum data to a file ... ', end='')
+    print('Saving the radiation spectrum data to a file ... ', end='')
     #AuxSaveIntData(arI1, wfr1.mesh, os.path.join(os.getcwd(), strExDataFolderName, strIntOutFileName1))
     srwl_uti_save_intens_ascii(arI1, wfr1.mesh, os.path.join(os.getcwd(), strExDataFolderName, strIntOutFileName1), 0)
     print('done')
 
-    print('   Performing Initial Electric Field calculation ... ', end='')
+    print('Performing Initial Electric Field calculation ... ', end='')
     arPrecPar[6] = sampFactNxNyForProp #sampling factor for adjusting nx, ny (effective if > 0)
     srwl.CalcElecFieldSR(wfr2, 0, magFldCnt, arPrecPar)
     print('done')
-    print('   Extracting Intensity from the Calculated Initial Electric Field ... ', end='')
+    print('Extracting Intensity from the Calculated Initial Electric Field ... ', end='')
     arI2 = array('f', [0]*wfr2.mesh.nx*wfr2.mesh.ny) #"flat" array to take 2D intensity data
     srwl.CalcIntFromElecField(arI2, wfr2, 6, 0, 3, wfr2.mesh.eStart, 0, 0)
     print('done')
-    print('   Saving the Initial Electric Field into a file ... ', end='')
+    print('Saving the Initial Electric Field into a file ... ', end='')
     #AuxSaveIntData(arI2, wfr2.mesh, os.path.join(os.getcwd(), strExDataFolderName, strIntOutFileName2))
     srwl_uti_save_intens_ascii(arI2, wfr2.mesh, os.path.join(os.getcwd(), strExDataFolderName, strIntOutFileName2), 0)
     print('done')
 
-    print('   Simulating Electric Field Wavefront Propagation ... ', end='')
+    print('Simulating Electric Field Wavefront Propagation ... ', end='')
     srwl.PropagElecField(wfr2, optBL)
     print('done')
-    print('   Extracting Intensity from the Propagated Electric Field  ... ', end='')
+    print('Extracting Intensity from the Propagated Electric Field  ... ', end='')
     arI3 = array('f', [0]*wfr2.mesh.nx*wfr2.mesh.ny) #"flat" 2D array to take intensity data
     srwl.CalcIntFromElecField(arI3, wfr2, 6, 0, 3, wfr2.mesh.eStart, 0, 0)
     print('done')
-    print('   Saving the Propagated Wavefront Intensity data to a file ... ', end='')
+    print('Saving the Propagated Wavefront Intensity data to a file ... ', end='')
     #AuxSaveIntData(arI3, wfr2.mesh, os.path.join(os.getcwd(), strExDataFolderName, strIntOutFileName3))
     srwl_uti_save_intens_ascii(arI3, wfr2.mesh, os.path.join(os.getcwd(), strExDataFolderName, strIntOutFileName3), 0)
     print('done')
 
-print('   Simulating Partially-Coherent Wavefront Propagation by summing-up contributions of SR from individual electrons (takes time)... ')
+print('Simulating Partially-Coherent Wavefront Propagation by summing-up contributions of SR from individual electrons (takes time)... ')
 nMacroElec = 50000 #total number of macro-electrons
 nMacroElecAvgPerProc = 5 #number of macro-electrons / wavefront to average on worker processes before sending data to master (for parallel calculation only)
 nMacroElecSavePer = 10 #intermediate data saving periodicity (in macro-electrons)

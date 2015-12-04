@@ -1,4 +1,4 @@
-###########################################################################
+#############################################################################
 # SRWLIB Example#5: Calculating electron trajectory and spontaneous emission
 # from a very long segmented undulator (transversely-uniform magnetic field defined)
 # v 0.07 (based on tests of G. Geloni)

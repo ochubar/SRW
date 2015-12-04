@@ -208,7 +208,8 @@ public:
 	void RadPointModifier(srTEXZ& EXZ, srTEFieldPtrs& EPtrs)
 	{// e in eV; Length in m !!!
 	 // Operates on Coord. side !!!
-		double Pi_d_Lambda_m = EXZ.e*2.533840802E+06;
+		//double Pi_d_Lambda_m = EXZ.e*2.533840802E+06;
+		double Pi_d_Lambda_m = EXZ.e*2.533865612E+06;
 		double xRel = EXZ.x - TransvCenPoint.x, zRel = EXZ.z - TransvCenPoint.y;
 
 		double PhaseShift = -Pi_d_Lambda_m*(xRel*xRel/FocDistX + zRel*zRel/FocDistZ);

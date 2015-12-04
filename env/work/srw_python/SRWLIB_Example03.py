@@ -77,24 +77,6 @@ wfr2.mesh.yStart = -0.001 #Initial Vertical Position [m]
 wfr2.mesh.yFin = 0.001 #Final Vertical Position [m]
 wfr2.partBeam = elecBeam
 
-#**********************Auxiliary function to write tabulated resulting Intensity data to ASCII file:
-#replaced by srwlib.srwl_uti_save_intens_ascii
-#def AuxSaveIntData(arI, mesh, filePath):
-#    f = open(filePath, 'w')
-#    f.write('#C-aligned Intensity (inner loop is vs photon energy, outer loop vs vertical position)\n')
-#    f.write('#' + repr(mesh.eStart) + ' #Initial Photon Energy [eV]\n')
-#    f.write('#' + repr(mesh.eFin) + ' #Final Photon Energy [eV]\n')
-#    f.write('#' + repr(mesh.ne) + ' #Number of points vs Photon Energy\n')
-#    f.write('#' + repr(mesh.xStart) + ' #Initial Horizontal Position [m]\n')
-#    f.write('#' + repr(mesh.xFin) + ' #Final Horizontal Position [m]\n')
-#    f.write('#' + repr(mesh.nx) + ' #Number of points vs Horizontal Position\n')
-#    f.write('#' + repr(mesh.yStart) + ' #Initial Vertical Position [m]\n')
-#    f.write('#' + repr(mesh.yFin) + ' #Final Vertical Position [m]\n')
-#    f.write('#' + repr(mesh.ny) + ' #Number of points vs Vertical Position\n')
-#    for i in range(mesh.ne*mesh.nx*mesh.ny): #write all data into one column using "C-alignment" as a "flat" 1D array
-#        f.write(' ' + repr(arI[i]) + '\n')
-#    f.close()
-
 #**********************Calculation (SRWLIB function calls)
 print('   Performing Electric Field (spectrum vs photon energy) calculation ... ', end='')
 srwl.CalcElecFieldSR(wfr1, 0, magFldCnt, arPrecPar)
@@ -113,9 +95,7 @@ print('done')
 
 #**********************Saving results to files
 print('   Saving intensity data to files ... ', end='')
-#AuxSaveIntData(arI1, wfr1.mesh, os.path.join(os.getcwd(), strExDataFolderName, strIntOutFileName1))
 srwl_uti_save_intens_ascii(arI1, wfr1.mesh, os.path.join(os.getcwd(), strExDataFolderName, strIntOutFileName1), 0)
-#AuxSaveIntData(arI2, wfr2.mesh, os.path.join(os.getcwd(), strExDataFolderName, strIntOutFileName2))
 srwl_uti_save_intens_ascii(arI2, wfr2.mesh, os.path.join(os.getcwd(), strExDataFolderName, strIntOutFileName2), 0)
 print('done')
 

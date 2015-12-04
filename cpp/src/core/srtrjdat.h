@@ -922,27 +922,28 @@ inline void srTTrjDat::FindOffestAndRelArgFromTrj(double Arg, const SRWLPrtTrj& 
 	else if(Indx < 0) Indx = 0;
 	RelArg = Arg - (sStart + sStep*Indx);
 
-	if(trj.arZ != 0)
-	{//use tabulated longitudinal position
-		if(trj.arZ[Indx] > Arg)
-		{
-			for(int ii=Indx; ii>=0; ii--)
-			{
-				if(trj.arZ[ii] <= Arg) { Indx = ii; break;}
-			}
-		}
-		else if(trj.arZ[Indx + 1] <= Arg)
-		{
-			for(int ii=Indx; ii<np; ii++)
-			{
-				if(trj.arZ[ii] > Arg) { Indx = ii - 1; break;}
-			}
-		}
-		if(Indx >= np - 1) Indx = np - 2;
-		else if(Indx < 0) Indx = 0;
-		double zs = trj.arZ[Indx];
-		RelArg = Arg - zs; sStep = trj.arZ[Indx + 1] - zs;
-	}
+	//OC150815 (commented-out)
+	//if(trj.arZ != 0)
+	//{//use tabulated longitudinal position
+	//	if(trj.arZ[Indx] > Arg)
+	//	{
+	//		for(int ii=Indx; ii>=0; ii--)
+	//		{
+	//			if(trj.arZ[ii] <= Arg) { Indx = ii; break;}
+	//		}
+	//	}
+	//	else if(trj.arZ[Indx + 1] <= Arg)
+	//	{
+	//		for(int ii=Indx; ii<np; ii++)
+	//		{
+	//			if(trj.arZ[ii] > Arg) { Indx = ii - 1; break;}
+	//		}
+	//	}
+	//	if(Indx >= np - 1) Indx = np - 2;
+	//	else if(Indx < 0) Indx = 0;
+	//	double zs = trj.arZ[Indx];
+	//	RelArg = Arg - zs; sStep = trj.arZ[Indx + 1] - zs;
+	//}
 
 	if(Indx < 2) { Offset = 0; RelArg -= (2 - Indx)*sStep;}
 	else if(Indx < np - 3) { Offset = Indx - 2;}

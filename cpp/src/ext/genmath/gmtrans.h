@@ -29,7 +29,7 @@ public:
 	int ID_No;
 
 	gmTrans(const TMatrix3d& InM, const TMatrix3d& InM_inv,
-			 const TVector3d& InV, double In_detM, double In_s, int InID_No =-1)
+			const TVector3d& InV, double In_detM, double In_s, int InID_No =-1)
 	{
 		M = InM; M_inv = InM_inv; V = InV; s = In_s; detM = In_detM; ID_No = InID_No;
 	}

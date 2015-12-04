@@ -74,7 +74,7 @@ void srTRadInt::Initialize()
 	TryToApplyNearFieldResidual = 0;
     TryToApplyNearFieldResidual_AtRight = 0;
 
-	MaxLevelForMeth_10_11 = 15;
+	MaxLevelForMeth_10_11 = 18; //15; //OC170815
 	UseManualSlower = 0;
 
 	ComputeNormalDerivative = 0;
@@ -1698,7 +1698,8 @@ int srTRadInt::RadIntegrationManualFaster2(double& OutIntXRe, double& OutIntXIm,
 
 int srTRadInt::RadIntegrationAuto1(double& OutIntXRe, double& OutIntXIm, double& OutIntZRe, double& OutIntZIm, srTEFourier* pEwNormDer)
 {
-	const long NpOnLevelMaxNoResult = 5000000; //2000000; // To steer; to stop computation as unsuccessful
+	const long NpOnLevelMaxNoResult = 800000000; //5000000; //2000000; // To steer; to stop computation as unsuccessful
+
 	double ActNormConst = (DistrInfoDat.TreatLambdaAsEnergyIn_eV)? NormalizingConst*ObsCoor.Lamb*0.80654658E-03 : NormalizingConst/ObsCoor.Lamb;
 	double PIm10e9_d_Lamb = (DistrInfoDat.TreatLambdaAsEnergyIn_eV)? PIm10e6dEnCon*ObsCoor.Lamb : PIm10e6*1000./ObsCoor.Lamb;
 
@@ -2133,7 +2134,8 @@ int srTRadInt::RadIntegrationAuto1M(double sStart, double sEnd, double* FunArr, 
 				pBtx++; pX++; pIntBtxE2++; pBtz++; pZ++; pIntBtzE2++;
 			}
 
-			CosAndSin(Ph, CosPh, SinPh);
+			//CosAndSin(Ph, CosPh, SinPh);
+			CosPh = cos(Ph); SinPh = sin(Ph);
 
 			Sum1XRe += Ax*CosPh; Sum1XIm += Ax*SinPh; Sum1ZRe += Az*CosPh; Sum1ZIm += Az*SinPh; 
 			s += sStep;
@@ -2248,6 +2250,8 @@ int srTRadInt::RadIntegrationAuto2(double& OutIntXRe, double& OutIntXIm, double&
 
 	int TotNp = NpOnLevel;
 
+	double t1xd = 0., t2xd = 0.,t1zd = 0., t2zd = 0., d2Phds2_d_dPhds = 0.; //OC190815
+
 	int AmOfLoops_mi_1 = AmOfLoops - 1;
 	for(int k=0; k<AmOfLoops; k++)
 	{
@@ -2317,7 +2321,15 @@ int srTRadInt::RadIntegrationAuto2(double& OutIntXRe, double& OutIntXIm, double&
 			{
 				if((*pPh - *(pPh-1)) < DeltaPhCrit) BetterUseNum = 1;
 			}
-			*pPointIsGoodForAnAuto = (p2OK && (!BetterUseNum) && ((BetaFact > GamFact) || ((*pBx == 0.) && (*pBz == 0.))));
+
+			//*pPointIsGoodForAnAuto = (p2OK && (!BetterUseNum) && ((BetaFact > GamFact) || ((*pBx == 0.) && (*pBz == 0.))));
+			//OC190815
+			t1xd = *pAx; t1zd = *pAz;
+			d2Phds2_d_dPhds = (*pd2Phds2)*One_d_dPhds;
+			t2xd = ((*pdAxds) - t1xd*d2Phds2_d_dPhds)*One_d_dPhds;
+			t2zd = ((*pdAzds) - t1zd*d2Phds2_d_dPhds)*One_d_dPhds;
+			*pPointIsGoodForAnAuto = (p2OK && (!BetterUseNum) && (::fabs(t2xd) <= RelTolForAn*(::fabs(t1xd))) && (::fabs(t2zd) <= RelTolForAn*(::fabs(t1zd))));
+			//OC190815 End 
 
 			s += sStep;
 

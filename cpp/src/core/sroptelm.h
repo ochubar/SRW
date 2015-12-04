@@ -222,7 +222,8 @@ public:
 	int UpdateGenRadStructSliceConstE_Meth_2(srTSRWRadStructAccessData*, int, srTSRWRadStructAccessData*);
 	int RemoveSliceConstE_FromGenRadStruct(srTSRWRadStructAccessData*, long);
 
-	int SetRadRepres(srTSRWRadStructAccessData*, char);
+	//int SetRadRepres(srTSRWRadStructAccessData*, char);
+	int SetRadRepres(srTSRWRadStructAccessData*, char, double* ar_xStartInSlicesE=0, double* ar_zStartInSlicesE=0);
 	int SetRadRepres1D(srTRadSect1D*, char);
 
 	int SetupWfrEdgeCorrData(srTSRWRadStructAccessData*, float*, float*, srTDataPtrsForWfrEdgeCorr&);
@@ -243,7 +244,9 @@ public:
 
 	inline void GetCellDataForInterpol(float*, long, long, srTInterpolAuxF*);
 	inline void SetupCellDataI(srTInterpolAuxF*, srTInterpolAuxF*);
-	char WaveFrontTermCanBeTreated(srTSRWRadStructAccessData&);
+	//char WaveFrontTermCanBeTreated(srTSRWRadStructAccessData&);
+	char WaveFrontTermCanBeTreated(srTSRWRadStructAccessData&, bool checkBenefit=true);
+
 	void TreatStronglyOscillatingTerm(srTSRWRadStructAccessData&, char, char =0, int ieOnly =-1);
 	//void TreatStronglyOscillatingTermIrregMesh(srTSRWRadStructAccessData&, float*, float, float, float, float, char, char =0, int =-1);
 	void TreatStronglyOscillatingTermIrregMesh(srTSRWRadStructAccessData&, double*, double, double, double, double, char, char =0, int =-1); //OC260114

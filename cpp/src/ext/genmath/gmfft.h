@@ -95,11 +95,29 @@ struct CGenMathFFT2DInfo {
 	char Dir; // >0: forward; <0: backward
 	double xStep, yStep, xStart, yStart;
 	double xStepTr, yStepTr, xStartTr, yStartTr;
-
 	long Nx, Ny;
+
+	long howMany; //OC151014
+	long iStride, iDist; //OC151014
+	//From FFTW 2.1.5 Tutorial
+	//iStride and iDist describe the input array(s). 
+	//There are howMany multi-dimensional input arrays; the first one is pointed to by in (= pData), 
+	//the second one is pointed to by in + iDist, and so on, up to in + (howMany - 1) * iDist. 
+	//Each multi-dimensional input array consists of complex numbers (see Section Data Types), 
+	//stored in row-major format (see Section Multi-dimensional Array Format), which are not necessarily contiguous in memory. 
+	//Specifically, in[0] is the first element of the first array, in[istride] is the second element of the first array, and so on. 
+	//In general, the i-th element of the j-th input array will be in position in[i * istride + j * idist]. 
+	//Note that, here, i refers to an index into the row-major format for the multi-dimensional array, rather than an index in any particular dimension. 
+	//In-place transforms:  For plans created with the FFTW_IN_PLACE option, the transform is computed in-place--the output is returned in the in array, 
+	//using the same strides, etcetera, as were used in the input. 
+
 	char UseGivenStartTrValues;
 
-	CGenMathFFT2DInfo() { UseGivenStartTrValues = 0;}
+	CGenMathFFT2DInfo() 
+	{ 
+		howMany = 1; iStride = 1; iDist = 0; //OC151014
+		UseGivenStartTrValues = 0;
+	}
 };
 
 //*************************************************************************

@@ -1,9 +1,8 @@
-
 # -*- coding: utf-8 -*-
 #############################################################################
 # SRWLIB Example # 12: Simulating Wavefront Propagation through initial part of a Soft X-Ray Undulator Radiation Beamline containing Variable Line Spacing (VLS) Grating
 # Based on input and comtributions of N. Canestrari, E. Vescovo, V. Bisogni (BNL)
-# v 0.02
+# v 0.03
 #############################################################################
 
 from __future__ import print_function #Python 2.7 compatibility
@@ -22,9 +21,9 @@ the optical scheme, or the calculation of partially-coherent UR from entire elec
 using "srwl_wfr_emit_prop_multi_e" function. 
 This function can run either in "normal" sequential mode, or in parallel mode under "mpi4py". 
 For this, an MPI2 package and the "mpi4py" Python package have to be installed and configured, and this example has to be started e.g. as:
-    mpiexec -n 5 python SRWLIB_Example12.py
+    mpiexec -n 5 python SRWLIB_Example12.py -m 10000
 or with some non-default options as follows:
-    mpiexec -n 5 python SRWLIB_Example12.py -e 250 -b -0.003 -w 0.00001
+    mpiexec -n 5 python SRWLIB_Example12.py -m 10000 -e 250 -b -0.003 -w 0.00001
 For more information on parallel calculations under "mpi4py" please see documentation to the "mpi4py" and MPI.
 Note that the long-lasting partially-coherent UR calculation saves from time to time instant average intensity to an ASCII file, 
 so the execution of the long loop over "macro-electrons" can be aborted after some time without the danger that all results will be lost.
@@ -217,7 +216,7 @@ def setBeamline(_en, _n_opt_el):
   pM1_M2_db = {
     250. : [ 0,    0,  1.0,    1,    0,  1.2,  6.0,  1.2,  6.0,    0,    0,    0 ], 
     450. : [ 0,    0,  1.0,    1,    0,  1.2,  4.0,  1.2,  5.0,    0,    0,    0 ],
-    1000.: [ 0,    0,  1.0,    1,    0,  1.3,  3.5,  1.2,  3.0,    0,    0,    0 ],
+    1000.: [ 0,    0,  1.0,    1,    0,  1.2,  3.5,  1.2,  3.0,    0,    0,    0 ],
     1500.: [ 0,    0,  1.0,    1,    0,  1.3,  3.0,  1.2,  3.0,    0,    0,    0 ], 
     2000.: [ 0,    0,  1.0,    1,    0,  1.3,  3.0,  1.2,  3.0,    0,    0,    0 ]
   }
@@ -227,6 +226,8 @@ def setBeamline(_en, _n_opt_el):
   pGA    = [ 0,    0,  1.0,    0,    0,  1.0,  1.0,  1.0,  1.0,    0,    0,    0 ]
   pG     = [ 0,    0,  1.0,    1,    0,  1.0,  1.0,  1.0,  1.0,    0,    0,    0,   0, sin(defG), cos(defG), 1, 0 ]
   pG_M3  = [ 0,    0,  1.0,    2,    0,  1.0,  1.0,  1.0,  1.0,    0,    0,    0 ] #[3]=2 Ensures manipulation with strict values of Rx, Ry
+  #pG_M3  = [ 0,    0,  1.0,    1,    0,  1.0,  1.0,  1.0,  1.0,    0,    0,    0 ] #[3]=2 Ensures manipulation with strict values of Rx, Ry
+
   pM3A   = [ 0,    0,  1.0,    0,    0,  1.0,  1.0,  1.0,  1.0,    0,    0,    0 ]
   pM3    = [ 0,    0,  1.0,    0,    0,  1.0,  1.0,  1.0,  1.0,    0,    0,    0 ]
 
@@ -302,7 +303,7 @@ def calcSE(_e_beam, _mag, _mesh, _bl, _sr_meth=1, _sr_prec=0.01, _sr_samp_fact=1
   sys.stdout.write('   Simulating Electric Field Wavefront Propagation ... '); sys.stdout.flush()
   t0 = time.time()
   srwl.PropagElecField(wfr, _bl)
-  sys.stdout.write('done\n   lasted '+repr(time.time() - t0)+' s\n')
+  sys.stdout.write('done\n   lasted '+repr(round(time.time() - t0))+' s\n')
   mesh1 = deepcopy(wfr.mesh)  
   sys.stdout.write('   Extracting Intensity from the Propagated Electric Field  ... '); sys.stdout.flush()
   arI1 = array('f', [0]*mesh1.nx*mesh1.ny) #"flat" 2D array to take intensity data

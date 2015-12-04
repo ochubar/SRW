@@ -1,5 +1,5 @@
 SRW for Python requires:
-- Python 2.7 or 3.2 (64-bit or 32-bit)
+- Python 2.7 or 3.2/3.3/3.5 (64-bit or 32-bit)
 - numpy
 - matplotlib
 

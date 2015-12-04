@@ -2,7 +2,7 @@
 #############################################################################
 # SRWLIB Example # 10: Simulating emission and propagation of partially-coherent undulator radiation 
 # through a microscopy beamline with a secondary source aperture and ellopsoidal K-B mirrors used for final focusing
-# v 0.06
+# v 0.07
 #############################################################################
 
 from __future__ import print_function #Python 2.7 compatibility
@@ -132,7 +132,6 @@ Drift_HKB_Sample = SRWLOptD(0.5) #Drift from HKB Center to Sample
 ppDrift_Slits_HFM =  [ 0,  0, 1.0,  1,  0, 4.0, 4.0, 3.0, 3.0,  0,  0,   0]
 ppHFM =              [ 0,  0, 1.0,  0,  0, 1.0, 1.0, 1.0, 1.0,  0,  0,   0]
 ppDrift_HFM_SSA =    [ 0,  0, 1.0,  1,  0, 1.0, 1.0, 1.0, 1.0,  0,  0,   0]
-#ppSSA =              [ 0,  0, 1.0,  0,  0, 1.0, 3.0, 1.0, 4.0,  0,  0,   0]
 #ppSSA =              [ 0,  0, 1.0,  0,  0, 1.0, 3.0, 1.0, 1.0,  0,  0,   0]
 ppSSA =              [ 0,  0, 1.0,  0,  0, 1.0, 6.0, 1.0, 1.0,  0,  0,   0]
 ppDrift_SSA_VKB =    [ 0,  0, 1.0,  1,  0, 1.0, 1.0, 1.0, 1.0,  0,  0,   0]
@@ -177,6 +176,7 @@ else:
 
 #**********************Calculation (SRWLIB function calls)
 if(srwl_uti_proc_is_master()):
+#if(False):
     print('   Performing Initial Single-E Electric Field calculation ... ', end='')
     arPrecParSpec[6] = sampFactNxNyForProp #sampling factor for adjusting nx, ny (effective if > 0)
     srwl.CalcElecFieldSR(wfr, 0, magFldCnt, arPrecParSpec)
@@ -192,13 +192,14 @@ if(srwl_uti_proc_is_master()):
     print('   Simulating Electric Field Wavefront Propagation ... ', end='')
     t0 = time.time();
     srwl.PropagElecField(wfr, optBL)
-    print('done; lasted', time.time() - t0, 's')
+    print('done; lasted', round(time.time() - t0), 's')
 
     #if twoSlitInterfAngRepres: srwl.SetRepresElecField(wfr, 'a')
     
     print('   Extracting Intensity from the Propagated Electric Field  ... ', end='')
     arI1 = array('f', [0]*wfr.mesh.nx*wfr.mesh.ny) #"flat" 2D array to take intensity data
     srwl.CalcIntFromElecField(arI1, wfr, 6, 0, 3, wfr.mesh.eStart, 0, 0)
+    #srwl.CalcIntFromElecField(arI1, wfr, 0, 6, 3, wfr.mesh.eStart, 0, 0) #test (E-field extraction)
     print('done')
     print('   Saving the Propagated Wavefront Intensity data to a file ... ', end='')
     srwl_uti_save_intens_ascii(arI1, wfr.mesh, os.path.join(os.getcwd(), strExDataFolderName, strIntPropSE_OutFileName))

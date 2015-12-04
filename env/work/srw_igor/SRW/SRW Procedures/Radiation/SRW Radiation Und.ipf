@@ -5,57 +5,57 @@
 //
 //+++++++++++++++++++++++++++++++++++++++
 proc SrwPerStoCreate(RadName, ElecName, MagName, ObsName, InitHarm, FinHarm, ns, nphi, FluxType)
-String RadName=srwUtiTruncString(SrwElecName+SrwUndName+SrwSmpName, 27);
-String ElecName=SrwElecName+SrwElecType;
-String MagName=SrwUndName+SrwUndType;
-String ObsName=SrwSmpName+SrwSmpType;
-Variable InitHarm=SrwPerInitHarm;
-Variable FinHarm=SrwPerFinHarm;
-Variable ns=SrwPerNs;
-Variable nphi=SrwPerNphi;
-Variable FluxType=SrwFluxType;
-prompt RadName,SrwPStoName;
-prompt ElecName,SrwPElecName1,popup Wavelist("*"+SrwElecType ,";", "");
-prompt MagName,SrwPUndName2,popup Wavelist("*"+SrwUndType ,";", "");
-prompt ObsName,SrwPSmpName2,popup Wavelist("*"+SrwSmpType ,";", "");
-prompt InitHarm,SrwPPerInitHarm;
-prompt FinHarm,SrwPPerFinHarm;
-prompt ns,SrwPPerNs;
-prompt nphi,SrwPPerNphi;
+String RadName=srwUtiTruncString(SrwElecName+SrwUndName+SrwSmpName, 27)
+String ElecName=SrwElecName+SrwElecType
+String MagName=SrwUndName+SrwUndType
+String ObsName=SrwSmpName+SrwSmpType
+Variable InitHarm=SrwPerInitHarm
+Variable FinHarm=SrwPerFinHarm
+Variable ns=SrwPerNs
+Variable nphi=SrwPerNphi
+Variable FluxType=SrwFluxType
+prompt RadName,SrwPStoName
+prompt ElecName,SrwPElecName1,popup Wavelist("*"+SrwElecType ,";", "")
+prompt MagName,SrwPUndName2,popup Wavelist("*"+SrwUndType ,";", "")
+prompt ObsName,SrwPSmpName2,popup Wavelist("*"+SrwSmpType ,";", "")
+prompt InitHarm,SrwPPerInitHarm
+prompt FinHarm,SrwPPerFinHarm
+prompt ns,SrwPPerNs
+prompt nphi,SrwPPerNphi
 prompt FluxType,SrwPFluxType,popup "Photons/s/.1%bw/pixel;Photons/s/.1%bw/mm^2";
 Silent 1						|	Computing the Radiation  ...
 PauseUpdate
 
 variable ElecWavePresent = 1, MagWavePresent = 1, ObsWavePresent = 1
 if(cmpstr(ElecName,"_none_")==0)
-	ElecWavePresent = 0;
+	ElecWavePresent = 0
 endif
 if(cmpstr(MagName,"_none_")==0)
-	MagWavePresent = 0;
+	MagWavePresent = 0
 endif
 if(cmpstr(ObsName,"_none_")==0)
-	ObsWavePresent = 0;
+	ObsWavePresent = 0
 endif
 if(ElecWavePresent==0)
-	SrwElecFilament();
-	SrwElecThick();
+	SrwElecFilament()
+	SrwElecThick()
 	if((MagWavePresent == 1) %& (ObsWavePresent == 1))
-		SrwPerStoCreate(); 
-		Return;
+		SrwPerStoCreate()
+		Return
 	endif
 endif
 if(MagWavePresent==0)
-	SrwMagPerCreate2D();
+	SrwMagPerCreate2D()
 	if(ObsWavePresent == 1)
-		SrwPerStoCreate();
-		Return;
+		SrwPerStoCreate()
+		Return
 	endif
 endif
 if(ObsWavePresent==0)
-	SrwStartMacrosAfterRadSmp = 3;
-	SrwStartMacrosAfterRadSmp2 *= -1;
-	SrwRadSamplDialog(SrwSmpType);
-	Return;
+	SrwStartMacrosAfterRadSmp = 3
+	SrwStartMacrosAfterRadSmp2 *= -1
+	SrwRadSamplDialog(SrwSmpType)
+	Return
 endif
 
 // Validation of parameters
@@ -76,11 +76,11 @@ SrwElecName=ElecName[0,strlen(ElecName)-strlen(SrwElecType)-1]
 SrwUndName=MagName[0,strlen(MagName)-strlen(SrwUndType)-1]
 SrwSmpName=ObsName[0,strlen(ObsName)-strlen(SrwSmpType)-1]
 
-SrwPerInitHarm=InitHarm;
-SrwPerFinHarm=FinHarm;
-SrwPerNs=ns;
-SrwPerNphi=nphi;
-SrwFluxType=FluxType;
+SrwPerInitHarm=InitHarm
+SrwPerFinHarm=FinHarm
+SrwPerNs=ns
+SrwPerNphi=nphi
+SrwFluxType=FluxType
 
 if(strlen(RadName)==0)
 	RadName=SrwElecName+SrwUndName+SrwSmpName
@@ -88,21 +88,60 @@ endif
 SrwStoName=RadName
 
 // Preparing data for C function
-Make/D/O/N=6 waveprec;
-waveprec[0]=InitHarm;   // Initial harmonic to take into account
-waveprec[1]=FinHarm;   // Final harmonic to take into account
-waveprec[2]=ns;   // Parameter of Longitudinal integration
-waveprec[3]=nphi;   // Parameter of Circular integration
-waveprec[4]=FluxType;   
+Make/D/O/N=6 waveprec
+waveprec[0]=InitHarm   // Initial harmonic to take into account
+waveprec[1]=FinHarm   // Final harmonic to take into account
+waveprec[2]=ns   // Parameter of Longitudinal integration
+waveprec[3]=nphi   // Parameter of Circular integration
+waveprec[4]=FluxType
 
-SrwStoPrep(ElecName,MagName,Obsname,RadName,FluxType);
-RadName += SrwStoType;
+waveprec[5]=1
+if(exists("SrwPerStoPrecEnExtRight") == 2)
+	waveprec[5]=SrwPerStoPrecEnExtRight
+endif
+
+SrwStoPrep(ElecName,MagName,Obsname,RadName,FluxType)
+RadName += SrwStoType
 SrwRadGenTotName=RadName
 
-srStokesUnd($ElecName, $MagName, $ObsName, waveprec, $RadName);
+srStokesUnd($ElecName, $MagName, $ObsName, waveprec, $RadName)
 
-KillWaves/Z  waveprec;
+KillWaves/Z  waveprec
 end 
+
+//+++++++++++++++++++++++++++++++++++++++
+//TEST version
+//Compute Stokes from Per. Magn. Field (testing extra precision parameter, responsible for accuracy of convolution to take into account finite number of periods and energy spread)
+//
+//+++++++++++++++++++++++++++++++++++++++
+proc SrwPerStokesCreate(RadName, ElecName, MagName, ObsName, InitHarm, FinHarm, ns, nphi, nConv, FluxType)
+string RadName=srwUtiTruncString(SrwElecName+SrwUndName+SrwSmpName, 27)
+string ElecName=SrwElecName+SrwElecType
+string MagName=SrwUndName+SrwUndType
+string ObsName=SrwSmpName+SrwSmpType
+variable InitHarm=SrwPerInitHarm
+variable FinHarm=SrwPerFinHarm
+variable ns=SrwPerNs
+variable nphi=SrwPerNphi
+variable FluxType=SrwFluxType
+variable nConv=srwUtiGetValN("SrwPerStoPrecEnExtRight", 1, "")
+prompt RadName,SrwPStoName
+prompt ElecName,SrwPElecName1,popup Wavelist("*"+SrwElecType ,";", "")
+prompt MagName,SrwPUndName2,popup Wavelist("*"+SrwUndType ,";", "")
+prompt ObsName,SrwPSmpName2,popup Wavelist("*"+SrwSmpType ,";", "")
+prompt InitHarm,SrwPPerInitHarm
+prompt FinHarm,SrwPPerFinHarm
+prompt ns,SrwPPerNs
+prompt nphi,SrwPPerNphi
+prompt FluxType,SrwPFluxType,popup "Photons/s/.1%bw/pixel;Photons/s/.1%bw/mm^2"
+prompt nConv,"Length, En. Spread Convol. Param."
+
+Silent 1						|	Computing the Radiation  ...
+PauseUpdate
+
+srwUtiSetValN("SrwPerStoPrecEnExtRight", nConv, "")
+SrwPerStoCreate(RadName, ElecName, MagName, ObsName, InitHarm, FinHarm, ns, nphi, FluxType)
+end
 
 //+++++++++++++++++++++++++++++++++++++++
 //

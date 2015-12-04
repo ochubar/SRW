@@ -1000,6 +1000,18 @@ endif
 end
 
 //+++++++++++++++++++++++++++++++++++++++
+//Transpose 2D wave
+//+++++++++++++++++++++++++++++++++++++++
+proc SrwUtiTransposeWave2D(nmWave, dupl, nmWaveD)
+string nmWave
+variable dupl
+string nmWaveD
+
+//dddddddddddddddddddddddddddddddddddddddddd
+
+end
+
+//+++++++++++++++++++++++++++++++++++++++
 //Makes in-place convolution of planes of a 3D wave with 
 //2D Interval or 2D Gaussian distribution
 //+++++++++++++++++++++++++++++++++++++++
@@ -2307,6 +2319,51 @@ endif
 end
 
 //+++++++++++++++++++++++++++++++++++++++
+//Finds maximum of cubic polynomial passing through 4 points
+//Returns cmplx(iArgMax, fMax)
+//TO DEBUG!!!
+//+++++++++++++++++++++++++++++++++++++++
+function/C srwUtiFindMaxFunc4P(f)
+wave f
+variable a0 = f[0], a1 = -(11*f[0]/6) + 3*f[1] - 3*f[2]/2 + f[3]/3, a2 = f[0] - 5*f[1]/2 + 2*f[2] - f[3]/2, a3 = -f[0]/6 + f[1]/2 - f[2]/2 + f[3]/6
+//print a0, a1, a2, a3
+//abort
+
+variable d = a2*a2 - 3*a1*a3
+if(d < 0)
+	return Nan
+endif
+
+variable sqrt_d = sqrt(d), a3_3 =  a3*3
+variable x1 = (-a2 - sqrt_d)/a3_3, x2 = (-a2 + sqrt_d)/a3_3
+
+variable f1 = f[0], f2 = f[0]
+if((0 <= x1) && (x1 <= 3))
+	f1 = a0 + (a1 + (a2 + a3*x1)*x1)*x1
+else
+	x1 = 0
+endif
+
+if((0 <= x2) && (x2 <= 3))
+	f2 = a0 + (a1 + (a2 + a3*x2)*x2)*x2
+else
+	x2 = 0
+endif
+
+make/O wAuxUtiFindMaxPtPol3 = {f[0], f1, f2, f[3]}, wAuxArgUtiFindMaxPtPol3 = {0, x1, x2, 3}
+variable i, fmax=wAuxUtiFindMaxPtPol3[0], imax=0
+for(i=0; i<4; i+=1)
+	if(fmax < wAuxUtiFindMaxPtPol3[i])
+		fmax = wAuxUtiFindMaxPtPol3[i]
+		imax = i
+	endif
+endfor
+//print sqrt_d, x1, x2, imax, fmax
+//abort
+return cmplx(wAuxArgUtiFindMaxPtPol3[imax], fmax)
+end
+
+//+++++++++++++++++++++++++++++++++++++++
 //Deletes any SRW structure after obtaining confirmation
 //+++++++++++++++++++++++++++++++++++++++
 //proc SrwUtiDelStructConfirm(StructName)
@@ -3468,10 +3525,12 @@ string nmWaveMD = srwUtiGetValS("nmWaveMD", "wInt", "SrwUtiLoadAndPlotDataCol")
 variable xc = srwUtiGetValN("xc", 0, "SrwUtiLoadAndPlotDataCol")
 variable yc = srwUtiGetValN("yc", 0, "SrwUtiLoadAndPlotDataCol")
 variable disp = srwUtiGetValN("disp", 2, "SrwUtiLoadAndPlotDataCol")
-prompt nmWaveMD, "Name of Wave to create"
+prompt nmWaveMD, "Name of wave to create"
 prompt xc, "Horizontal Position for Vertical Cut"
 prompt yc, "Vertical Position for Horizontal Cut"
 prompt disp, "New Display?", popup "No;Yes"
+Silent 1						|	...
+PauseUpdate
 
 srwUtiSetValS("nmWaveMD", nmWaveMD, "SrwUtiLoadAndPlotDataCol")
 srwUtiSetValN("xc", xc, "SrwUtiLoadAndPlotDataCol")
@@ -3480,13 +3539,13 @@ srwUtiSetValN("disp", disp, "SrwUtiLoadAndPlotDataCol")
 
 //To keep updated!
 string sep = "#"
-variable iPhEnStart = 0
+variable iPhEnStart = 1 //0
 variable iPhEnEnd = iPhEnStart + 1
 variable iPhEnN = iPhEnStart + 2
-variable iHorPosStart = 3
+variable iHorPosStart = 4 //3
 variable iHorPosEnd = iHorPosStart + 1
 variable iHorPosN = iHorPosStart + 2
-variable iVertPosStart = 6
+variable iVertPosStart = 7 //6
 variable iVertPosEnd = iVertPosStart + 1
 variable iVertPosN = iVertPosStart + 2
 variable iStokesN = iVertPosStart + 3
@@ -3494,7 +3553,10 @@ variable iStokesN = iVertPosStart + 3
 //Loading Header:
 string nmHeader = "wAuxHeadUtiLoadAndPlotData"
 //LoadWave/Q/A/J/O/B="N=wAuxHeadUtiLoadAndPlotData;"/L={0, 1, 9, 0, 1}/K=2
-LoadWave/Q/A/J/O/B="N=wAuxHeadUtiLoadAndPlotData;"/L={0, 1, 10, 0, 1}/K=2
+//LoadWave/Q/A/J/O/B="N=wAuxHeadUtiLoadAndPlotData;"/L={0, 1, 10, 0, 1}/K=2
+//LoadWave/Q/A/J/O/B="N=wAuxHeadUtiLoadAndPlotData;"/L={0, 0, 10, 0, 1}/K=2
+LoadWave/Q/A/J/O/B="N=wAuxHeadUtiLoadAndPlotData;"/L={0, 0, 11, 0, 1}/K=2
+
 string sFilePath = S_path + S_fileName
 
 variable phEnStart = SrwUtiParseNumBwSep($nmHeader[iPhEnStart], sep)
@@ -3509,18 +3571,51 @@ variable vertPosN = SrwUtiParseNumBwSep($nmHeader[iVertPosN], sep)
 
 variable nStokes = 1
 string sTestStokesN = $nmHeader[iStokesN]
+
+//print "Aha, iStokesN=", iStokesN, " sTestStokesN=", sTestStokesN
+//variable it=0
+//do
+//	sTestStokesN = $nmHeader[it]
+//	print sTestStokesN
+//	it+=1
+//while(it<13)
+
 string sTestSymbStokesN = sTestStokesN[0, 0]
 variable iDataStart = 10
 //print sTestStokesN, sTestSymbStokesN
 if(cmpstr(sTestSymbStokesN, "#") == 0)
 	nStokes = SrwUtiParseNumBwSep($nmHeader[iStokesN], sep)
 	iDataStart += 1
+	//print "aha"
 endif
 //currently, this proc reads only first Stokes component (s0) -- to upgrade
 
+variable isMutual = 0
+string sEnt = $nmHeader[0]
+if(cmpstr(sEnt[0, 6], "#Mutual") == 0)
+	isMutual = 1
+endif
+
+//print phEnStart, phEnEnd, phEnN, horPosStart, horPosEnd, horPosN
+
+variable nVal = phEnN*horPosN*vertPosN
+if(isMutual == 1)
+	if(phEnN == 1)
+		if(horPosN == 1)
+			nVal = vertPosN*vertPosN
+		else
+			if(vertPosN == 1)
+				nVal = horPosN*horPosN
+			endif
+		endif
+	endif
+endif
+
+//print iDataStart
+
 string nmFlatWave = "wAuxFlatUtiLoadAndPlotData"
 //LoadWave/Q/A/J/O/B="N=wAuxFlatUtiLoadAndPlotData;"/L={0, 10, phEnN*horPosN*vertPosN, 0, 1}/K=1 sFilePath
-LoadWave/Q/A/J/O/B="N=wAuxFlatUtiLoadAndPlotData;"/L={0, iDataStart, phEnN*horPosN*vertPosN, 0, 1}/K=1 sFilePath
+LoadWave/Q/A/J/O/B="N=wAuxFlatUtiLoadAndPlotData;"/L={0, iDataStart, nVal, 0, 1}/K=1 sFilePath
 
 variable numDim = 0, arg1Start = 0, arg1End = 0, arg1N = 0, arg2Start = 0, arg2End = 0, arg2N = 0, arg3Start = 0, arg3End = 0, arg3N = 0
 string strLabel1, strLabel2, strUnit1, strUnit2, strUnit3
@@ -3548,6 +3643,14 @@ if(horPosN > 1)
 		strUnit1 = "m"
 		strLabel1 = "Horizontal Position"
 		strLabel2 = "Intensity"
+		if(isMutual != 0)
+			numDim += 1
+			arg2Start = horPosStart
+			arg2End = horPosEnd
+			arg2N = horPosN
+			strUnit2 = "m"
+			strLabel2 = "Horizontal Position (conj.)"
+		endif
 	endif
 endif
 if(vertPosN > 1)
@@ -3579,12 +3682,21 @@ if(vertPosN > 1)
 			strUnit1 = "m"
 			strLabel1 = "Vertical Position"
 			strLabel2 = "Intensity"
+			if(isMutual != 0)
+				numDim += 1
+				arg2Start = vertPosStart
+				arg2End = vertPosEnd
+				arg2N = vertPosN
+				strUnit2 = "m"
+				strLabel2 = "Vertical Position (conj.)"
+			endif
 		endif	
 	endif			
 endif
 
 string nmWaveMDx = nmWaveMD + "x"
 string nmWaveMDy = nmWaveMD + "y"
+//print numDim, strLabel1, strLabel2
 
 if(numDim == 1)
 	make/O/N=(arg1N) $nmWaveMD
@@ -3643,4 +3755,100 @@ if(numDim == 3)
 endif
 
 killwaves/Z $nmFlatWave
+end
+
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//Auxiliary function to identify and get rid of NaN
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+function srwUtiNan2Num(x, num)
+variable x, num
+if(numtype(x) != 0)
+	return num
+else
+	return x
+endif
+end
+
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//Conversion from Mutial Intensity to (rogtated) Degree of Coherence function
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+proc SrwUtiMutInt2RotDegCoh(nmResDegCoh, nmInMutInt, rel_thresh, new_disp)
+string nmResDegCoh = srwUtiGetValS("nmResDegCoh", "wDegCoh", "SrwUtiMutInt2RotDegCoh")
+string nmInMutInt = srwUtiGetValS("nmInMutInt", "wInMutInt", "SrwUtiMutInt2RotDegCoh")
+variable rel_thresh = srwUtiGetValN("rel_thresh", 1e-04, "SrwUtiMutInt2RotDegCoh")
+variable new_disp = srwUtiGetValN("new_disp", 1, "SrwUtiMutInt2RotDegCoh")
+prompt nmResDegCoh, "Name of Degree of Coherence wave to create"
+prompt nmInMutInt, "Name of Mutual Intensity wave", popup Wavelist("*",";","TEXT:0,DIMS:2")
+prompt rel_thresh, "Relative Regularization Threshold"
+prompt new_disp, "New Display?", popup "No;Yes"
+Silent 1						|	...
+PauseUpdate
+
+srwUtiSetValS("nmResDegCoh", nmResDegCoh, "SrwUtiMutInt2RotDegCoh")
+srwUtiSetValS("nmInMutInt", nmInMutInt, "SrwUtiMutInt2RotDegCoh")
+srwUtiSetValN("rel_thresh", rel_thresh, "SrwUtiMutInt2RotDegCoh")
+srwUtiSetValN("new_disp", new_disp, "SrwUtiMutInt2RotDegCoh")
+
+variable xStart = dimoffset($nmInMutInt, 0)
+variable xNp = dimsize($nmInMutInt, 0)
+variable xStep = dimdelta($nmInMutInt, 0)
+variable xEnd = xStart + (xNp - 1)*xStep
+variable xc = 0.5*(xStart + xEnd)
+variable xRange = xEnd - xStart
+//variable xHalfRange = 0.5*xRange
+
+variable yStart = dimoffset($nmInMutInt, 1)
+variable yNp = dimsize($nmInMutInt, 1)
+variable yStep = dimdelta($nmInMutInt, 1)
+variable yEnd = yStart + (yNp - 1)*yStep
+variable yc = 0.5*(yStart + yEnd)
+variable yRange = yEnd - yStart
+//variable yHalfRange = 0.5*yRange
+
+variable xNpNew = 2*xNp - 1, yNpNew = 2*yNp - 1
+//print xNpNew, yNpNew
+
+make/O/D/N=(xNpNew, yNpNew) wInMutCohRes
+//SetScale/I x xc - xRange, xc + xRange, "m", wInMutCohRes
+//SetScale/I y yc - yRange, yc + yRange, "m", wInMutCohRes
+
+variable xHalfNp = round(xNp*0.5), yHalfNp = round(yNp*0.5)
+SetScale/P x xStart - xHalfNp*xStep, xStep, "m", wInMutCohRes
+SetScale/P y yStart - yHalfNp*yStep, yStep, "m", wInMutCohRes
+wInMutCohRes = $nmInMutInt(x)(y)*srwUtiNonZeroIntervB(x, xStart, xEnd)*srwUtiNonZeroIntervB(y, yStart, yEnd)
+
+duplicate/O $nmInMutInt wMutCohNonRot
+duplicate/O $nmInMutInt $nmResDegCoh
+
+variable abs_thresh = rel_thresh*abs($nmInMutInt(0)(0))
+//print abs_thresh
+
+//wMutCohNonRot = abs($nmInMutInt(x)(y))/(sqrt(abs($nmInMutInt(x)(x)*$nmInMutInt(y)(y))) + abs_thresh)
+wMutCohNonRot = abs(wInMutCohRes(x)(y))/(sqrt(abs(wInMutCohRes(x)(x)*wInMutCohRes(y)(y))) + abs_thresh)
+
+//$nmResDegCoh = wMutCohNonRot(x + y)(x - y)
+//$nmResDegCoh = Interp2D(wMutCohNonRot, x+y, x-y)
+$nmResDegCoh = srwUtiInterp2DBilin(x+y, x-y, wMutCohNonRot)
+
+//$nmResDegCoh = wMutCohNonRot(x)(y)
+$nmResDegCoh = srwUtiNan2Num($nmResDegCoh(x)(y), 0)
+
+string nmInMutIntCut = nmInMutInt + "x"
+string nmResDegCohCut = nmResDegCoh + "cut"
+string nmResDegCohCut0 = nmResDegCoh + "cut_aux"
+
+duplicate/O $nmInMutIntCut $nmResDegCohCut
+$nmResDegCohCut = $nmResDegCoh(0)(x)
+
+duplicate/O $nmResDegCohCut $nmResDegCohCut0
+$nmResDegCohCut0 = $nmResDegCoh(x)(0)
+
+if(new_disp > 1)
+	display; appendimage $nmResDegCoh
+	Label bottom "(x + x*)/2"; Label left "(x - x*)/2"
+	display $nmResDegCohCut0; SrwUtiGraphAddFrameAndGrid()
+	Label bottom "(x + x*)/2"; Label left "Degree of Coherence"
+	display $nmResDegCohCut; SrwUtiGraphAddFrameAndGrid()
+	Label bottom "(x - x*)/2"; Label left "Degree of Coherence"
+endif
 end

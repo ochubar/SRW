@@ -1891,11 +1891,12 @@ srTTrjDat::srTTrjDat(SRWLPrtTrj* pTrj)
 	LenFieldData = pTrj->np;
 	sStart = pTrj->ctStart + pTrj->partInitCond.z;
 	sStep = (pTrj->ctEnd - pTrj->ctStart)/(LenFieldData - 1);
-	if(pTrj->arZ != 0)
-	{//use tabulated longitudinal position
-		sStart = pTrj->arZ[0];
-		sStep = (pTrj->arZ[LenFieldData - 1] - sStart)/(LenFieldData - 1);
-	}
+	//OC150815 (commented-out)
+	//if(pTrj->arZ != 0)
+	//{//use tabulated longitudinal position
+	//	sStart = pTrj->arZ[0];
+	//	sStep = (pTrj->arZ[LenFieldData - 1] - sStart)/(LenFieldData - 1);
+	//}
 
 	CheckFromTrjIfFieldCompAreZero(*pTrj, HorFieldIsNotZero, VerFieldIsNotZero);
 

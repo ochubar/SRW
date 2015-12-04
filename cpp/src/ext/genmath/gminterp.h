@@ -454,6 +454,33 @@ public:
 		return x*(x*a20 + a10) + y*(y*a02 + a01) + f00;
 	}
 
+	static double Interp1dLinRel(double xr, double f0, double f1)
+	{//simple linear interpolation for xr being relative argument (f = f0 at xr = 0, f = f1 at xr = 1)
+		return f0 + xr*(f1 - f0);
+	}
+
+	static double Interp1dQuadVarRel(double xr, double hmdhp, double fm1, double f0, double fp1)
+	{//simple quadratic interpolation for xr being relative argument (f = fm1 at xr = -hmdhp, f = f0 at xr = 0, f = fp1 at xr = 1)
+		double buf = 1./((hmdhp + 1.)*hmdhp);
+		double a1 = (f0 - fm1 + (fp1 - f0)*hmdhp*hmdhp)*buf;
+		double a2 = (fm1 - f0 + (fp1 - f0)*hmdhp)*buf;
+		return f0 + (a1 + a2*xr)*xr;
+	}
+
+	static double Interp1dCubVarRel(double xr, double hmdhp1, double hp2dhp1, double fm1, double f0, double fp1, double fp2)
+	{//simple cubic interpolation for xr being relative argument (f = fm1 at xr = -hmdhp1, f = f0 at xr = 0, f = fp1 at xr = 1, f = fp2 at xr = hp2dhp1)
+		double buf = 1./(hmdhp1*(1 + hmdhp1)*(hp2dhp1 - 1)*hp2dhp1*(hmdhp1 + hp2dhp1));
+		double hmdhp1E2 = hmdhp1*hmdhp1;
+		double hmdhp1E3 = hmdhp1E2*hmdhp1;
+		double hp2dhp1E2 = hp2dhp1*hp2dhp1;
+		double hp2dhp1E3 = hp2dhp1E2*hp2dhp1;
+		double a1 = -((fp2-f0)*hmdhp1E2 + (fp2-f0)*hmdhp1E3 + (f0-fm1)*hp2dhp1E2 + (f0-fp1)*hmdhp1E3*hp2dhp1E2 + (fm1-f0)*hp2dhp1E3 + (f0-fp1)*hmdhp1E2*hp2dhp1E3)*buf;
+		double buf1 = f0/(hmdhp1*hp2dhp1);
+		double a2 = buf1*(hmdhp1 - hp2dhp1 - 1.) - (fp2*hmdhp1 - fp2*hmdhp1E3 + fm1*hp2dhp1 + fp1*hmdhp1E3*hp2dhp1 - fm1*hp2dhp1E3 - fp1*hmdhp1*hp2dhp1E3)*buf;
+		double a3 = buf1 + (fp2*hmdhp1 + fp2*hmdhp1E2 + fm1*hp2dhp1 - fp1*hmdhp1E2*hp2dhp1 - fm1*hp2dhp1E2 - fp1*hmdhp1*hp2dhp1E2)*buf;
+		return f0 + (a1 + (a2 + a3*xr)*xr)*xr;
+	}
+
 	static double InterpCubHalfStep(double* f, int i)
 	{//interpolation by cubic poligon for a point in the middle between equidistant points for which the function f is defined 
 		if(i < 0) return 0.0625*(5.*f[0] + 15.*f[1] - 5.*f[2] + f[3]);

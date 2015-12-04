@@ -9,42 +9,61 @@ In the following writing, it is assumed that "SRW_Dev" is absolute path to the f
 
 Using pre-compiled SRW libraries and clients / bindings:
 --------------------------------------------------------
-The last ~"clean" releases of SRW for IGOR Pro and for Python can be found in SRW_Dev/env/release, in particular:
+The last ~"clean" release of SRW for IGOR Pro and for Python can be found in SRW_Dev/env/release, in particular:
 	- installers (of compressed packages) can be found in SRW_Dev/env/release/install;
 	- unpacked folder of SRW for IGOR Pro (for Windows only) is:
 SRW_Dev/env/release/srw_igor; this folder contains ReadMe.txt file with general "start-up" notes; detailed documentation for IGOR Pro version can be found in: SRW_Dev/env/release/srw_igor/SRW Help/SRW Help.ifn file (in IGOR formatted notebook format);
 	- unpacked folder of SRW for Python (for Windows and Linux) is: SRW_Dev/env/release/srw_python; this folder contains ReadMe.txt file with general "start-up" notes.
 
-Besides, some recent pre-releases and current work versions of SRW for IGOR Pro and for Python can be found in: SRW_Dev/env/work.
+Besides, some recent pre-releases and current work versions of SRW for Python and for IGOR Pro can be found in: SRW_Dev/env/work.
+
+Testing of the pre-compiled SRW libraries and clients / bindings can be done using examples included both to Python and IGOR Pro versions of SRW (see "Check example" section below for a particular platform).
 
 
-Compiling and testing SRW Library and its Python and IGOR Pro bindings on Windows:
+I. Compiling and testing SRW Library and its Python and IGOR Pro bindings on Windows:
 ------------------------------------------------------------------
-Microsoft Visual C++ 2013 (or later version) solution file (SRW.sln), which includes 4 projects: 
+1. Compile SRWLib library and Python binding using MS Visual Studio:
+	Microsoft Visual C++ 2015 (or later version) solution file (SRW.sln), which includes 4 projects: 
 	- SRW Library (file SRWLIB.vcxproj),
 	- SRW Python client / binding (file SRWLClientPython.vcxproj),
 	- SRW IGOR Pro client / binding (file SRWLClientIgor.vcxproj),
 	- SRW C demo client (file SRWLClientC.vcxproj),
-can be found in SRW_Dev/cpp/vc. These project files allow for compiling SRW for Python 2.7 and 3.x (64-bit or 32-bit), and SRW for IGOR Pro (32-bit only). Visual Studio Express 2013 for Desktop (or later versions) can be used.
+can be found in SRW_Dev/cpp/vc. These project files allow for compiling SRW for Python 2.7 and 3.x (64-bit or 32-bit), and SRW for IGOR Pro (32-bit only). Free Microsoft Visual Studio Community 2015 (or later versions) can be used.
+
+2. Check examples:
+
+2.1.	The SRW for Python examples can be tested using e.g. "IDLE" (Python native GUI). To do so, start this application (e.g. from Windows Start menu), open an example file in it, e.g. "SRW_Dev\env\work\srw_python\SRWLIB_Example01.py", and run it from the IDLE.
+	Alternatively, the example scripts can be executed from the Windows Command Prompt, e.g. from within the "SRW_Dev\env\work\srw_python" directory. For convenience, correct path to python.exe file may need to be specified in the Windows system PATH variable prior to these tests.
+
+2.2. The The SRW for IGOR Pro examples can be tested from "SRWE" and "SRWP" menus, "Help" sub-menus, of the IGOR Pro.
 
 
-Compiling and testing SRW Library and its Python binding on Linux:
+II. Compiling and testing SRW Library and its Python binding on Linux:
 ------------------------------------------------------------------
 1. Download and compile fftw-2.1.5 library as required for SRW:
 	Download fftw-2.1.5.tar.gz from FFTW site (probably http://www.fftw.org/download.html) and place it to SRW_Dev/ext_lib
 	cd SRW_Dev/ext_lib
 	tar -zxvf fftw-2.1.5.tar.gz
 	cd fftw-2.1.5
-	configure --enable-float --with-pic
+	./configure --enable-float --with-pic
 	Manually (using editor) add -fPIC option to CFLAGS in Makefile
 	make
 	make install
 	cp fftw/.libs/libfftw.a SRW_Dev/ext_lib/
 
 2. Compile SRWLib library and Python binding:
+	This can be done either using Python "distutils" (see section 2.1 below) or without it (see section 2.2)
+
+2.1. Compiling using Python "distutils" module:
+	Make sure the "distutils" module of the Python version you would like to use is properly installed and configured. If this is done, the compilation and installation is simple:
+	cd SRW_Dev
+	make all
+	This should compile libsrw.a and srwlpy.so, and copy srwlpy.so to SRW_Dev/env/work/srw_python/
+
+2.2. Compiling without "distutils":
 	cd SRW_Dev/cpp/gcc
 	Make sure that Python 3.2 or higher (or Python 2.7) is installed 
-	In Makefile, specify correct PYFLAGS path to Python include file and library
+	In Makefile, modify/correct PYPATH and PYFLAGS variables, i.e. specify path to Python header and library files
 	rm libsrw.a
 	make all
 	cp srwlpy.so ../../env/work/srw_python/
@@ -80,4 +99,5 @@ X. Shi (ANL)
 R. Lindberg (ANL)
 D. Bruhwiler (RadiaSoft LLC)
 R. Nagler (RadiaSoft LLC)
+P. Moeller (Bivio Inc)
 

@@ -563,7 +563,7 @@ struct srTRadResize {
 		pem = ped = pxm = pxd = pzm = pzd = 1.;
 
 		RelCenPosE = RelCenPosX = RelCenPosZ = 0.5;
-		RelCenPosTol = 0.1; // To steer only here	
+		RelCenPosTol = 1.e-06; //0.001; //OC141014 //0.1; // To steer only here	
 		
 		PropAutoPrec = 1.;
 		ShiftTypeBeforeRes = 0;

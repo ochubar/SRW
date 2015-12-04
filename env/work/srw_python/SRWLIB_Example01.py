@@ -1,6 +1,7 @@
+# -*- coding: utf-8 -*-
 #############################################################################
 # SRWLIB Example#1: Calculating electron trajectory in 3D magnetic field of an APPLE-II undulator
-# v 0.05
+# v 0.06
 #############################################################################
 
 from __future__ import print_function #Python 2.7 compatibility
@@ -73,33 +74,6 @@ def AuxReadInMagFld3D(filePath, sCom):
     if zNp > 1: zRange = (zNp - 1)*zStep
     return SRWLMagFld3D(locArBx, locArBy, locArBz, xNp, yNp, zNp, xRange, yRange, zRange, 1)
 
-#**********************Auxiliary function to write tabulated resulting Trajectory data to ASCII file:
-def AuxSaveTrajData(traj, filePath):
-    f = open(filePath, 'w')
-    resStr = '#ct [m], X [m], BetaX [rad], Y [m], BetaY [rad], Z [m], BetaZ [rad]'
-    if(hasattr(traj, 'arBx')):
-        resStr += ', Bx [T]'
-    if(hasattr(traj, 'arBy')):
-        resStr += ', By [T]'
-    if(hasattr(traj, 'arBz')):
-        resStr += ', Bz [T]'
-    f.write(resStr + '\n')
-    ctStep = 0
-    if traj.np > 0:
-        ctStep = (traj.ctEnd - traj.ctStart)/(traj.np - 1)
-    ct = traj.ctStart
-    for i in range(traj.np):
-        resStr = str(ct) + '\t' + repr(traj.arX[i]) + '\t' + repr(traj.arXp[i]) + '\t' + repr(traj.arY[i]) + '\t' + repr(traj.arYp[i]) + '\t' + repr(traj.arZ[i]) + '\t' + repr(traj.arZp[i])
-        if(hasattr(traj, 'arBx')):
-            resStr += '\t' + repr(traj.arBx[i])
-        if(hasattr(traj, 'arBy')):
-            resStr += '\t' + repr(traj.arBy[i])
-        if(hasattr(traj, 'arBz')):
-            resStr += '\t' + repr(traj.arBz[i])
-        f.write(resStr + '\n')        
-        ct += ctStep
-    f.close()
-
 #**********************Defining Magnetic Field:
 magFldCnt = SRWLMagFldC() #Container
 #magFldCnt.allocate(3) #Magnetic Field consists of 3 parts
@@ -141,7 +115,7 @@ print('done')
 
 #**********************Saving results to a file
 print('   Saving trajectory data to a file ... ', end='')
-AuxSaveTrajData(partTraj, os.path.join(os.getcwd(), strExDataFolderName, strTrajOutFileName))
+partTraj.save_ascii(os.path.join(os.getcwd(), strExDataFolderName, strTrajOutFileName))
 print('done')
 
 #**********************Plotting results

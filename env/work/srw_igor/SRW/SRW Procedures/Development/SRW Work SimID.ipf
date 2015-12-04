@@ -106,6 +106,103 @@ end
 //Correct Undulator Field to ensure Zero First and Second Field Integrals
 //Magnetic field is assumed to be symmetrical vs longitudinal position
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+proc SrwUndCorrectFieldIntC(nmMag, distBwKicks, scKicks, rmsLenKick, dupl, nmMagCoreDupl)
+string nmMag = srwUtiGetValS("SrwMagName","Mag","")+SrwFieldType
+variable distBwKicks = srwUtiGetValN("distBwKicks",1.5,"SrwUndCorrectFieldInt")
+variable scKicks = srwUtiGetValN("scKicks",0,"SrwUndCorrectFieldInt")
+variable rmsLenKick = srwUtiGetValN("rmsLenKick",100,"SrwUndCorrectFieldInt")
+variable dupl = srwUtiGetValN("dupl",1,"SrwUndCorrectFieldInt")
+string nmMagCoreDupl = srwUtiGetValS("SrwMagName","Mag","")+"C"
+prompt nmMag, "Undulator Magnetic Field structure", popup Wavelist("*"+SrwFieldType ,";", "")
+prompt distBwKicks, "Distance between Kicks [m]"
+prompt scKicks, "Center Position of Kick system [m]"
+prompt rmsLenKick, "RMS Kick Length [mm]"
+prompt dupl, "Duplicate Magnetic Field structure?", popup "No;Yes"
+prompt nmMagCoreDupl, "Name of the Duplicated Magnetic Field structure"
+Silent 1						|	Computing Radiation  ...
+
+string nmMagCore = nmMag[0,strlen(nmMag)-strlen(SrwFieldType)-1]
+
+srwUtiSetValS("SrwMagName",nmMagCore,"")
+srwUtiSetValN("distBwKicks",distBwKicks,"SrwUndCorrectFieldInt")
+srwUtiSetValN("scKicks",scKicks,"SrwUndCorrectFieldInt")
+srwUtiSetValN("rmsLenKick",rmsLenKick,"SrwUndCorrectFieldInt")
+srwUtiSetValN("dupl",dupl,"SrwUndCorrectFieldInt")
+srwUtiSetValS("nmMagCoreDupl",nmMagCoreDupl,"SrwUndCorrectFieldInt")
+
+if(distBwKicks <= 0)
+	abort "Distance between kicks should be positive"
+endif
+
+string nmAuxFldInt = "wAuxFldInt"
+string nmMagBX = nmMagCore+SrwSuffixMagField+SrwSuffixX+SrwFieldWaveType
+string nmMagBZ = nmMagCore+SrwSuffixMagField+SrwSuffixZ+SrwFieldWaveType
+
+duplicate/O $nmMagBX $nmAuxFldInt
+variable npAuxFldInt = dimsize($nmAuxFldInt, 0)
+integrate/T $nmAuxFldInt
+variable auxI1X = $nmAuxFldInt[npAuxFldInt - 1] //[T.m]
+integrate/T $nmAuxFldInt
+variable auxI2X = $nmAuxFldInt[npAuxFldInt - 1] //[T.m^2]
+variable sRangeX = (npAuxFldInt - 1)*dimdelta($nmAuxFldInt, 0)
+variable sCenX = dimoffset($nmAuxFldInt, 0) + 0.5*sRangeX
+variable sEndX = sCenX + 0.5*sRangeX
+
+duplicate/O $nmMagBZ $nmAuxFldInt
+integrate/T $nmAuxFldInt
+variable/D auxI1Z = $nmAuxFldInt[npAuxFldInt - 1] //[T.m]
+integrate/T $nmAuxFldInt
+variable/D auxI2Z = $nmAuxFldInt[npAuxFldInt - 1] //[T.m^2]
+variable/D sRangeZ = (npAuxFldInt - 1)*dimdelta($nmAuxFldInt, 0)
+variable/D sCenZ = dimoffset($nmAuxFldInt, 0) + 0.5*sRangeZ
+variable/D sEndZ = sCenZ + 0.5*sRangeZ
+
+variable/D halfDistBwKicks = 0.5*distBwKicks
+variable/D sOut = scKicks +halfDistBwKicks
+
+//variable kickEntryHor = 0.5*(sRangeZ/distBwKicks - 1)*auxI1Z - auxI2Z/distBwKicks
+//variable kickExitHor = -0.5*(sRangeZ/distBwKicks + 1)*auxI1Z + auxI2Z/distBwKicks
+variable/D kickEntryHor = (auxI2Z - auxI1Z*(sEndZ - sOut))/distBwKicks
+variable/D kickExitHor = auxI1Z - kickEntryHor
+kickEntryHor = -kickEntryHor
+kickExitHor = -kickExitHor
+
+//print kickEntryHor, kickExitHor
+//print sEndZ, sOut
+//print auxI1Z*(sEndZ - sOut)
+//print  (auxI2Z - auxI1Z*(sEndZ - sOut))
+//print auxI1Z, auxI2Z
+//print  sEndZ, sCenZ, halfDistBwKicks, kickEntryHor, kickExitHor
+
+//print kickEntryHor*(sEndZ - (scKicks - halfDistBwKicks)) + kickExitHor*(sEndZ - (scKicks + halfDistBwKicks)), auxI2Z
+
+//variable kickEntryVert = 0.5*(sRangeX/distBwKicks - 1)*auxI1X - auxI2X/distBwKicks
+//variable kickExitVert = -0.5*(sRangeX/distBwKicks + 1)*auxI1X + auxI2X/distBwKicks
+variable/D kickEntryVert =  (auxI2X - auxI1X*(sEndX - sOut))/distBwKicks
+variable/D kickExitVert = auxI1X - kickEntryVert
+kickEntryVert = -kickEntryVert
+kickExitVert = -kickExitVert
+
+//print " "
+//print kickEntryVert, kickExitVert
+//print kickEntryVert*(sEndX - (scKicks - halfDistBwKicks)) + kickExitVert*(sEndX - (scKicks + halfDistBwKicks)), auxI2X
+
+if(dupl == 2)
+	SrwMagDupl(nmMag, nmMagCoreDupl)
+	nmMagBX = nmMagCoreDupl+SrwSuffixMagField+SrwSuffixX+SrwFieldWaveType
+	nmMagBZ = nmMagCoreDupl+SrwSuffixMagField+SrwSuffixZ+SrwFieldWaveType
+endif
+
+SrwMagGsnAng(nmMagBX, 2, scKicks - halfDistBwKicks, rmsLenKick, kickEntryVert*1000)
+SrwMagGsnAng(nmMagBX, 2, scKicks + halfDistBwKicks, rmsLenKick, kickExitVert*1000)
+SrwMagGsnAng(nmMagBZ, 2, scKicks - halfDistBwKicks, rmsLenKick, kickEntryHor*1000)
+SrwMagGsnAng(nmMagBZ, 2, scKicks + halfDistBwKicks, rmsLenKick, kickExitHor*1000)
+end
+
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//Correct Undulator Field to ensure Zero First and Second Field Integrals
+//Magnetic field is assumed to be symmetrical vs longitudinal position
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 proc SrwUndCorrectFieldInt(nmMag, distBwKicks, rmsLenKick, dupl, nmMagCoreDupl)
 string nmMag = srwUtiGetValS("SrwMagName","Mag","")+SrwFieldType
 variable distBwKicks = srwUtiGetValN("distBwKicks",1.5,"SrwUndCorrectFieldInt")
@@ -3280,6 +3377,242 @@ SrwUtiTriggerPrint(1)
 end
 
 //+++++++++++++++++++++++++++++++++++++++
+//Finds harmonic Peak (Photon Energy, Flux) in a given spectrum, and returns it as a complex number
+//+++++++++++++++++++++++++++++++++++++++
+function/C srwUtiUndFindHarmPeak(wSpec, e1, iHarm)
+wave wSpec
+variable e1, iHarm
+
+variable ePeak, fPeak=0
+variable searchRangeLeft = 0.8*e1 //to tune
+
+variable eStart = dimoffset(wSpec, 0)
+variable eStep = dimdelta(wSpec, 0)
+variable ne = dimsize(wSpec, 0)
+variable eStartSearch = e1*iHarm + eStep //to tune
+
+variable neSearch = round(searchRangeLeft/eStep)
+variable ieStartSearch = round((eStartSearch - eStart)/eStep) + 1
+variable ieEndSearch = ieStartSearch - neSearch
+
+if(ieEndSearch >= ne)
+	return cmplx(0, 0)
+endif
+if(ieStartSearch >= ne)
+	ieStartSearch = ne - 1
+endif
+
+variable ie, ie0, fPrev1 = 0, fPrev2 = 0, fPrev3 = 0, fCur, fNext1, fNext2, fNext3, fNext4, fNext5, fNext6, fNext7
+for(ie=ieStartSearch; ie>ieEndSearch; ie-=1)
+	fCur = wSpec[ie]
+	fNext1 = wSpec[ie-1]
+	fNext2 = wSpec[ie-2]
+	fNext3 = wSpec[ie-3]
+	fNext4 = wSpec[ie-4]
+	fNext5 = wSpec[ie-5]
+	fNext6 = wSpec[ie-6]
+	fNext7 = wSpec[ie-7]
+
+	if((fNext7 <= fNext6) && (fNext6 <= fNext5) && (fNext5 <= fNext4) && (fNext4 <= fNext3) && (fNext3 <= fNext2) && (fNext2 <= fNext1) && (fNext1 <= fCur) && (fCur <= fPrev1) && (fPrev1 >= fPrev2))
+		ie0 = ie
+		break
+	endif
+	fPrev3 = fPrev2
+	fPrev2 = fPrev1
+	fPrev1 = fCur
+endfor
+
+make/O/N=4 wAuxF4
+wAuxF4[0] = fCur
+wAuxF4[1] = fPrev1
+wAuxF4[2] = fPrev2
+wAuxF4[3] = fPrev3
+if(ie < 0)
+	ie = ieEndSearch + 1
+endif
+variable/C maxPol3 = srwUtiFindMaxFunc4P(wAuxF4)
+ePeak = eStart + (ie + real(maxPol3))*eStep
+fPeak = imag(maxPol3)
+
+killwaves/Z wAuxF4
+return cmplx(ePeak, fPeak)
+end
+
+//+++++++++++++++++++++++++++++++++++++++
+//Calculates Spectral Flux of Planar or Elliptical Undulator through Finite Aperture vs Photon Energy; test with odd harmonics
+//I.e. it allows for calculation Flux at 100% LH, LV, and C polarizations
+//+++++++++++++++++++++++++++++++++++++++
+proc SrwUtiUndHarmSpec(OutWaveName, ElecName, ObsName, UndPer, UndLen, KeffWaveName, polType, nHarm, precPar, showIntermGraphs)
+string OutWaveName=srwUtiTruncString(srwUtiGetValS("OutWaveName", "OptSpec", "SrwUtiUndOptimSpec"), 30)
+string ElecName=srwUtiGetValS("SrwElecName", "Elec", "") + SrwElecType
+string ObsName = srwUtiGetValS("SrwSmpName", "Und", "") + SrwSmpType
+variable UndPer=srwUtiGetValN("SrwPeriod", 80, "")
+variable UndLen=srwUtiGetValN("SrwLength", 1.6, "")
+string KeffWaveName = srwUtiGetValS("KeffWaveName", " ", "SrwUtiUndOptimSpec")
+variable polType=srwUtiGetValN("polType", 1, "SrwUtiUndOptimSpec")
+variable nHarm=srwUtiGetValN("nHarm", 11, "SrwUtiUndOptimSpec")
+variable precPar=srwUtiGetValN("precPar", 1.5, "SrwUtiUndOptimSpec")
+variable showIntermGraphs=srwUtiGetValN("showIntermGraphs", 2, "SrwUtiUndOptimSpec")
+prompt OutWaveName, "Name Core for Harm. Spectra"
+prompt ElecName,SrwPElecName1,popup Wavelist("*"+SrwElecType,";","")
+prompt ObsName,SrwPSmpName1,popup Wavelist("*"+SrwSmpType,";","")
+prompt UndPer,"Undulator Period [mm]"
+prompt UndLen,"Undulator Length [m]"
+prompt KeffWaveName,"Wave of Keff values", popup Wavelist("*",";","")
+prompt polType,"Polarization", popup "Linear Horizontal;Linear Vertical;Circular"
+prompt nHarm,"Number of Hrmonics to treat"
+prompt precPar,"Precision Parameter"
+prompt showIntermGraphs,"Display Intermed. Graphs?", popup "No;Yes"
+Silent 1						|	...
+PauseUpdate
+
+srwUtiSetValS("OutWaveName", OutWaveName, "SrwUtiUndOptimSpec")
+srwUtiSetValS("SrwElecName", ElecName[0,strlen(ElecName)-strlen(SrwElecType)-1], "") 
+srwUtiSetValS("SrwSmpName", ObsName[0,strlen(ObsName)-strlen(SrwSmpType)-1], "") 
+srwUtiSetValN("SrwPeriod", UndPer, "")
+srwUtiSetValN("SrwLength", UndLen, "")
+srwUtiSetValS("KeffWaveName", KeffWaveName, "SrwUtiUndOptimSpec")
+srwUtiSetValN("polType", polType, "SrwUtiUndOptimSpec")
+srwUtiSetValN("nHarm", nHarm, "SrwUtiUndOptimSpec")
+srwUtiSetValN("precPar", precPar, "SrwUtiUndOptimSpec")
+srwUtiSetValN("showIntermGraphs", showIntermGraphs, "SrwUtiUndOptimSpec")
+
+SrwUtiTriggerPrint(2)
+
+variable NumDimB = WaveDims($KeffWaveName)
+
+variable KsAreDefined = 1
+variable NumMagHarm = 1
+variable NumDims = 1
+	
+variable Np = DimSize($KeffWaveName, 0)
+variable pStart = DimOffset($KeffWaveName, 0)
+variable pStep = DimDelta($KeffWaveName, 0)
+
+variable Ne = srwGetSmpPhotEnNp(ObsName)
+variable eStart = srwGetSmpPhotEnStart(ObsName)
+variable eEnd = srwGetSmpPhotEnEnd(ObsName)
+string eUnitsStr = "eV"
+
+variable ElecEnergy = srwGetElecBeamEnergy(ElecName)
+
+variable AmOfExtraHarm = 5 // to make input variable ?
+//variable PrecPar = 1.5
+//variable ShowIntermGraphs = 2 // 1- No,  2- Yes
+variable AuxShowGraphs = 2
+variable MaxHarmToShow = 21
+
+string UndName = "AuxUnd", StokesName = "AuxSto", AuxSpecName
+//make/O/N=(Np, Ne) AuxSpectraLH
+//AuxSpectraLH = 0
+
+string AuxSufStr = ""
+string nmHarmSpec = "",  nmHarmSpecPhE = "", sHarm
+string nmHarmSpecList = OutWaveName + ".L"
+make/O/T/N=(nHarm, 2) $nmHarmSpecList
+variable iHarm = 0, ePeak
+do
+	sHarm =  num2str(iHarm + 1)
+	nmHarmSpec = OutWaveName + sHarm + ".F"
+	nmHarmSpecPhE = OutWaveName + sHarm + ".E"
+	
+	$nmHarmSpecList[iHarm][0] = nmHarmSpec
+	$nmHarmSpecList[iHarm][1] = nmHarmSpecPhE
+	
+	make/O/N=(Np) $nmHarmSpec, $nmHarmSpecPhE
+	SetScale/I x eStart, eEnd, eUnitsStr $nmHarmSpec, $nmHarmSpecPhE
+	iHarm += 1
+while(iHarm < nHarm)
+
+variable Kx, Kz, MaxHarm, Ph, Keff
+variable MagHarmCount=0, KeffE2, FundPhotEn
+variable ip = 0
+variable FieldWasSet = 0, TestMaxHarm, IsRegected = 0
+variable/C harmPeak
+do
+	 FieldWasSet = 0
+		 
+	Keff = $KeffWaveName[ip]
+	KeffE2 = Keff*Keff
+	Kx = 0; Kz = 0; Ph = 0
+	if(polType == 1)
+		Kz = Keff
+	else
+		if(polType == 2)
+			Kx = Keff
+		else
+			Kx = Keff/sqrt(2)
+			Kz = Kx
+			Ph = Pi/2
+		endif
+	endif
+			
+	SrwMagPerCreate2D(UndName,UndPer,Kz,Kx,UndLen,Ph,1,0,0)
+			
+	FundPhotEn = 950*ElecEnergy*ElecEnergy/(1 + 0.5*KeffE2)/(UndPer*0.1)
+	MaxHarm = round(eEnd/FundPhotEn) //+ AmOfExtraHarm
+	TestMaxHarm = round(1.5*MaxHarm)
+	if(TestMaxHarm > (AmOfExtraHarm + MaxHarm))
+		MaxHarm += AmOfExtraHarm
+	else 
+		MaxHarm = TestMaxHarm
+	endif
+		
+	SrwPerStoCreate(StokesName,ElecName,UndName + SrwUndType,ObsName,1,MaxHarm,precPar,precPar,1)
+		
+	if(showIntermGraphs == 2)
+		print ip, "Keff =", Keff
+	endif
+
+	AuxSufStr = "I"
+	SrwSto2Int(StokesName + SrwStoType,AuxSufStr,7,1,eEnd,2.5e-09,2.5e-09,AuxShowGraphs)
+	if(ip == 0)
+		if(showIntermGraphs == 2)
+			SrwUtiGraphAddFrameAndGrid(); SrwUtiGraphWindResize(120,40,300,150,0,0); DoUpdate
+			if(AuxShowGraphs == 2)
+				AuxShowGraphs = 1
+			endif		
+		endif
+	endif
+	
+	AuxSpecName = StokesName + AuxSufStr + SrwSeparator + SrwRadEType
+	
+	 iHarm = 1
+	 do
+	 	harmPeak = srwUtiUndFindHarmPeak($AuxSpecName, FundPhotEn, iHarm)
+	 	
+ 		sHarm =  num2str(iHarm)
+		nmHarmSpec = OutWaveName + sHarm + ".F"
+		nmHarmSpecPhE = OutWaveName + sHarm + ".E"
+		
+		ePeak = real(harmPeak)
+		if((ePeak > 0) && (ePeak <= eEnd))
+			$nmHarmSpecPhE[ip] = ePeak
+			$nmHarmSpec[ip] = imag(harmPeak)
+		endif
+		
+		if(ip == 0)
+			if(showIntermGraphs == 2)
+				if(iHarm <= MaxHarmToShow)
+					display $nmHarmSpec vs $nmHarmSpecPhE
+					label bottom SrwPLabelPhotEn
+					label left "Flux [Ph/s/0.1%bw]"
+					SrwUtiGraphAddFrameAndGrid(); SrwUtiGraphWindResize(20*(iHarm-1),240+5*(iHarm-1) ,300,150,0,0); DoUpdate
+				endif
+			endif
+		endif
+ 
+		iHarm += 1
+	while(iHarm <= nHarm)
+		
+	ip += 1
+while(ip < Np)
+
+KillWaves/Z $UndName
+SrwUtiTriggerPrint(1)
+end
+
+//+++++++++++++++++++++++++++++++++++++++
 //Estimates Power (heat load) through finite aperture
 //+++++++++++++++++++++++++++++++++++++++
 function srwUtiUndPowerEstim(ElecName, ObsName, UndPer, UndLen, Kz, Kx, Ph0x, PrecPar, Meth, Disp)
@@ -3801,9 +4134,9 @@ srwUtiSetValN("compensKicks", compensKicks, "SrwUtiMagFieldSetupAGU")
 //srwUtiSetValN("npTot", npTot, "SrwUtiMagFieldSetupAGU")
 srwUtiSetValN("e1act", e1act, "SrwUtiMagFieldSetupAGU")
 
-variable fullOrHalf = 1 //full, to steer 
+variable fullOrHalf = 0 //1 //full, to steer 
 variable npTot = 100001 //to steer
-variable kickLenRMS = 20 //[mm]
+variable kickLenRMS = 20 //40 //15 //[mm]
 
 string nmAuxPerVsGap = "wAuxPerVsGapFieldSetupAGU"
 SrwUtiMagFindUndPerVsGapForE1(nmAuxPerVsGap, e1, nmE1vsGPer)
@@ -3865,6 +4198,7 @@ string nmFldTerm = "wAuxFldTermSetupAGU"
 string nmResFldCmpn = nmCoreResFld + "BZ_fld"
 variable segmLen, nHalfPer, iSegm, b1, b2, undFldRange, sStartSegm, sEndSegm, scInterSegm, scSegm, sgnB, sgnInterB, dBds0t, I1t, s0t, dst, perLast
 variable nSegm = dimsize($nmApproxSegmPos, 0)
+variable cenLongPos = 0, nPer, per1
 
 if(fullOrHalf == 1) //full
 
@@ -3973,6 +4307,192 @@ if(fullOrHalf == 1) //full
 		endif
 	endif
 else //half (/canted)
+
+	cenLongPos = 0.5*$nmApproxSegmPos[nSegm - 1]
+	
+	undFldRange = $nmApproxSegmPos[nSegm - 1] + 20*$nmAuxPerInSegm[nSegm - 1]
+	SrwMagFieldCreate(nmCoreResFld, cenLongPos, undFldRange, npTot)
+	$nmResFldCmpn = 0
+
+	//segmLen = $nmApproxSegmPos[0] - 0.5*$nmAuxPerInSegm[0]
+	//nPer = trunc(segmLen/$nmAuxPerInSegm[0] + 1e-06)
+	
+	//	print segmLen, nPer
+	
+	//if(symInSegm == 1) //field in segm. is symmetric
+	//	if(round(nPer/2)*2 != nPer) //semi-integer number of full periods
+	//		nPer -= 1
+	//	endif
+	//else //field in segm. is anti-symmetric
+	//	if(round(nPer/2)*2 == nPer) //semi-integer number of full periods
+	//		nPer -= 1
+	//	endif
+	//endif
+	
+	//SrwUtiMagSegmSetup(nmFldSegm, nmQuartPerFldShape, $nmAuxB0InSegm[0], $nmAuxPerInSegm[0], 0.5*nHalfPer)
+	//sStartSegm = dimoffset($nmFldSegm, 0)
+	//sEndSegm = sStartSegm + dimdelta($nmFldSegm, 0)*(dimsize($nmFldSegm, 0) - 1)
+	//$nmResFldCmpn += $nmFldSegm(x)*srwUtiNonZeroInterval(x, sStartSegm, sEndSegm)
+	
+		//print nmResFldCmpn
+		//abort
+	
+	//if(nSegm > 1)
+	
+	sEndSegm = 0
+	scInterSegm = 0
+	
+	iSegm = 1
+	sgnB = 1 //-1
+	do
+		b1 = 0
+		if(iSegm > 1)
+			b1 = $nmFldSegm[dimsize($nmFldSegm, 0) - 1]
+		endif
+		b2 = 0
+		if(b1 != 0)
+			b2 = -(b1/abs(b1))*abs($nmAuxB0InSegm[iSegm - 1])
+		endif
+			
+			print b1, b2
+			
+		if(iSegm > 1)
+			//SrwUtiMagInterSegmSetup(nmFldInterSegm, 1000*$nmAuxPerInSegm[iSegm - 1], b1, 1000*$nmAuxPerInSegm[iSegm], b2, 1001)
+			SrwUtiMagInterSegmSetup(nmFldInterSegm, 1000*$nmAuxPerInSegm[iSegm - 2], b1, 1000*$nmAuxPerInSegm[iSegm - 1], b2, 1001)
+		
+			//scInterSegm = sEndSegm + 0.25*$nmAuxPerInSegm[iSegm - 1]
+			scInterSegm = sEndSegm + 0.25*$nmAuxPerInSegm[iSegm - 2]
+			
+				print "Segment Intersection:", scInterSegm, "b1=", b1, "b2=", b2
+				
+			//sStartSegm = scInterSegm + 0.25*$nmAuxPerInSegm[iSegm]
+			sStartSegm = scInterSegm + 0.25*$nmAuxPerInSegm[iSegm - 1]
+			
+			$nmResFldCmpn += $nmFldInterSegm(x - scInterSegm)*srwUtiNonZeroInterval(x, sEndSegm, sStartSegm)
+		
+			//if(symInSegm == 1)
+			//	$nmResFldCmpn += $nmFldInterSegm(-x - scInterSegm)*srwUtiNonZeroInterval(-x, sEndSegm, sStartSegm)
+			//else
+			//	$nmResFldCmpn -= $nmFldInterSegm(-x - scInterSegm)*srwUtiNonZeroInterval(-x, sEndSegm, sStartSegm)
+			//endif
+			
+			$nmAuxExactSegmPos[iSegm - 2] = 0.5*(sStartSegm + sEndSegm)
+		
+				print "Cor. Coil Center:", $nmAuxExactSegmPos[iSegm - 2]
+
+		endif
+			//abort 
+				
+		//$nmAuxExactSegmPos[nSegm - 2 + iSegm] = 0.5*(sStartSegm + sEndSegm)
+		//$nmAuxExactSegmPos[nSegm - 1 - iSegm] = -0.5*(sStartSegm + sEndSegm)
+
+		segmLen = $nmApproxSegmPos[iSegm - 1] - scInterSegm //- 0.5*$nmAuxPerInSegm[iSegm - 1]
+		
+			print "Segment Length:", segmLen
+
+		//nHalfPer = trunc(2*segmLen/$nmAuxPerInSegm[iSegm] + 1e-06)
+		nPer = trunc(segmLen/$nmAuxPerInSegm[iSegm - 1] + 1e-06)
+		
+			print nPer
+		
+		if(symInSegm == 1) //field in segm. is symmetric
+			if(round(nPer/2)*2 != nPer) //semi-integer number of full periods
+				nPer -= 1
+			endif
+		else //field in segm. is anti-symmetric
+			if(round(nPer/2)*2 == nPer) //integer number of full periods
+				nPer -= 1
+			endif
+		endif
+		
+			print nPer, nPer*$nmAuxPerInSegm[iSegm - 1]
+		
+		//SrwUtiMagSegmSetup(nmFldSegm, nmQuartPerFldShape, $nmAuxB0InSegm[iSegm], $nmAuxPerInSegm[iSegm], 0.5*nHalfPer)
+		SrwUtiMagSegmSetup(nmFldSegm, nmQuartPerFldShape, $nmAuxB0InSegm[iSegm - 1], $nmAuxPerInSegm[iSegm - 1], nPer)
+		if(symInSegm == 1)
+			$nmFldSegm *= sgnB
+		endif
+		
+		sEndSegm = sStartSegm + dimdelta($nmFldSegm, 0)*(dimsize($nmFldSegm, 0) - 1)
+		scSegm = 0.5*(sStartSegm + sEndSegm)
+		$nmResFldCmpn += $nmFldSegm(x - scSegm)*srwUtiNonZeroInterval(x, sStartSegm, sEndSegm)
+		
+			print sStartSegm, sEndSegm
+		
+		//if(symInSegm == 1)
+		//	$nmResFldCmpn += $nmFldSegm(-x - scSegm)*srwUtiNonZeroInterval(-x, sStartSegm, sEndSegm)
+		//else
+		//	$nmResFldCmpn -= $nmFldSegm(-x - scSegm)*srwUtiNonZeroInterval(-x, sStartSegm, sEndSegm)
+		//endif
+		
+			//abort
+		
+		sgnB *= -1
+		iSegm += 1
+	while(iSegm <= nSegm)
+	//endif
+	
+	perLast = $nmAuxPerInSegm[nSegm - 1]
+	s0t = sEndSegm - 0.25*perLast
+	dst = 0.01*perLast
+	dBds0t = -($nmResFldCmpn(s0t + 0.5*dst) - $nmResFldCmpn(s0t - 0.5*dst))/dst
+	
+	SetScale/I x 0, 0.25*perLast, "m" $nmFldInterSegm
+	$nmFldInterSegm = $nmResFldCmpn(x + s0t)
+	integrate/T $nmFldInterSegm
+	I1t = -$nmFldInterSegm(0.25*perLast)
+	if(I1t != 0.)
+		SrwUtiMagSimTermSetup(nmFldTerm, dBds0t, I1t, 1001)
+		
+		$nmResFldCmpn *= srwUtiNonZeroInterval(x, -1e+23, sEndSegm - 0.75*perLast)
+	
+		sStartSegm = sEndSegm - 0.75*perLast
+		//sStartSegm = sEndSegm + 0.25*perLast
+		//$nmResFldCmpn += $nmFldSegm(2*sEndSegm - scSegm - x)*srwUtiNonZeroInterval(x, sEndSegm, sStartSegm)
+		$nmResFldCmpn += $nmFldTerm(x - sStartSegm)*srwUtiNonZeroInterval(x, sStartSegm, sStartSegm + dimdelta($nmFldTerm, 0)*(dimsize($nmFldTerm, 0) - 1))
+	
+	//	if(symInSegm == 1) //symmetric
+	//		$nmResFldCmpn += $nmFldSegm(2*sEndSegm - scSegm + x)*srwUtiNonZeroInterval(x, -sStartSegm, -sEndSegm)
+	//		$nmResFldCmpn += $nmFldTerm(-x - sStartSegm)*srwUtiNonZeroInterval(x, -sStartSegm - dimdelta($nmFldTerm, 0)*(dimsize($nmFldTerm, 0) - 1), -sStartSegm)
+	//	else //anti-symmetric
+	//		$nmResFldCmpn -= $nmFldSegm(2*sEndSegm - scSegm + x)*srwUtiNonZeroInterval(x, -sStartSegm, -sEndSegm)
+	//		$nmResFldCmpn -= $nmFldTerm(-x - sStartSegm)*srwUtiNonZeroInterval(x, -sStartSegm - dimdelta($nmFldTerm, 0)*(dimsize($nmFldTerm, 0) - 1), -sStartSegm)
+	//	endif
+	endif
+
+	per1 = $nmAuxPerInSegm[0]
+	s0t = 0.25*per1	
+	dst = 0.01*per1
+	dBds0t = -($nmResFldCmpn(s0t + 0.5*dst) - $nmResFldCmpn(s0t - 0.5*dst))/dst
+	
+	SetScale/I x 0, 0.25*per1, "m" $nmFldInterSegm
+	$nmFldInterSegm = $nmResFldCmpn(x + s0t)
+	integrate/T $nmFldInterSegm
+	I1t = -$nmFldInterSegm(0.25*per1)
+	if(I1t != 0.)
+		SrwUtiMagSimTermSetup(nmFldTerm, dBds0t, I1t, 1001)
+		
+		duplicate/O $nmFldTerm wAuxTermFld
+		SetScale/P x -(dimoffset($nmFldTerm, 0) + (dimsize($nmFldTerm, 0) - 1)*dimdelta($nmFldTerm, 0)), dimdelta($nmFldTerm, 0), "m" $nmFldTerm
+		$nmFldTerm = -wAuxTermFld(-x)
+		killwaves/Z wAuxTermFld
+		
+		$nmResFldCmpn *= srwUtiNonZeroInterval(x, 0.75*per1, 1.e+23)
+		$nmResFldCmpn += $nmFldTerm(x - 0.75*per1)
+	
+		//sStartSegm = -0.25*perLast
+		//$nmResFldCmpn += $nmFldSegm(2*sEndSegm - scSegm - x)*srwUtiNonZeroInterval(x, sEndSegm, sStartSegm)
+		//$nmResFldCmpn += $nmFldTerm(x - sStartSegm)*srwUtiNonZeroInterval(x, sStartSegm, sStartSegm + dimdelta($nmFldTerm, 0)*(dimsize($nmFldTerm, 0) - 1))
+	
+		//if(symInSegm == 1) //symmetric
+		//	$nmResFldCmpn += $nmFldSegm(2*sEndSegm - scSegm + x)*srwUtiNonZeroInterval(x, -sStartSegm, -sEndSegm)
+		//	$nmResFldCmpn += $nmFldTerm(-x - sStartSegm)*srwUtiNonZeroInterval(x, -sStartSegm - dimdelta($nmFldTerm, 0)*(dimsize($nmFldTerm, 0) - 1), -sStartSegm)
+		//else //anti-symmetric
+		//	$nmResFldCmpn -= $nmFldSegm(2*sEndSegm - scSegm + x)*srwUtiNonZeroInterval(x, -sStartSegm, -sEndSegm)
+		//	$nmResFldCmpn -= $nmFldTerm(-x - sStartSegm)*srwUtiNonZeroInterval(x, -sStartSegm - dimdelta($nmFldTerm, 0)*(dimsize($nmFldTerm, 0) - 1), -sStartSegm)
+		//endif
+	endif
+
 
 endif
 
