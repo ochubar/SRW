@@ -3593,7 +3593,9 @@ int srTSRWRadStructAccessData::SetRepresFT(char FreqOrTime)
 	//double multPreInt = sqrt(multConvHz2eV);
 	double multPreInt = sqrt(multConvHz2eV/multConv_eV2PhperBW);
 
-	char DirFFT = -1; //1; //OCTEST111211
+	//char DirFFT = -1; //1; //OCTEST111211
+	char DirFFT = 1; //OC041215
+
 	double shiftArgBefore = -avgPhotEn;
 	//double shiftArgAfter = 0;
 	double shiftArgAfter = avgT; //OC101115 (Need to define it prior to this!)
@@ -3605,7 +3607,8 @@ int srTSRWRadStructAccessData::SetRepresFT(char FreqOrTime)
 		//multPreInt *= sqrt(multConv_eV2PhperBW);
 
 		multPreInt = sqrt(multConvHz2eV*multConv_eV2PhperBW);
-		DirFFT = 1; //-1; //OCTEST111211
+		//DirFFT = 1; //-1; //OCTEST111211
+		DirFFT = -1; //OC041215
 
 		avgT = eStart + 0.5*eStep*(ne - 1); //OC101115 //???
 
