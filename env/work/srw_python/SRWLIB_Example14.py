@@ -319,7 +319,7 @@ print('done in', round(time.time() - t0), 's')
 
 arPI1vsT = None; arP1vsT = None; arP1vsXY = None
 meshP1vsT = None; meshP1vsXY = None
-tc1 = -40e-15 #Time moment for power density cut [s]
+tc1 = 40e-15 #-40e-15 #Time moment for power density cut [s]
 if(wfr.mesh.ne > 1):
     print('Resizing: increasing photon energy range to increase resolution in time domain...', end='')
     t0 = time.time()
