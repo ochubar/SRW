@@ -237,6 +237,7 @@ CErrWarn::CErrWarn()
 	error.push_back("Incorrect input parameters for FFT procedure.\0"); //#180
 	error.push_back("Incorrect input parameters for convolution with Gaussian.\0"); //#181
 	error.push_back("Incorrect input parameters for conversion of tabulated magnetic field to periodic.\0"); //#182
+	error.push_back("Incorrect spherical mirror parameter: radius should not be zero.\0"); //#183
 
 //};
 

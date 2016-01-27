@@ -1294,7 +1294,8 @@ void ParseSructSRWLMagFldC(SRWLMagFldC* pMag, PyObject* oMag, vector<Py_buffer>*
 		if(o_tmp != 0) 
 		{
 			if(!(pMag->arVx = (double*)GetPyArrayBuf(o_tmp, pvBuf, &sizeBuf))) throw strEr_BadMagC;
-			if(sizeBuf != nElem*sizeof(double)) throw strEr_BadMagC;
+			if(sizeBuf == 0) pMag->arVx = 0;
+			else if(sizeBuf != nElem*sizeof(double)) throw strEr_BadMagC;
 			Py_DECREF(o_tmp);
 		}
 	}
@@ -1305,7 +1306,8 @@ void ParseSructSRWLMagFldC(SRWLMagFldC* pMag, PyObject* oMag, vector<Py_buffer>*
 		if(o_tmp != 0) 
 		{
 			if(!(pMag->arVy = (double*)GetPyArrayBuf(o_tmp, pvBuf, &sizeBuf))) throw strEr_BadMagC;
-			if(sizeBuf != nElem*sizeof(double)) throw strEr_BadMagC;
+			if(sizeBuf == 0) pMag->arVy = 0;
+			else if(sizeBuf != nElem*sizeof(double)) throw strEr_BadMagC;
 			Py_DECREF(o_tmp);
 		}
 	}
@@ -1316,7 +1318,8 @@ void ParseSructSRWLMagFldC(SRWLMagFldC* pMag, PyObject* oMag, vector<Py_buffer>*
 		if(o_tmp != 0) 
 		{
 			if(!(pMag->arVz = (double*)GetPyArrayBuf(o_tmp, pvBuf, &sizeBuf))) throw strEr_BadMagC;
-			if(sizeBuf != nElem*sizeof(double)) throw strEr_BadMagC;
+			if(sizeBuf == 0) pMag->arVz = 0;
+			else if(sizeBuf != nElem*sizeof(double)) throw strEr_BadMagC;
 			Py_DECREF(o_tmp);
 		}
 	}
@@ -1957,7 +1960,6 @@ void ParseSructSRWLOptMir(SRWLOptMir* pOpt, PyObject* oOpt, vector<Py_buffer>* p
 /************************************************************************//**
  * Parses PyObject* to SRWLOptMirEl*
  ***************************************************************************/
-//void ParseSructSRWLOptMirEl(SRWLOptMirEl* pOpt, PyObject* oOpt, vector<Py_buffer>* pvBuf) //throw(...) 
 void ParseSructSRWLOptMirExtEl(SRWLOptMirEl* pOpt, PyObject* oOpt) //throw(...) 
 {
 	if((pOpt == 0) || (oOpt == 0)) throw strEr_NoObj;
@@ -1990,9 +1992,8 @@ void ParseSructSRWLOptMirExtEl(SRWLOptMirEl* pOpt, PyObject* oOpt) //throw(...)
 }
 
 /************************************************************************//**
- * Parses PyObject* to SRWLOptMirEl*
+ * Parses PyObject* to SRWLOptMirTor*
  ***************************************************************************/
-//void ParseSructSRWLOptMirTor(SRWLOptMirTor* pOpt, PyObject* oOpt, vector<Py_buffer>* pvBuf) //throw(...) 
 void ParseSructSRWLOptMirExtTor(SRWLOptMirTor* pOpt, PyObject* oOpt) //throw(...) 
 {
 	if((pOpt == 0) || (oOpt == 0)) throw strEr_NoObj;
@@ -2013,7 +2014,23 @@ void ParseSructSRWLOptMirExtTor(SRWLOptMirTor* pOpt, PyObject* oOpt) //throw(...
 }
 
 /************************************************************************//**
- * Parses PyObject* to SRWLOptMirEl*
+ * Parses PyObject* to SRWLOptMirTor*
+ ***************************************************************************/
+void ParseSructSRWLOptMirExtSph(SRWLOptMirSph* pOpt, PyObject* oOpt) //throw(...) 
+{
+	if((pOpt == 0) || (oOpt == 0)) throw strEr_NoObj;
+
+	//ParseSructSRWLOptMir(&(pOpt->baseMir), oOpt, pvBuf);
+
+	PyObject *o_tmp = PyObject_GetAttrString(oOpt, "rad");
+	if(o_tmp == 0) throw strEr_BadOptMir;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptMir;
+	pOpt->rad = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+}
+
+/************************************************************************//**
+ * Parses PyObject* to a SRWLOptMir*
  ***************************************************************************/
 void* ParseSructSRWLOptMirAll(PyObject* oOpt, char* sPyTypeName, vector<Py_buffer>* pvBuf, char* srwOptTypeName)
 {
@@ -2052,6 +2069,14 @@ void* ParseSructSRWLOptMirAll(PyObject* oOpt, char* sPyTypeName, vector<Py_buffe
 		ParseSructSRWLOptMir(&(((SRWLOptMirTor*)pMir)->baseMir), oOpt, pvBuf);
 		ParseSructSRWLOptMirExtTor((SRWLOptMirTor*)pMir, oOpt);
 	}
+	else if (strcmp(sPyTypeName, "SRWLOptMirSph") == 0)
+	{
+		pMir = new SRWLOptMirSph();
+		strcat(srwOptTypeName, "sphere\0");
+		ParseSructSRWLOptMir(&(((SRWLOptMirSph*)pMir)->baseMir), oOpt, pvBuf);
+		ParseSructSRWLOptMirExtSph((SRWLOptMirSph*)pMir, oOpt);
+	}
+
 	return pMir;
 }
 

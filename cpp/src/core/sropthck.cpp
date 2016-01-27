@@ -189,6 +189,7 @@ srTMirror* srTMirror::DefineMirror(char* sType, void* pvData)
 	if(strcmp(sType, "mirror: plane") == 0) pOutMir = new srTMirrorPlane(*((SRWLOptMirPl*)pvData));
 	else if(strcmp(sType, "mirror: ellipsoid") == 0) pOutMir = new srTMirrorEllipsoid(*((SRWLOptMirEl*)pvData));
 	else if(strcmp(sType, "mirror: toroid") == 0) pOutMir = new srTMirrorToroid(*((SRWLOptMirTor*)pvData));
+	else if(strcmp(sType, "mirror: sphere") == 0) pOutMir = new srTMirrorSphere(*((SRWLOptMirSph*)pvData));
 	else throw UNKNOWN_OPTICAL_ELEMENT;
 
 	pOutMir->m_isGrating = false;
@@ -300,7 +301,7 @@ int srTMirror::FindBasisVectorTransAndExtents()
 	m_vInLoc = pTrans->TrBiPoint_inv(vUz); //direction of input optical axis in the Local frame of opt. elem.
 	TVector3d vCenPtLoc = pTrans->TrPoint_inv(vZero); //point through which the iput optical axis passes in the local frame
 	TVector3d vIntersPtLocFr, vNormAtIntersPtLoc;
-	if (!FindRayIntersectWithSurfInLocFrame(vCenPtLoc, m_vInLoc, vIntersPtLocFr, &vNormAtIntersPtLoc)) return FAILED_DETERMINE_OPTICAL_AXIS;
+	if(!FindRayIntersectWithSurfInLocFrame(vCenPtLoc, m_vInLoc, vIntersPtLocFr, &vNormAtIntersPtLoc)) return FAILED_DETERMINE_OPTICAL_AXIS;
 	m_vInLoc.Normalize();
 
 	//OC021213
@@ -2026,6 +2027,24 @@ srTMirrorEllipsoid::srTMirrorEllipsoid(const SRWLOptMirEl& srwlMirEl) : srTMirro
 	double pq = m_p*m_q;
 	double radTan = sqrt(pq*pq*pq)/(m_ax*m_az);
 	EstimateFocalLengths(radTan, m_radSag);
+}
+
+//*************************************************************************
+
+srTMirrorSphere::srTMirrorSphere(const SRWLOptMirSph& srwlMirSph) : srTMirror(srwlMirSph.baseMir)
+{
+	m_rad = srwlMirSph.rad;
+
+	//Validate parameters: make sure all are positive
+	if(m_rad == 0) { ErrorCode = IMPROPER_OPTICAL_COMPONENT_MIRROR_SPHERE; return;} //throw here?
+
+/*
+	//Determine ellipsoid parameters in Local frame
+	DetermineEllipsoidParamsInLocFrame(); 
+*/
+
+	//Estimate focal lengths:
+	EstimateFocalLengths(m_rad, m_rad);
 }
 
 //*************************************************************************

@@ -434,6 +434,16 @@ struct SRWLStructOpticsMirrorToroid {
 typedef struct SRWLStructOpticsMirrorToroid SRWLOptMirTor;
 
 /**
+* Optical Element:
+* Spherical Mirror ("mirror: sphere" type)
+*/
+struct SRWLStructOpticsMirrorSphere {
+	double rad; /* radius of the sphere [m] */
+	SRWLOptMir baseMir; /* general information about the mirror */
+};
+typedef struct SRWLStructOpticsMirrorSphere SRWLOptMirSph;
+
+/**
  * Optical Element:
  * Grating ("grating" type)
  */

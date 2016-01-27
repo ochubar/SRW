@@ -278,7 +278,7 @@ public:
 	bool FindRayIntersectWithSurfInLocFrame(TVector3d& inP, TVector3d& inV, TVector3d& resP, TVector3d* pResN=0) //virtual in srTMirror
 	{//Returns coordinates of the intersection point in the Local frame (resP), and, optionally, components of the surface normal at the intersection point (always in the Local frame)
 	 //inP and inV are respectively point and vector identifying the input ray
-	 //In the Local frame: tangential direction is X, saggital Y, mirror normal is along Z, and plane has equation: z = 0
+	 //In the Local frame: tangential direction is X, saggital Y, mirror normal is along Z, and plane equation is: z = 0
 		
 		//test
 		//if(inV.z == 0.) inV.z = 1e-13;
@@ -326,6 +326,16 @@ public:
 		m_axE2 = m_ax*m_ax;
 		double twoTheta = m_angGraz*2.;
 		double alp = atan(sin(twoTheta)/(m_p/m_q + cos(twoTheta)));
+
+		if(m_vCenTang.z >= 0.) //OC170116
+		{
+			if(alp < 0.) alp = -alp;
+		}
+		else
+		{
+			if(alp >= 0.) alp = -alp;
+		}
+
 		double sinAlp = sin(alp);
 		double sinAlpE2 = sinAlp*sinAlp;
 		double q_plus_p_sinAlpE2 = m_q + m_p*sinAlpE2;
@@ -335,7 +345,10 @@ public:
 		double x0E2 = (m_axE2 - m_p*m_q)/e2;
 		double x0 = sqrt(x0E2);
 		if(m_p > m_q) x0 = -x0;
-		double z0 = -m_p*sinAlp;
+		
+		//double z0 = -m_p*sinAlp;
+		double z0 = m_p*sinAlp; //OC170116
+
 		double tgBet = -m_az*x0/sqrt(1. - x0E2/m_axE2);
 		double tgBetE2 = tgBet*tgBet;
 		double aux1 = m_axE2 + m_azE2*tgBetE2;
@@ -428,6 +441,7 @@ public:
 
 	bool FindRayIntersectWithSurfInLocFrame(TVector3d& inP, TVector3d& inV, TVector3d& resP, TVector3d* pResN=0) //virtual in srTMirror
 	{//returns coordinates of the intersection point in the Local frame (resP), and, optionally, components of the surface normal at the intersection point (always in the Local frame)
+		
 		//Coordinates of all points and vectors in the frame where the elipse is described by x^2/m_ax^2 + y^2/m_ay^2 + z^2/m_az^2 = 1:
 		//double x0 = m_xcLocNorm + inP.x*m_cosAngGraz + inP.z*m_sinAngGraz;
 		double x0 = m_xcLocNorm + inP.x*m_cosAngRotNormLoc + inP.z*m_sinAngRotNormLoc;
@@ -459,7 +473,7 @@ public:
 		double yi = vy*t0 + y0;
 		double zi = vz*t0 + z0;
 
-		//Verification if angular coordinat of the intersection point is withing aloowable limits
+		//Verification if angular coordinate of the Intersection Point is withing allowable limits
 		const double Pi = 3.141592653589793;
 		const double twoPi = 2.*Pi;
 		double phi = asin(xi/m_ax);
@@ -543,9 +557,7 @@ public:
 		vN.y = ny*inv_norm;
 		vN.z = inv_norm;
 	}
-**/	
 
-/**
 	double SurfHeightInLocFrame(double x, double y) //virtual in srTMirror
 	{
 		const double badRes = -1.E+23; //to return in case inanything goes wrong
@@ -564,6 +576,87 @@ public:
 
 //*************************************************************************
 
+class srTMirrorSphere : public srTMirror {
+
+	double m_rad; //input
+
+public:
+
+	srTMirrorSphere(const SRWLOptMirSph& mirSph);
+
+	bool FindRayIntersectWithSurfInLocFrame(TVector3d& inP, TVector3d& inV, TVector3d& resP, TVector3d* pResN = 0) //virtual in srTMirror
+	{//Returns coordinates of the intersection point in the Local frame (resP), and, optionally, components of the surface normal at the intersection point ((*pResN), always in the Local frame)
+	 //inP and inV are respectively point and vector identifying the input ray
+	 //In the Local frame: tangential direction is X, saggital Y, mirror normal is along Z, and the sphere equation is: x^2 + y^2 + (z - r)^2 = r^2
+
+		double ax = inV.x/inV.z, ay = inV.y/inV.z;
+		double axe2 = ax*ax, aye2 = ay*ay;
+		double axe2_p_aye2_p_1 = axe2 + aye2 + 1.;
+		double A = m_rad - ax*inP.x - ay*inP.y + (axe2 + aye2)*inP.z;
+		double x0_mi_ax_z0 = inP.x - ax*inP.z;
+		double y0_mi_ay_z0 = inP.y - ay*inP.z;
+		double argR = A*A - axe2_p_aye2_p_1*(x0_mi_ax_z0*x0_mi_ax_z0 + y0_mi_ay_z0*y0_mi_ay_z0);
+		if(argR < 0.) return false;
+
+		double R = sqrt(argR);
+		double inv_axe2_p_aye2_p_1 = 1./axe2_p_aye2_p_1;
+
+		//To check this solution:
+		resP.z = (m_rad > 0.)? (A - R)*inv_axe2_p_aye2_p_1 : (A + R)*inv_axe2_p_aye2_p_1;
+		double dzs = resP.z - inP.z;
+		resP.x = inP.x + ax*dzs;
+		resP.y = inP.y + ay*dzs;
+
+		if(pResN != 0)
+		{
+			if(m_rad > 0.)
+			{
+				pResN->x = -resP.x;
+				pResN->y = -resP.y;
+				pResN->z = m_rad - resP.z;
+			}
+			else
+			{
+				pResN->x = resP.x;
+				pResN->y = resP.y;
+				pResN->z = resP.z - m_rad; //?
+			}
+			pResN->Normalize();
+		}
+		return true;
+	}
+
+	double SurfHeightInLocFrame(double x, double y) //virtual in srTMirror
+	{
+		double aSmall = -(x*x + y*y) / (m_rad*m_rad);
+		return -m_rad*CGenMathMeth::radicalOnePlusSmallMinusOne(aSmall);
+	}
+
+	void FindSurfNormalInLocFrame(double x, double y, TVector3d& vN) //virtual in srTMirror
+	{//In Local frame: tangential direction is X, saggital Y; output vector is normalized to 1
+	 //In the Local frame: tangential direction is X, saggital Y, mirror normal is along Z, and the sphere equation is: x^2 + y^2 + (z - r)^2 = r^2
+
+		double aSmall = -(x*x + y*y)/(m_rad*m_rad);
+		double zi = -m_rad*CGenMathMeth::radicalOnePlusSmallMinusOne(aSmall);
+
+		if(m_rad > 0.)
+		{
+			vN.x = -x;
+			vN.y = -y;
+			vN.z = m_rad - zi;
+		}
+		else
+		{
+			vN.x = x;
+			vN.y = y;
+			vN.z = zi - m_rad; //?
+		}
+		vN.Normalize();
+	}
+};
+
+//*************************************************************************
+
 class srTMirrorToroid : public srTMirror {
 	
 	double m_Rt, m_Rs;
@@ -573,9 +666,14 @@ public:
 	srTMirrorToroid(srTStringVect* pElemInfo, srTDataMD* pExtraData);
 	srTMirrorToroid(const SRWLOptMirTor& mirTor);
 
+	bool FindRayIntersectWithSurfInLocFrame(TVector3d& inP, TVector3d& inV, TVector3d& resP, TVector3d* pResN = 0) //virtual in srTMirror
+	{//To implement!
+		return true;
+	}
+
 	double SurfHeightInLocFrame(double x, double y) //virtual in srTMirror
 	{
-		const double badRes = -1.E+23; //to return in case inanything goes wrong
+		const double badRes = -1.E+23; //to return in case if anything goes wrong
 		double ry = y/m_Rs;
 		double rye2 = ry*ry;
 		if(rye2 > 1.) return badRes;
@@ -598,9 +696,7 @@ public:
 		vN.y = ny*inv_norm;
 		vN.z = inv_norm;
 	}
-
 };
-
 
 //*************************************************************************
 //OBSOLETE?

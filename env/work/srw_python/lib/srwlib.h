@@ -434,6 +434,16 @@ struct SRWLStructOpticsMirrorToroid {
 typedef struct SRWLStructOpticsMirrorToroid SRWLOptMirTor;
 
 /**
+* Optical Element:
+* Spherical Mirror ("mirror: sphere" type)
+*/
+struct SRWLStructOpticsMirrorSphere {
+	double rad; /* radius of the sphere [m] */
+	SRWLOptMir baseMir; /* general information about the mirror */
+};
+typedef struct SRWLStructOpticsMirrorSphere SRWLOptMirSph;
+
+/**
  * Optical Element:
  * Grating ("grating" type)
  */
@@ -591,8 +601,8 @@ EXP int CALL srwlCalcElecFieldGaussian(SRWLWfr* pWfr, SRWLGsnBm* pGsnBm, double*
 /** 
  * Calculates Spectral Flux (Stokes components) of Synchrotron Radiation by a relativistic finite-emittance electron beam traveling in periodic magnetic field of an Undulator
  * @param [in, out] pStokes pointer to the resulting Stokes structure; all data arrays should be allocated in a calling function/application; the mesh, presentation, etc., should be specified in this structure at input
- * @param [in] pElBeam  pointer to input electron beam structure
- * @param [in] pUnd  pointer to input undulator (periodic magnetic field) structure
+ * @param [in] pElBeam pointer to input electron beam structure
+ * @param [in] pUnd pointer to input undulator (periodic magnetic field) structure
  * @param [in] precPar precision parameters: 
  *             precPar[0]: initial harmonic
  *             [1]: final harmonic
@@ -629,7 +639,7 @@ EXP int CALL srwlCalcPowDenSR(SRWLStokes* pStokes, SRWLPartBeam* pElBeam, SRWLPr
  *             0- Linear Horizontal; 
  *             1- Linear Vertical; 
  *             2- Linear 45 degrees; 
- *             3- Linear 135 degrees; 44
+ *             3- Linear 135 degrees;
  *             4- Circular Right; 
  *             5- Circular Left; 
  *             6- Total
@@ -725,7 +735,7 @@ EXP int CALL srwlPropagRadMultiE(SRWLStokes* pStokes, SRWLWfr* pWfr0, SRWLOptC* 
  *             arMesh[4]: (optional) step value of the second argument
  *             arMesh[5]: (optional) number of points of the second argument
  * @param [in] nMesh length of arMesh array (3 or 6 elements)
- * @param [in] dir direction for teh FFT (>0 means forward, <0 means backward)
+ * @param [in] dir direction for the FFT (>0 means forward, <0 means backward)
  * @return	integer error (>0) or warnig (<0) code
  * @see ...
  */

@@ -33,6 +33,7 @@ _ElMass_kg = 9.1093818872E-31 #9.10953447E-31 #Electron Mass in [kg]
 _ElMass_MeV = 0.51099890221 #Electron Mass in [MeV]
 _LightSp = 2.9979245812E+08 #Speed of Light [m/c]
 _Light_eV_mu = 1.23984186 #Wavelength <-> Photon Energy conversion constant ([um] <-> [eV])
+_PlanckConst_eVs = 4.13566766225E-15 #Planck constant in [eV*s]
 
 #****************************************************************************
 #****************************************************************************
@@ -392,10 +393,11 @@ class SRWLMagFldC(SRWLMagFld):
             self.arXc = array('d') if _arXc is None else _arXc
             self.arYc = array('d') if _arYc is None else _arYc
             self.arZc = array('d') if _arZc is None else _arZc
-            self.arVx = array('d') if _arVx is None else _arVx
-            self.arVy = array('d') if _arVy is None else _arVy
-            self.arVz = array('d') if _arVz is None else _arVz
-            self.arAng = array('d') if _arAng is None else _arAng
+            #The following arrays are optional
+            #self.arVx = array('d') if _arVx is None else _arVx
+            #self.arVy = array('d') if _arVy is None else _arVy
+            #self.arVz = array('d') if _arVz is None else _arVz
+            #self.arAng = array('d') if _arAng is None else _arAng
         else:
             if(not(isinstance(_arMagFld, list) or isinstance(_arMagFld, array) or isinstance(_arMagFld, tuple))):
                 self.arMagFld = [_arMagFld] #to allow for simple initialization by one element
@@ -1388,7 +1390,7 @@ class SRWLWfr(object):
     #presCA = 0 #presentation/domain: 0- coordinates, 1- angles
     #presFT = 0 #presentation/domain: 0- frequency (photon energy), 1- time
     #numTypeElFld = 'f' #electric field numerical type: 'f' (float) or 'd' (double)
-    #unitElFld = 1 #electric field units: 0- arbitrary, 1- sqrt(Phot/s/0.1%bw/mm^2) ?
+    #unitElFld = 1 #electric field units: 0- arbitrary, 1- sqrt(Phot/s/0.1%bw/mm^2), 2- sqrt(J/eV/mm^2) or sqrt(W/mm^2), depending on representation (freq. or time)
     #partBeam = SRWLPartBeam() #particle beam source; strictly speaking, it should be just SRWLParticle; however, "multi-electron" information can appear useful for those cases when "multi-electron intensity" can be deduced from the "single-electron" one by convolution
     #arElecPropMatr = array('d', [0]*20) #effective 1st order "propagation matrix" for electron beam parameters
     #arMomX = array('d', [0]*11) #statistical moments (of Wigner distribution); to check the exact number of moments required
@@ -2164,6 +2166,44 @@ class SRWLOptMir(SRWLOpt):
         self.Fx = 0 #i.e. focal lengths are not set
         self.Fy = 0
 
+    def set_all(self,
+                _size_tang=1, _size_sag=1, _ap_shape='r', _sim_meth=2, _npt=100, _nps=100, _treat_in_out=1, _ext_in=0, _ext_out=0,
+                _nvx=0, _nvy=0, _nvz=-1, _tvx=1, _tvy=0, _x=0, _y=0,
+                _refl=1, _n_ph_en=1, _n_ang=1, _n_comp=1, _ph_en_start=1000., _ph_en_fin=1000., _ph_en_scale_type='lin', _ang_start=0, _ang_fin=0, _ang_scale_type='lin'):
+        """
+        :param _size_tang: size in tangential direction [m]
+        :param _size_sag: size in sagital direction [m]
+        :param _ap_shape: shape of aperture in local frame ('r' for rectangular, 'e' for elliptical)
+        :param _sim_meth: simulation method (1 for "thin" approximation, 2 for "thick" approximation)
+        :param _treat_in_out: switch specifying how to treat input and output wavefront before and after the main propagation through the optical element:
+                0- assume that the input wavefront is defined in the plane before the optical element, and the output wavefront is required in a plane just after the element;
+                1- assume that the input wavefront is defined in the plane at the optical element center and the output wavefront is also required at the element center;
+                2- assume that the input wavefront is defined in the plane at the optical element center and the output wavefront is also required at the element center; however, before the propagation though the optical element, the wavefront should be propagated through a drift back to a plane just before the optical element, then a special propagator will bring the wavefront to a plane at the optical element exit, and after that the wavefront will be propagated through a drift back to the element center;
+        :param _ext_in: optical element extent on the input side, i.e. distance between the input plane and the optical center (positive, in [m]) to be used at wavefront propagation manipulations; if 0, this extent will be calculated internally from optical element parameters
+        :param _ext_out: optical element extent on the output side, i.e. distance between the optical center and the output plane (positive, in [m]) to be used at wavefront propagation manipulations; if 0, this extent will be calculated internally from optical element parameters        
+        :param _nvx: horizontal coordinate of central normal vector
+        :param _nvy: vertical coordinate of central normal vector
+        :param _nvz: longitudinal coordinate of central normal vector
+        :param _tvx: horizontal coordinate of central tangential vector
+        :param _tvy: vertical coordinate of central tangential vector
+        :param _x: horizontal position of mirror center [m]
+        :param _y: vertical position of mirror center [m]
+        :param _refl: reflectivity coefficient to set (can be one number or C-aligned flat complex array vs photon energy vs grazing angle vs component (sigma, pi))
+        :param _n_ph_en: number of photon energy values for which the reflectivity coefficient is specified
+        :param _n_ang: number of grazing angle values for which the reflectivity coefficient is specified
+        :param _n_comp: number of electric field components for which the reflectivity coefficient is specified (can be 1 or 2)
+        :param _ph_en_start: initial photon energy value for which the reflectivity coefficient is specified
+        :param _ph_en_fin: final photon energy value for which the reflectivity coefficient is specified
+        :param _ph_en_scale_type: photon energy sampling type ('lin' for linear, 'log' for logarithmic)
+        :param _ang_start: initial grazing angle value for which the reflectivity coefficient is specified
+        :param _ang_fin: final grazing angle value for which the reflectivity coefficient is specified
+        :param _ang_scale_type: angle sampling type ('lin' for linear, 'log' for logarithmic)      
+        """
+
+        self.set_dim_sim_meth(_size_tang, _size_sag, _ap_shape, _sim_meth, _npt, _nps, _treat_in_out, _ext_in, _ext_out)
+        self.set_orient(_nvx, _nvy, _nvz, _tvx, _tvy, _x, _y)
+        self.set_reflect(_refl, _n_ph_en, _n_ang, _n_comp, _ph_en_start, _ph_en_fin, _ph_en_scale_type, _ang_start, _ang_fin, _ang_scale_type)
+
 class SRWLOptMirPl(SRWLOptMir):
     """Optical Element: Mirror: Plane"""
     
@@ -2172,7 +2212,6 @@ class SRWLOptMirPl(SRWLOptMir):
                  _nvx=0, _nvy=0, _nvz=-1, _tvx=1, _tvy=0, _x=0, _y=0,
                  _refl=1, _n_ph_en=1, _n_ang=1, _n_comp=1, _ph_en_start=1000., _ph_en_fin=1000., _ph_en_scale_type='lin', _ang_start=0, _ang_fin=0, _ang_scale_type='lin'):
         """
-        :param _r_sag: sagital radius of curvature at mirror center [m]
         :param _size_tang: size in tangential direction [m]
         :param _size_sag: size in sagital direction [m]
         :param _ap_shape: shape of aperture in local frame ('r' for rectangular, 'e' for elliptical)
@@ -2203,9 +2242,12 @@ class SRWLOptMirPl(SRWLOptMir):
         """
         #There are no other members, except for those of the base class.
         #Finishing of the mirror setup requires calling these 3 functions (with their required arguments):
-        self.set_dim_sim_meth(_size_tang, _size_sag, _ap_shape, _sim_meth, _npt, _nps, _treat_in_out, _ext_in, _ext_out)
-        self.set_orient(_nvx, _nvy, _nvz, _tvx, _tvy, _x, _y)
-        self.set_reflect(_refl, _n_ph_en, _n_ang, _n_comp, _ph_en_start, _ph_en_fin, _ph_en_scale_type, _ang_start, _ang_fin, _ang_scale_type)
+        #self.set_dim_sim_meth(_size_tang, _size_sag, _ap_shape, _sim_meth, _npt, _nps, _treat_in_out, _ext_in, _ext_out)
+        #self.set_orient(_nvx, _nvy, _nvz, _tvx, _tvy, _x, _y)
+        #self.set_reflect(_refl, _n_ph_en, _n_ang, _n_comp, _ph_en_start, _ph_en_fin, _ph_en_scale_type, _ang_start, _ang_fin, _ang_scale_type)
+        self.set_all(_size_tang, _size_sag, _ap_shape, _sim_meth, _npt, _nps, _treat_in_out, _ext_in, _ext_out,
+                     _nvx, _nvy, _nvz, _tvx, _tvy, _x, _y,
+                     _refl, _n_ph_en, _n_ang, _n_comp, _ph_en_start, _ph_en_fin, _ph_en_scale_type, _ang_start, _ang_fin, _ang_scale_type)
 
 class SRWLOptMirEl(SRWLOptMir):
     """Optical Element: Mirror: Ellipsoid"""
@@ -2249,31 +2291,116 @@ class SRWLOptMirEl(SRWLOptMir):
         :param _ang_fin: final grazing angle value for which the reflectivity coefficient is specified
         :param _ang_scale_type: angle sampling type ('lin' for linear, 'log' for logarithmic)      
         """
+
         self.p = _p
         self.q = _q
         self.angGraz = _ang_graz
         self.radSag = _r_sag
         
         #finishing of the mirror setup requires calling these 3 functions (with their required arguments):
-        self.set_dim_sim_meth(_size_tang, _size_sag, _ap_shape, _sim_meth, _npt, _nps, _treat_in_out, _ext_in, _ext_out)
-        self.set_orient(_nvx, _nvy, _nvz, _tvx, _tvy, _x, _y)
-        self.set_reflect(_refl, _n_ph_en, _n_ang, _n_comp, _ph_en_start, _ph_en_fin, _ph_en_scale_type, _ang_start, _ang_fin, _ang_scale_type)
+        #self.set_dim_sim_meth(_size_tang, _size_sag, _ap_shape, _sim_meth, _npt, _nps, _treat_in_out, _ext_in, _ext_out)
+        #self.set_orient(_nvx, _nvy, _nvz, _tvx, _tvy, _x, _y)
+        #self.set_reflect(_refl, _n_ph_en, _n_ang, _n_comp, _ph_en_start, _ph_en_fin, _ph_en_scale_type, _ang_start, _ang_fin, _ang_scale_type)
+        self.set_all(_size_tang, _size_sag, _ap_shape, _sim_meth, _npt, _nps, _treat_in_out, _ext_in, _ext_out,
+                     _nvx, _nvy, _nvz, _tvx, _tvy, _x, _y,
+                     _refl, _n_ph_en, _n_ang, _n_comp, _ph_en_start, _ph_en_fin, _ph_en_scale_type, _ang_start, _ang_fin, _ang_scale_type)
 
-#class SRWLOptMirTor(SRWLOptMir):
-#    """Optical Element: Mirror: Toroid (to be developed)"""
-#    
-#    def __init__(self, _rt=1, _rs=1):
-#        """
-#        :param _rt: tangential (major) radius [m]
-#        :param _rs: sagittal (minor) radius [m]
-#        """
-#        self.radTan = _rt
-#        self.radSag = _rs
-#        
-#        #finishing of the mirror setup requires calling these 3 functions (with their required arguments):
-#        self.set_reflect()
-#        self.set_dim_sim_meth()
-#        self.set_orient()
+class SRWLOptMirSph(SRWLOptMir):
+    """Optical Element: Mirror: Spherical"""
+
+    def __init__(self, _r=1.,
+                 _size_tang=1, _size_sag=1, _ap_shape='r', _sim_meth=2, _npt=500, _nps=500, _treat_in_out=1, _ext_in=0, _ext_out=0,
+                 _nvx=0, _nvy=0, _nvz=-1, _tvx=1, _tvy=0, _x=0, _y=0,
+                 _refl=1, _n_ph_en=1, _n_ang=1, _n_comp=1, _ph_en_start=1000., _ph_en_fin=1000., _ph_en_scale_type='lin', _ang_start=0, _ang_fin=0, _ang_scale_type='lin'):
+        """
+        :param _r: radius of surface curvature [m]
+        :param _size_tang: size in tangential direction [m]
+        :param _size_sag: size in sagital direction [m]
+        :param _ap_shape: shape of aperture in local frame ('r' for rectangular, 'e' for elliptical)
+        :param _sim_meth: simulation method (1 for "thin" approximation, 2 for "thick" approximation)
+        :param _npt: number of mesh points to represent mirror in tangential direction (used for "thin" approximation)
+        :param _nps: number of mesh points to represent mirror in sagital direction (used for "thin" approximation)
+        :param _treat_in_out: switch specifying how to treat input and output wavefront before and after the main propagation through the optical element:
+                0- assume that the input wavefront is defined in the plane before the optical element, and the output wavefront is required in a plane just after the element;
+                1- assume that the input wavefront is defined in the plane at the optical element center and the output wavefront is also required at the element center;
+                2- assume that the input wavefront is defined in the plane at the optical element center and the output wavefront is also required at the element center; however, before the propagation though the optical element, the wavefront should be propagated through a drift back to a plane just before the optical element, then a special propagator will bring the wavefront to a plane at the optical element exit, and after this the wavefront will be propagated through a drift back to the element center;
+        :param _ext_in: optical element extent on the input side, i.e. distance between the input plane and the optical center (positive, in [m]) to be used at wavefront propagation manipulations; if 0, this extent will be calculated internally from optical element parameters
+        :param _ext_out: optical element extent on the output side, i.e. distance between the optical center and the output plane (positive, in [m]) to be used at wavefront propagation manipulations; if 0, this extent will be calculated internally from optical element parameters        
+        :param _nvx: horizontal coordinate of central normal vector
+        :param _nvy: vertical coordinate of central normal vector
+        :param _nvz: longitudinal coordinate of central normal vector
+        :param _tvx: horizontal coordinate of central tangential vector
+        :param _tvy: vertical coordinate of central tangential vector
+        :param _x: horizontal position of mirror center [m]
+        :param _y: vertical position of mirror center [m]
+        :param _refl: reflectivity coefficient to set (can be one number or C-aligned flat complex array vs photon energy vs grazing angle vs component (sigma, pi))
+        :param _n_ph_en: number of photon energy values for which the reflectivity coefficient is specified
+        :param _n_ang: number of grazing angle values for which the reflectivity coefficient is specified
+        :param _n_comp: number of electric field components for which the reflectivity coefficient is specified (can be 1 or 2)
+        :param _ph_en_start: initial photon energy value for which the reflectivity coefficient is specified
+        :param _ph_en_fin: final photon energy value for which the reflectivity coefficient is specified
+        :param _ph_en_scale_type: photon energy sampling type ('lin' for linear, 'log' for logarithmic)
+        :param _ang_start: initial grazing angle value for which the reflectivity coefficient is specified
+        :param _ang_fin: final grazing angle value for which the reflectivity coefficient is specified
+        :param _ang_scale_type: angle sampling type ('lin' for linear, 'log' for logarithmic)              
+        """
+        
+        self.rad = _r
+        
+        #finishing of the mirror setup requires calling these 3 functions (with their required arguments):
+        self.set_all(_size_tang, _size_sag, _ap_shape, _sim_meth, _npt, _nps, _treat_in_out, _ext_in, _ext_out,
+                     _nvx, _nvy, _nvz, _tvx, _tvy, _x, _y,
+                     _refl, _n_ph_en, _n_ang, _n_comp, _ph_en_start, _ph_en_fin, _ph_en_scale_type, _ang_start, _ang_fin, _ang_scale_type)
+
+class SRWLOptMirTor(SRWLOptMir):
+    """Optical Element: Mirror: Toroid (to be developed)"""
+    
+    def __init__(self, _rt=1, _rs=1,
+                 _size_tang=1, _size_sag=1, _ap_shape='r', _sim_meth=2, _npt=500, _nps=500, _treat_in_out=1, _ext_in=0, _ext_out=0,
+                 _nvx=0, _nvy=0, _nvz=-1, _tvx=1, _tvy=0, _x=0, _y=0,
+                 _refl=1, _n_ph_en=1, _n_ang=1, _n_comp=1, _ph_en_start=1000., _ph_en_fin=1000., _ph_en_scale_type='lin', _ang_start=0, _ang_fin=0, _ang_scale_type='lin'):
+        
+        """
+        :param _rt: tangential (major) radius [m]
+        :param _rs: sagittal (minor) radius [m]
+        :param _size_tang: size in tangential direction [m]
+        :param _size_sag: size in sagital direction [m]
+        :param _ap_shape: shape of aperture in local frame ('r' for rectangular, 'e' for elliptical)
+        :param _sim_meth: simulation method (1 for "thin" approximation, 2 for "thick" approximation)
+        :param _npt: number of mesh points to represent mirror in tangential direction (used for "thin" approximation)
+        :param _nps: number of mesh points to represent mirror in sagital direction (used for "thin" approximation)
+        :param _treat_in_out: switch specifying how to treat input and output wavefront before and after the main propagation through the optical element:
+                0- assume that the input wavefront is defined in the plane before the optical element, and the output wavefront is required in a plane just after the element;
+                1- assume that the input wavefront is defined in the plane at the optical element center and the output wavefront is also required at the element center;
+                2- assume that the input wavefront is defined in the plane at the optical element center and the output wavefront is also required at the element center; however, before the propagation though the optical element, the wavefront should be propagated through a drift back to a plane just before the optical element, then a special propagator will bring the wavefront to a plane at the optical element exit, and after this the wavefront will be propagated through a drift back to the element center;
+        :param _ext_in: optical element extent on the input side, i.e. distance between the input plane and the optical center (positive, in [m]) to be used at wavefront propagation manipulations; if 0, this extent will be calculated internally from optical element parameters
+        :param _ext_out: optical element extent on the output side, i.e. distance between the optical center and the output plane (positive, in [m]) to be used at wavefront propagation manipulations; if 0, this extent will be calculated internally from optical element parameters        
+        :param _nvx: horizontal coordinate of central normal vector
+        :param _nvy: vertical coordinate of central normal vector
+        :param _nvz: longitudinal coordinate of central normal vector
+        :param _tvx: horizontal coordinate of central tangential vector
+        :param _tvy: vertical coordinate of central tangential vector
+        :param _x: horizontal position of mirror center [m]
+        :param _y: vertical position of mirror center [m]
+        :param _refl: reflectivity coefficient to set (can be one number or C-aligned flat complex array vs photon energy vs grazing angle vs component (sigma, pi))
+        :param _n_ph_en: number of photon energy values for which the reflectivity coefficient is specified
+        :param _n_ang: number of grazing angle values for which the reflectivity coefficient is specified
+        :param _n_comp: number of electric field components for which the reflectivity coefficient is specified (can be 1 or 2)
+        :param _ph_en_start: initial photon energy value for which the reflectivity coefficient is specified
+        :param _ph_en_fin: final photon energy value for which the reflectivity coefficient is specified
+        :param _ph_en_scale_type: photon energy sampling type ('lin' for linear, 'log' for logarithmic)
+        :param _ang_start: initial grazing angle value for which the reflectivity coefficient is specified
+        :param _ang_fin: final grazing angle value for which the reflectivity coefficient is specified
+        :param _ang_scale_type: angle sampling type ('lin' for linear, 'log' for logarithmic)                      
+        """
+        
+        self.radTan = _rt
+        self.radSag = _rs
+        
+        #finishing of the mirror setup requires calling these 3 functions (with their required arguments):
+        self.set_all(_size_tang, _size_sag, _ap_shape, _sim_meth, _npt, _nps, _treat_in_out, _ext_in, _ext_out,
+                     _nvx, _nvy, _nvz, _tvx, _tvy, _x, _y,
+                     _refl, _n_ph_en, _n_ang, _n_comp, _ph_en_start, _ph_en_fin, _ph_en_scale_type, _ang_start, _ang_fin, _ang_scale_type)
 
 class SRWLOptG(SRWLOpt):
     """Optical Element: Grating"""
@@ -3575,21 +3702,30 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
     SigPY = 1/sqrt(2*GY)
     SigQY = sqrt(GY/(2*(BY*GY - AY*AY)))
 
-    _sr_rel_prec = int(_sr_rel_prec)
+    #_sr_rel_prec = int(_sr_rel_prec)
+    
     _n_part_tot = int(_n_part_tot)
     _n_part_avg_proc = int(_n_part_avg_proc)
     if(_n_part_avg_proc <= 0): _n_part_avg_proc = 1
     _n_save_per = int(_n_save_per)
-    
+
     nPartPerProc = _n_part_tot
     nSentPerProc = 0
     
     if(nProc <= 1):
         _n_part_avg_proc = _n_part_tot
     else: #OC050214: adjustment of all numbers of points, to make sure that sending and receiving are consistent
+ 
         nPartPerProc = int(round(_n_part_tot/(nProc - 1)))
         nSentPerProc = int(round(nPartPerProc/_n_part_avg_proc)) #Number of sending acts made by each worker process
+
+        if(nSentPerProc <= 0): #OC160116
+            nSentPerProc = 1
+            _n_part_avg_proc = nPartPerProc
+        
         nPartPerProc = _n_part_avg_proc*nSentPerProc #Number of electrons treated by each worker process
+
+    #print('DEBUG MESSAGE: rank:', rank,': nPartPerProc=', nPartPerProc, 'nSentPerProc=', nSentPerProc, '_n_part_avg_proc=', _n_part_avg_proc)
 
     useGsnBmSrc = False
     if(isinstance(_mag, SRWLGsnBm)):
@@ -3618,7 +3754,7 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
             #print('DEBUG: Commented-out: CalcElecFieldGaussian')
         else:
             srwl.CalcElecFieldSR(wfr, 0, _mag, arPrecParSR)
-            #print('DEBUG: Commented-out: CalcElecFieldSR')
+            #print('DEBUG MESSAGE: CalcElecFieldSR called (rank:', rank,')')
             
         #print('DEBUG MESSAGE: Central Wavefront calculated')
         srwl.PropagElecField(wfr, _opt_bl)
@@ -3794,6 +3930,7 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
                 else:
                     srwl.CalcElecFieldSR(wfr, 0, _mag, arPrecParSR) #calculate Electric Field emitted by current electron
                     #print('DEBUG: Commented-out: CalcElecFieldSR')
+                    #print('DEBUG MESSAGE: CalcElecFieldSR called (rank:', rank,')')
 
                 if(_opt_bl != None):
                     srwl.PropagElecField(wfr, _opt_bl) #propagate Electric Field emitted by the electron
@@ -3906,6 +4043,8 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
 
         #nRecv = int(nPartPerProc*nProc/_n_part_avg_proc + 1e-09)
         nRecv = nSentPerProc*(nProc - 1) #Total number of sending acts to be made by all worker processes, and to be received by master
+
+        print('DEBUG MESSAGE: Actual number of macro-electrons:', nRecv*_n_part_avg_proc)
         
         #DEBUG
         #srwl_uti_save_text("nRecv: " + str(nRecv) + " nPartPerProc: " + str(nPartPerProc) + " nProc: " + str(nProc) + " _n_part_avg_proc: " + str(_n_part_avg_proc), _file_path + ".00.dbg")

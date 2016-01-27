@@ -210,6 +210,11 @@ srTSRWRadStructAccessData::srTSRWRadStructAccessData(SRWLWfr* pWfr, srTGsnBeam* 
 		double xElAtYsrc = (pGsnBm->EbmDat).x0, zElAtYsrc = (pGsnBm->EbmDat).z0;
 		double NxNzOversamplingFactor = precPar[0];
 		AuxSetupActionsArbSrc(*pWfr, Robs, RobsAbsErr, xElAtYsrc, zElAtYsrc, NxNzOversamplingFactor);
+
+		if(pWfr->presFT == 1) //OC171215
+		{
+			avgPhotEn = pGsnBm->m_AvgPhotEn;
+		}
 	}
 }
 
@@ -1908,7 +1913,8 @@ void srTSRWRadStructAccessData::SetObsParamFromWfr(srTWfrSmp& smp)
 		smp.LambEnd = eStart + (ne - 1)*eStep;
 		smp.nLamb = ne;
 		smp.tStart = smp.tEnd = 0;
-		smp.nt = 0;
+		//smp.nt = 0;
+		smp.nt = 1; //OC191215
 	}
 	else
 	{
@@ -1916,7 +1922,8 @@ void srTSRWRadStructAccessData::SetObsParamFromWfr(srTWfrSmp& smp)
 		smp.tEnd = eStart + (ne - 1)*eStep;
 		smp.nt = ne;
 		smp.LambStart = smp.LambEnd = avgPhotEn;
-		smp.nLamb = 0;
+		//smp.nLamb = 0;
+		smp.nLamb = 1; //OC191215
 	}
 
 	smp.nx = nx;
@@ -1988,15 +1995,19 @@ void srTSRWRadStructAccessData::SetRadSamplingFromObs(srTWfrSmp& DistrInfoDat)
 	zStep = (DistrInfoDat.nz > 1)? (DistrInfoDat.zEnd - DistrInfoDat.zStart)/(DistrInfoDat.nz - 1) : 0.;
 	nz = DistrInfoDat.nz;
 
-	if(DistrInfoDat.nt > 1)
+	PresT = DistrInfoDat.PresT; //OC191215
+
+	//if(DistrInfoDat.nt > 1)
+	if(DistrInfoDat.PresT == 1) //OC191215
 	{
 		eStart = DistrInfoDat.tStart;
 		eStep = (DistrInfoDat.tEnd - DistrInfoDat.tStart)/(DistrInfoDat.nt - 1);
 		ne = DistrInfoDat.nt;
-		PresT = 1;
+		//PresT = 1; //OC191215
 	}
-	else PresT = 0;
+	//else PresT = 0;
 	
+
 	// To walk around a bug in Igor
 	if(eStep == 0.) { eStep = (eStart != 0.)? (1.e-08)*(::fabs(eStart)) : 1.e-10;}
 	if(xStep == 0.) { xStep = (xStart != 0.)? (1.e-08)*(::fabs(xStart)) : 1.e-10;}

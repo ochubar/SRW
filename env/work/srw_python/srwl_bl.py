@@ -4,7 +4,7 @@
 # Contains a set of member objects and functions for simulating basic operation and characteristics
 # of a complete user beamline in a synchrotron radiation source.
 # Under development!!!
-# v 0.02
+# v 0.03
 #############################################################################
 
 from __future__ import print_function #Python 2.7 compatibility
@@ -132,6 +132,9 @@ class SRWLBeamline(object):
         self.mag_approx.arXc.append(0)
         self.mag_approx.arYc.append(0)
         self.mag_approx.arZc.append(_zc)
+
+        #print(self.mag_approx.arVx)
+        
         return self.mag_approx
 
     #------------------------------------------------------------------------
@@ -231,7 +234,43 @@ class SRWLBeamline(object):
         return self.mag_approx
 
     #------------------------------------------------------------------------
-    #def set_gsn_beam(self):
+    def set_gsn_beam(self, _x=0, _y=0, _z=0, _xp=0, _yp=0, _avgPhotEn=1, _pulseEn=1, _repRate=1, _polar=1,
+                     _sigX=10e-06, _sigY=10e-06, _sigT=1e-15, _mx=0, _my=0, _presCA='c', _presFT='t'):
+        """Setup Gaussian beam source
+        :param _x: average horizontal coordinates of waist [m]
+        :param _y: average vertical coordinates of waist [m]
+        :param _z: average longitudinal coordinate of waist [m]
+        :param _xp: average horizontal angle at waist [rad]
+        :param _yp: average verical angle at waist [rad]
+        :param _avgPhotEn: average photon energy [eV]
+        :param _pulseEn: energy per pulse [J]
+        :param _repRate: rep. rate [Hz]
+        :param _polar: polarization 1- lin. hor., 2- lin. vert., 3- lin. 45 deg., 4- lin.135 deg., 5- circ. right, 6- circ. left
+        :param _sigX: RMS beam size vs horizontal position [m] at waist (for intensity)
+        :param _sigY: RMS beam size vs vertical position [m] at waist (for intensity)
+        :param _sigT: RMS pulse duration [s] (for intensity)
+        :param _mx: transverse Gauss-Hermite mode order in horizontal direction
+        :param _my: transverse Gauss-Hermite mode order in vertical direction
+        :param _presCA: treat _sigX, _sigY as sizes in [m] in coordinate representation (_presCA="c") or as angular divergences in [rad] in angular representation (_presCA="a")
+        :param _presFT: treat _sigT as pulse duration in [s] in time domain/representation (_presFT="t") or as bandwidth in [eV] in frequency domain/representation (_presFT="f")
+        """
+
+        if(self.gsnBeam != None): del self.gsnBeam
+
+        sigX = _sigX
+        sigY = _sigY
+        if(_presCA == 'a'):
+            convConstCA = _LightSp*_PlanckConst_eVs/(4*_Pi*_avgPhotEn)
+            sigX = convConstCA/sigX
+            sigY = convConstCA/sigY
+
+        sigT = _sigT
+        if(_presFT == 'f'):
+            convConstFT = _PlanckConst_eVs/(4*_Pi)
+            sigT = convConstFT/sigT
+        
+        self.gsnBeam = SRWLGsnBm(_x, _y, _z, _xp, _yp, _avgPhotEn, _pulseEn, _repRate, _polar, sigX, sigY, sigT, _mx, _my)
+        return self.gsnBeam
 
     #------------------------------------------------------------------------
     def set_optics(self, _op):
@@ -364,6 +403,8 @@ class SRWLBeamline(object):
         useTermin = 1 #Use "terminating terms" (i.e. asymptotic expansions at zStartInteg and zEndInteg) or not (1 or 0 respectively)
         arPrecPar = [_meth, _rel_prec, zStartInteg, zEndInteg, npTraj, useTermin, _samp_fact]
 
+        #print('magToUse=', magToUse.arMagFld[0])
+
         print('Single-electron SR calculatiton ... ', end='')
         t0 = time.time();
         srwl.CalcElecFieldSR(wfr, 0, magToUse, arPrecPar) #calculate SR
@@ -375,6 +416,83 @@ class SRWLBeamline(object):
             t0 = time.time();
             sNumTypeInt = 'f'
             if(_int_type == 4): sNumTypeInt = 'd'
+
+            arI = array(sNumTypeInt, [0]*wfr.mesh.ne*wfr.mesh.nx*wfr.mesh.ny)
+            srwl.CalcIntFromElecField(arI, wfr, _pol, _int_type, depType, wfr.mesh.eStart, wfr.mesh.xStart, wfr.mesh.yStart)
+            if(len(_fname) > 0): srwl_uti_save_intens_ascii(arI, wfr.mesh, _fname, 0, ['Photon Energy', 'Horizontal Position', 'Vertical Position', ''], _arUnits=['eV', 'm', 'm', 'ph/s/.1%bw/mm^2'])
+            print('completed (lasted', round(time.time() - t0, 6), 's)')
+        return wfr, arI
+
+    #------------------------------------------------------------------------
+    def calc_rad_gsn(self, _mesh, _samp_fact=-1, _pol=6, _int_type=0, _presFT='f', _unitE=2, _fname=''):
+        """Calculates Gaussian beam wavefront (electric field) and intensity
+        :param _mesh: mesh on which the intensity has to be calculated (SRWLRadMesh instance)
+        :param _samp_fact: sampling factor for adjusting nx, ny (effective if > 0)
+        :param _pol: polarization component to extract: 
+            0- Linear Horizontal; 
+            1- Linear Vertical; 
+            2- Linear 45 degrees; 
+            3- Linear 135 degrees; 
+            4- Circular Right; 
+            5- Circular Left; 
+            6- Total
+        :param _int_type: "type" of a characteristic to be extracted:
+           -1- No Intensity / Electric Field components extraction is necessary (only Wavefront will be calculated)
+            0- "Single-Electron" / Coherent Beam Intensity; 
+            1- "Multi-Electron" / Partially-Coherent Beam Intensity; 
+            2- "Single-Electron" / Coherent Beam Flux; 
+            3- "Multi-Electron" / Partially-Coherent Beam Flux; 
+            4- "Single-Electron" / Coherent Beam Radiation Phase; 
+            5- Re(E): Real part of Single-Electron / Coherent Beam Electric Field;
+            6- Im(E): Imaginary part of Single-Electron / Coherent Beam Electric Field;
+            7- "Single-Electron" / Coherent Beam Intensity, integrated over Time or Photon Energy (i.e. Fluence);
+        :param _presFT: calculate electric field (and intensity) in time domain/representation (="t") or in frequency domain/representation (="f")
+        :param _unitE: #electric field units: 0- arbitrary, 1- sqrt(Phot/s/0.1%bw/mm^2), 2- sqrt(J/eV/mm^2) or sqrt(W/mm^2), depending on representation (freq. or time)
+        :param _fname: name of file to save the resulting data to (for the moment, in ASCII format)
+        :return: 1D array with (C-aligned) resulting intensity data
+        """
+
+        if((_mesh == None) or (isinstance(_mesh, SRWLRadMesh) == False)):
+            raise Exception('Incorrect SRWLRadMesh structure')
+
+        depType = -1
+        if((_mesh.ne >= 1) and (_mesh.nx == 1) and (_mesh.ny == 1)): depType = 0
+        elif((_mesh.ne == 1) and (_mesh.nx > 1) and (_mesh.ny == 1)): depType = 1
+        elif((_mesh.ne == 1) and (_mesh.nx == 1) and (_mesh.ny > 1)): depType = 2
+        elif((_mesh.ne == 1) and (_mesh.nx > 1) and (_mesh.ny > 1)): depType = 3
+        elif((_mesh.ne > 1) and (_mesh.nx > 1) and (_mesh.ny == 1)): depType = 4
+        elif((_mesh.ne > 1) and (_mesh.nx == 1) and (_mesh.ny > 1)): depType = 5
+        elif((_mesh.ne > 1) and (_mesh.nx > 1) and (_mesh.ny > 1)): depType = 6
+        if(depType < 0): Exception('Incorrect numbers of points in the mesh structure')
+
+        wfr = SRWLWfr()
+        wfr.allocate(_mesh.ne, _mesh.nx, _mesh.ny) #Numbers of points vs Photon Energy, Horizontal and Vertical Positions
+        wfr.mesh = deepcopy(_mesh)
+
+        wfr.presFT = 0 #presentation/domain: 0- frequency (photon energy), 1- time
+        if(_presFT == "t"): wfr.presFT = 1
+
+        wfr.unitElFld = _unitE;
+
+        wfr.partBeam.partStatMom1.x = self.gsnBeam.x #Some information about the source in the Wavefront structure
+        wfr.partBeam.partStatMom1.y = self.gsnBeam.y
+        wfr.partBeam.partStatMom1.z = self.gsnBeam.z
+        wfr.partBeam.partStatMom1.xp = self.gsnBeam.xp
+        wfr.partBeam.partStatMom1.yp = self.gsnBeam.yp
+
+        print('Gaussian beam electric field calculatiton ... ', end='')
+        t0 = time.time();
+        srwl.CalcElecFieldGaussian(wfr, self.gsnBeam, [_samp_fact])
+        print('completed (lasted', round(time.time() - t0, 6), 's)')
+
+        arI = None
+        if(_int_type >= 0):
+            print('Extracting intensity and saving it to a file ... ', end='')
+            t0 = time.time();
+            sNumTypeInt = 'f'
+            if(_int_type == 4): sNumTypeInt = 'd'
+
+            #print('depType=', depType)
 
             arI = array(sNumTypeInt, [0]*wfr.mesh.ne*wfr.mesh.nx*wfr.mesh.ny)
             srwl.CalcIntFromElecField(arI, wfr, _pol, _int_type, depType, wfr.mesh.eStart, wfr.mesh.xStart, wfr.mesh.yStart)
@@ -608,10 +726,10 @@ class SRWLBeamline(object):
             if(len(_fname) > 0):
                 sValUnitName = 'ph/s/.1%bw/mm^2' #consider allowing for other units (for FEL applications)
 
-                print('Saving of Propagation Results ... ', end='')
+                print('Saving Propagation Results ... ', end='')
                 t0 = time.time();
                 srwl_uti_save_intens_ascii(arI, _wfr.mesh, _fname, 0, ['Photon Energy', 'Horizontal Position', 'Vertical Position', ''], _arUnits=['eV', 'm', 'm', sValUnitName])
-                print('(completed in', round(time.time() - t0), 's)')
+                print('completed (lasted', round(time.time() - t0), 's)')
 
         return arI
 
@@ -684,18 +802,19 @@ class SRWLBeamline(object):
         if hasattr(_v, 'fdir'): self.dir_main = _v.fdir
 
         #---setup electron beam
-        self.set_e_beam(
-            _e_beam_name = (_v.ebm_nm + _v.ebm_nms),
-            _i = _v.ebm_i,
-            _sig_e = _v.ebm_ens,
-            _emit_x = _v.ebm_emx,
-            _emit_y = _v.ebm_emy,
-            _drift = _v.ebm_dr,
-            _x = _v.ebm_x,
-            _y = _v.ebm_y,
-            _xp = _v.ebm_xp,
-            _yp = _v.ebm_yp,
-            _dE = _v.ebm_de)
+        if(hasattr(_v, 'ebm_nm')): #To improve
+            self.set_e_beam(
+                _e_beam_name = (_v.ebm_nm + _v.ebm_nms),
+                _i = _v.ebm_i,
+                _sig_e = _v.ebm_ens,
+                _emit_x = _v.ebm_emx,
+                _emit_y = _v.ebm_emy,
+                _drift = _v.ebm_dr,
+                _x = _v.ebm_x,
+                _y = _v.ebm_y,
+                _xp = _v.ebm_xp,
+                _yp = _v.ebm_yp,
+                _dE = _v.ebm_de)
 
         #print('e-beam was set up')
 
@@ -768,6 +887,26 @@ class SRWLBeamline(object):
                 #_v.w_mag = 2
                 #_v.tr_mag = 2
 
+        #---setup Gaussian beam
+        if hasattr(_v, 'gbm_pen'):
+            self.set_gsn_beam(#setup Gaussiam beam (i.e. only define parameters, without calculating wavefront)
+                _x = _v.gbm_x,
+                _y = _v.gbm_y,
+                _z = _v.gbm_z,
+                _xp = _v.gbm_xp,
+                _yp = _v.gbm_yp,
+                _avgPhotEn = _v.gbm_ave,
+                _pulseEn = _v.gbm_pen,
+                _repRate = _v.gbm_rep,
+                _polar = _v.gbm_pol,
+                _sigX = _v.gbm_sx,
+                _sigY = _v.gbm_sy,
+                _sigT = _v.gbm_st,
+                _mx = _v.gbm_mx,
+                _my = _v.gbm_my,
+                _presCA = _v.gbm_ca,
+                _presFT = _v.gbm_ft)
+
         #---calculate electron trajectory
         if(_v.tr): 
             trj = self.calc_el_trj(
@@ -776,20 +915,36 @@ class SRWLBeamline(object):
                 _fname = os.path.join(_v.fdir, _v.tr_fn) if(len(_v.tr_fn) > 0) else '')
 
         #---calculate single-e spectrum vs photon energy
-        if(_v.ss): 
+        if(_v.ss or _v.gs): 
             mesh_ss = SRWLRadMesh(
                 _v.ss_ei, _v.ss_ef, _v.ss_ne,
                 _v.ss_x, _v.ss_x, 1,
                 _v.ss_y, _v.ss_y, 1,
                 _v.op_r)
-            wfr_ss, int_ss = self.calc_sr_se(
-                _mesh = mesh_ss,
-                _meth = _v.ss_meth,
-                _rel_prec = _v.ss_prec,
-                _pol = _v.ss_pol,
-                _int_type = 0,
-                _mag_type = _v.ss_mag,
-                _fname = os.path.join(_v.fdir, _v.ss_fn) if(len(_v.ss_fn) > 0) else '')
+            
+            srCanBeCalc = (self.eBeam != None) and ((self.mag_approx != None) or (self.mag != None))
+            #print("                    _v.ss=", _v.ss)
+            #print("                    _v.gs=", _v.gs)
+            
+            if((_v.gs != True) and (srCanBeCalc == True)):
+                #print("                                  Before calc_sr_se")
+                #print("                                  self.mag=", self.mag)
+                wfr_ss, int_ss = self.calc_sr_se(
+                    _mesh = mesh_ss,
+                    _meth = _v.ss_meth,
+                    _rel_prec = _v.ss_prec,
+                    _pol = _v.ss_pol,
+                    _int_type = 0,
+                    _mag_type = _v.ss_mag,
+                    _fname = os.path.join(_v.fdir, _v.ss_fn) if(len(_v.ss_fn) > 0) else '')
+            if((_v.gs == True) or ((self.gsnBeam != None) and (srCanBeCalc == False))):
+                wfr_ss, int_ss = self.calc_rad_gsn(
+                    _mesh = mesh_ss,
+                    _pol = _v.ss_pol,
+                    _int_type = 0,
+                    _presFT = _v.ss_ft,
+                    _unitE = _v.ss_u,
+                    _fname = os.path.join(_v.fdir, _v.ss_fn) if(len(_v.ss_fn) > 0) else '')
             
         #---calculate multi-e spectrum vs photon energy
         if(_v.sm):
@@ -842,8 +997,8 @@ class SRWLBeamline(object):
                 _fname= os.path.join(_v.fdir, _v.pw_fn) if(len(_v.pw_fn) > 0) else '')
             
         #---calculate single-e and multi-e intensity distributions (before and after wavefront propagation through a beamline)
-        if(_v.si or _v.ws or _v.wm):
-            if(_v.ws or _v.wm): self.set_optics(_op)
+        if(_v.si or _v.ws or _v.gi or _v.wg or _v.wm):
+            if(_v.ws or _v.wg or _v.wm): self.set_optics(_op)
             
             ef = _v.w_e
             if(_v.w_ef > 0): ef = _v.w_ef
@@ -853,19 +1008,37 @@ class SRWLBeamline(object):
                 _v.w_y - 0.5*_v.w_ry, _v.w_y + 0.5*_v.w_ry, _v.w_ny,
                 _v.op_r)
         #---calculate single-e electric field and intensity (before wavefront propagation through a beamline)
-            if(_v.si or _v.ws):
-                wfr, int_w0 = self.calc_sr_se(
-                    _mesh = deepcopy(mesh_w),
-                    _samp_fact = _v.w_smpf,
-                    _meth = _v.w_meth,
-                    _rel_prec = _v.w_prec,
-                    _pol = _v.si_pol,
-                    _int_type = _v.si_type,
-                    _mag_type = _v.w_mag,
-                    _fname = os.path.join(_v.fdir, _v.si_fn) if(len(_v.si_fn) > 0) else '')
+            if(_v.si or _v.ws or _v.gi or _v.wg):
+
+                srCanBeCalc = (self.eBeam != None) and ((self.mag_approx != None) or (self.mag != None))
+                gsnBeamCanBeCalc = self.gsnBeam != None
+
+                #if((_v.gi == False) and (_v.wg == False) and (srCanBeCalc == True)):
+                if((_v.gi != True) and (_v.wg != True) and (srCanBeCalc == True)):
+                    wfr, int_w0 = self.calc_sr_se(
+                        _mesh = deepcopy(mesh_w),
+                        _samp_fact = _v.w_smpf,
+                        _meth = _v.w_meth,
+                        _rel_prec = _v.w_prec,
+                        _pol = _v.si_pol,
+                        _int_type = _v.si_type,
+                        _mag_type = _v.w_mag,
+                        _fname = os.path.join(_v.fdir, _v.si_fn) if(len(_v.si_fn) > 0) else '')
+
+                if((_v.gs == True) or ((gsnBeamCanBeCalc == True) and (srCanBeCalc == False))):
+                    wfr, int_w0 = self.calc_rad_gsn(
+                        _mesh = deepcopy(mesh_w),
+                        _samp_fact = _v.w_smpf,
+                        _pol = _v.si_pol,
+                        _int_type = _v.si_type,
+                        _presFT = _v.w_ft,
+                        _unitE = _v.w_u,
+                        _fname = os.path.join(_v.fdir, _v.si_fn) if(len(_v.si_fn) > 0) else '')
+                    
                 mesh_si = deepcopy(wfr.mesh)
+                
         #---calculate single-e electric field and intensity (after wavefront propagation through a beamline)
-                if(_v.ws):
+                if(_v.ws or _v.wg):
                     int_ws = self.calc_wfr_prop(
                         _wfr = wfr,
                         _pres_ang = _v.ws_ap,
@@ -906,12 +1079,33 @@ class SRWLBeamline(object):
         if (_v.tr == True) and (len(_v.tr_pl) > 0):
             #uti_plot1d(int_ss, [mesh_ss.eStart, mesh_ss.eFin, mesh_ss.ne], ['Photon Energy', 'Intensity', 'Intensity'], ['eV', 'ph/s/.1%bw/mm^2'])
 
+            #To implement!
             #ddddddddddddddddddddddddddddddddddddddddddddddddd
 
             plotOK = True
         
-        if (_v.ss == True) and (len(_v.ss_pl) > 0):
-            uti_plot1d(int_ss, [mesh_ss.eStart, mesh_ss.eFin, mesh_ss.ne], ['Photon Energy', 'Intensity', 'Intensity'], ['eV', 'ph/s/.1%bw/mm^2'])
+        if((_v.ss or _v.gs) and (len(_v.ss_pl) > 0)):
+
+            sArgLabel = 'Photon Energy'
+            sArgUnit = 'eV'
+            if(_v.ss_ft == 't'):
+                sArgLabel = 'Time'
+                sArgUnit = 's'
+            
+            sValLabel = 'Flux per Unit Surface'
+            sValUnit = 'ph/s/.1%bw/mm^2'
+            if(_v.w_u == 0):
+                sValLabel = 'Intensity'
+                sValUnit = 'a.u.'
+            elif(_v.w_u == 2):
+                if(_v.ss_ft == 't'):
+                    sValLabel = 'Power Density'
+                    sValUnit = 'W/mm^2'
+                elif(_v.ss_ft == 'f'):
+                    sValLabel = 'Spectral Fluence'
+                    sValUnit = 'J/eV/mm^2'
+            
+            uti_plot1d(int_ss, [mesh_ss.eStart, mesh_ss.eFin, mesh_ss.ne], [sArgLabel, sValLabel, sValLabel], [sArgUnit, sValUnit])
             plotOK = True
 
         if (_v.sm == True) and (len(_v.sm_pl) > 0):
@@ -941,8 +1135,22 @@ class SRWLBeamline(object):
                            ['m', 'W/mm^2'])
             plotOK = True
 
-        if _v.si and (len(_v.si_pl) > 0):
+        if (_v.si or _v.gs) and (len(_v.si_pl) > 0):
             if _v.si_pl in ['xy', 'yx', 'XY', 'YX']:
+
+                sValLabel = 'Flux per Unit Surface'
+                sValUnit = 'ph/s/.1%bw/mm^2'
+                if(_v.w_u == 0):
+                    sValLabel = 'Intensity'
+                    sValUnit = 'a.u.'
+                elif(_v.w_u == 2):
+                    if(_v.w_ft == 't'):
+                        sValLabel = 'Power Density'
+                        sValUnit = 'W/mm^2'
+                    elif(_v.w_ft == 'f'):
+                        sValLabel = 'Spectral Fluence'
+                        sValUnit = 'J/eV/mm^2'
+                
                 #print('testing', _v.si_pl)
                 uti_plot2d1d(
                     int_w0,
@@ -950,21 +1158,35 @@ class SRWLBeamline(object):
                     [mesh_si.yStart, mesh_si.yFin, mesh_si.ny],
                     0, #0.5*(mesh_si.xStart + mesh_si.xFin),
                     0, #0.5*(mesh_si.yStart + mesh_si.yFin),
-                    ['Horizontal Position', 'Vertical Position', 'Intensity Before Propagation'],
-                    ['m', 'm', 'ph/s/.1%bw/mm^2'], #add other units for FEL
+                    ['Horizontal Position', 'Vertical Position', sValLabel],
+                    ['m', 'm', sValUnit], #add other units for FEL
                     True)
                 plotOK = True
 
         if _v.ws and (len(_v.ws_pl) > 0):
             if (_v.ws_pl == 'xy') or (_v.ws_pl == 'yx') or (_v.ws_pl == 'XY') or (_v.ws_pl == 'YX'):
+
+                sValLabel = 'Flux per Unit Surface'
+                sValUnit = 'ph/s/.1%bw/mm^2'
+                if(_v.w_u == 0):
+                    sValLabel = 'Intensity'
+                    sValUnit = 'a.u.'
+                elif(_v.w_u == 2):
+                    if(_v.w_ft == 't'):
+                        sValLabel = 'Power Density'
+                        sValUnit = 'W/mm^2'
+                    elif(_v.w_ft == 'f'):
+                        sValLabel = 'Spectral Fluence'
+                        sValUnit = 'J/eV/mm^2'
+
                 uti_plot2d1d(
                     int_w0,
                     [mesh_si.xStart, mesh_si.xFin, mesh_si.nx],
                     [mesh_si.yStart, mesh_si.yFin, mesh_si.ny],
                     0, #0.5*(mesh_si.xStart + mesh_si.xFin),
                     0, #0.5*(mesh_si.yStart + mesh_si.yFin),
-                    ['Horizontal Position', 'Vertical Position', 'Intensity Before Propagation'],
-                    ['m', 'm', 'ph/s/.1%bw/mm^2'], #add other units for FEL
+                    ['Horizontal Position', 'Vertical Position', sValLabel + ' Before Propagation'],
+                    ['m', 'm', sValUnit],
                     True)
                 uti_plot2d1d(
                     int_ws,
@@ -972,8 +1194,8 @@ class SRWLBeamline(object):
                     [mesh_ws.yStart, mesh_ws.yFin, mesh_ws.ny],
                     0, #0.5*(mesh_ws.xStart + mesh_ws.xFin),
                     0, #0.5*(mesh_ws.yStart + mesh_ws.yFin),
-                    ['Horizontal Position', 'Vertical Position', 'Intensity After Propagation'],
-                    ['m', 'm', 'ph/s/.1%bw/mm^2'], #add other units for FEL
+                    ['Horizontal Position', 'Vertical Position', sValLabel + ' After Propagation'],
+                    ['m', 'm', sValUnit],
                     True)
 
             #to continue here
@@ -1039,8 +1261,13 @@ def srwl_uti_std_options():
         ['ss_prec', 'f', 0.01, 'relative precision for single-e spectrum vs photon energy calculation (nominal value is 0.01)'],
         ['ss_pol', 'i', 6, 'polarization component to extract after spectrum vs photon energy calculation: 0- Linear Horizontal, 1- Linear Vertical, 2- Linear 45 degrees, 3- Linear 135 degrees, 4- Circular Right, 5- Circular Left, 6- Total'],
         ['ss_mag', 'i', 1, 'magnetic field to be used for single-e spectrum vs photon energy calculation: 1- approximate, 2- accurate'],
+        ['ss_ft', 's', 'f', 'presentation/domain: "f"- frequency (photon energy), "t"- time'],
+        ['ss_u', 'i', '1', 'electric field units: 0- arbitrary, 1- sqrt(Phot/s/0.1%bw/mm^2), 2- sqrt(J/eV/mm^2) or sqrt(W/mm^2), depending on representation (freq. or time)'],
         ['ss_fn', 's', 'res_spec_se.dat', 'file name for saving calculated single-e spectrum vs photon energy'],
         ['ss_pl', 's', 'e', 'plot the resulting single-e spectrum in a graph: ""- dont plot, "e"- show plot vs photon energy'],
+
+    #Coherent Gaussian Beam Spectrum vs Photon Energy or Time
+        ['gs', '', '', 'calculate Gaussian beam spectrum vs photon energy or time (has priority over "ss" if both Gaussian beam and e-beam + magnetic field are defined)', 'store_true'],
 
     #Multi-Electron Spectrum vs Photon Energy (taking into account e-beam emittance, energy spread and collection aperture size)
         ['sm', '', '', 'calculate multi-e spectrum vs photon energy', 'store_true'],
@@ -1087,11 +1314,20 @@ def srwl_uti_std_options():
 
     #Single-Electron Intensity distribution vs horizontal and vertical position
         ['si', '', '', 'calculate single-e intensity distribution (without wavefront propagation through a beamline) vs horizontal and vertical position', 'store_true'],
+
+    #Coherent Gaussian Beam Intensity distribution vs horizontal and vertical position
+        ['gi', '', '', 'calculate coherent Gaussian beam intensity distribution (without wavefront propagation through a beamline) vs horizontal and vertical position (has priority over "si" if both Gaussian beam and e-beam + magnetic field are defined)', 'store_true'],
+
     #Single-Electron Wavefront Propagation
         ['ws', '', '', 'calculate single-electron (/ fully coherent) wavefront propagation', 'store_true'],
+
+    #Coherent Gaussian Beam Wavefront Propagation
+        ['wg', '', '', 'calculate coherent Gaussian beam wavefront propagation (has priority over "si" if both Gaussian beam and e-beam + magnetic field are defined)', 'store_true'],
+        
     #Multi-Electron (partially-coherent) Wavefront Propagation
         ['wm', '', '', 'calculate multi-electron (/ partially coherent) wavefront propagation', 'store_true'],
-    
+
+    #General Wavefront parameters (used at several different calculations)
         ['w_e', 'f', 9000., 'photon energy [eV] for calculation of intensity distribution vs horizontal and vertical position'],
         ['w_ef', 'f', -1., 'final photon energy [eV] for calculation of intensity distribution vs horizontal and vertical position'],
         ['w_ne', 'i', 1, 'number of points vs photon energy for calculation of intensity distribution'],
@@ -1105,9 +1341,11 @@ def srwl_uti_std_options():
         ['w_meth', 'i', 1, 'method to use for calculation of intensity distribution vs horizontal and vertical position'],
         ['w_prec', 'f', 0.01, 'relative precision for calculation of intensity distribution vs horizontal and vertical position'],
         ['w_mag', 'i', 1, 'magnetic field to be used for calculation of intensity distribution vs horizontal and vertical position: 1- approximate, 2- accurate'],
+        ['w_ft', 's', 'f', 'presentation/domain: "f"- frequency (photon energy), "t"- time'],
+        ['w_u', 'i', '1', 'electric field units: 0- arbitrary, 1- sqrt(Phot/s/0.1%bw/mm^2), 2- sqrt(J/eV/mm^2) or sqrt(W/mm^2), depending on representation (freq. or time)'],
+        
         ['si_pol', 'i', 6, 'polarization component to extract after calculation of intensity distribution: 0- Linear Horizontal, 1- Linear Vertical, 2- Linear 45 degrees, 3- Linear 135 degrees, 4- Circular Right, 5- Circular Left, 6- Total'],
         ['si_type', 'i', 0, 'type of a characteristic to be extracted after calculation of intensity distribution: 0- Single-Electron Intensity, 1- Multi-Electron Intensity, 2- Single-Electron Flux, 3- Multi-Electron Flux, 4- Single-Electron Radiation Phase, 5- Re(E): Real part of Single-Electron Electric Field, 6- Im(E): Imaginary part of Single-Electron Electric Field, 7- Single-Electron Intensity, integrated over Time or Photon Energy'],
-
         ['si_fn', 's', 'res_int_se.dat', 'file name for saving calculated single-e intensity distribution (without wavefront propagation through a beamline) vs horizontal and vertical position'],
         ['ws_fni', 's', 'res_int_pr_se.dat', 'file name for saving propagated single-e intensity distribution vs horizontal and vertical position'],
         ['ws_pl', 's', 'xy', 'plot the propagated radiaiton intensity distributions in graph(s): ""- dont plot, "x"- vs horizontal position, "y"- vs vertical position, "xy"- vs horizontal and vertical position'],

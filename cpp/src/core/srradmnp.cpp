@@ -44,7 +44,8 @@ void srTRadGenManip::SetupIntCoord(char Cmpn, double Arg, long& i0, long& i1, do
 		Step = RadAccessData.zStep; Start = RadAccessData.zStart; N = RadAccessData.nz;
 	}
 
-	if(N == 1)
+	//if(N == 1)
+	if(N <= 1) //OC191215
 	{
 		i0 = i1 = 0; InvStepRelArg = 0.; return;
 	}
