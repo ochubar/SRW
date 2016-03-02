@@ -11,7 +11,6 @@ from __future__ import print_function #Python 2.7 compatibility
 from srwlib import *
 from uti_plot import *
 import uti_math
-import optparse
 import time
 
 #****************************************************************************
@@ -1413,16 +1412,19 @@ def srwl_uti_ext_options(_arOpt):
     """
     return srwl_uti_merge_options(srwl_uti_std_options(), _arOpt)
 
+
 #****************************************************************************
-def srwl_uti_parse_options(_descr):
-    """Set and parse command-prompt options from a compact description provided in _descr
+def _optparse(_descr, use_sys_argv=True):  # MR26022016
+    """Set and parse command-prompt options from a compact description provided in _descr using optparse (deprecated since Python 2.7).
     :param _descr: list providing compact description of all options; every element of this list is supposed to contain:
         [0]: string containing option (/ variable) name
         [1]: string containing type of the option / variable ('f' - float, 'i' - integer, 's' - string)
         [2]: default value
         [3]: string containing help / explanation of the option / variable
         [4]: optional string describing formal action to be taken if option is fired
+    :param use_sys_argv: a flag which manages use of sys.argv values in optparse.
     """
+    import optparse
 
     p = optparse.OptionParser()
     nOpt = len(_descr)
@@ -1430,39 +1432,123 @@ def srwl_uti_parse_options(_descr):
     listOptNamesPostParse = []
     for i in range(nOpt):
         curOpt = _descr[i]
-        
+
         sTypeShort = curOpt[1]
         sType = 'string'
-        if(sTypeShort == 'f'): sType = 'float'
-        elif(sTypeShort == 'i'): sType = 'int'        
-        #elif(sTypeShort == 's'): sType = 'string'
+        if (sTypeShort == 'f'):
+            sType = 'float'
+        elif (sTypeShort == 'i'):
+            sType = 'int'
+        # elif(sTypeShort == 's'): sType = 'string'
 
         sAct = 'store'
-        if(len(curOpt) > 4): sAct = curOpt[4]
+        if (len(curOpt) > 4): sAct = curOpt[4]
 
         defVal = curOpt[2]
-        
-        optIsList = False
-        if(isinstance(defVal, list) or isinstance(defVal, array)): optIsList = True
 
-        if(optIsList):
+        optIsList = False
+        if (isinstance(defVal, list) or isinstance(defVal, array)): optIsList = True
+
+        if (optIsList):
             sType = 'string'
             listOptNamesPostParse.append(curOpt[0])
 
-        if(len(sTypeShort) <= 0):
+        if (len(sTypeShort) <= 0):
             p.add_option('--' + curOpt[0], default=defVal, help=curOpt[3], action=sAct)
         else:
             p.add_option('--' + curOpt[0], type=sType, default=defVal, help=curOpt[3], action=sAct)
 
-    v, args = p.parse_args()
+    v, args = p.parse_args(None if use_sys_argv is True else [])
 
-    #"post-parsing" list-type options
+    # "post-parsing" list-type options
     for i in range(len(listOptNamesPostParse)):
         curOptName = listOptNamesPostParse[i]
         valCurOpt = getattr(v, curOptName)
 
-        if((isinstance(valCurOpt, list) == False) and (isinstance(valCurOpt, array) == False)):
+        if ((isinstance(valCurOpt, list) == False) and (isinstance(valCurOpt, array) == False)):
             parsedVal = srwl_uti_parse_str2list(valCurOpt)
             setattr(v, curOptName, parsedVal)
-    
+
     return v
+
+
+def _argparse(_descr, use_sys_argv=True):  # MR26022016
+    """Set and parse command-prompt options from a compact description provided in _descr using argparse (recommended since Python 2.7).
+    :param _descr: list providing compact description of all options; every element of this list is supposed to contain:
+        [0]: string containing option (/ variable) name
+        [1]: string containing type of the option / variable ('f' - float, 'i' - integer, 's' - string)
+        [2]: default value
+        [3]: string containing help / explanation of the option / variable
+        [4]: optional string describing formal action to be taken if option is fired
+    :param use_sys_argv: a flag which manages use of sys.argv values in argparse.
+    """
+    import argparse
+
+    p = argparse.ArgumentParser()
+    nOpt = len(_descr)
+
+    listOptNamesPostParse = []
+    for i in range(nOpt):
+        curOpt = _descr[i]
+
+        sTypeShort = curOpt[1]
+        sType = str
+        if sTypeShort == 'f':
+            sType = float
+        elif sTypeShort == 'i':
+            sType = int
+
+        sAct = 'store'
+        if (len(curOpt) > 4): sAct = curOpt[4]
+
+        defVal = curOpt[2]
+
+        optIsList = False
+        if (isinstance(defVal, list) or isinstance(defVal, array)): optIsList = True
+
+        if (optIsList):
+            sType = str
+            listOptNamesPostParse.append(curOpt[0])
+
+        curOpt[3] = curOpt[3].replace('%', '%%')  # screen special '%' symbol
+        if (len(sTypeShort) <= 0):
+            p.add_argument('--' + curOpt[0], default=defVal, help=curOpt[3], action=sAct)
+        else:
+            p.add_argument('--' + curOpt[0], type=sType, default=defVal, help=curOpt[3], action=sAct)
+
+    v = p.parse_args(None if use_sys_argv is True else [])
+
+    # "post-parsing" list-type options
+    for i in range(len(listOptNamesPostParse)):
+        curOptName = listOptNamesPostParse[i]
+        valCurOpt = getattr(v, curOptName)
+
+        if ((isinstance(valCurOpt, list) == False) and (isinstance(valCurOpt, array) == False)):
+            parsedVal = srwl_uti_parse_str2list(valCurOpt)
+            setattr(v, curOptName, parsedVal)
+
+    return v
+
+
+'''
+MR26022016: Here we can specify which parser to use for parsing the options. Argparse is used by default, but if
+a user wants to execute optparse, the following environment variable has to be set up:
+    SRWL_OPTPARSE=1
+
+On Linux systems it can be set either in ~/.bashrc using:
+    export SRWL_OPTPARSE=1
+or just before the executed command:
+    SRWL_OPTPARSE=1 python script.py -h
+
+On Windows systems it can be set using "Environment Variables..." button in System Properties or via command line:
+    set SRWL_OPTPARSE=1
+
+If you wish to use a particular parser, edit the statement below as follows:
+    srwl_uti_parse_options = _optparse  # for optparse
+    srwl_uti_parse_options = _argparse  # for argparse
+
+Various options can be specified including lists, e.g.:
+    python script.py --op_S0_pp="[0, 0, 1, 0, 0, 5.0, 8.0, 2.5, 3.5, 0, 0, 0]"
+'''
+
+srwl_uti_parse_options = _optparse if os.getenv('SRWL_OPTPARSE') == '1' else _argparse

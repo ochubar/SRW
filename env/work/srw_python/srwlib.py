@@ -2658,6 +2658,27 @@ def srwl_opt_setup_CRL(_foc_plane, _delta, _atten_len, _shape, _apert_h, _apert_
     :param _e_fin: final photon energy
     :return: transmission (SRWLOptT) type optical element which simulates CRL
     """
+
+    input_parms = {  # MR26022016: Added all input parameters to include in return object:
+        "type": "crl",
+        "focalPlane": _foc_plane,
+        "refractiveIndex": _delta,
+        "attenuationLength": _atten_len,
+        "shape": _shape,
+        "horizontalApertureSize": _apert_h,
+        "verticalApertureSize": _apert_v,
+        "radius": _r_min,
+        "numberOfLenses": _n,
+        "wallThickness": _wall_thick,
+        "horizontalCenterCoordinate": _xc,
+        "verticalCenterCoordinate": _yc,
+        "voidCenterCoordinates": _void_cen_rad,
+        "initialPhotonEnergy": _e_start,
+        "finalPhotonPnergy": _e_fin,
+        "horizontalPoints": _nx,
+        "verticalPoints": _ny,
+    }
+
     def ray_path_in_one_CRL(_x, _y, _foc_plane, _shape, _half_apert, _r_min, _wall_thick): #CRL is always centered
         rE2 = 0
         if((_foc_plane == 1) or (_foc_plane == 3)): #focusing in horizontal plane
@@ -2772,7 +2793,9 @@ def srwl_opt_setup_CRL(_foc_plane, _delta, _atten_len, _shape, _apert_h, _apert_
                 ofst += 2
             x += hx
         y += hy
-        
+
+    opT.input_parms = input_parms  # MR16022016
+
     return opT
 
 #****************************************************************************
@@ -2780,7 +2803,7 @@ def srwl_opt_setup_cyl_fiber(_foc_plane, _delta_ext, _delta_core, _atten_len_ext
     """
     Setup Transmission type Optical Element which simulates Cylindrical Fiber
     :param _foc_plane: plane of focusing: 1- horizontal (i.e. fiber is parallel to vertical axis), 2- vertical (i.e. fiber is parallel to horizontal axis)
-    :param _delta_ext: refractive index decrement of extenal layer
+    :param _delta_ext: refractive index decrement of external layer
     :param _delta_core: refractive index decrement of core
     :param _atten_len_ext: attenuation length [m] of external layer
     :param _atten_len_core: attenuation length [m] of core
@@ -2790,6 +2813,19 @@ def srwl_opt_setup_cyl_fiber(_foc_plane, _delta_ext, _delta_core, _atten_len_ext
     :param _yc: vertical coordinate of center [m]
     :return: transmission (SRWLOptT) type optical element which simulates Cylindrical Fiber
     """
+
+    input_parms = {  # MR26022016: Added all input parameters to include in return object:
+        "type": "cyl_fiber",
+        "focalPlane": _foc_plane,
+        "externalRefractiveIndex": _delta_ext,
+        "coreRefractiveIndex": _delta_core,
+        "externalAttenuationLength": _atten_len_ext,
+        "coreAttenuationLength": _atten_len_core,
+        "externalDiameter": _diam_ext,
+        "coreDiameter": _diam_core,
+        "horizontalCenterPosition": _xc,
+        "verticalCenterPosition": _yc,
+    }
 
     def ray_path_in_cyl(_dx, _diam):
         r = 0.5*_diam
@@ -2853,6 +2889,9 @@ def srwl_opt_setup_cyl_fiber(_foc_plane, _delta_ext, _delta_core, _atten_len_ext
                 opT.arTr[ofst] = ampTr #amplitude transmission
                 opT.arTr[ofst + 1] = optPathDif #optical path difference
             x += hx
+
+    opT.input_parms = input_parms  # MR26022016
+
     return opT
 
 #****************************************************************************
@@ -2874,6 +2913,22 @@ def srwl_opt_setup_surf_height_1d(_height_prof_data, _dim, _ang, _ang_r=0, _amp_
     :return: transmission (SRWLOptT) type optical element which simulates the effect of surface height error
     """
     #To test all options!
+
+    input_parms = {  # MR26022016: Added all input parameters to include in return object:
+        "type": "mirror",
+        "heightProfileFile": "",
+        "orientation": _dim,
+        "grazingAngle": _ang,
+        "reflectionAngle": _ang_r,
+        "heightAmplification": _amp_coef,
+        "longitudinalPosition": _ar_arg_long,
+        "horizontalPoints": _nx,
+        "verticalPoints": _ny,
+        "horizontalTransverseSize": _size_x,
+        "verticalTransverseSize": _size_y,
+        "horizontalCenterPosition": _xc,
+        "verticalCenterPosition": _yc,
+    }
 
     if(_ang_r == 0): _ang_r = _ang
     sinAng = sin(_ang)
@@ -2966,6 +3021,9 @@ def srwl_opt_setup_surf_height_1d(_height_prof_data, _dim, _ang, _ang_r=0, _amp_
                 #print(ix, iy, optSlopeErr.arTr[ofst + 1])
             x += xStep
         y += yStep
+
+    optSlopeErr.input_parms = input_parms  # MR16022016
+
     return optSlopeErr
 
 #****************************************************************************
@@ -2986,6 +3044,21 @@ def srwl_opt_setup_surf_height_2d(_height_prof_data, _dim, _ang, _ang_r=0, _amp_
     :return: transmission (SRWLOptT) type optical element which simulates the effect of surface height error
     """
     #To test all options!
+
+    input_parms = {  # MR26022016: Options will be used for 2D mirror profiles in Sirepo in the future:
+        "type": "mirror",
+        "heightProfileFile": "",
+        "orientation": _dim,
+        "grazingAngle": _ang,
+        "reflectionAngle": _ang_r,
+        "heightAmplification": _amp_coef,
+        "longitudinalPosition": _ar_arg_long,
+        "transversePosition": _ar_arg_tr,
+        "horizontalPoints": _nx,
+        "verticalPoints": _ny,
+        "horizontalTransverseSize": _size_x,
+        "verticalTransverseSize": _size_y,
+    }
 
     if(_ang_r == 0): _ang_r = _ang
     sinAng = sin(_ang)
@@ -3170,6 +3243,9 @@ def srwl_opt_setup_surf_height_2d(_height_prof_data, _dim, _ang, _ang_r=0, _amp_
                 #print(ix, iy, optSlopeErr.arTr[ofst + 1])
             x += xStep
         y += yStep
+
+    optSlopeErr.input_parms = input_parms  # MR26022016
+
     return optSlopeErr
 
 #****************************************************************************
