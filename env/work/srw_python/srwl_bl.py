@@ -1414,7 +1414,7 @@ def srwl_uti_ext_options(_arOpt):
 
 
 #****************************************************************************
-def _optparse(_descr, use_sys_argv=True):  # MR26022016
+def _optparse(_descr, use_sys_argv=True, arguments=None):  # MR26022016, MR04032016
     """Set and parse command-prompt options from a compact description provided in _descr using optparse (deprecated since Python 2.7).
     :param _descr: list providing compact description of all options; every element of this list is supposed to contain:
         [0]: string containing option (/ variable) name
@@ -1458,7 +1458,7 @@ def _optparse(_descr, use_sys_argv=True):  # MR26022016
         else:
             p.add_option('--' + curOpt[0], type=sType, default=defVal, help=curOpt[3], action=sAct)
 
-    v, args = p.parse_args(None if use_sys_argv is True else [])
+    v, args = p.parse_args(arguments if use_sys_argv is True else [])  # MR04032016
 
     # "post-parsing" list-type options
     for i in range(len(listOptNamesPostParse)):
@@ -1472,7 +1472,7 @@ def _optparse(_descr, use_sys_argv=True):  # MR26022016
     return v
 
 
-def _argparse(_descr, use_sys_argv=True):  # MR26022016
+def _argparse(_descr, use_sys_argv=True, arguments=None):  # MR26022016, MR04032016
     """Set and parse command-prompt options from a compact description provided in _descr using argparse (recommended since Python 2.7).
     :param _descr: list providing compact description of all options; every element of this list is supposed to contain:
         [0]: string containing option (/ variable) name
@@ -1516,7 +1516,7 @@ def _argparse(_descr, use_sys_argv=True):  # MR26022016
         else:
             p.add_argument('--' + curOpt[0], type=sType, default=defVal, help=curOpt[3], action=sAct)
 
-    v = p.parse_args(None if use_sys_argv is True else [])
+    v = p.parse_args(arguments if use_sys_argv is True else [])  # MR04032016
 
     # "post-parsing" list-type options
     for i in range(len(listOptNamesPostParse)):
