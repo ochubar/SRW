@@ -1423,10 +1423,11 @@ def _optparse(_descr, use_sys_argv=True, arguments=None):  # MR26022016, MR04032
         [3]: string containing help / explanation of the option / variable
         [4]: optional string describing formal action to be taken if option is fired
     :param use_sys_argv: a flag which manages use of sys.argv values in optparse.
+    :param arguments: arbitrary arguments to be parsed, used when use_sys_argv is set to False.
     """
     import optparse
 
-    p = optparse.OptionParser()
+    p = optparse.OptionParser(None if use_sys_argv else __name__)
     nOpt = len(_descr)
 
     listOptNamesPostParse = []
@@ -1458,7 +1459,18 @@ def _optparse(_descr, use_sys_argv=True, arguments=None):  # MR26022016, MR04032
         else:
             p.add_option('--' + curOpt[0], type=sType, default=defVal, help=curOpt[3], action=sAct)
 
-    v, args = p.parse_args(arguments if use_sys_argv is True else [])  # MR04032016
+    # MR07032016:
+    if use_sys_argv:
+        v, args = p.parse_args()  # MR07032016
+    else:
+        if arguments or arguments in [[], '']:
+            _arguments = arguments
+        else:
+            _arguments = []
+        try:
+            v, args = p.parse_args(_arguments)  # MR07032016
+        except SystemExit as e:
+            raise ValueError('Exit code: {}'.format(e))
 
     # "post-parsing" list-type options
     for i in range(len(listOptNamesPostParse)):
@@ -1481,10 +1493,11 @@ def _argparse(_descr, use_sys_argv=True, arguments=None):  # MR26022016, MR04032
         [3]: string containing help / explanation of the option / variable
         [4]: optional string describing formal action to be taken if option is fired
     :param use_sys_argv: a flag which manages use of sys.argv values in argparse.
+    :param arguments: arbitrary arguments to be parsed, used when use_sys_argv is set to False.
     """
     import argparse
 
-    p = argparse.ArgumentParser()
+    p = argparse.ArgumentParser(None if use_sys_argv else __name__)  # MR07032016
     nOpt = len(_descr)
 
     listOptNamesPostParse = []
@@ -1516,14 +1529,25 @@ def _argparse(_descr, use_sys_argv=True, arguments=None):  # MR26022016, MR04032
         else:
             p.add_argument('--' + curOpt[0], type=sType, default=defVal, help=curOpt[3], action=sAct)
 
-    v = p.parse_args(arguments if use_sys_argv is True else [])  # MR04032016
+    # MR07032016:
+    if use_sys_argv:
+        v = p.parse_args()  # MR07032016
+    else:
+        if arguments or arguments in [[], '']:
+            _arguments = arguments
+        else:
+            _arguments = []
+        try:
+            v = p.parse_args(_arguments)  # MR07032016
+        except SystemExit as e:
+            raise ValueError('Exit code: {}'.format(e))
 
     # "post-parsing" list-type options
     for i in range(len(listOptNamesPostParse)):
         curOptName = listOptNamesPostParse[i]
         valCurOpt = getattr(v, curOptName)
 
-        if ((isinstance(valCurOpt, list) == False) and (isinstance(valCurOpt, array) == False)):
+        if not isinstance(valCurOpt, list) and not isinstance(valCurOpt, array):  # MR07032016
             parsedVal = srwl_uti_parse_str2list(valCurOpt)
             setattr(v, curOptName, parsedVal)
 
@@ -1551,4 +1575,4 @@ Various options can be specified including lists, e.g.:
     python script.py --op_S0_pp="[0, 0, 1, 0, 0, 5.0, 8.0, 2.5, 3.5, 0, 0, 0]"
 '''
 
-srwl_uti_parse_options = _optparse if os.getenv('SRWL_OPTPARSE') == '1' else _argparse
+srwl_uti_parse_options = _optparse if os.getenv('SRWL_OPTPARSE') else _argparse  # MR07032016
