@@ -1414,7 +1414,7 @@ def srwl_uti_ext_options(_arOpt):
 
 
 #****************************************************************************
-def _optparse(_descr, use_sys_argv=True, arguments=None):  # MR26022016, MR04032016
+def _optparse(_descr, use_sys_argv=True, args=None):  # MR26022016, MR04032016
     """Set and parse command-prompt options from a compact description provided in _descr using optparse (deprecated since Python 2.7).
     :param _descr: list providing compact description of all options; every element of this list is supposed to contain:
         [0]: string containing option (/ variable) name
@@ -1423,7 +1423,7 @@ def _optparse(_descr, use_sys_argv=True, arguments=None):  # MR26022016, MR04032
         [3]: string containing help / explanation of the option / variable
         [4]: optional string describing formal action to be taken if option is fired
     :param use_sys_argv: a flag which manages use of sys.argv values in optparse.
-    :param arguments: arbitrary arguments to be parsed, used when use_sys_argv is set to False.
+    :param args: arbitrary arguments to be parsed, used when use_sys_argv is set to False.
     """
     import optparse
 
@@ -1463,12 +1463,8 @@ def _optparse(_descr, use_sys_argv=True, arguments=None):  # MR26022016, MR04032
     if use_sys_argv:
         v, args = p.parse_args()  # MR07032016
     else:
-        if arguments or arguments in [[], '']:
-            _arguments = arguments
-        else:
-            _arguments = []
         try:
-            v, args = p.parse_args(_arguments)  # MR07032016
+            v, args = p.parse_args(args if args else [])  # MR07032016
         except SystemExit as e:
             raise ValueError('Exit code: {}'.format(e))
 
@@ -1484,7 +1480,7 @@ def _optparse(_descr, use_sys_argv=True, arguments=None):  # MR26022016, MR04032
     return v
 
 
-def _argparse(_descr, use_sys_argv=True, arguments=None):  # MR26022016, MR04032016
+def _argparse(_descr, use_sys_argv=True, args=None):  # MR26022016, MR04032016
     """Set and parse command-prompt options from a compact description provided in _descr using argparse (recommended since Python 2.7).
     :param _descr: list providing compact description of all options; every element of this list is supposed to contain:
         [0]: string containing option (/ variable) name
@@ -1493,7 +1489,7 @@ def _argparse(_descr, use_sys_argv=True, arguments=None):  # MR26022016, MR04032
         [3]: string containing help / explanation of the option / variable
         [4]: optional string describing formal action to be taken if option is fired
     :param use_sys_argv: a flag which manages use of sys.argv values in argparse.
-    :param arguments: arbitrary arguments to be parsed, used when use_sys_argv is set to False.
+    :param args: arbitrary arguments to be parsed, used when use_sys_argv is set to False.
     """
     import argparse
 
@@ -1533,12 +1529,8 @@ def _argparse(_descr, use_sys_argv=True, arguments=None):  # MR26022016, MR04032
     if use_sys_argv:
         v = p.parse_args()  # MR07032016
     else:
-        if arguments or arguments in [[], '']:
-            _arguments = arguments
-        else:
-            _arguments = []
         try:
-            v = p.parse_args(_arguments)  # MR07032016
+            v = p.parse_args(args if args else [])  # MR07032016
         except SystemExit as e:
             raise ValueError('Exit code: {}'.format(e))
 
