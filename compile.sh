@@ -17,7 +17,17 @@ echo -e "\nWelcome to SRW compiling script!\n"
 
 #---> Compile FFTW2:
 echo "    Compiling FFTW2..."
-cd $ext_dir
+
+if [ -d "$ext_dir" ]; then
+    cd $ext_dir
+else
+    mkdir $ext_dir
+    cd $ext_dir
+    # wget http://www.fftw.org/fftw-2.1.5.tar.gz
+    wget https://raw.githubusercontent.com/ochubar/SRW/master/ext_lib/fftw-2.1.5.tar.gz
+    remove_ext_dir="1"
+fi
+
 if [ -d "$fftw_dir" ]; then
     rm -rf $fftw_dir
 fi
@@ -48,6 +58,9 @@ echo ""
 
 #---> Clean:
 echo "    Cleaning..."
+if [ "$remove_ext_dir" == "1" ]; then
+    rm -rf $ext_dir
+fi
 rm -rf $fftw_dir
 rm -rf $ext_dir/libfftw.a $gcc_dir/libsrw.a $gcc_dir/srwlpy.so $py_dir/build/
 echo ""
