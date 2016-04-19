@@ -547,7 +547,7 @@ class Backend(object):
                 return True
             except:
                 pass
-        return false
+        return False
 
     class _HideGUIErrorOutput(object):
         """Redirect low level stderr (fd #2) to os.devnull as context manager
