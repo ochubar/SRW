@@ -17,11 +17,10 @@ all: clean fftw core pylib
 fftw:
 	if [ ! -d "$(ext_dir)" ]; then \
 	    mkdir $(ext_dir); \
-	    remove_tmp_dir="1"; \
 	fi; \
 	cd $(ext_dir); \
 	if [ ! -f "$(fftw_file)" ]; then \
-	    wget https://raw.githubusercontent.com/ochubar/SRW/master/ext_lib/$(fftw_file) > $(log_fftw) 2>&1; \
+	    wget https://raw.githubusercontent.com/ochubar/SRW/master/ext_lib/$(fftw_file); \
 	fi; \
 	if [ -d "$(fftw_dir)" ]; then \
 	    rm -rf $(fftw_dir); \
@@ -32,10 +31,7 @@ fftw:
 	sed 's/^CFLAGS = /CFLAGS = -fPIC /' -i Makefile; \
 	make && cp fftw/.libs/libfftw.a $(ext_dir); \
 	cd $(root_dir); \
-	rm -rf $(ext_dir)/$(fftw_dir); \
-	if [ "$$remove_tmp_dir" == "1" ]; then \
-	    rm -rf $(ext_dir); \
-	fi;
+	rm -rf $(ext_dir)/$(fftw_dir);
 
 core: 
 	cd $(gcc_dir); make -j8 clean lib
@@ -44,7 +40,12 @@ pylib:
 	cd $(py_dir); make python
 
 test:
-	cd $(examples_dir); timeout 20 python SRWLIB_Example10.py; \
+	if [ ! -d "$(example10_data_dir)" ]; then \
+	    mkdir $(example10_data_dir); \
+	    remove_tmp_dir="1"; \
+	fi; \
+	cd $(examples_dir); \
+	timeout 20 python SRWLIB_Example10.py; \
 	code=$$?; \
 	RED='\033[0;31m'; \
 	GREEN='\033[0;32m'; \
@@ -63,7 +64,11 @@ test:
 	    message=''; \
 	fi; \
 	echo -e "\n\tTest $${color}$${status}$${NC}. Code=$${code}$${message}\n"; \
-	rm -f $(example10_data_dir)/{ex10_res_int_se.dat,ex10_res_int_prop_se.dat,ex10_res_int_prop_me.dat};
+	rm -f $(example10_data_dir)/{ex10_res_int_se.dat,ex10_res_int_prop_se.dat,ex10_res_int_prop_me.dat}; \
+	if [ "$$remove_tmp_dir" == "1" ]; then \
+	    cd $(root_dir); \
+	    rm -rf $(example10_data_dir); \
+	fi;
 
 clean:
 	rm -f $(ext_dir)/libfftw.a $(gcc_dir)/libsrw.a $(gcc_dir)/srwlpy.so; \
