@@ -1,3 +1,14 @@
+# This Makefile is to compile SRW with optional compilation of FFTW-2.1.5.
+#
+# The following options are available:
+# - `make all` - will compile FFTW, C++ core and Python lib;
+# - `make fftw` - will compile FFTW only;
+# - `make` - will compile C++ core and Python lib;
+# - `make test` - will execute `python SRWLIB_Example10.py` during 20 seconds;
+# - `make clean` - will clean temporary files.
+#
+# Updated by Maksim Rakitin (NSLS-II, BNL) on May 2, 2016.
+
 root_dir = $(realpath .)
 env_dir = $(root_dir)/env
 ext_dir = $(root_dir)/ext_lib
