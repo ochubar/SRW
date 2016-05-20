@@ -342,6 +342,12 @@ class SRWLMagFldU(SRWLMagFld):
             sumBdNe2 += curBdN*curBdN
         return mult*self.per*sqrt(sumBdNe2)
 
+    def K_2_B(self, K):
+        """Convert K (deflection parameter) to B (magnetic field amplitude)"""
+        mult = _ElCh/(2.*_Pi*_ElMass_kg*_LightSp)
+        B = K / (mult * self.per)
+        return B
+
     def get_E1(self, _en_elec=3., _unit='eV'):
         """Estimate fundamental photon energy
         :param _en_elec: electron energy [GeV]
