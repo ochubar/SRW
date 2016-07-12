@@ -354,8 +354,12 @@ int CGenMathFFT1D::Make1DFFT(CGenMathFFT1DInfo& FFT1DInfo)
 		}
 		Plan1DFFT = fftw_create_plan(Nx, FFTW_FORWARD, flags);
 		if(Plan1DFFT == 0) return ERROR_IN_FFT;
+		
+		if (DataToFFT == OutDataFFT)
+			fftw(Plan1DFFT, FFT1DInfo.HowMany, DataToFFT, 1, Nx, 0, 0, 0);
+		else
+			fftw(Plan1DFFT, FFT1DInfo.HowMany, DataToFFT, 1, Nx, OutDataFFT, 1, Nx);
 
-		fftw(Plan1DFFT, FFT1DInfo.HowMany, DataToFFT, 1, Nx, OutDataFFT, 1, Nx);
 		RepairSignAfter1DFFT(OutDataFFT, FFT1DInfo.HowMany);
 		RotateDataAfter1DFFT(OutDataFFT, FFT1DInfo.HowMany);
 	}
@@ -371,7 +375,12 @@ int CGenMathFFT1D::Make1DFFT(CGenMathFFT1DInfo& FFT1DInfo)
 
 		RotateDataAfter1DFFT(DataToFFT, FFT1DInfo.HowMany);
 		RepairSignAfter1DFFT(DataToFFT, FFT1DInfo.HowMany);
-		fftw(Plan1DFFT, FFT1DInfo.HowMany, DataToFFT, 1, Nx, OutDataFFT, 1, Nx);
+
+		if (DataToFFT == OutDataFFT)
+			fftw(Plan1DFFT, FFT1DInfo.HowMany, DataToFFT, 1, Nx, 0, 0, 0);
+		else
+			fftw(Plan1DFFT, FFT1DInfo.HowMany, DataToFFT, 1, Nx, OutDataFFT, 1, Nx);
+		
 	}
 	//double Mult = FFT1DInfo.xStep;
 	double Mult = FFT1DInfo.xStep*FFT1DInfo.MultExtra;
