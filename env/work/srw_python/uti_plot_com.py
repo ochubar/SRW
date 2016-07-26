@@ -11,9 +11,45 @@ import traceback
 import uti_math
 import uti_io
 
+
+def _traj_file_load(fname, traj_axis='x'):  #MR20160725
+    nLinesHead = 1
+    hlp = []
+    with open(fname, 'r') as f:
+        for i in range(nLinesHead):
+            hlp.append(f.readline())
+
+    data = uti_io.read_ascii_data_cols(fname, '\t', _i_col_start=0, _i_col_end=10, _n_line_skip=nLinesHead)
+
+    mode = 3
+    allrange = [
+        data[5][0],  # z-coordinate begin
+        data[5][-1],  # z-coordinate end
+        len(data[0]),  # number of points
+        min(data[1]),  # x-coordinate begin
+        max(data[1]),  # x-coordinate end
+        1,
+        min(data[3]),  # y-coordinate begin
+        max(data[3]),  # y-coordinate end
+        1,
+    ]
+    arLabels = ['Longitudinal Position', 'Horizontal Position', 'Vertical Position']
+    arUnits = ['m', 'm', 'm', 'm']
+    if traj_axis == 'x':
+        data = data[1]
+        arLabels.append('Horizontal Coordinate')
+    elif traj_axis == 'y':
+        data = data[3]
+        arLabels.append('Vertical Coordinate')
+    else:
+        raise ValueError('Parameter "axis" has wrong value: {}. Allowed values are "x" and "y"'.format(traj_axis))
+
+    return data, mode, allrange, arLabels, arUnits
+
+
 #****************************************************************************
 #def srw_ascii_load(fname):
-def file_load(_fname, _read_labels=1):
+def _file_load(_fname, _read_labels=1):
     nLinesHead = 11
     hlp = []
     #with open(_fname,'r') as f: hlp = f.readlines(nLinesHead)
@@ -73,6 +109,13 @@ def file_load(_fname, _read_labels=1):
 
     #print(mode)
     return data, mode, allrange, arLabels, arUnits
+
+
+def file_load(fname, read_labels=1, traj_report=False, traj_axis='x'):
+    if not traj_report:
+        return _file_load(fname, read_labels)
+    else:
+        return _traj_file_load(fname, traj_axis)
 
 #****************************************************************************
 def rescale(maxabsval, strval):

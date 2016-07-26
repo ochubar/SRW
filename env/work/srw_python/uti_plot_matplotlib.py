@@ -104,10 +104,10 @@ class Backend(object):
         return self._maybe_savefig(fig)
 
     #def srw_ascii_plot(fname):
-    def uti_data_file_plot(self, _fname, _read_labels=1, _e=0, _x=0, _y=0, _graphs_joined=1):
+    def uti_data_file_plot(self, _fname, _read_labels=1, _e=0, _x=0, _y=0, _graphs_joined=1, _traj_report=False, _traj_axis='x'):
         #data, mode, allrange = srw_ascii_load(fname)
         #data, mode, allrange, arLabels, arUnits = _file_load(_fname, _read_labels)
-        data, mode, allrange, arLabels, arUnits = uti_plot_com.file_load(_fname, _read_labels)
+        data, mode, allrange, arLabels, arUnits = uti_plot_com.file_load(_fname, _read_labels, _traj_report, _traj_axis)
 
         #print(allrange)
         m = self._enum('T','V','H','E','HV','EV','EH','EHV')
