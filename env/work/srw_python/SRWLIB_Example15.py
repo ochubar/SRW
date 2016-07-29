@@ -6,6 +6,7 @@ Adapted by Maksim Rakitin (BNL).
 The purpose of the example is to demonstrate good agreement of the SRW simulation
 of propagation of a gaussian beam through a drift with an analytical estimation.
 """
+# v. 0.02
 
 from __future__ import print_function
 
@@ -151,7 +152,8 @@ if __name__ == '__main__':
         'mesh_x': [],
         'mesh_y': []
     }
-    print('z        xRMS         yRMS       mesh.nx  mesh.ny       xStart       yStart')
+    #print('z        xRMS         yRMS       mesh.nx  mesh.ny       xStart       yStart')
+    print('z   xRMS     yRMS     nx ny  xStart        yStart') #OC
     for j in range(NumSteps):
         # Calculating Initial Wavefront and extracting Intensity:
         srwl.CalcElecFieldGaussian(wfr, GsnBm, arPrecPar)
@@ -163,22 +165,26 @@ if __name__ == '__main__':
         Polar = 6  # 0- Linear Horizontal /  1- Linear Vertical 2- Linear 45 degrees / 3- Linear 135 degrees / 4- Circular Right /  5- Circular /  6- Total
         Intens = 0  # 0=Single-e I/1=Multi-e I/2=Single-e F/3=Multi-e F/4=Single-e RadPhase/5=Re single-e Efield/6=Im single-e Efield
         DependArg = 3  # 0 - vs e, 1 - vs x, 2 - vs y, 3- vs x&y, 4-vs x&e, 5-vs y&e, 6-vs x&y&e
-        plotNum = 1000
+        #plotNum = 1000
 
         if InitialDist == 0.0:  # plot initial intensity at 0
             intensitiesToPlot['intensity'].append(deepcopy(arI0))
             intensitiesToPlot['distance'].append(InitialDist)
             intensitiesToPlot['mesh_x'].append(
-                deepcopy([plotNum * wfrP.mesh.xStart, plotNum * wfrP.mesh.xFin, wfrP.mesh.nx]))
+                #deepcopy([plotNum * wfrP.mesh.xStart, plotNum * wfrP.mesh.xFin, wfrP.mesh.nx]))
+                deepcopy([wfrP.mesh.xStart, wfrP.mesh.xFin, wfrP.mesh.nx])) #OC
             intensitiesToPlot['mesh_y'].append(
-                deepcopy([plotNum * wfrP.mesh.yStart, plotNum * wfrP.mesh.yFin, wfrP.mesh.ny]))
+                #deepcopy([plotNum * wfrP.mesh.yStart, plotNum * wfrP.mesh.yFin, wfrP.mesh.ny]))
+                deepcopy([wfrP.mesh.yStart, wfrP.mesh.yFin, wfrP.mesh.ny]))
 
         InitialDist = InitialDist + StepSize
         (opBL, LensMatrX, LensMatrY, DriftMatr) = Container(InitialDist, f_x, f_y)
         srwl.PropagElecField(wfrP, opBL)  # Propagate E-field
 
-        plotMeshx = [plotNum * wfrP.mesh.xStart, plotNum * wfrP.mesh.xFin, wfrP.mesh.nx]
-        plotMeshy = [plotNum * wfrP.mesh.yStart, plotNum * wfrP.mesh.yFin, wfrP.mesh.ny]
+        #plotMeshx = [plotNum * wfrP.mesh.xStart, plotNum * wfrP.mesh.xFin, wfrP.mesh.nx]
+        #plotMeshy = [plotNum * wfrP.mesh.yStart, plotNum * wfrP.mesh.yFin, wfrP.mesh.ny]
+        plotMeshx = [wfrP.mesh.xStart, wfrP.mesh.xFin, wfrP.mesh.nx]
+        plotMeshy = [wfrP.mesh.yStart, wfrP.mesh.yFin, wfrP.mesh.ny]
 
         # Extracting output wavefront
         arII = array('f', [0] * wfrP.mesh.nx * wfrP.mesh.ny)  # "flat" array to take 2D intensity data
@@ -191,7 +197,8 @@ if __name__ == '__main__':
 
         if abs(InitialDist - 3.0) < 1e-10 or abs(InitialDist - 3.9) < 1e-10:  # plot at these distances
             intensitiesToPlot['intensity'].append(deepcopy(arII))
-            intensitiesToPlot['distance'].append(InitialDist)
+            #intensitiesToPlot['distance'].append(InitialDist)
+            intensitiesToPlot['distance'].append(round(InitialDist, 6)) #OC
             intensitiesToPlot['mesh_x'].append(deepcopy(plotMeshx))
             intensitiesToPlot['mesh_y'].append(deepcopy(plotMeshy))
 
@@ -213,7 +220,8 @@ if __name__ == '__main__':
         (tRMSfunX, tRMSfunY) = BLMatrixMult(LensMatrX, LensMatrY, DriftMatr, DriftMatr0)
         WRx.append(tRMSfunX)
         WRy.append(tRMSfunY)
-        print(InitialDist, xRMS[j], yRMS[j], wfrP.mesh.nx, wfrP.mesh.ny, wfrP.mesh.xStart, wfrP.mesh.yStart)
+        #print(InitialDist, xRMS[j], yRMS[j], wfrP.mesh.nx, wfrP.mesh.ny, wfrP.mesh.xStart, wfrP.mesh.yStart)
+        print(round(InitialDist, 6), round(xRMS[j], 6), round(yRMS[j], 6), wfrP.mesh.nx, wfrP.mesh.ny, round(wfrP.mesh.xStart, 10), round(wfrP.mesh.yStart, 10)) #OC
 
     # 6. Analytic calculations
     xRMSan = AnalyticEst(GsnBm.avgPhotEn, wfr.mesh.zStart + s[0], GsnBm.sigX, s)
@@ -232,10 +240,16 @@ if __name__ == '__main__':
 
     # 7. Plotting
     for i in range(len(intensitiesToPlot['intensity'])):
-        uti_plot.uti_plot2d(intensitiesToPlot['intensity'][i], intensitiesToPlot['mesh_x'][i],
-                            intensitiesToPlot['mesh_y'][i],
-                            ['Horizontal Position [mm]', 'Vertical Position [mm]',
-                             'Intenisty at {} m, [a.u.]'.format(intensitiesToPlot['distance'][i])])
+        #uti_plot.uti_plot2d(intensitiesToPlot['intensity'][i], intensitiesToPlot['mesh_x'][i],
+        #                    intensitiesToPlot['mesh_y'][i],
+        #                    ['Horizontal Position [mm]', 'Vertical Position [mm]',
+        #                     'Intenisty at {} m [a.u.]'.format(intensitiesToPlot['distance'][i])])
+        uti_plot.uti_plot2d1d(intensitiesToPlot['intensity'][i], #OC
+                              intensitiesToPlot['mesh_x'][i],
+                              intensitiesToPlot['mesh_y'][i],
+                              x=0, y=0,
+                              labels=['Horizontal Position', 'Vertical Position', 'Intenisty at {} m'.format(intensitiesToPlot['distance'][i])],
+                              units=['m', 'm', 'a.u.'])
 
     fig = plt.figure()
     ax = fig.add_subplot(111)
@@ -244,8 +258,8 @@ if __name__ == '__main__':
     ax.plot(s, yRMS, '-b.', label="Y envelope via SRW")
     ax.plot(s, Wthy, '--bo', label="Y envelope via analytical propagator")
     ax.legend()
-    ax.set_xlabel('Distance along beam line, [m]')
-    ax.set_ylabel('Horizontal and Vertical RMS beam sizes, [m]')
+    ax.set_xlabel('Distance along beam line [m]')
+    ax.set_ylabel('Horizontal and Vertical RMS beam sizes [m]')
     ax.set_title('Gaussian beam envelopes through a drift after a lens')
     ax.grid()
 
