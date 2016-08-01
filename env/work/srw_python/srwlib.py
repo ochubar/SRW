@@ -2491,8 +2491,8 @@ class SRWLOptCryst(SRWLOpt):
         self.nvz = _nvz
         self.tvx = _tvx
         self.tvy = _tvy
-        self.energy = None
-        self.ang_dif_pl = None
+        self.aux_energy = None  #MR01082016: renamed self.energy to self.aux_energy.
+        self.aux_ang_dif_pl = None  #MR01082016: renamed self.ang_dif_pl to self.aux_ang_dif_pl.
 
     def set_orient(self, _nvx=0, _nvy=0, _nvz=-1, _tvx=1, _tvy=0):
         """Defines Crystal Orientation in the frame of the Incident Photon beam
@@ -2517,8 +2517,8 @@ class SRWLOptCryst(SRWLOpt):
                 out[1] is the list of 3 base vectors [ex, ey, ez] defining orientation of the output beam frame
                 the cartesian coordinates of all these vectors are given in the frame of the input beam
         """
-        self.energy = _en
-        self.ang_dif_pl = _ang_dif_pl
+        self.aux_energy = _en  #MR01082016: renamed self.energy to self.aux_energy.
+        self.aux_ang_dif_pl = _ang_dif_pl  #MR01082016: renamed self.ang_dif_pl to self.aux_ang_dif_pl.
 
         #dSi = 5.43096890 # Si lattice constant (A)
         eV2wA = 12398.4193009 # energy to wavelength conversion factor 12398.41930092394
