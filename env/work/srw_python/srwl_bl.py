@@ -1618,7 +1618,6 @@ def setup_source(v):  # MR20160617 - moved from Sirepo .jinja template
         elif v.source_type == 't' or (v.und_g and v.und_g > 0):
             if hasattr(v, 'gbm_pen'):
                 del v.gbm_pen
-            v.und_mdir = './'
             v.pw_mag = 2
             v.w_mag = 2
     elif v.source_type == 'g':
