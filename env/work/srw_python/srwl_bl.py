@@ -804,16 +804,16 @@ class SRWLBeamline(object):
         if hasattr(_v, 'ueb') or hasattr(_v, 'ebm_nm'):  # MR20160617 - user-defined beam for Sirepo
             kwargs = {
                 '_e_beam_name': '',
-                '_i': _v.ebm_i,
-                '_sig_e': _v.ebm_ens,
-                '_emit_x': _v.ebm_emx,
-                '_emit_y': _v.ebm_emy,
-                '_drift': _v.ebm_dr,
-                '_x': _v.ebm_x,
-                '_y': _v.ebm_y,
-                '_xp': _v.ebm_xp,
-                '_yp': _v.ebm_yp,
-                '_dE': _v.ebm_de,
+                '_i': _v.ebm_i if hasattr(_v, 'ebm_i') else -1,
+                '_sig_e': _v.ebm_ens if hasattr(_v, 'ebm_ens') else -1,
+                '_emit_x': _v.ebm_emx if hasattr(_v, 'ebm_emx') else -1,
+                '_emit_y': _v.ebm_emy if hasattr(_v, 'ebm_emy') else -1,
+                '_drift': _v.ebm_dr if hasattr(_v, 'ebm_dr') else 0,
+                '_x': _v.ebm_x if hasattr(_v, 'ebm_x') else 0,
+                '_y': _v.ebm_y if hasattr(_v, 'ebm_y') else 0,
+                '_xp': _v.ebm_xp if hasattr(_v, 'ebm_xp') else 0,
+                '_yp': _v.ebm_yp if hasattr(_v, 'ebm_yp') else 0,
+                '_dE': _v.ebm_de if hasattr(_v, 'ebm_de') else 0,
             }
             if hasattr(_v, 'ueb') and _v.ueb:
                 user_defined_beam = SRWLPartBeam()

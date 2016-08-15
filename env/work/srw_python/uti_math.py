@@ -443,3 +443,33 @@ def trf_rotation(_V, _ang, _P):
     M0 = [st00, st01, st02]
     V = matr_prod(M0, _P)
     return [M, V]
+
+
+def fwhm(x, y):
+    """The function searches x-values (roots) where y=0 based on linear interpolation, and calculates FWHM"""
+
+    def is_positive(num):
+        return True if num > 0 else False
+
+    positive = is_positive(y[0])
+    list_of_roots = []
+    for i in range(len(y)):
+        current_positive = is_positive(y[i])
+        if current_positive != positive:
+            list_of_roots.append(x[i - 1] + (x[i] - x[i - 1]) / (abs(y[i]) + abs(y[i - 1])) * abs(y[i - 1]))
+            positive = not positive
+    if len(list_of_roots) == 2:
+        return list_of_roots[1] - list_of_roots[0]
+    else:
+        raise Exception('Number of roots is more than 2!')
+
+
+def fwhm_scipy(x, y):
+    """Computing FWHM (Full width at half maximum)"""
+    try:
+        from scipy.interpolate import UnivariateSpline
+        spline = UnivariateSpline(x, y, s=0)
+        r1, r2 = spline.roots()  # find the roots
+        return r2 - r1  # return the difference (full width)
+    except ImportError:
+        return fwhm(x, y)
