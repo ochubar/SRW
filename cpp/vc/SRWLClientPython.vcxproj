@@ -263,7 +263,7 @@
     <ClCompile>
       <Optimization>MaxSpeed</Optimization>
       <IntrinsicFunctions>false</IntrinsicFunctions>
-      <AdditionalIncludeDirectories>..\src\lib;..\..\..\Python33\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\src\lib;C:\Python35\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;SRWLCLIENTPYTHON_EXPORTS;SRWLIB_CLIENT;_CRT_SECURE_NO_WARNINGS;NON_UNIX_STDIO;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <FunctionLevelLinking>true</FunctionLevelLinking>
@@ -273,6 +273,7 @@
       <WholeProgramOptimization>false</WholeProgramOptimization>
       <StructMemberAlignment>Default</StructMemberAlignment>
       <StringPooling>true</StringPooling>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <AdditionalDependencies>..\..\..\Python33\libs\python33.lib;srw_win32.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -293,7 +294,7 @@
     <ClCompile>
       <Optimization>MaxSpeed</Optimization>
       <IntrinsicFunctions>false</IntrinsicFunctions>
-      <AdditionalIncludeDirectories>..\src\lib;..\..\..\Python33\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\src\lib;C:\Python35\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;SRWLCLIENTPYTHON_EXPORTS;SRWLIB_CLIENT;NON_UNIX_STDIO;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <FunctionLevelLinking>true</FunctionLevelLinking>
@@ -306,7 +307,7 @@
       <StringPooling>true</StringPooling>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>..\..\..\Python33\libs\python33.lib;srw_win32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>C:\Python35\libs\python35.lib;srw_win32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>srwlpy.pyd</OutputFile>
       <IgnoreSpecificDefaultLibraries>LIBC;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -327,7 +328,7 @@
     <ClCompile>
       <Optimization>MaxSpeed</Optimization>
       <IntrinsicFunctions>false</IntrinsicFunctions>
-      <AdditionalIncludeDirectories>..\src\lib;..\..\..\Python33_x64\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\src\lib;C:\Python35_x64\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;SRWLCLIENTPYTHON_EXPORTS;SRWLIB_CLIENT;_CRT_SECURE_NO_WARNINGS;NON_UNIX_STDIO;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <FunctionLevelLinking>false</FunctionLevelLinking>
@@ -342,7 +343,7 @@
       <FloatingPointModel>Precise</FloatingPointModel>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>..\..\..\Python33_x64\libs\python33.lib;srw_x64.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>C:\Python35_x64\libs\python33.lib;srw_x64.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>srwlpy.pyd</OutputFile>
       <IgnoreSpecificDefaultLibraries>LIBC;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -364,7 +365,7 @@
     <ClCompile>
       <Optimization>MaxSpeed</Optimization>
       <IntrinsicFunctions>false</IntrinsicFunctions>
-      <AdditionalIncludeDirectories>..\src\lib;..\..\..\Python35_x64\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\src\lib;C:\Python35_x64\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;SRWLCLIENTPYTHON_EXPORTS;SRWLIB_CLIENT;_CRT_SECURE_NO_WARNINGS;NON_UNIX_STDIO;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <FunctionLevelLinking>false</FunctionLevelLinking>
@@ -380,7 +381,7 @@
       <FloatingPointModel>Precise</FloatingPointModel>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>..\..\..\Python35_x64\libs\python35.lib;srw_x64.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>C:\Python35_x64\libs\python35.lib;srw_x64.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>srwlpy.pyd</OutputFile>
       <IgnoreSpecificDefaultLibraries>LIBC;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <GenerateDebugInformation>true</GenerateDebugInformation>
