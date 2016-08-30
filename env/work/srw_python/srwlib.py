@@ -7,6 +7,7 @@ import srwlpy as srwl
 from array import *
 from math import *
 from copy import *
+import datetime
 import random
 import sys
 import os
@@ -3498,9 +3499,8 @@ def srwl_uti_read_intens_ascii(_file_path, _num_type='f'):
 
 #**********************Auxiliary function to write auxiliary/debugging information to an ASCII file:
 def srwl_uti_save_text(_text, _file_path):
-    f = open(_file_path, 'w')
-    f.write(_text + '\n')
-    f.close()
+    with open(_file_path, 'a') as f:
+        f.write(_text + '\n')
 
 #**********************Auxiliary function to read-in data comumns from ASCII file (2D table):
 def srwl_uti_read_data_cols(_file_path, _str_sep, _i_col_start=0, _i_col_end=-1, _n_line_skip=0):
@@ -4151,6 +4151,19 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
            
             comMPI.Recv([workStokes.arS, MPI.FLOAT], source=MPI.ANY_SOURCE) #receive #an he (commented-out)
 
+            total_num_of_particles = nRecv * _n_part_avg_proc
+            current_num = nProc * (i + 1)
+            offset = len(str(total_num_of_particles))
+            srwl_uti_save_text(
+                '[{}]: Done {:{offset}d} out of {:{offset}d} ({:6.2f}% complete)'.format(
+                    '{:%Y-%m-%d %H:%M:%S}'.format(datetime.datetime.now()),
+                    current_num,
+                    total_num_of_particles,
+                    float(current_num) / float(total_num_of_particles) * 100.0,
+                    offset=offset,
+                ),
+                'srw_mpi.log'
+            )
             #DEBUG
             #srwl_uti_save_text("Received intensity # " + str(i), _file_path + ".er.dbg")
             #END DEBUG
