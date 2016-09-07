@@ -8,6 +8,7 @@ from array import *
 from math import *
 from copy import *
 import datetime
+import json
 import random
 import sys
 import os
@@ -3497,7 +3498,40 @@ def srwl_uti_read_intens_ascii(_file_path, _num_type='f'):
     f.close()
     return array(_num_type, arInt), resMesh
 
-#**********************Auxiliary function to write auxiliary/debugging information to an ASCII file:
+#**********************Auxiliary function to write auxiliary/debugging information to an ASCII files:
+def srwl_save_status(iteration_number, total_num_of_iterations, filename='srw_mpi'):  #MR20160907
+    """The function to save .log and .json status files to monitor parallel MPI jobs progress.
+
+    :param iteration_number: current iteration number.
+    :param total_num_of_iterations: total number of iterations.
+    :return: None.
+    """
+    offset = len(str(total_num_of_iterations))
+    timestamp = '{:%Y-%m-%d %H:%M:%S}'.format(datetime.datetime.now())
+    progress = float(iteration_number) / float(total_num_of_iterations) * 100.0
+
+    # Save a log file to monitor duration of calculations:
+    text_to_save = '[{}]: Done {:{offset}d} out of {:{offset}d} ({:6.2f}% complete)'.format(
+        timestamp,
+        iteration_number,
+        total_num_of_iterations,
+        progress,
+        offset=offset,
+    )
+    status_text_file = '{}.log'.format(filename)
+    srwl_uti_save_text(text_to_save, status_text_file)
+
+    # Save JSON file for Sirepo:
+    status = {
+        'timestamp': timestamp,
+        'iteration_number': iteration_number,
+        'total_num_of_iterations': total_num_of_iterations,
+        'progress': progress,
+    }
+    status_json_file = '{}.json'.format(filename)
+    with open(status_json_file, 'w') as f:
+        json.dump(status, f, indent=4, separators=(',', ': '), sort_keys=True)
+
 def srwl_uti_save_text(_text, _file_path):
     with open(_file_path, 'a') as f:
         f.write(_text + '\n')
@@ -4151,19 +4185,11 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
            
             comMPI.Recv([workStokes.arS, MPI.FLOAT], source=MPI.ANY_SOURCE) #receive #an he (commented-out)
 
-            total_num_of_particles = nRecv * _n_part_avg_proc
-            current_num = nProc * (i + 1)
-            offset = len(str(total_num_of_particles))
-            srwl_uti_save_text(
-                '[{}]: Done {:{offset}d} out of {:{offset}d} ({:6.2f}% complete)'.format(
-                    '{:%Y-%m-%d %H:%M:%S}'.format(datetime.datetime.now()),
-                    current_num,
-                    total_num_of_particles,
-                    float(current_num) / float(total_num_of_particles) * 100.0,
-                    offset=offset,
-                ),
-                'srw_mpi.log'
-            )
+            # Save .log and .json files:  #MR20160907
+            total_num_of_iterations = nRecv * _n_part_avg_proc
+            iteration_number = nProc * (i + 1)
+            srwl_save_status(iteration_number, total_num_of_iterations)
+
             #DEBUG
             #srwl_uti_save_text("Received intensity # " + str(i), _file_path + ".er.dbg")
             #END DEBUG
