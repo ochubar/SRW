@@ -3499,42 +3499,63 @@ def srwl_uti_read_intens_ascii(_file_path, _num_type='f'):
     return array(_num_type, arInt), resMesh
 
 #**********************Auxiliary function to write auxiliary/debugging information to an ASCII files:
-def srwl_save_status(iteration_number, total_num_of_iterations, filename='srw_mpi'):  #MR20160907
+def srwl_save_status(  # #MR20160908
+        particle_number=0,
+        total_num_of_particles=0,
+        filename='srw_mpi',
+        cores=None,
+        particles_per_iteration=None
+):
     """The function to save .log and .json status files to monitor parallel MPI jobs progress.
 
-    :param iteration_number: current iteration number.
-    :param total_num_of_iterations: total number of iterations.
+    :param particle_number: current particle number.
+    :param total_num_of_particles: total number of particles.
+    :param filename: the name without extension used to save log/status files.
+    :param cores: number of cores used for parallel calculation.
+    :param particles_per_iteration: number of particles averaged per iteration (between mpi-receives).-
     :return: None.
     """
-    offset = len(str(total_num_of_iterations))
+    offset = len(str(total_num_of_particles))
     timestamp = '{:%Y-%m-%d %H:%M:%S}'.format(datetime.datetime.now())
-    progress = float(iteration_number) / float(total_num_of_iterations) * 100.0
+    progress = float(particle_number) / float(total_num_of_particles) * 100.0
+    status = 'Running' if progress < 100.0 else 'Finished'
 
     # Save a log file to monitor duration of calculations:
-    text_to_save = '[{}]: Done {:{offset}d} out of {:{offset}d} ({:6.2f}% complete)'.format(
-        timestamp,
-        iteration_number,
-        total_num_of_iterations,
-        progress,
-        offset=offset,
-    )
+    mode = 'a'
+    if particle_number == 0:
+        mode = 'w'
+        text_to_save = '[{}]: Calculation on {} cores with averaging of {} particles/iteration.'.format(
+            timestamp,
+            cores,
+            particles_per_iteration,
+        )
+    else:
+        text_to_save = '[{}]: {:8s} {:{offset}d} out of {:{offset}d} ({:6.2f}% complete)'.format(
+            timestamp,
+            status,
+            particle_number,
+            total_num_of_particles,
+            progress,
+            offset=offset,
+        )
     status_text_file = '{}.log'.format(filename)
-    srwl_uti_save_text(text_to_save, status_text_file)
+    srwl_uti_save_text(text_to_save, status_text_file, mode=mode)
 
     # Save JSON file for Sirepo:
     status = {
         'timestamp': timestamp,
-        'iteration_number': iteration_number,
-        'total_num_of_iterations': total_num_of_iterations,
+        'particle_number': particle_number,
+        'total_num_of_particles': total_num_of_particles,
         'progress': progress,
+        'status': status,
     }
     status_json_file = '{}.json'.format(filename)
     with open(status_json_file, 'w') as f:
         json.dump(status, f, indent=4, separators=(',', ': '), sort_keys=True)
 
-def srwl_uti_save_text(_text, _file_path):
-    with open(_file_path, 'a') as f:
-        f.write(_text + '\n')
+def srwl_uti_save_text(_text, _file_path, mode='a', newline='\n'):
+    with open(_file_path, mode) as f:
+        f.write(_text + newline)
 
 #**********************Auxiliary function to read-in data comumns from ASCII file (2D table):
 def srwl_uti_read_data_cols(_file_path, _str_sep, _i_col_start=0, _i_col_end=-1, _n_line_skip=0):
@@ -4177,6 +4198,10 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
         if(workStokes == None):
             workStokes = SRWLStokes(1, 'f', meshRes.eStart, meshRes.eFin, meshRes.ne, meshRes.xStart, meshRes.xFin, meshRes.nx, meshRes.yStart, meshRes.yFin, meshRes.ny, doMutual)
 
+        # Erase the contents of .log file:
+        total_num_of_particles = nRecv * _n_part_avg_proc
+        srwl_save_status(0, total_num_of_particles, cores=nProc, particles_per_iteration=_n_part_avg_proc)
+
         for i in range(nRecv): #loop over messages from workers
 
             #DEBUG
@@ -4186,9 +4211,8 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
             comMPI.Recv([workStokes.arS, MPI.FLOAT], source=MPI.ANY_SOURCE) #receive #an he (commented-out)
 
             # Save .log and .json files:  #MR20160907
-            total_num_of_iterations = nRecv * _n_part_avg_proc
-            iteration_number = nProc * (i + 1)
-            srwl_save_status(iteration_number, total_num_of_iterations)
+            particle_number = (i + 1) * _n_part_avg_proc
+            srwl_save_status(particle_number, total_num_of_particles)
 
             #DEBUG
             #srwl_uti_save_text("Received intensity # " + str(i), _file_path + ".er.dbg")
