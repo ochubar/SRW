@@ -458,10 +458,10 @@ def fwhm(x, y):
         if current_positive != positive:
             list_of_roots.append(x[i - 1] + (x[i] - x[i - 1]) / (abs(y[i]) + abs(y[i - 1])) * abs(y[i - 1]))
             positive = not positive
-    if len(list_of_roots) == 2:
-        return list_of_roots[1] - list_of_roots[0]
+    if len(list_of_roots) >= 2:
+        return abs(list_of_roots[-1] - list_of_roots[0])
     else:
-        raise Exception('Number of roots is more than 2!')
+        raise Exception('Number of roots is less than 2!')
 
 
 def fwhm_scipy(x, y):
