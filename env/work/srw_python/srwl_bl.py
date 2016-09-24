@@ -801,7 +801,7 @@ class SRWLBeamline(object):
         if hasattr(_v, 'fdir'): self.dir_main = _v.fdir
 
         #---setup electron beam
-        if hasattr(_v, 'ueb') or hasattr(_v, 'ebm_nm'):  # MR20160617 - user-defined beam for Sirepo
+        if hasattr(_v, 'ebm_ud') or hasattr(_v, 'ebm_nm'):  # MR20160617 - user-defined beam for Sirepo
             kwargs = {
                 '_e_beam_name': '',
                 '_i': _v.ebm_i if hasattr(_v, 'ebm_i') else -1,
@@ -815,36 +815,36 @@ class SRWLBeamline(object):
                 '_yp': _v.ebm_yp if hasattr(_v, 'ebm_yp') else 0,
                 '_dE': _v.ebm_de if hasattr(_v, 'ebm_de') else 0,
             }
-            if hasattr(_v, 'ueb') and _v.ueb:
+            if hasattr(_v, 'ebm_ud') and _v.ebm_ud:
                 user_defined_beam = SRWLPartBeam()
-                if _v.ueb_beam_definition == 't':
+                if _v.ebm_ud_beam_definition == 't':
                     user_defined_beam.from_Twiss(
-                        _e=_v.ueb_e,
-                        _sig_e=_v.ueb_sig_e,
-                        _emit_x=_v.ueb_emit_x,
-                        _beta_x=_v.ueb_beta_x,
-                        _alpha_x=_v.ueb_alpha_x,
-                        _eta_x=_v.ueb_eta_x,
-                        _eta_x_pr=_v.ueb_eta_x_pr,
-                        _emit_y=_v.ueb_emit_y,
-                        _beta_y=_v.ueb_beta_y,
-                        _alpha_y=_v.ueb_alpha_y,
-                        _eta_y=_v.ueb_eta_y,
-                        _eta_y_pr=_v.ueb_eta_y_pr
+                        _e=_v.ebm_ud_e,
+                        _sig_e=_v.ebm_ud_sig_e,
+                        _emit_x=_v.ebm_ud_emit_x,
+                        _beta_x=_v.ebm_ud_beta_x,
+                        _alpha_x=_v.ebm_ud_alpha_x,
+                        _eta_x=_v.ebm_ud_eta_x,
+                        _eta_x_pr=_v.ebm_ud_eta_x_pr,
+                        _emit_y=_v.ebm_ud_emit_y,
+                        _beta_y=_v.ebm_ud_beta_y,
+                        _alpha_y=_v.ebm_ud_alpha_y,
+                        _eta_y=_v.ebm_ud_eta_y,
+                        _eta_y_pr=_v.ebm_ud_eta_y_pr
                     )
-                elif _v.ueb_beam_definition == 'm':
+                elif _v.ebm_ud_beam_definition == 'm':
                     user_defined_beam.from_RMS(
-                        _e=_v.ueb_e,
-                        _sig_e=_v.ueb_sig_e,
-                        _sig_x=_v.ueb_rms_size_x,
-                        _sig_x_pr=_v.ueb_rms_diverg_x,
-                        _m_xx_pr=_v.ueb_xxpr_x,
-                        _sig_y=_v.ueb_rms_size_y,
-                        _sig_y_pr=_v.ueb_rms_diverg_y,
-                        _m_yy_pr=_v.ueb_xxpr_y
+                        _e=_v.ebm_ud_e,
+                        _sig_e=_v.ebm_ud_sig_e,
+                        _sig_x=_v.ebm_ud_rms_size_x,
+                        _sig_x_pr=_v.ebm_ud_rms_diverg_x,
+                        _m_xx_pr=_v.ebm_ud_xxpr_x,
+                        _sig_y=_v.ebm_ud_rms_size_y,
+                        _sig_y_pr=_v.ebm_ud_rms_diverg_y,
+                        _m_yy_pr=_v.ebm_ud_xxpr_y
                     )
                 else:
-                    raise AssertionError('{}: unknown ueb_beam_definition'.format(_v.ueb_beam_definition))
+                    raise AssertionError('{}: unknown ebm_ud_beam_definition'.format(_v.ebm_ud_beam_definition))
                 kwargs['_e_beam_name'] = ''
                 kwargs['_e_beam'] = user_defined_beam
             elif hasattr(_v, 'ebm_nm'):
