@@ -20,7 +20,7 @@ except:
     MPL_EXISTS = False
 
 from srwlib import *
-from uti_math import matr_prod
+from uti_math import matr_prod, fwhm
 
 print('SRWLIB Python Example # 15:')
 print('Calculating propagation of a gaussian beam through a drift and comparison with the analytical calculation.')
@@ -66,36 +66,6 @@ def Container(DriftLength, f_x, f_y):
     LensMatrY = [[1, 0], [-1.0 / f_y, 1]]
     opBL = SRWLOptC(OpElementContainer, OpElementContainerProp)
     return (opBL, LensMatrX, LensMatrY, DriftMatr)
-
-
-def FWHM(X, Y):
-    """The function searches x-values (roots) where y=0 based on linear interpolation, and calculates FWHM"""
-
-    def _isPositive(num):
-        return True if num > 0 else False
-
-    positive = _isPositive(Y[0])
-    list_of_roots = []
-    for i in range(len(Y)):
-        current_positive = _isPositive(Y[i])
-        if current_positive != positive:
-            list_of_roots.append(X[i - 1] + (X[i] - X[i - 1]) / (abs(Y[i]) + abs(Y[i - 1])) * abs(Y[i - 1]))
-            positive = not positive
-    if len(list_of_roots) == 2:
-        return list_of_roots[1] - list_of_roots[0]
-    else:
-        raise Exception('Number of roots is more than 2!')
-
-
-def FWHM_scipy(X, Y):
-    """Computing FWHM (Full width at half maximum)"""
-    try:
-        from scipy.interpolate import UnivariateSpline
-        spline = UnivariateSpline(X, Y, s=0)
-        r1, r2 = spline.roots()  # find the roots
-        return r2 - r1  # return the difference (full width)
-    except ImportError:
-        return FWHM(X, Y)
 
 
 def qParameter(PhotonEnergy, Waist, RadiusCurvature):
@@ -222,8 +192,8 @@ if __name__ == '__main__':
         for i in range(wfrP.mesh.ny):
             y.append((i - wfrP.mesh.ny / 2.0) / wfrP.mesh.ny * (wfrP.mesh.yFin - wfrP.mesh.yStart))
             arIyh.append(float(arIy[i] / arIymax - 0.5))
-        xRMS.append(FWHM(x, arIxh))
-        yRMS.append(FWHM(y, arIyh))
+        xRMS.append(fwhm(x, arIxh))
+        yRMS.append(fwhm(y, arIyh))
         s.append(InitialDist)
         (tRMSfunX, tRMSfunY) = BLMatrixMult(LensMatrX, LensMatrY, DriftMatr, DriftMatr0)
         WRx.append(tRMSfunX)
