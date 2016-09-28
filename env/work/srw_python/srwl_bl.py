@@ -59,50 +59,125 @@ class SRWLBeamline(object):
         self.optics = _op
 
     #------------------------------------------------------------------------
-    def set_e_beam(self, _e_beam_name='', _e_beam=None, _i=-1, _sig_e=-1, _emit_x=-1, _emit_y=-1, _drift=0, _x=0, _y=0, _xp=0, _yp=0, _dE=0):
+    def set_e_beam(self, _e_beam_name='', _e_beam=None, _i=-1, _ens=-1, _emx=-1, _emy=-1, _dr=0, _x=0, _y=0, _xp=0, _yp=0, _e=None, _de=0,
+                   _betax=None, _alphax=None, _etax=None, _etaxp=None, _betay=None, _alphay=None, _etay=0, _etayp=0,
+                   _sigx=None, _sigxp=None, _mxxp=None, _sigy=None, _sigyp=None, _myyp=None):
         """Setup Electron Beam
+
         :param _e_beam_name: e-beam unique name, e.g. 'NSLS-II Low Beta Day 1' (see srwl_uti_src.py)
         :param _e_beam: e-beam structure (SRWLPartBeam instance)
         :param _i: e-beam current [A]
-        :param _sig_e: e-beam relative energy spread
-        :param _emit_x: e-beam horizontal emittance
-        :param _emit_y: e-beam vertical emittance
-        :param _drift: e-beam drift length in [m] from center of straight section
+        :param _ens: e-beam relative energy spread
+        :param _emx: e-beam horizontal emittance
+        :param _emy: e-beam vertical emittance
+        :param _dr: e-beam drift length in [m] from center of straight section
         :param _x: initial average horizontal position [m]
         :param _y: initial average vertical position [m]
         :param _xp: initial average horizontal angle [m]
         :param _yp: initial average vertical angle [m]
-        :param _dE0: average energy deviation [GeV]
+        :param _e: energy [GeV]
+        :param _de: average energy deviation [GeV]
+
+        #MR28092016 - added parameters to define the beam explicitly:
+        # Parameters for SRWLPartBeam.from_Twiss():
+        # def from_Twiss(self, _Iavg=0, _e=0, _sig_e=0, _emit_x=0, _beta_x=0, _alpha_x=0, _eta_x=0, _eta_x_pr=0, _emit_y=0, _beta_y=0, _alpha_y=0, _eta_y=0, _eta_y_pr=0):
+        :param _betax: horizontal beta-function [m]
+        :param _alphax: horizontal alpha-function [rad]
+        :param _etax: horizontal dispersion function [m]
+        :param _etaxp: horizontal dispersion function derivative [rad]
+        :param _betay: vertical beta-function [m]
+        :param _alphay: vertical alpha-function [rad]
+        :param _etay: vertical dispersion function [m]
+        :param _etayp: vertical dispersion function derivative [rad]
+
+        # Parameters for SRWLPartBeam.from_RMS():
+        # def from_RMS(self, _Iavg=0, _e=0, _sig_e=0, _sig_x=0, _sig_x_pr=0, _m_xx_pr=0, _sig_y=0, _sig_y_pr=0, _m_yy_pr=0):
+        :param _sigx: horizontal RMS size [m]
+        :param _sigxp: horizontal RMS divergence [rad]
+        :param _mxxp: <(x-<x>)(x'-<x'>)> [m]
+        :param _sigy: vertical RMS size [m]
+        :param _sigyp: vertical RMS divergence [rad]
+        :param _myyp: <(y-<y>)(y'-<y'>)> [m]
         """
         #add more parameters when/if necessary
 
-        if(_sig_e < 0.): _sig_e = None
-        if(_emit_x < 0.): _emit_x = None
-        if(_emit_y < 0.): _emit_y = None
+        varParamStd = srwl_uti_std_options()
+        help_dict = {}
+        for v in varParamStd:
+            help_dict[v[0]] = '{}{}'.format(v[3][0].upper(), v[3][1:])
+
+        def check_positive(d):
+            for k, v in d.items():
+                if v is None or v < 0:
+                    return False, k
+            return True, None
+
+        if(_ens < 0.): _ens = None
+        if(_emx < 0.): _emx = None
+        if(_emy < 0.): _emy = None
 
         sIncInpElecBeam = 'Incorrect input for setting up Electron Beam structure'
-        if(len(_e_beam_name) > 0):
-            self.eBeam = srwl_uti_src_e_beam(_e_beam_name, _sig_e=_sig_e, _emit_x=_emit_x, _emit_y=_emit_y)
-            if(self.eBeam == None):
-                if((_e_beam == None) or (isinstance(_e_beam, SRWLPartBeam) == False)):
-                    raise Exception(sIncInpElecBeam)
-                else: self.eBeam = _e_beam
+        if len(_e_beam_name) > 0:
+            self.eBeam = srwl_uti_src_e_beam(_e_beam_name, _sig_e=_ens, _emit_x=_emx, _emit_y=_emy)
+            if self.eBeam is None:
+                if (_e_beam is None) or (isinstance(_e_beam, SRWLPartBeam) is False):
+                    # raise ValueError(sIncInpElecBeam)
+                    raise ValueError('The beam name "{}" was not found in the database and _e_beam is empty'.format(_e_beam_name))
+                else:
+                    self.eBeam = _e_beam
         else:
-            if((_e_beam == None) or (isinstance(_e_beam, SRWLPartBeam) == False)):
-                raise Exception(sIncInpElecBeam)
-            else: self.eBeam = _e_beam
+            if (_e_beam is None) or (isinstance(_e_beam, SRWLPartBeam) is False):
+                # Explicitly defined beam (not from the database):
+                beam_inputs = {'_i': _i, '_e': _e, '_ens': _ens}
+                beam_check, beam_bad_var = check_positive(beam_inputs)
+                if beam_check:
+                    twiss_inputs = {'_emx': _emx, '_betax': _betax, '_alphax': _alphax, '_etax': _etax, '_etaxp': _etaxp,
+                                    '_emy': _emy, '_betay': _betay, '_alphay': _alphay, '_etay': _etay, '_etayp': _etayp}
+                    moments_inputs = {'_sigx': _sigx, '_sigxp': _sigxp, '_mxxp': _mxxp,
+                                      '_sigy': _sigy, '_sigyp': _sigyp, '_myyp': _myyp}
+                    twiss_check, twiss_bad_var = check_positive(twiss_inputs)
+                    moments_check, moments_bad_var = check_positive(moments_inputs)
+                    if twiss_check:
+                        # Defined by Twiss parameters:
+                        self.eBeam.from_Twiss(
+                            _Iavg=_i, _e=_e, _sig_e=_ens,
+                            _emit_x=_emx, _beta_x=_betax, _alpha_x=_alphax, _eta_x=_etax, _eta_x_pr=_etaxp,
+                            _emit_y=_emy, _beta_y=_betay, _alpha_y=_alphay, _eta_y=_etay, _eta_y_pr=_etayp,
+                        )
+                    elif moments_check:
+                        # Defined by Moments:
+                        self.eBeam.from_RMS(
+                            _Iavg=_i, _e=_e, _sig_e=_ens,
+                            _sig_x=_sigx, _sig_x_pr=_sigxp, _m_xx_pr=_mxxp,
+                            _sig_y=_sigy, _sig_y_pr=_sigyp, _m_yy_pr=_myyp,
+                        )
+                    else:
+                        # raise ValueError(sIncInpElecBeam)
+                        err_msg = 'Twiss and/or Moments parameters are not set correctly:\n  - {} ({}): {}\n  - {} ({}): {}\n'
+                        raise ValueError(err_msg.format(
+                            help_dict['ebm{}'.format(twiss_bad_var)], twiss_bad_var, twiss_inputs[twiss_bad_var],
+                            help_dict['ebm{}'.format(moments_bad_var)], moments_bad_var, moments_inputs[moments_bad_var],
+                        ))
+                else:
+                    # raise ValueError(sIncInpElecBeam)
+                    err_msg = 'Beam parameters are not set correctly:\n  - {} ({}): {}\n'
+                    raise ValueError(err_msg.format(
+                        help_dict['ebm{}'.format(beam_bad_var)], beam_bad_var, beam_inputs[beam_bad_var],
+                    ))
+            else:
+                self.eBeam = _e_beam
 
         if(_i > 0): self.eBeam.Iavg = _i
-        if(_drift != 0): self.eBeam.drift(_drift)
+        if(_dr != 0): self.eBeam.drift(_dr)
         self.eBeam.partStatMom1.x = _x
         self.eBeam.partStatMom1.y = _y
         self.eBeam.partStatMom1.xp = _xp
         self.eBeam.partStatMom1.yp = _yp
         
-        if(_dE != 0):
+        if(_de != 0):
             elRestMassGeV = 0.51099890221e-03
             curE0 = self.eBeam.partStatMom1.gamma*self.eBeam.partStatMom1.relE0*elRestMassGeV
-            self.eBeam.partStatMom1.gamma = (curE0 + _dE)/(self.eBeam.partStatMom1.relE0*elRestMassGeV)
+            self.eBeam.partStatMom1.gamma = (curE0 + _de)/(self.eBeam.partStatMom1.relE0*elRestMassGeV)
 
     #------------------------------------------------------------------------
     def set_und_sin(self, _per=0.02, _len=1, _bx=0, _by=0, _phx=0, _phy=0, _sx=1, _sy=1, _zc=0, _add=0):
@@ -801,6 +876,40 @@ class SRWLBeamline(object):
         if hasattr(_v, 'fdir'): self.dir_main = _v.fdir
 
         #---setup electron beam
+        if hasattr(_v, 'ebm_nm'): #MR28092016
+            self.set_e_beam(
+                _e_beam_name=(_v.ebm_nm + _v.ebm_nms),
+                _e_beam=None,
+                _i=_v.ebm_i,
+                _ens=_v.ebm_ens,
+                _emx=_v.ebm_emx,
+                _emy=_v.ebm_emy,
+                _dr=_v.ebm_dr,
+                _x=_v.ebm_x,
+                _y=_v.ebm_y,
+                _xp=_v.ebm_xp,
+                _yp=_v.ebm_yp,
+                _e=_v.ebm_e,
+                _de=_v.ebm_de,
+                # Twiss parameters:
+                _betax=_v.ebm_betax,
+                _alphax=_v.ebm_alphax,
+                _etax=_v.ebm_etax,
+                _etaxp=_v.ebm_etaxp,
+                _betay=_v.ebm_betay,
+                _alphay=_v.ebm_alphay,
+                _etay=_v.ebm_etay,
+                _etayp=_v.ebm_etayp,
+                # Moments:
+                _sigx=_v.ebm_sigx,
+                _sigxp=_v.ebm_sigxp,
+                _mxxp=_v.ebm_mxxp,
+                _sigy=_v.ebm_sigy,
+                _sigyp=_v.ebm_sigyp,
+                _myyp=_v.ebm_myyp,
+            )
+
+        '''
         if hasattr(_v, 'ebm_ud') or hasattr(_v, 'ebm_nm'):  # MR20160617 - user-defined beam for Sirepo
             kwargs = {
                 '_e_beam_name': '',
@@ -851,6 +960,7 @@ class SRWLBeamline(object):
                 kwargs['_e_beam_name'] = _v.ebm_nm + _v.ebm_nms
 
             self.set_e_beam(**kwargs)
+        '''
             #print('e-beam was set up')
 
         #---setup magnetic field: undulator, sinusoidal approximation
@@ -1269,7 +1379,39 @@ def srwl_uti_std_options():
         [4]: optional string describing formal action to be taken if option is fired
     """
     varParamStd = [
-#---Undulator
+        # ---Electron Beam
+        ['ebm_nm', 's', 'NSLS-II Low Beta ', 'standard electron beam name'],
+        ['ebm_nms', 's', 'Day1', 'standard electron beam name suffix: e.g. can be Day1, Final'],
+        ['ebm_i', 'f', 0.5, 'electron beam current [A]'],
+        ['ebm_e', 'f', 3., 'electron beam avarage energy [GeV]'],
+        ['ebm_de', 'f', 0., 'electron beam average energy deviation [GeV]'],
+        ['ebm_x', 'f', 0., 'electron beam initial average horizontal position [m]'],
+        ['ebm_y', 'f', 0., 'electron beam initial average vertical position [m]'],
+        ['ebm_xp', 'f', 0., 'electron beam initial average horizontal angle [rad]'],
+        ['ebm_yp', 'f', 0., 'electron beam initial average vertical angle [rad]'],
+        # ['ebm_z', 'f', 0., 'electron beam initial average longitudinal position [m]'], #it is always assumed to be 0.
+        ['ebm_dr', 'f', 0., 'electron beam longitudinal drift [m] to be performed before a required calculation'],
+        ['ebm_ens', 'f', -1, 'electron beam relative energy spread'],
+        ['ebm_emx', 'f', -1, 'electron beam horizontal emittance [m]'],
+        ['ebm_emy', 'f', -1, 'electron beam vertical emittance [m]'],
+        # Definition of the beam through Moments:
+        ['ebm_betax', 'f', None, 'horizontal beta-function [m]'],
+        ['ebm_alphax', 'f', None, 'horizontal alpha-function [rad]'],
+        ['ebm_etax', 'f', None, 'horizontal dispersion function [m]'],
+        ['ebm_etaxp', 'f', None, 'horizontal dispersion function derivative [rad]'],
+        ['ebm_betay', 'f', None, 'vertical beta-function [m]'],
+        ['ebm_alphay', 'f', None, 'vertical alpha-function [rad]'],
+        ['ebm_etay', 'f', None, 'vertical dispersion function [m]'],
+        ['ebm_etayp', 'f', None, 'vertical dispersion function derivative [rad]'],
+        # Definition of the beam through Moments:
+        ['ebm_sigx', 'f', None, 'horizontal RMS size of electron beam [m]'],
+        ['ebm_sigy', 'f', None, 'vertical RMS size of electron beam [m]'],
+        ['ebm_sigxp', 'f', None, 'horizontal RMS angular divergence of electron beam [rad]'],
+        ['ebm_sigyp', 'f', None, 'vertical RMS angular divergence of electron beam [rad]'],
+        ['ebm_mxxp', 'f', None, 'horizontal position-angle mixed 2nd order moment of electron beam [m]'],
+        ['ebm_myyp', 'f', None, 'vertical position-angle mixed 2nd order moment of electron beam [m]'],
+
+        #---Undulator
         ['und_mdir', 's', 'magn_meas', 'name of magnetic measurements sub-folder'],
         ['und_g', 'f', 0., 'undulator gap [mm] (assumes availability of magnetic measurement or simulation data)'],
         ['und_b2e', '', '', 'estimate undulator fundamental photon energy (in [eV]) for the amplitude of sinusoidal magnetic field defined by und_b or und_bx, und_by', 'store_true'],
