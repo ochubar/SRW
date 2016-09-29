@@ -3658,7 +3658,7 @@ def srwl_uti_read_intens_ascii(_file_path, _num_type='f'):
     return array(_num_type, arInt), resMesh
 
 #**********************Auxiliary function to write auxiliary/debugging information to an ASCII files:
-def srwl_save_status(  # #MR20160908
+def srwl_uti_save_status_mpi(  # #MR20160908
         particle_number=0,
         total_num_of_particles=0,
         filename='srw_mpi',
@@ -4359,7 +4359,7 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
 
         # Erase the contents of .log file:
         total_num_of_particles = nRecv * _n_part_avg_proc
-        srwl_save_status(0, total_num_of_particles, cores=nProc, particles_per_iteration=_n_part_avg_proc)
+        srwl_uti_save_status_mpi(0, total_num_of_particles, cores=nProc, particles_per_iteration=_n_part_avg_proc)
 
         for i in range(nRecv): #loop over messages from workers
 
@@ -4371,7 +4371,7 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
 
             # Save .log and .json files:  #MR20160907
             particle_number = (i + 1) * _n_part_avg_proc
-            srwl_save_status(particle_number, total_num_of_particles)
+            srwl_uti_save_status_mpi(particle_number, total_num_of_particles)
 
             #DEBUG
             #srwl_uti_save_text("Received intensity # " + str(i), _file_path + ".er.dbg")
