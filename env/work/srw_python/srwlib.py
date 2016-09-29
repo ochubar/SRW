@@ -2932,6 +2932,28 @@ def srwl_opt_setup_mask(_delta, _atten_len, _thick,
     :param _mask_y0: vertical coordinate of the mask [m]
     :return: transmission (SRWLOptT) type optical element which simulates the PMA
     """
+
+    input_parms = { #MR29092016: Added all input parameters to include in return object:
+        "type": "mask",
+        "refractiveIndex": _delta,
+        "attenuationLength": _atten_len,
+        "maskThickness": _thick,
+        "gridShape": _grid_sh,
+        "horizontalGridDimension": _grid_dx,
+        "verticalGridDimension": _grid_dy,
+        "horizontalGridPitch": _pitch_x,
+        "verticalGridPitch": _pitch_y,
+        "horizontalGridsNumber": _grid_nx,
+        "verticalGridsNumber": _grid_ny,
+        "horizontalPixelsNumber": _mask_Nx,
+        "verticalPixelsNumber": _mask_Ny,
+        "gridTiltAngle": _grid_angle,
+        "horizontalSamplingInterval": _hx,
+        "verticalSamplingInterval": _mask_Ny,
+        "horizontalMaskCoordinate": _mask_x0,
+        "verticalMaskCoordinate": _mask_y0,
+    }
+
     # Check if _grid_dy is set by user.
     if _grid_dy == 0:
         _grid_dy = _grid_dx  # An ellipse becomes a circle and a rectangle becomes a square.
@@ -3039,6 +3061,8 @@ def srwl_opt_setup_mask(_delta, _atten_len, _thick,
 
         # Step y by _hy.
         y += _hy
+
+    trans_opt.input_parms = input_parms #MR29092016
 
     return trans_opt
 
