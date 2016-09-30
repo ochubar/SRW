@@ -1869,7 +1869,7 @@ def srwl_uti_std_options():
         ['ebm_ens', 'f', -1, 'electron beam relative energy spread'],
         ['ebm_emx', 'f', -1, 'electron beam horizontal emittance [m]'],
         ['ebm_emy', 'f', -1, 'electron beam vertical emittance [m]'],
-        # Definition of the beam through Moments: #MR28092016
+        # Definition of the beam through Twiss: #MR28092016
         ['ebm_betax', 'f', None, 'horizontal beta-function [m]'], #OC: re-check the default values
         ['ebm_alphax', 'f', None, 'horizontal alpha-function [rad]'],
         ['ebm_etax', 'f', None, 'horizontal dispersion function [m]'],
