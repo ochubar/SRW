@@ -1036,23 +1036,28 @@ int srTDriftSpace::PropagateRadiationSimple_NumIntFresnel(srTSRWRadStructAccessD
 	double *arReFzVsZ = new double[pRadAccessData->nz];
 	double *arImFzVsZ = new double[pRadAccessData->nz];
 
-	long nTot = 2*(pRadAccessData->ne)*(pRadAccessData->nx)*(pRadAccessData->nz);
+	//long nTot = 2*(pRadAccessData->ne)*(pRadAccessData->nx)*(pRadAccessData->nz);
+	long long nTot = (((long long)(pRadAccessData->ne))*((long long)(pRadAccessData->nx))*((long long)(pRadAccessData->nz))) << 1;
 	float *arAuxEx=0, *arAuxEz=0;
 	if(pRadAccessData->pBaseRadX != 0)
 	{
 		arAuxEx = new float[nTot];
 		float *t = pRadAccessData->pBaseRadX, *tAux = arAuxEx;
-		for(long i = 0; i < nTot; i++) *(tAux++) = *(t++);
+		//for(long i = 0; i < nTot; i++) *(tAux++) = *(t++);
+		for(long long i = 0; i < nTot; i++) *(tAux++) = *(t++);
 	}
 	if(pRadAccessData->pBaseRadZ != 0)
 	{
 		arAuxEz = new float[nTot];
 		float *t = pRadAccessData->pBaseRadZ, *tAux = arAuxEz;
-		for(long i = 0; i < nTot; i++) *(tAux++) = *(t++);
+		//for(long i = 0; i < nTot; i++) *(tAux++) = *(t++);
+		for(long long i = 0; i < nTot; i++) *(tAux++) = *(t++);
 	}
 
-	long perX = pRadAccessData->ne << 1;
-	long perZ = perX*pRadAccessData->nx;
+	//long perX = pRadAccessData->ne << 1;
+	//long perZ = perX*pRadAccessData->nx;
+	long long perX = pRadAccessData->ne << 1;
+	long long perZ = perX*pRadAccessData->nx;
 
 	double invL = 1./Length;
 
@@ -1062,11 +1067,13 @@ int srTDriftSpace::PropagateRadiationSimple_NumIntFresnel(srTSRWRadStructAccessD
 		double pi_d_lambda_m = ePh*2.533865612E+06;
 		double invPiLambda_m = ePh*invL*0.80655447456E+06;
 
-		long iePerE = ie << 1;
+		//long iePerE = ie << 1;
+		long long iePerE = ie << 1;
 		double z = pRadAccessData->zStart;
 		for(long iz=0; iz<pRadAccessData->nz; iz++)
 		{
-			long izPerZ = iz*perZ;
+			//long izPerZ = iz*perZ;
+			long long izPerZ = iz*perZ;
 			double x = pRadAccessData->xStart;
 			for(long ix=0; ix<pRadAccessData->nx; ix++)
 			{			
@@ -1076,7 +1083,8 @@ int srTDriftSpace::PropagateRadiationSimple_NumIntFresnel(srTSRWRadStructAccessD
 					double dz = (z1 - z);
 					double dze2 = dz*dz;
 
-					long iz1PerZ = iz1*perZ;
+					//long iz1PerZ = iz1*perZ;
+					long long iz1PerZ = iz1*perZ;
 					double x1 = pRadAccessData->xStart;
 					for(long ix1=0; ix1<pRadAccessData->nx; ix1++)
 					{
@@ -1087,8 +1095,10 @@ int srTDriftSpace::PropagateRadiationSimple_NumIntFresnel(srTSRWRadStructAccessD
 						double phase = pi_d_lambda_m*quadTerm*(1. - 0.25*a + 0.125*a*a);
 						double cosPh = cos(phase), sinPh = sin(phase);
 
-						long ix1PerX = ix1*perX;
-						long ofst1 = iz1PerZ + ix1PerX + iePerE;
+						//long ix1PerX = ix1*perX;
+						//long ofst1 = iz1PerZ + ix1PerX + iePerE;
+						long long ix1PerX = ix1*perX;
+						long long ofst1 = iz1PerZ + ix1PerX + iePerE;
 						float *pEx1 = arAuxEx + ofst1;
 						float *pEz1 = arAuxEz + ofst1;
 
@@ -1119,8 +1129,10 @@ int srTDriftSpace::PropagateRadiationSimple_NumIntFresnel(srTSRWRadStructAccessD
 					z1 += pRadAccessData->zStep;
 				}
 
-				long ixPerX = ix*perX;
-				long ofst = izPerZ + ixPerX + iePerE;
+				//long ixPerX = ix*perX;
+				//long ofst = izPerZ + ixPerX + iePerE;
+				long long ixPerX = ix*perX;
+				long long ofst = izPerZ + ixPerX + iePerE;
 				float *pEx = pRadAccessData->pBaseRadX + ofst;
 				float *pEz = pRadAccessData->pBaseRadZ + ofst;
 
@@ -1173,14 +1185,16 @@ int srTDriftSpace::PropagateRadiationSimple1D_PropToWaist(srTRadSect1D* pSect1D)
 	double InvLambda_m_d_Length = InvLambda_m/Length;
 	double LambdaM_Length = 1./InvLambda_m_d_Length;
 
-	long TwoNp = pSect1D->np << 1;
+	//long TwoNp = pSect1D->np << 1;
+	long long TwoNp = pSect1D->np << 1;
 	float *AuxCont = new float[TwoNp << 1];
 	if(AuxCont == 0) return MEMORY_ALLOCATION_FAILURE;
 
 	float *pAuxX = AuxCont, *pAuxZ = AuxCont + TwoNp;
 	float *tAuxX = pAuxX, *tAuxZ = pAuxZ;
 	float *tEx = pSect1D->pEx, *tEz = pSect1D->pEz;
-	for(long i=0; i<TwoNp; i++)
+	//for(long i=0; i<TwoNp; i++)
+	for(long long i=0; i<TwoNp; i++)
 	{
 		*(tAuxX++) = *(tEx++); 
 		*(tAuxZ++) = *(tEz++);

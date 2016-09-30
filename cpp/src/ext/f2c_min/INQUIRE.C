@@ -13,7 +13,8 @@ integer f_inqu(a) inlist *a;
 integer f_inqu(inlist *a)
 #endif
 {	flag byfile;
-	int i, n;
+	//int i, n;
+	int i; //, n; //OC29032016
 	unit *p;
 	char buf[256];
 	long x;

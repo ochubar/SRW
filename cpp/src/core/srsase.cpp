@@ -629,7 +629,8 @@ int srTSASE::Alloc_tslipcom(int nWfr, int nSlip)
 	//if((tslipcom_.crtime = new f2c_doublecomplex[n1]) == NULL) return MEMORY_ALLOCATION_FAILURE_SASE; ZeroArr(tslipcom_.crtime, n1);
 	
 	//long totSize = nWfr*nWfr*(nSlip + 3);
-	long totSize = nWfr*nWfr*(nSlip + 3)*NHMAX;
+	//long totSize = nWfr*nWfr*(nSlip + 3)*NHMAX;
+	long long totSize = ((long long)nWfr)*((long long)nWfr)*(nSlip + 3)*NHMAX;
 	if((tslipcom_.crtime = new f2c_doublecomplex[totSize]) == NULL) return MEMORY_ALLOCATION_FAILURE_SASE; 
 	ZeroArr(tslipcom_.crtime, totSize);
 	return 0;
@@ -3161,15 +3162,20 @@ int srTSASE::readfield_srw(f2c_doublecomplex* cin, f2c_integer* irec)
 	double xzStart = -0.5*Dmax;
 	int nz_srw_mi_1 = SeedRad.nz - 1, nx_srw_mi_1 = SeedRad.nx - 1;
 
-	long perT = 2;
-	long perX = perT*SeedRad.ne;
-	long perZ = perX*SeedRad.nx;
+	//long perT = 2;
+	//long perX = perT*SeedRad.ne;
+	//long perZ = perX*SeedRad.nx;
+	long long perT = 2;
+	long long perX = perT*SeedRad.ne;
+	long long perZ = perX*SeedRad.nx;
 	float *pEX0 = SeedRad.pBaseRadX;
 	float *pEZ0 = SeedRad.pBaseRadZ;
 	double ReEX_srw_interp = 0, ImEX_srw_interp = 0, ReEZ_srw_interp = 0, ImEZ_srw_interp = 0;
 
-	long perT_it0_srw = perT*it0_srw;
-	long perT_it1_srw = perT*it1_srw;
+	//long perT_it0_srw = perT*it0_srw;
+	//long perT_it1_srw = perT*it1_srw;
+	long long perT_it0_srw = perT*it0_srw;
+	long long perT_it1_srw = perT*it1_srw;
 
 	double z_genesis = xzStart - xzStep;
 	for(int iz=0; iz<inputcom_1.ncar; iz++)
@@ -3180,8 +3186,10 @@ int srTSASE::readfield_srw(f2c_doublecomplex* cin, f2c_integer* irec)
 		double rz = (z_genesis - (SeedRad.zStart + iz0_srw*SeedRad.zStep))/SeedRad.zStep; //0 <= rz <= 1
 		int iz1_srw = iz0_srw + 1;
 
-		long perZ_iz0_srw = perZ*iz0_srw;
-		long perZ_iz1_srw = perZ*iz1_srw;
+		//long perZ_iz0_srw = perZ*iz0_srw;
+		//long perZ_iz1_srw = perZ*iz1_srw;
+		long long perZ_iz0_srw = perZ*iz0_srw;
+		long long perZ_iz1_srw = perZ*iz1_srw;
 
 		//f2c_doublecomplex *p_cin_p_1_p_Ncar_iz = cin + (1 + Ncar*iz);
 		f2c_doublecomplex *p_cin_p_Ncar_iz = cin + (Ncar*iz);
@@ -3204,25 +3212,43 @@ int srTSASE::readfield_srw(f2c_doublecomplex* cin, f2c_integer* irec)
 				double rx = (x_genesis - (SeedRad.xStart + ix0_srw*SeedRad.xStep))/SeedRad.xStep; //0 <= rz <= 1
 				int ix1_srw = ix0_srw + 1;
 
-				long perX_ix0_srw = perX*ix0_srw;
-				long perX_ix1_srw = perX*ix1_srw;
+				//long perX_ix0_srw = perX*ix0_srw;
+				//long perX_ix1_srw = perX*ix1_srw;
+				long long perX_ix0_srw = perX*ix0_srw;
+				long long perX_ix1_srw = perX*ix1_srw;
 
-				long of000 = perZ_iz0_srw + perX_ix0_srw + perT_it0_srw;
-				long of100 = perZ_iz0_srw + perX_ix0_srw + perT_it1_srw;
-				long of010 = perZ_iz0_srw + perX_ix1_srw + perT_it0_srw;
-				long of001 = perZ_iz1_srw + perX_ix0_srw + perT_it0_srw;
-				long of110 = perZ_iz0_srw + perX_ix1_srw + perT_it1_srw;
-				long of101 = perZ_iz1_srw + perX_ix0_srw + perT_it1_srw;
-				long of011 = perZ_iz1_srw + perX_ix1_srw + perT_it0_srw;
-				long of111 = perZ_iz1_srw + perX_ix1_srw + perT_it1_srw;
-				long of000p = of000 + 1;
-				long of100p = of100 + 1;
-				long of010p = of010 + 1;
-				long of001p = of001 + 1;
-				long of110p = of110 + 1;
-				long of101p = of101 + 1;
-				long of011p = of011 + 1;
-				long of111p = of111 + 1;
+				//long of000 = perZ_iz0_srw + perX_ix0_srw + perT_it0_srw;
+				//long of100 = perZ_iz0_srw + perX_ix0_srw + perT_it1_srw;
+				//long of010 = perZ_iz0_srw + perX_ix1_srw + perT_it0_srw;
+				//long of001 = perZ_iz1_srw + perX_ix0_srw + perT_it0_srw;
+				//long of110 = perZ_iz0_srw + perX_ix1_srw + perT_it1_srw;
+				//long of101 = perZ_iz1_srw + perX_ix0_srw + perT_it1_srw;
+				//long of011 = perZ_iz1_srw + perX_ix1_srw + perT_it0_srw;
+				//long of111 = perZ_iz1_srw + perX_ix1_srw + perT_it1_srw;
+				//long of000p = of000 + 1;
+				//long of100p = of100 + 1;
+				//long of010p = of010 + 1;
+				//long of001p = of001 + 1;
+				//long of110p = of110 + 1;
+				//long of101p = of101 + 1;
+				//long of011p = of011 + 1;
+				//long of111p = of111 + 1;
+				long long of000 = perZ_iz0_srw + perX_ix0_srw + perT_it0_srw;
+				long long of100 = perZ_iz0_srw + perX_ix0_srw + perT_it1_srw;
+				long long of010 = perZ_iz0_srw + perX_ix1_srw + perT_it0_srw;
+				long long of001 = perZ_iz1_srw + perX_ix0_srw + perT_it0_srw;
+				long long of110 = perZ_iz0_srw + perX_ix1_srw + perT_it1_srw;
+				long long of101 = perZ_iz1_srw + perX_ix0_srw + perT_it1_srw;
+				long long of011 = perZ_iz1_srw + perX_ix1_srw + perT_it0_srw;
+				long long of111 = perZ_iz1_srw + perX_ix1_srw + perT_it1_srw;
+				long long of000p = of000 + 1;
+				long long of100p = of100 + 1;
+				long long of010p = of010 + 1;
+				long long of001p = of001 + 1;
+				long long of110p = of110 + 1;
+				long long of101p = of101 + 1;
+				long long of011p = of011 + 1;
+				long long of111p = of111 + 1;
 
 				if(pEX0 != 0)
 				{
@@ -3660,25 +3686,33 @@ int srTSASE::FillInSRWRadStruct(srTSRWRadStructAccessData& RadAccessData)
 	double MultForE = RadFieldMultip(); // this is in compliance with SRW
 
 	float *pEx0 = RadAccessData.pBaseRadX, *pEz0 = RadAccessData.pBaseRadZ;
-	long PerX = 2;
-	long PerZ = PerX*RadAccessData.nx;
-	long PerZ_CR = Ncar;
+	//long PerX = 2;
+	//long PerZ = PerX*RadAccessData.nx;
+	//long PerZ_CR = Ncar;
+	long long PerX = 2;
+	long long PerZ = PerX*RadAccessData.nx;
+	long long PerZ_CR = Ncar;
 
 	f2c_doublecomplex *pCRFIELD_0 = cartcom_1.crfield;
 
 	for(long iz=0; iz<(Ncar - 1); iz++)
 	{
-		long izPerZ = iz*PerZ;
-		long izPerZ_CR = iz*PerZ_CR;
+		//long izPerZ = iz*PerZ;
+		//long izPerZ_CR = iz*PerZ_CR;
+		long long izPerZ = iz*PerZ;
+		long long izPerZ_CR = iz*PerZ_CR;
 
 		for(long ix=0; ix<(Ncar - 1); ix++)
 		{//skip internal loop over e since only 1 energy slice is assumed here
-			long ixPerX = ix*PerX;
+			//long ixPerX = ix*PerX;
+			long long ixPerX = ix*PerX;
 
-			long Offset = izPerZ + ixPerX;
+			//long Offset = izPerZ + ixPerX;
+			long long Offset = izPerZ + ixPerX;
 			float *pEx = pEx0 + Offset, *pEz = pEz0 + Offset;
 
-			long OffsetCR = izPerZ_CR + ix;
+			//long OffsetCR = izPerZ_CR + ix;
+			long long OffsetCR = izPerZ_CR + ix;
 			f2c_doublecomplex *pCRFIELD = pCRFIELD_0 + OffsetCR;
 
 			if(IsPlanar) // fill horizontal
@@ -3721,14 +3755,20 @@ int srTSASE::CopyRadSliceToSRWRadStructTD(int iSlice, srTSRWRadStructAccessData*
 	//double MultForE = RadFieldMultip(); // this is in compliance with SRW
 	double MultForE = 1./TDElecFieldConvConstSRW2GENESIS(); // this will give TD Electric field in sqrt(W/mm^2) in SRW
 
-	long PerZ_CR = Ncar;
-	long PerHarm_CR = PerZ_CR*Ncar;
+	//long PerZ_CR = Ncar;
+	//long PerHarm_CR = PerZ_CR*Ncar;
+	long long PerZ_CR = Ncar;
+	long long PerHarm_CR = PerZ_CR*Ncar;
 
-	long PerT = 2;
-	long PerX = PerT*(arRadAccessData->ne); //same for all harmonics
-	long PerZ = PerX*(arRadAccessData->nx);
+	//long PerT = 2;
+	//long PerX = PerT*(arRadAccessData->ne); //same for all harmonics
+	//long PerZ = PerX*(arRadAccessData->nx);
+	long long PerT = 2;
+	long long PerX = PerT*(arRadAccessData->ne); //same for all harmonics
+	long long PerZ = PerX*(arRadAccessData->nx);
 	int it = iSlice - 1;
-	long itPerT = it*PerT;
+	//long itPerT = it*PerT;
+	long long itPerT = it*PerT;
 
 	f2c_doublecomplex *pCRFIELD_0 = cartcom_1.crfield;
 
@@ -3737,22 +3777,29 @@ int srTSASE::CopyRadSliceToSRWRadStructTD(int iSlice, srTSRWRadStructAccessData*
 	for(int iHarm=0; iHarm<numHarm; iHarm++)
 	{
 		float *pEx0 = t_arRad->pBaseRadX, *pEz0 = t_arRad->pBaseRadZ;
-		long iHarmPerHarm_CR = iHarm*PerHarm_CR;
+		//long iHarmPerHarm_CR = iHarm*PerHarm_CR;
+		long long iHarmPerHarm_CR = iHarm*PerHarm_CR;
 
 		for(long iz=0; iz<(Ncar - 1); iz++)
 		{
-			long izPerZ_p_itPerT = iz*PerZ + itPerT;
-			long izPerZ_CR = iz*PerZ_CR;
-			long iHarmPerHarm_p_izPerZ_CR = iHarmPerHarm_CR + izPerZ_CR;
+			//long izPerZ_p_itPerT = iz*PerZ + itPerT;
+			//long izPerZ_CR = iz*PerZ_CR;
+			//long iHarmPerHarm_p_izPerZ_CR = iHarmPerHarm_CR + izPerZ_CR;
+			long long izPerZ_p_itPerT = iz*PerZ + itPerT;
+			long long izPerZ_CR = iz*PerZ_CR;
+			long long iHarmPerHarm_p_izPerZ_CR = iHarmPerHarm_CR + izPerZ_CR;
 
 			for(long ix=0; ix<(Ncar - 1); ix++)
 			{//skip internal loop over e since only 1 energy slice is assumed here
-				long ixPerX = ix*PerX;
-				long Offset = izPerZ_p_itPerT + ixPerX;
+				//long ixPerX = ix*PerX;
+				//long Offset = izPerZ_p_itPerT + ixPerX;
+				long long ixPerX = ix*PerX;
+				long long Offset = izPerZ_p_itPerT + ixPerX;
 				float *pEx = pEx0 + Offset, *pEz = pEz0 + Offset;
 
 				//long OffsetCR = izPerZ_CR + ix;
-				long OffsetCR = iHarmPerHarm_p_izPerZ_CR + ix;
+				//long OffsetCR = iHarmPerHarm_p_izPerZ_CR + ix;
+				long long OffsetCR = iHarmPerHarm_p_izPerZ_CR + ix;
 				f2c_doublecomplex *pCRFIELD = pCRFIELD_0 + OffsetCR;
 
 				if(IsPlanar) // fill horizontal

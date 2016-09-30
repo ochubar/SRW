@@ -136,14 +136,18 @@ int srTGenOptElem::TraverseRadZXE(srTSRWRadStructAccessData* pRadAccessData)
 {
 	float *pEx0 = pRadAccessData->pBaseRadX;
 	float *pEz0 = pRadAccessData->pBaseRadZ;
-	long PerX = pRadAccessData->ne << 1;
-	long PerZ = PerX*pRadAccessData->nx;
+	//long PerX = pRadAccessData->ne << 1;
+	//long PerZ = PerX*pRadAccessData->nx;
+	long long PerX = pRadAccessData->ne << 1;
+	long long PerZ = PerX*pRadAccessData->nx;
 
 	srTEFieldPtrs EFieldPtrs;
 	srTEXZ EXZ;
 	EXZ.z = pRadAccessData->zStart;
-	long izPerZ = 0;
-	long iTotTest = 0; //OCTEST
+	//long izPerZ = 0;
+	//long iTotTest = 0; //OCTEST
+	long long izPerZ = 0;
+	long long iTotTest = 0; //OCTEST
 
 	int result = 0;
 	for(int iz=0; iz<pRadAccessData->nz; iz++)
@@ -153,14 +157,23 @@ int srTGenOptElem::TraverseRadZXE(srTSRWRadStructAccessData* pRadAccessData)
 		float *pEx_StartForX = pEx0 + izPerZ;
 		float *pEz_StartForX = pEz0 + izPerZ;
 		EXZ.x = pRadAccessData->xStart;
-		long ixPerX = 0;
+		//long ixPerX = 0;
+		long long ixPerX = 0;
 
 		for(int ix=0; ix<pRadAccessData->nx; ix++)
 		{
 			float *pEx_StartForE = pEx_StartForX + ixPerX;
 			float *pEz_StartForE = pEz_StartForX + ixPerX;
 			EXZ.e = pRadAccessData->eStart;
-			long iePerE = 0;
+			//long iePerE = 0;
+			long long iePerE = 0;
+
+			//DEBUG
+			//if((iz == ((pRadAccessData->nz)>>1)) && (ix == ((pRadAccessData->nx)>>1)))
+			//{
+			//	int aha = 1;
+			//}
+			//END DEBUG
 
 			for(int ie=0; ie<pRadAccessData->ne; ie++)
 			{
@@ -253,22 +266,28 @@ int srTGenOptElem::ExtractRadSliceConstE(srTSRWRadStructAccessData* pRadAccessDa
 	}
 	if((ie < 0) || (ie >= pRadAccessData->ne)) return 0;
 
-	long PerX = pRadAccessData->ne << 1;
-	long PerZ = PerX*pRadAccessData->nx;
+	//long PerX = pRadAccessData->ne << 1;
+	//long PerZ = PerX*pRadAccessData->nx;
+	//long izPerZ = 0;
+	//long iePerE = ie << 1;
 
-	long izPerZ = 0;
-	long iePerE = ie << 1;
+	long long  PerX = pRadAccessData->ne << 1;
+	long long PerZ = PerX*pRadAccessData->nx;
+	long long izPerZ = 0;
+	long long iePerE = ie << 1;
 
 	float *tOutEx = pOutEx, *tOutEz = pOutEz;
 	for(int iz=0; iz<pRadAccessData->nz; iz++)
 	{
 		float *pEx_StartForX = pEx0 + izPerZ;
 		float *pEz_StartForX = pEz0 + izPerZ;
-		long ixPerX = 0;
+		//long ixPerX = 0;
+		long long ixPerX = 0;
 
 		for(int ix=0; ix<pRadAccessData->nx; ix++)
 		{
-			long ixPerX_p_iePerE = ixPerX + iePerE;
+			//long ixPerX_p_iePerE = ixPerX + iePerE;
+			long long ixPerX_p_iePerE = ixPerX + iePerE;
 			float *pEx = pEx_StartForX + ixPerX_p_iePerE;
 			float *pEz = pEz_StartForX + ixPerX_p_iePerE;
 
@@ -291,22 +310,28 @@ int srTGenOptElem::SetupRadSliceConstE(srTSRWRadStructAccessData* pRadAccessData
 {
 	float *pEx0 = pRadAccessData->pBaseRadX;
 	float *pEz0 = pRadAccessData->pBaseRadZ;
-	long PerX = pRadAccessData->ne << 1;
-	long PerZ = PerX*pRadAccessData->nx;
+	//long PerX = pRadAccessData->ne << 1;
+	//long PerZ = PerX*pRadAccessData->nx;
+	//long izPerZ = 0;
+	//long iePerE = ie << 1;
 
-	long izPerZ = 0;
-	long iePerE = ie << 1;
+	long long PerX = pRadAccessData->ne << 1;
+	long long PerZ = PerX*pRadAccessData->nx;
+	long long izPerZ = 0;
+	long long iePerE = ie << 1;
 
 	float *tInEx = pInEx, *tInEz = pInEz;
 	for(int iz=0; iz<pRadAccessData->nz; iz++)
 	{
 		float *pEx_StartForX = pEx0 + izPerZ;
 		float *pEz_StartForX = pEz0 + izPerZ;
-		long ixPerX = 0;
+		//long ixPerX = 0;
+		long long ixPerX = 0;
 
 		for(int ix=0; ix<pRadAccessData->nx; ix++)
 		{
-			long ixPerX_p_iePerE = ixPerX + iePerE;
+			//long ixPerX_p_iePerE = ixPerX + iePerE;
+			long long ixPerX_p_iePerE = ixPerX + iePerE;
 			float *pEx = pEx_StartForX + ixPerX_p_iePerE;
 			float *pEz = pEz_StartForX + ixPerX_p_iePerE;
 
@@ -324,8 +349,10 @@ int srTGenOptElem::SetupRadSliceConstE(srTSRWRadStructAccessData* pRadAccessData
 
 int srTGenOptElem::ExtractRadSectVsXorZ(srTSRWRadStructAccessData* pRadAccessData, long ie, long ix_or_iz, char Vs_x_or_z, float* pOutEx, float* pOutEz)
 {
-	long Period, InitialOffset, Np;
-	long Two_ne = pRadAccessData->ne << 1, Two_ie = ie << 1;
+	//long Period, InitialOffset, Np;
+	//long Two_ne = pRadAccessData->ne << 1, Two_ie = ie << 1;
+	long long Period, InitialOffset, Np;
+	long long Two_ne = pRadAccessData->ne << 1, Two_ie = ie << 1;
 
 	if(Vs_x_or_z == 'x')
 	{
@@ -401,7 +428,8 @@ int srTGenOptElem::SetupNewRadStructFromSliceConstE(srTSRWRadStructAccessData* p
 
 	*pRadDataSingleE = *pRadAccessData;
 
-	long LenFloatArr = (pRadAccessData->nx*pRadAccessData->nz) << 1;
+	//long LenFloatArr = (pRadAccessData->nx*pRadAccessData->nz) << 1;
+	long long LenFloatArr = (pRadAccessData->nx*pRadAccessData->nz) << 1;
 	pRadDataSingleE->pBaseRadX = new float[LenFloatArr];
 	if(pRadDataSingleE->pBaseRadX == 0) return MEMORY_ALLOCATION_FAILURE;
 	pRadDataSingleE->pBaseRadZ = new float[LenFloatArr];
@@ -410,7 +438,8 @@ int srTGenOptElem::SetupNewRadStructFromSliceConstE(srTSRWRadStructAccessData* p
 	pRadDataSingleE->BaseRadWasEmulated = true; //to ensure that the above arrays are deleted by destructor
 
 	const int AmOfMoments = 11;
-	long OffsetMom = 0;
+	//long OffsetMom = 0;
+	long long OffsetMom = 0;
 	double OffsetPhotEn = 0;
 
 	int result;
@@ -503,11 +532,15 @@ int srTGenOptElem::UpdateGenRadStructSliceConstE_Meth_0(srTSRWRadStructAccessDat
 	int nzCom = pRadAccessData->nz;
 	if(neCom <= 0) return 0;
 
-	long PerX = neCom << 1;
-	long PerZ = PerX*nxCom;
+	//long PerX = neCom << 1;
+	//long PerZ = PerX*nxCom;
+	long long PerX = neCom << 1;
+	long long PerZ = PerX*nxCom;
 
-	long izPerZ = 0;
-	long iePerE = ie << 1;
+	//long izPerZ = 0;
+	//long iePerE = ie << 1;
+	long long izPerZ = 0;
+	long long iePerE = ie << 1;
 	float *tSliceEx = pRadDataSliceConstE->pBaseRadX;
 	float *tSliceEz = pRadDataSliceConstE->pBaseRadZ;
 
@@ -515,11 +548,13 @@ int srTGenOptElem::UpdateGenRadStructSliceConstE_Meth_0(srTSRWRadStructAccessDat
 	{
 		float *pEx_StartForX = pEx0 + izPerZ;
 		float *pEz_StartForX = pEz0 + izPerZ;
-		long ixPerX = 0;
+		//long ixPerX = 0;
+		long long ixPerX = 0;
 
 		for(int ix=0; ix<pRadAccessData->nx; ix++)
 		{
-			long ixPerX_p_iePerE = ixPerX + iePerE;
+			//long ixPerX_p_iePerE = ixPerX + iePerE;
+			long long ixPerX_p_iePerE = ixPerX + iePerE;
 			float *pEx = pEx_StartForX + ixPerX_p_iePerE;
 			float *pEz = pEz_StartForX + ixPerX_p_iePerE;
 
@@ -896,13 +931,17 @@ void srTGenOptElem::MakeWfrEdgeCorrection(srTSRWRadStructAccessData* pRadAccessD
 
 	for(long iz=0; iz<pRadAccessData->nz; iz++)
 	{
-		long Two_iz = iz << 1;
-		long Two_iz_p_1 = Two_iz + 1;
+		//long Two_iz = iz << 1;
+		//long Two_iz_p_1 = Two_iz + 1;
+		long long Two_iz = iz << 1;
+		long long Two_iz_p_1 = Two_iz + 1;
 
 		for(long ix=0; ix<pRadAccessData->nx; ix++)
 		{
-			long Two_ix = ix << 1;
-			long Two_ix_p_1 = Two_ix + 1;
+			//long Two_ix = ix << 1;
+			//long Two_ix_p_1 = Two_ix + 1;
+			long long Two_ix = ix << 1;
+			long long Two_ix_p_1 = Two_ix + 1;
 
 			float ExRe = *tEx, ExIm = *(tEx+1);
 			float EzRe = *tEz, EzIm = *(tEz+1);
@@ -1017,10 +1056,13 @@ void srTGenOptElem::MakeWfrEdgeCorrection1D(srTRadSect1D* pRadSect1D, float* pDa
 
 	float bRe, bIm;
 
-	for(long i=0; i<pRadSect1D->np; i++)
+	//for(long i=0; i<pRadSect1D->np; i++)
+	for(long long i=0; i<pRadSect1D->np; i++)
 	{
-		long Two_i = i << 1;
-		long Two_i_p_1 = Two_i + 1;
+		//long Two_i = i << 1;
+		//long Two_i_p_1 = Two_i + 1;
+		long long Two_i = i << 1;
+		long long Two_i_p_1 = Two_i + 1;
 
 		float ExRe = *tEx, ExIm = *(tEx+1);
 		float EzRe = *tEz, EzIm = *(tEz+1);
@@ -1137,7 +1179,8 @@ int srTGenOptElem::SetRadRepres(srTSRWRadStructAccessData* pRadAccessData, char 
 		//else
 		//{
 		//This is the original version; works by "slices"
-		long TwoNxNz = (pRadAccessData->nx*pRadAccessData->nz) << 1;
+		//long TwoNxNz = (pRadAccessData->nx*pRadAccessData->nz) << 1;
+		long long TwoNxNz = (((long long)(pRadAccessData->nx))*((long long)(pRadAccessData->nz))) << 1;
 		float* AuxEx = new float[TwoNxNz];
 		if(AuxEx == 0) return MEMORY_ALLOCATION_FAILURE;
 		float* AuxEz = new float[TwoNxNz];
@@ -1210,7 +1253,8 @@ int srTGenOptElem::SetRadRepres1D(srTRadSect1D* pRadSect1D, char CoordOrAng)
 	float* AuxDataCont = new float[pRadSect1D->np << 2];
 	if(AuxDataCont == 0) return MEMORY_ALLOCATION_FAILURE;
 
-	long Two_np = pRadSect1D->np << 1;
+	//long Two_np = pRadSect1D->np << 1;
+	long long Two_np = pRadSect1D->np << 1;
 	float *tEx = pRadSect1D->pEx, *tEz = pRadSect1D->pEz;
 	float *tx = AuxDataCont, *tz = AuxDataCont + Two_np;
 	for(int i=0; i<Two_np; i++)
@@ -1316,8 +1360,10 @@ int srTGenOptElem::ComputeRadMoments(srTSRWRadStructAccessData* pSRWRadStructAcc
 	bool ExIsOK = fpX0 != 0; //13112011
 	bool EzIsOK = fpZ0 != 0;
 
-	long PerX = pSRWRadStructAccessData->ne << 1;
-	long PerZ = PerX*pSRWRadStructAccessData->nx;
+	//long PerX = pSRWRadStructAccessData->ne << 1;
+	//long PerZ = PerX*pSRWRadStructAccessData->nx;
+	long long PerX = pSRWRadStructAccessData->ne << 1;
+	long long PerZ = PerX*pSRWRadStructAccessData->nx;
 
 	int nx_mi_1 = pSRWRadStructAccessData->nx - 1;
 	int nz_mi_1 = pSRWRadStructAccessData->nz - 1;
@@ -1344,7 +1390,8 @@ int srTGenOptElem::ComputeRadMoments(srTSRWRadStructAccessData* pSRWRadStructAcc
 			ePh = pSRWRadStructAccessData->avgPhotEn; //?? OC041108
 		}
 
-		long Two_ie = ie << 1;
+		//long Two_ie = ie << 1;
+		long long Two_ie = ie << 1;
 		for(int k=0; k<22; k++) SumsZ[k] = 0.;
 
 		double Lamb_d_FourPi = Inv_eV_In_m/(FourPi*ePh);
@@ -1389,7 +1436,8 @@ int srTGenOptElem::ComputeRadMoments(srTSRWRadStructAccessData* pSRWRadStructAcc
 
 			for(int k=0; k<22; k++) SumsX[k] = 0.;
 
-			long izPerZ = iz*PerZ;
+			//long izPerZ = iz*PerZ;
+			long long izPerZ = iz*PerZ;
 			float *fpX_StartForX = fpX0 + izPerZ;
 			float *fpZ_StartForX = fpZ0 + izPerZ;
 
@@ -1401,7 +1449,8 @@ int srTGenOptElem::ComputeRadMoments(srTSRWRadStructAccessData* pSRWRadStructAcc
 				bool horCoordInsidePowLim = ((ix >= IndLims[0]) && (ix <= IndLims[1]));
 				bool coordInsidePowLim = vertCoordInsidePowLim && horCoordInsidePowLim;
 
-				long ixPerX_p_Two_ie = ix*PerX + Two_ie;
+				//long ixPerX_p_Two_ie = ix*PerX + Two_ie;
+				long long ixPerX_p_Two_ie = ix*PerX + Two_ie;
 				float *fpX = fpX_StartForX + ixPerX_p_Two_ie;
 				float *fpZ = fpZ_StartForX + ixPerX_p_Two_ie;
 
@@ -2089,8 +2138,10 @@ int srTGenOptElem::RadResizeGen(srTSRWRadStructAccessData& SRWRadStructAccessDat
 		}
 	}
 
-	long TotAmOfOldData = (SRWRadStructAccessData.ne*SRWRadStructAccessData.nx*SRWRadStructAccessData.nz) << 1;
-	long TotAmOfNewData = (NewSRWRadStructAccessData.ne*NewSRWRadStructAccessData.nx*NewSRWRadStructAccessData.nz) << 1;
+	//long TotAmOfOldData = (SRWRadStructAccessData.ne*SRWRadStructAccessData.nx*SRWRadStructAccessData.nz) << 1;
+	//long TotAmOfNewData = (NewSRWRadStructAccessData.ne*NewSRWRadStructAccessData.nx*NewSRWRadStructAccessData.nz) << 1;
+	long long TotAmOfOldData = (((long long)SRWRadStructAccessData.ne)*((long long)SRWRadStructAccessData.nx)*((long long)SRWRadStructAccessData.nz)) << 1;
+	long long TotAmOfNewData = (((long long)NewSRWRadStructAccessData.ne)*((long long)NewSRWRadStructAccessData.nx)*((long long)NewSRWRadStructAccessData.nz)) << 1;
 
 	//char TreatPolarizSepar = 0;
 	char TreatPolarizSepar = (!ExIsOK) || (!EzIsOK); //OC13112011
@@ -2118,7 +2169,8 @@ int srTGenOptElem::RadResizeGen(srTSRWRadStructAccessData& SRWRadStructAccessDat
 			
 			float *tOldRadXCopy = OldRadXCopy, *tOldRadZCopy = OldRadZCopy;
 			float *tBaseRadX = SRWRadStructAccessData.pBaseRadX, *tBaseRadZ = SRWRadStructAccessData.pBaseRadZ;
-			for(long i=0; i<TotAmOfOldData; i++) 
+			//for(long i=0; i<TotAmOfOldData; i++) 
+			for(long long i=0; i<TotAmOfOldData; i++) 
 			{
 				*(tOldRadXCopy++) = *(tBaseRadX++);
 				*(tOldRadZCopy++) = *(tBaseRadZ++);
@@ -2136,7 +2188,8 @@ int srTGenOptElem::RadResizeGen(srTSRWRadStructAccessData& SRWRadStructAccessDat
 			
 			tBaseRadX = NewSRWRadStructAccessData.pBaseRadX;
 			tBaseRadZ = NewSRWRadStructAccessData.pBaseRadZ;
-			for(long j=0; j<TotAmOfNewData; j++)
+			//for(long j=0; j<TotAmOfNewData; j++)
+			for(long long j=0; j<TotAmOfNewData; j++)
 			{
 				*(tBaseRadX++) = 0.; *(tBaseRadZ++) = 0.; 
 			}
@@ -2184,7 +2237,8 @@ int srTGenOptElem::RadResizeGen(srTSRWRadStructAccessData& SRWRadStructAccessDat
 			}
 			
 			float *tRadX = NewSRWRadStructAccessData.pBaseRadX, *tRadZ = NewSRWRadStructAccessData.pBaseRadZ;
-			for(long j=0; j<TotAmOfNewData; j++)
+			//for(long j=0; j<TotAmOfNewData; j++)
+			for(long long j=0; j<TotAmOfNewData; j++)
 			{
 				*(tRadX++) = 0.; *(tRadZ++) = 0.; 
 			}
@@ -2225,7 +2279,8 @@ int srTGenOptElem::RadResizeGen(srTSRWRadStructAccessData& SRWRadStructAccessDat
 
 				float *tOldRadXCopy = OldRadXCopy;
 				float *tBaseRadX = SRWRadStructAccessData.pBaseRadX;
-				for(long i=0; i<TotAmOfOldData; i++) 
+				//for(long i=0; i<TotAmOfOldData; i++) 
+				for(long long i=0; i<TotAmOfOldData; i++) 
 				{
 					*(tOldRadXCopy++) = *(tBaseRadX++);
 				}
@@ -2239,7 +2294,8 @@ int srTGenOptElem::RadResizeGen(srTSRWRadStructAccessData& SRWRadStructAccessDat
 					else if(result = NewSRWRadStructAccessData.ModifyWfrNeNxNz('x')) return result;
 				}
 				tBaseRadX = NewSRWRadStructAccessData.pBaseRadX;
-				for(long j=0; j<TotAmOfNewData; j++) 
+				//for(long j=0; j<TotAmOfNewData; j++) 
+				for(long long j=0; j<TotAmOfNewData; j++) 
 				{
 					*(tBaseRadX++) = 0.;
 				}
@@ -2254,7 +2310,8 @@ int srTGenOptElem::RadResizeGen(srTSRWRadStructAccessData& SRWRadStructAccessDat
 
 				float *tOldRadZCopy = OldRadZCopy;
 				float *tBaseRadZ = SRWRadStructAccessData.pBaseRadZ;
-				for(long i=0; i<TotAmOfOldData; i++) 
+				//for(long i=0; i<TotAmOfOldData; i++) 
+				for(long long i=0; i<TotAmOfOldData; i++) 
 				{
 					float testVal = *(tBaseRadZ++);
 					*(tOldRadZCopy++) = testVal;
@@ -2270,7 +2327,8 @@ int srTGenOptElem::RadResizeGen(srTSRWRadStructAccessData& SRWRadStructAccessDat
 					else if(result = NewSRWRadStructAccessData.ModifyWfrNeNxNz('z')) return result;
 				}
 				tBaseRadZ = NewSRWRadStructAccessData.pBaseRadZ;
-				for(long j=0; j<TotAmOfNewData; j++) 
+				//for(long j=0; j<TotAmOfNewData; j++) 
+				for(long long j=0; j<TotAmOfNewData; j++) 
 				{
 					*(tBaseRadZ++) = 0.;
 				}
@@ -2306,7 +2364,8 @@ int srTGenOptElem::RadResizeGen(srTSRWRadStructAccessData& SRWRadStructAccessDat
 				if (result = NewSRWRadStructAccessData.ModifyWfrNeNxNz('x', true)) return result;
 #endif
 				float *tRadX = NewSRWRadStructAccessData.pBaseRadX;
-				for(long j=0; j<TotAmOfNewData; j++) *(tRadX++) = 0.;
+				//for(long j=0; j<TotAmOfNewData; j++) *(tRadX++) = 0.;
+				for(long long j=0; j<TotAmOfNewData; j++) *(tRadX++) = 0.;
 
 				if(result = RadResizeCore(SRWRadStructAccessData, NewSRWRadStructAccessData, RadResizeStruct, 'x')) return result;
 
@@ -2330,12 +2389,13 @@ int srTGenOptElem::RadResizeGen(srTSRWRadStructAccessData& SRWRadStructAccessDat
 				if (result = NewSRWRadStructAccessData.CreateNewWfrStruct(RadStructNames)) return result;
 #endif
 #if defined(SRWLIB_STATIC) || defined(SRWLIB_SHARED) //OC161115
-				if (result = NewSRWRadStructAccessData.ModifyWfrNeNxNz('z', true)) return result;
+				if(result = NewSRWRadStructAccessData.ModifyWfrNeNxNz('z', true)) return result;
 #endif
 				float *tRadZ = NewSRWRadStructAccessData.pBaseRadZ;
-				for (long i = 0; i < TotAmOfNewData; i++) *(tRadZ++) = 0.;
+				//for(long i = 0; i < TotAmOfNewData; i++) *(tRadZ++) = 0.;
+				for(long long i = 0; i < TotAmOfNewData; i++) *(tRadZ++) = 0.;
 
-				if (result = RadResizeCore(SRWRadStructAccessData, NewSRWRadStructAccessData, RadResizeStruct, 'z')) return result;
+				if(result = RadResizeCore(SRWRadStructAccessData, NewSRWRadStructAccessData, RadResizeStruct, 'z')) return result;
 
 #ifdef __IGOR_PRO__
 				srTSRWRadStructWaveKeys Keys;
@@ -2437,11 +2497,15 @@ int srTGenOptElem::RadResizeCore(srTSRWRadStructAccessData& OldRadAccessData, sr
 	if(TreatPolCompX) pEX0_New = NewRadAccessData.pBaseRadX;
 	if(TreatPolCompZ) pEZ0_New = NewRadAccessData.pBaseRadZ;
 
-	long PerX_New = NewRadAccessData.ne << 1;
-	long PerZ_New = PerX_New*NewRadAccessData.nx;
+	//long PerX_New = NewRadAccessData.ne << 1;
+	//long PerZ_New = PerX_New*NewRadAccessData.nx;
+	long long PerX_New = NewRadAccessData.ne << 1;
+	long long PerZ_New = PerX_New*NewRadAccessData.nx;
 
-	long PerX_Old = PerX_New;
-	long PerZ_Old = PerX_Old*OldRadAccessData.nx;
+	//long PerX_Old = PerX_New;
+	//long PerZ_Old = PerX_Old*OldRadAccessData.nx;
+	long long PerX_Old = PerX_New;
+	long long PerZ_Old = PerX_Old*OldRadAccessData.nx;
 
 	float BufF[4], BufFI[2];
 	char UseLowOrderInterp_PolCompX, UseLowOrderInterp_PolCompZ;
@@ -2451,7 +2515,8 @@ int srTGenOptElem::RadResizeCore(srTSRWRadStructAccessData& OldRadAccessData, sr
 	{
 		ixStOldPrev = -1000; izStOldPrev = -1000;
 
-		long Two_ie = ie << 1;
+		//long Two_ie = ie << 1;
+		long long Two_ie = ie << 1;
 		for(int iz=izStart; iz<=izEnd; iz++)
 		{
 			if(result = srYield.Check()) return result;
@@ -2476,7 +2541,8 @@ int srTGenOptElem::RadResizeCore(srTSRWRadStructAccessData& OldRadAccessData, sr
 			zRel *= zStepInvOld;
 
 			int izcOld_mi_izStOld = izcOld - izStOld;
-			long izPerZ_New = iz*PerZ_New;
+			//long izPerZ_New = iz*PerZ_New;
+			long long izPerZ_New = iz*PerZ_New;
 
 			float *pEX_StartForX_New = 0, *pEZ_StartForX_New = 0;
 			if(TreatPolCompX) pEX_StartForX_New = pEX0_New + izPerZ_New;
@@ -2484,7 +2550,8 @@ int srTGenOptElem::RadResizeCore(srTSRWRadStructAccessData& OldRadAccessData, sr
 
 			for(int ix=ixStart; ix<=ixEnd; ix++)
 			{
-				long ixPerX_New_p_Two_ie = ix*PerX_New + Two_ie;
+				//long ixPerX_New_p_Two_ie = ix*PerX_New + Two_ie;
+				long long ixPerX_New_p_Two_ie = ix*PerX_New + Two_ie;
 				float *pEX_New = 0, *pEZ_New = 0;
 				if(TreatPolCompX) pEX_New = pEX_StartForX_New + ixPerX_New_p_Two_ie;
 				if(TreatPolCompZ) pEZ_New = pEZ_StartForX_New + ixPerX_New_p_Two_ie;
@@ -2514,7 +2581,8 @@ int srTGenOptElem::RadResizeCore(srTSRWRadStructAccessData& OldRadAccessData, sr
 				{
 					UseLowOrderInterp_PolCompX = 0, UseLowOrderInterp_PolCompZ = 0;
 
-					long TotOffsetOld = izStOld*PerZ_Old + ixStOld*PerX_Old + Two_ie;
+					//long TotOffsetOld = izStOld*PerZ_Old + ixStOld*PerX_Old + Two_ie;
+					long long TotOffsetOld = izStOld*PerZ_Old + ixStOld*PerX_Old + Two_ie;
 
 					if(TreatPolCompX)
 					{
@@ -2741,8 +2809,10 @@ int srTGenOptElem::RadResizeGenE(srTSRWRadStructAccessData& SRWRadStructAccessDa
 		}
 	}
 
-	long TotAmOfOldData = (SRWRadStructAccessData.ne*SRWRadStructAccessData.nx*SRWRadStructAccessData.nz) << 1;
-	long TotAmOfNewData = (NewSRWRadStructAccessData.ne*NewSRWRadStructAccessData.nx*NewSRWRadStructAccessData.nz) << 1;
+	//long TotAmOfOldData = (SRWRadStructAccessData.ne*SRWRadStructAccessData.nx*SRWRadStructAccessData.nz) << 1;
+	//long TotAmOfNewData = (NewSRWRadStructAccessData.ne*NewSRWRadStructAccessData.nx*NewSRWRadStructAccessData.nz) << 1;
+	long long TotAmOfOldData = (((long long)SRWRadStructAccessData.ne)*((long long)SRWRadStructAccessData.nx)*((long long)SRWRadStructAccessData.nz)) << 1;
+	long long TotAmOfNewData = (((long long)NewSRWRadStructAccessData.ne)*((long long)NewSRWRadStructAccessData.nx)*((long long)NewSRWRadStructAccessData.nz)) << 1;
 
 	char TreatPolarizSepar = (!ExIsOK) || (!EzIsOK);
 	if(!TreatPolarizSepar)
@@ -2769,7 +2839,8 @@ int srTGenOptElem::RadResizeGenE(srTSRWRadStructAccessData& SRWRadStructAccessDa
 
 			float *tOldRadXCopy = OldRadXCopy, *tOldRadZCopy = OldRadZCopy;
 			float *tBaseRadX = SRWRadStructAccessData.pBaseRadX, *tBaseRadZ = SRWRadStructAccessData.pBaseRadZ;
-			for(long i=0; i<TotAmOfOldData; i++) 
+			//for(long i=0; i<TotAmOfOldData; i++) 
+			for(long long i=0; i<TotAmOfOldData; i++) 
 			{
 				*(tOldRadXCopy++) = *(tBaseRadX++);
 				*(tOldRadZCopy++) = *(tBaseRadZ++);
@@ -2786,7 +2857,8 @@ int srTGenOptElem::RadResizeGenE(srTSRWRadStructAccessData& SRWRadStructAccessDa
 
 			tBaseRadX = NewSRWRadStructAccessData.pBaseRadX;
 			tBaseRadZ = NewSRWRadStructAccessData.pBaseRadZ;
-			for(long j=0; j<TotAmOfNewData; j++)
+			//for(long j=0; j<TotAmOfNewData; j++)
+			for(long long j=0; j<TotAmOfNewData; j++)
 			{
 				*(tBaseRadX++) = 0.; *(tBaseRadZ++) = 0.; 
 			}
@@ -2828,7 +2900,8 @@ int srTGenOptElem::RadResizeGenE(srTSRWRadStructAccessData& SRWRadStructAccessDa
 			}
 
 			float *tRadX = NewSRWRadStructAccessData.pBaseRadX, *tRadZ = NewSRWRadStructAccessData.pBaseRadZ;
-			for(long j=0; j<TotAmOfNewData; j++)
+			//for(long j=0; j<TotAmOfNewData; j++)
+			for(long long j=0; j<TotAmOfNewData; j++)
 			{
 				*(tRadX++) = 0.; *(tRadZ++) = 0.; 
 			}
@@ -2866,7 +2939,8 @@ int srTGenOptElem::RadResizeGenE(srTSRWRadStructAccessData& SRWRadStructAccessDa
 
 				float *tOldRadXCopy = OldRadXCopy;
 				float *tBaseRadX = SRWRadStructAccessData.pBaseRadX;
-				for(long i=0; i<TotAmOfOldData; i++) 
+				//for(long i=0; i<TotAmOfOldData; i++) 
+				for(long long i=0; i<TotAmOfOldData; i++) 
 				{
 					*(tOldRadXCopy++) = *(tBaseRadX++);
 				}
@@ -2881,7 +2955,8 @@ int srTGenOptElem::RadResizeGenE(srTSRWRadStructAccessData& SRWRadStructAccessDa
 				}
 				
 				tBaseRadX = NewSRWRadStructAccessData.pBaseRadX;
-				for(long j=0; j<TotAmOfNewData; j++) *(tBaseRadX++) = 0.;
+				//for(long j=0; j<TotAmOfNewData; j++) *(tBaseRadX++) = 0.;
+				for(long long j=0; j<TotAmOfNewData; j++) *(tBaseRadX++) = 0.;
 
 				SRWRadStructAccessData.pBaseRadX = OldRadXCopy;
 				if(result = RadResizeCoreE(SRWRadStructAccessData, NewSRWRadStructAccessData, RadResizeStruct, 'x')) return result;
@@ -2894,7 +2969,8 @@ int srTGenOptElem::RadResizeGenE(srTSRWRadStructAccessData& SRWRadStructAccessDa
 
 				float *tOldRadZCopy = OldRadZCopy;
 				float *tBaseRadZ = SRWRadStructAccessData.pBaseRadZ;
-				for(long i=0; i<TotAmOfOldData; i++) 
+				//for(long i=0; i<TotAmOfOldData; i++) 
+				for(long long i=0; i<TotAmOfOldData; i++) 
 				{
 					//float testVal = *(tBaseRadZ++);
 					//*(tOldRadZCopy++) = testVal;
@@ -2911,7 +2987,8 @@ int srTGenOptElem::RadResizeGenE(srTSRWRadStructAccessData& SRWRadStructAccessDa
 				}
 
 				tBaseRadZ = NewSRWRadStructAccessData.pBaseRadZ;
-				for(long j=0; j<TotAmOfNewData; j++) *(tBaseRadZ++) = 0.;
+				//for(long j=0; j<TotAmOfNewData; j++) *(tBaseRadZ++) = 0.;
+				for(long long j=0; j<TotAmOfNewData; j++) *(tBaseRadZ++) = 0.;
 
 				SRWRadStructAccessData.pBaseRadZ = OldRadZCopy;
 				if(result = RadResizeCoreE(SRWRadStructAccessData, NewSRWRadStructAccessData, RadResizeStruct, 'z')) return result;
@@ -2942,7 +3019,8 @@ int srTGenOptElem::RadResizeGenE(srTSRWRadStructAccessData& SRWRadStructAccessDa
 				if(result = NewSRWRadStructAccessData.ModifyWfrNeNxNz('x', true)) return result;
 #endif
 				float *tRadX = NewSRWRadStructAccessData.pBaseRadX;
-				for(long j=0; j<TotAmOfNewData; j++) *(tRadX++) = 0.;
+				//for(long j=0; j<TotAmOfNewData; j++) *(tRadX++) = 0.;
+				for(long long j=0; j<TotAmOfNewData; j++) *(tRadX++) = 0.;
 
 				if(result = RadResizeCoreE(SRWRadStructAccessData, NewSRWRadStructAccessData, RadResizeStruct, 'x')) return result;
 
@@ -2966,7 +3044,8 @@ int srTGenOptElem::RadResizeGenE(srTSRWRadStructAccessData& SRWRadStructAccessDa
 				if (result = NewSRWRadStructAccessData.ModifyWfrNeNxNz('z', true)) return result;
 #endif
 				float *tRadZ = NewSRWRadStructAccessData.pBaseRadZ;
-				for(long i=0; i<TotAmOfNewData; i++) *(tRadZ++) = 0.;
+				//for(long i=0; i<TotAmOfNewData; i++) *(tRadZ++) = 0.;
+				for(long long i=0; i<TotAmOfNewData; i++) *(tRadZ++) = 0.;
 
 				if(result = RadResizeCoreE(SRWRadStructAccessData, NewSRWRadStructAccessData, RadResizeStruct, 'z')) return result;
 
@@ -3056,11 +3135,15 @@ int srTGenOptElem::RadResizeCoreE(srTSRWRadStructAccessData& OldRadAccessData, s
 	if(TreatPolCompX) pEX0_New = NewRadAccessData.pBaseRadX;
 	if(TreatPolCompZ) pEZ0_New = NewRadAccessData.pBaseRadZ;
 
-	long PerX_New = NewRadAccessData.ne << 1;
-	long PerZ_New = PerX_New*NewRadAccessData.nx;
+	//long PerX_New = NewRadAccessData.ne << 1;
+	//long PerZ_New = PerX_New*NewRadAccessData.nx;
+	long long PerX_New = NewRadAccessData.ne << 1;
+	long long PerZ_New = PerX_New*NewRadAccessData.nx;
 
-	long PerX_Old = OldRadAccessData.ne << 1;
-	long PerZ_Old = PerX_Old*OldRadAccessData.nx;
+	//long PerX_Old = OldRadAccessData.ne << 1;
+	//long PerZ_Old = PerX_Old*OldRadAccessData.nx;
+	long long PerX_Old = OldRadAccessData.ne << 1;
+	long long PerZ_Old = PerX_Old*OldRadAccessData.nx;
 
 	float BufF[4], BufFI[2];
 	char UseLowOrderInterp_PolCompX, UseLowOrderInterp_PolCompZ;
@@ -3068,21 +3151,26 @@ int srTGenOptElem::RadResizeCoreE(srTSRWRadStructAccessData& OldRadAccessData, s
 	int result = 0;
 	for(int iz=0; iz<NewRadAccessData.nz; iz++)
 	{
-		long iz_PerZ_New = iz*PerZ_New;
-		long iz_PerZ_Old = iz*PerZ_Old;
+		//long iz_PerZ_New = iz*PerZ_New;
+		//long iz_PerZ_Old = iz*PerZ_Old;
+		long long iz_PerZ_New = iz*PerZ_New;
+		long long iz_PerZ_Old = iz*PerZ_Old;
 
 		for(int ix=0; ix<NewRadAccessData.nx; ix++)
 		{
 			if(result = srYield.Check()) return result;
 
-			long iz_PerZ_New_p_ix_PerX_New = iz_PerZ_New + ix*PerX_New;
-			long iz_PerZ_Old_p_ix_PerX_Old = iz_PerZ_Old + ix*PerX_Old;
+			//long iz_PerZ_New_p_ix_PerX_New = iz_PerZ_New + ix*PerX_New;
+			//long iz_PerZ_Old_p_ix_PerX_Old = iz_PerZ_Old + ix*PerX_Old;
+			long long iz_PerZ_New_p_ix_PerX_New = iz_PerZ_New + ix*PerX_New;
+			long long iz_PerZ_Old_p_ix_PerX_Old = iz_PerZ_Old + ix*PerX_Old;
 
 			ieStOldPrev = -1000;
 
 			for(int ie=ieStart; ie<=ieEnd; ie++)
 			{
-				long ofstNew = iz_PerZ_New_p_ix_PerX_New + (ie << 1);
+				//long ofstNew = iz_PerZ_New_p_ix_PerX_New + (ie << 1);
+				long long ofstNew = iz_PerZ_New_p_ix_PerX_New + (ie << 1);
 				float *pEX_New = pEX0_New + ofstNew;
 				float *pEZ_New = pEZ0_New + ofstNew;
 
@@ -3110,7 +3198,8 @@ int srTGenOptElem::RadResizeCoreE(srTSRWRadStructAccessData& OldRadAccessData, s
 				{
 					UseLowOrderInterp_PolCompX = 0, UseLowOrderInterp_PolCompZ = 0;
 					//long TotOffsetOld = izStOld*PerZ_Old + ixStOld*PerX_Old + Two_ie;
-					long TotOffsetOld = iz_PerZ_Old_p_ix_PerX_Old + (ieStOld << 1);
+					//long TotOffsetOld = iz_PerZ_Old_p_ix_PerX_Old + (ieStOld << 1);
+					long long TotOffsetOld = iz_PerZ_Old_p_ix_PerX_Old + (ieStOld << 1);
 
 					if(TreatPolCompX)
 					{
@@ -3248,11 +3337,15 @@ int srTGenOptElem::ReInterpolateWfrSliceSingleE(srTSRWRadStructAccessData& oldRa
 	if(TreatPolCompX) pEX0_New = newRadMultiE.pBaseRadX;
 	if(TreatPolCompZ) pEZ0_New = newRadMultiE.pBaseRadZ;
 
-	long PerX_New = newRadMultiE.ne << 1;
-	long PerZ_New = PerX_New*newRadMultiE.nx;
+	//long PerX_New = newRadMultiE.ne << 1;
+	//long PerZ_New = PerX_New*newRadMultiE.nx;
+	long long PerX_New = newRadMultiE.ne << 1;
+	long long PerZ_New = PerX_New*newRadMultiE.nx;
 
-	long PerX_Old = 2; //PerX_New;
-	long PerZ_Old = PerX_Old*oldRadSingleE.nx;
+	//long PerX_Old = 2; //PerX_New;
+	//long PerZ_Old = PerX_Old*oldRadSingleE.nx;
+	long long PerX_Old = 2; //PerX_New;
+	long long PerZ_Old = PerX_Old*oldRadSingleE.nx;
 
 	float BufF[4], BufFI[2];
 	int UseLowOrderInterp_PolCompX, UseLowOrderInterp_PolCompZ;
@@ -3262,7 +3355,8 @@ int srTGenOptElem::ReInterpolateWfrSliceSingleE(srTSRWRadStructAccessData& oldRa
 	//{
 	//ixStOldPrev = -1000; izStOldPrev = -1000;
 
-	long Two_ie = ie << 1;
+	//long Two_ie = ie << 1;
+	long long Two_ie = ie << 1;
 	for(int iz=izStart; iz<=izEnd; iz++)
 	{
 		if(result = srYield.Check()) return result;
@@ -3289,7 +3383,8 @@ int srTGenOptElem::ReInterpolateWfrSliceSingleE(srTSRWRadStructAccessData& oldRa
 
 		zRel *= zStepInvOld;
 		int izcOld_mi_izStOld = izcOld - izStOld;
-		long izPerZ_New = iz*PerZ_New;
+		//long izPerZ_New = iz*PerZ_New;
+		long long izPerZ_New = iz*PerZ_New;
 
 		float *pEX_StartForX_New = 0, *pEZ_StartForX_New = 0;
 		if(TreatPolCompX) pEX_StartForX_New = pEX0_New + izPerZ_New;
@@ -3297,7 +3392,8 @@ int srTGenOptElem::ReInterpolateWfrSliceSingleE(srTSRWRadStructAccessData& oldRa
 
 		for(int ix=ixStart; ix<=ixEnd; ix++)
 		{
-			long ixPerX_New_p_Two_ie = ix*PerX_New + Two_ie;
+			//long ixPerX_New_p_Two_ie = ix*PerX_New + Two_ie;
+			long long ixPerX_New_p_Two_ie = ix*PerX_New + Two_ie;
 			float *pEX_New = 0, *pEZ_New = 0;
 			if(TreatPolCompX) pEX_New = pEX_StartForX_New + ixPerX_New_p_Two_ie;
 			if(TreatPolCompZ) pEZ_New = pEZ_StartForX_New + ixPerX_New_p_Two_ie;
@@ -3346,7 +3442,8 @@ int srTGenOptElem::ReInterpolateWfrSliceSingleE(srTSRWRadStructAccessData& oldRa
 			{
 				UseLowOrderInterp_PolCompX = 0, UseLowOrderInterp_PolCompZ = 0;
 				//long TotOffsetOld = izStOld*PerZ_Old + ixStOld*PerX_Old + Two_ie;
-				long TotOffsetOld = izStOld*PerZ_Old + ixStOld*PerX_Old; //old is single slice
+				//long TotOffsetOld = izStOld*PerZ_Old + ixStOld*PerX_Old; //old is single slice
+				long long TotOffsetOld = izStOld*PerZ_Old + ixStOld*PerX_Old; //old is single slice
 
 				if(TreatPolCompX)
 				{
@@ -3456,11 +3553,15 @@ int srTGenOptElem::RadResizeCore_OnlyLargerRange(srTSRWRadStructAccessData& OldR
 	float *pEX0_Old = OldRadAccessData.pBaseRadX;
 	float *pEZ0_Old = OldRadAccessData.pBaseRadZ;
 
-	long PerX_New = NewRadAccessData.ne << 1;
-	long PerZ_New = PerX_New*NewRadAccessData.nx;
+	//long PerX_New = NewRadAccessData.ne << 1;
+	//long PerZ_New = PerX_New*NewRadAccessData.nx;
+	long long PerX_New = NewRadAccessData.ne << 1;
+	long long PerZ_New = PerX_New*NewRadAccessData.nx;
 
-	long PerX_Old = PerX_New;
-	long PerZ_Old = PerX_Old*OldRadAccessData.nx;
+	//long PerX_Old = PerX_New;
+	//long PerZ_Old = PerX_Old*OldRadAccessData.nx;
+	long long PerX_Old = PerX_New;
+	long long PerZ_Old = PerX_Old*OldRadAccessData.nx;
 
 	int ixStart = int(NewRadAccessData.AuxLong1);
 	int ixEnd = int(NewRadAccessData.AuxLong2);
@@ -3472,10 +3573,12 @@ int srTGenOptElem::RadResizeCore_OnlyLargerRange(srTSRWRadStructAccessData& OldR
 
 	for(long ie=0; ie<NewRadAccessData.ne; ie++)
 	{
-		long Two_ie = ie << 1;
+		//long Two_ie = ie << 1;
+		long long Two_ie = ie << 1;
 		for(long iz=izStart; iz<=izEnd; iz++)
 		{
-			long izPerZ_New = iz*PerZ_New;
+			//long izPerZ_New = iz*PerZ_New;
+			long long izPerZ_New = iz*PerZ_New;
 			float *pEX_StartForX_New = pEX0_New + izPerZ_New;
 			float *pEZ_StartForX_New = pEZ0_New + izPerZ_New;
 
@@ -3483,14 +3586,16 @@ int srTGenOptElem::RadResizeCore_OnlyLargerRange(srTSRWRadStructAccessData& OldR
 
 			double zAbs = NewRadAccessData.zStart + iz*NewRadAccessData.zStep;
 			long izOld = long((zAbs - OldRadAccessData.zStart)*zStepInvOld + 1.E-08);
-			long izPerZ_Old = izOld*PerZ_Old;
+			//long izPerZ_Old = izOld*PerZ_Old;
+			long long izPerZ_Old = izOld*PerZ_Old;
 
 			float *pEX_StartForX_Old = pEX0_Old + izPerZ_Old;
 			float *pEZ_StartForX_Old = pEZ0_Old + izPerZ_Old;
 
 			for(long ix=ixStart; ix<=ixEnd; ix++)
 			{
-				long ixPerX_New_p_Two_ie = ix*PerX_New + Two_ie;
+				//long ixPerX_New_p_Two_ie = ix*PerX_New + Two_ie;
+				long long ixPerX_New_p_Two_ie = ix*PerX_New + Two_ie;
 				float *pEX_New = pEX_StartForX_New + ixPerX_New_p_Two_ie;
 				float *pEZ_New = pEZ_StartForX_New + ixPerX_New_p_Two_ie;
 
@@ -3498,7 +3603,8 @@ int srTGenOptElem::RadResizeCore_OnlyLargerRange(srTSRWRadStructAccessData& OldR
 
 				double xAbs = NewRadAccessData.xStart + ix*NewRadAccessData.xStep;
 				long ixOld = long((xAbs - OldRadAccessData.xStart)*xStepInvOld + 1.E-08);
-				long ixPerX_Old_p_Two_ie = ixOld*PerX_Old + Two_ie;
+				//long ixPerX_Old_p_Two_ie = ixOld*PerX_Old + Two_ie;
+				long long ixPerX_Old_p_Two_ie = ixOld*PerX_Old + Two_ie;
 
 				float *pEX_Old = pEX_StartForX_Old + ixPerX_Old_p_Two_ie;
 				float *pEZ_Old = pEZ_StartForX_Old + ixPerX_Old_p_Two_ie;
@@ -3524,11 +3630,15 @@ int srTGenOptElem::RadResizeCore_OnlyLargerRangeE(srTSRWRadStructAccessData& Old
 	float *pEX0_Old = OldRadAccessData.pBaseRadX;
 	float *pEZ0_Old = OldRadAccessData.pBaseRadZ;
 
-	long PerX_New = NewRadAccessData.ne << 1;
-	long PerZ_New = PerX_New*NewRadAccessData.nx;
+	//long PerX_New = NewRadAccessData.ne << 1;
+	//long PerZ_New = PerX_New*NewRadAccessData.nx;
+	long long PerX_New = NewRadAccessData.ne << 1;
+	long long PerZ_New = PerX_New*NewRadAccessData.nx;
 
-	long PerX_Old = OldRadAccessData.ne << 1;
-	long PerZ_Old = PerX_Old*OldRadAccessData.nx;
+	//long PerX_Old = OldRadAccessData.ne << 1;
+	//long PerZ_Old = PerX_Old*OldRadAccessData.nx;
+	long long PerX_Old = OldRadAccessData.ne << 1;
+	long long PerZ_Old = PerX_Old*OldRadAccessData.nx;
 
 	int ieStart = int(NewRadAccessData.AuxLong1);
 	int ieEnd = int(NewRadAccessData.AuxLong2);
@@ -3537,24 +3647,30 @@ int srTGenOptElem::RadResizeCore_OnlyLargerRangeE(srTSRWRadStructAccessData& Old
 	
 	for(long iz=0; iz<NewRadAccessData.nz; iz++)
 	{
-		long iz_PerZ_New = iz*PerZ_New;
-		long iz_PerZ_Old = iz*PerZ_Old;
+		//long iz_PerZ_New = iz*PerZ_New;
+		//long iz_PerZ_Old = iz*PerZ_Old;
+		long long iz_PerZ_New = iz*PerZ_New;
+		long long iz_PerZ_Old = iz*PerZ_Old;
 
 		for(long ix=0; ix<NewRadAccessData.nx; ix++)
 		{
-			long iz_PerZ_New_p_ix_PerX_New = iz_PerZ_New + ix*PerX_New;
-			long iz_PerZ_Old_p_ix_PerX_Old = iz_PerZ_Old + ix*PerX_Old;
+			//long iz_PerZ_New_p_ix_PerX_New = iz_PerZ_New + ix*PerX_New;
+			//long iz_PerZ_Old_p_ix_PerX_Old = iz_PerZ_Old + ix*PerX_Old;
+			long long iz_PerZ_New_p_ix_PerX_New = iz_PerZ_New + ix*PerX_New;
+			long long iz_PerZ_Old_p_ix_PerX_Old = iz_PerZ_Old + ix*PerX_Old;
 
 			for(long ie=ieStart; ie<=ieEnd; ie++)
 			{
-				long ofstNew = iz_PerZ_New_p_ix_PerX_New + (ie << 1);
+				//long ofstNew = iz_PerZ_New_p_ix_PerX_New + (ie << 1);
+				long long ofstNew = iz_PerZ_New_p_ix_PerX_New + (ie << 1);
 				float *pEX_New = pEX0_New + ofstNew;
 				float *pEZ_New = pEZ0_New + ofstNew;
 
 				double eAbs = NewRadAccessData.eStart + ie*NewRadAccessData.eStep;
 				long ieOld = long((eAbs - OldRadAccessData.eStart)*eStepInvOld + 1.E-08);
 
-				long ofstOld = iz_PerZ_Old_p_ix_PerX_Old + (ieOld << 1);
+				//long ofstOld = iz_PerZ_Old_p_ix_PerX_Old + (ieOld << 1);
+				long long ofstOld = iz_PerZ_Old_p_ix_PerX_Old + (ieOld << 1);
 				float *pEX_Old = pEX0_Old + ofstOld;
 				float *pEZ_Old = pEZ0_Old + ofstOld;
 
@@ -3646,7 +3762,8 @@ int srTGenOptElem::RadResizeGen1D(srTRadSect1D& RadSect1D, srTRadResize1D& RadRe
 		if((NewRadSect1D.ArgStart + MagNew) < NewRadSect1D.WfrMax) NewRadSect1D.WfrMax = NewRadSect1D.ArgStart + MagNew;
 	}
 
-	long TotAmOfOldData = RadSect1D.np << 1;
+	//long TotAmOfOldData = RadSect1D.np << 1;
+	long long TotAmOfOldData = RadSect1D.np << 1;
 	float *OldRadXCopy = new float[TotAmOfOldData];
 	if(OldRadXCopy == 0) return MEMORY_ALLOCATION_FAILURE;
 	float *OldRadZCopy = new float[TotAmOfOldData];
@@ -3654,7 +3771,8 @@ int srTGenOptElem::RadResizeGen1D(srTRadSect1D& RadSect1D, srTRadResize1D& RadRe
 
 	float *tOldRadXCopy = OldRadXCopy, *tOldRadZCopy = OldRadZCopy;
 	float *tBaseRadX = RadSect1D.pEx, *tBaseRadZ = RadSect1D.pEz;
-	for(long i=0; i<TotAmOfOldData; i++) 
+	//for(long i=0; i<TotAmOfOldData; i++) 
+	for(long long i=0; i<TotAmOfOldData; i++) 
 	{
 		*(tOldRadXCopy++) = *(tBaseRadX++);
 		*(tOldRadZCopy++) = *(tBaseRadZ++);
@@ -3662,17 +3780,20 @@ int srTGenOptElem::RadResizeGen1D(srTRadSect1D& RadSect1D, srTRadResize1D& RadRe
 
 	if(RadShouldBeChanged)
 	{
-		long Two_np = NewRadSect1D.np << 1;
+		//long Two_np = NewRadSect1D.np << 1;
+		long long Two_np = NewRadSect1D.np << 1;
 		NewRadSect1D.pEx = new float[Two_np];
 		if(NewRadSect1D.pEx == 0) return MEMORY_ALLOCATION_FAILURE;
 		NewRadSect1D.pEz = new float[Two_np];
 		if(NewRadSect1D.pEz == 0) return MEMORY_ALLOCATION_FAILURE;
 	}
 
-	long TotAmOfNewData = NewN << 1;
+	//long TotAmOfNewData = NewN << 1;
+	long long TotAmOfNewData = NewN << 1;
 	tBaseRadX = NewRadSect1D.pEx;
 	tBaseRadZ = NewRadSect1D.pEz;
-	for(long j=0; j<TotAmOfNewData; j++)
+	//for(long j=0; j<TotAmOfNewData; j++)
+	for(long long j=0; j<TotAmOfNewData; j++)
 	{
 		*(tBaseRadX++) = 0.; *(tBaseRadZ++) = 0.; 
 	}
@@ -3745,21 +3866,25 @@ int srTGenOptElem::RadResizeCore1D(srTRadSect1D& OldRadSect1D, srTRadSect1D& New
 	int iStOld, iStOldPrev = -1000;
 	float *pEX0_New = NewRadSect1D.pEx, *pEZ0_New = NewRadSect1D.pEz;
 
-	long Per_New = 2;
-	long Per_Old = 2;
+	//long Per_New = 2;
+	//long Per_Old = 2;
+	long long Per_New = 2;
+	long long Per_Old = 2;
 
 	float BufF[4], BufFI[2];
 	char UseLowOrderInterp_PolCompX, UseLowOrderInterp_PolCompZ;
 
 	for(int i=iStart; i<=iEnd; i++)
 	{
-		long iPer_New = i*Per_New;
+		//long iPer_New = i*Per_New;
+		long long iPer_New = i*Per_New;
 		float *pEX_New = pEX0_New + iPer_New;
 		float *pEZ_New = pEZ0_New + iPer_New;
 
 		if(OnlyMakeLargerRange)
 		{
-			long TotOffsetOld = (i - iStart)*Per_Old;
+			//long TotOffsetOld = (i - iStart)*Per_Old;
+			long long TotOffsetOld = (i - iStart)*Per_Old;
 			float* pExSt_Old = OldRadSect1D.pEx + TotOffsetOld;
 			float* pEzSt_Old = OldRadSect1D.pEz + TotOffsetOld;
 
@@ -3797,7 +3922,8 @@ int srTGenOptElem::RadResizeCore1D(srTRadSect1D& OldRadSect1D, srTRadSect1D& New
 		{
 			UseLowOrderInterp_PolCompX = 0, UseLowOrderInterp_PolCompZ = 0;
 
-			long TotOffsetOld = iStOld*Per_Old;
+			//long TotOffsetOld = iStOld*Per_Old;
+			long long TotOffsetOld = iStOld*Per_Old;
 
 			float* pExSt_Old = OldRadSect1D.pEx + TotOffsetOld;
 			GetCellDataForInterpol1D(pExSt_Old, Per_Old, AuxF);
@@ -3882,7 +4008,8 @@ char srTGenOptElem::WaveFrontTermCanBeTreated(srTSRWRadStructAccessData& RadAcce
 	//Later treat X and Z fully separately here and at removing the corresponding terms from Phase !!!
 
 	const double CritRatTransvLong = 0.1;
-	const double CritRelRobsErr = 0.2; //0.1; //0.2;
+	//const double CritRelRobsErr = 0.2; //0.1; //0.2;
+	const double CritRelRobsErr = 0.4; //0.1; //0.2; //OC17032016 ?
 	const double Pi = 3.14159265358979;
 
 	bool RobsXErrIsSmall = ::fabs(RadAccessData.RobsXAbsErr) < CritRelRobsErr*(::fabs(RadAccessData.RobsX));
@@ -4075,8 +4202,10 @@ void srTGenOptElem::TreatStronglyOscillatingTerm(srTSRWRadStructAccessData& RadA
 	if(TreatPolCompX) pEX0 = RadAccessData.pBaseRadX;
 	if(TreatPolCompZ) pEZ0 = RadAccessData.pBaseRadZ;
 
-	long PerX = RadAccessData.ne << 1;
-	long PerZ = PerX*RadAccessData.nx;
+	//long PerX = RadAccessData.ne << 1;
+	//long PerZ = PerX*RadAccessData.nx;
+	long long PerX = RadAccessData.ne << 1;
+	long long PerZ = PerX*RadAccessData.nx;
 
 	//srTFFT2D AuxFFT2D;
 	int ieStart=0, ieBefEnd=RadAccessData.ne;
@@ -4093,7 +4222,8 @@ void srTGenOptElem::TreatStronglyOscillatingTerm(srTSRWRadStructAccessData& RadA
 			ePh = RadAccessData.avgPhotEn; //?? OC041108
 		}
 
-		long Two_ie = ie << 1;
+		//long Two_ie = ie << 1;
+		long long Two_ie = ie << 1;
 
 		ConstRxE = ConstRx*ePh;
 		ConstRzE = ConstRz*ePh;
@@ -4117,7 +4247,8 @@ void srTGenOptElem::TreatStronglyOscillatingTerm(srTSRWRadStructAccessData& RadA
 
 		for(int iz=0; iz<RadAccessData.nz; iz++)
 		{
-			long izPerZ = iz*PerZ;
+			//long izPerZ = iz*PerZ;
+			long long izPerZ = iz*PerZ;
 			float *pEX_StartForX = pEX0 + izPerZ;
 			float *pEZ_StartForX = pEZ0 + izPerZ;
 
@@ -4125,7 +4256,8 @@ void srTGenOptElem::TreatStronglyOscillatingTerm(srTSRWRadStructAccessData& RadA
 
 			for(int ix=0; ix<RadAccessData.nx; ix++)
 			{
-				long ixPerX_p_Two_ie = ix*PerX + Two_ie;
+				//long ixPerX_p_Two_ie = ix*PerX + Two_ie;
+				long long ixPerX_p_Two_ie = ix*PerX + Two_ie;
 
 				//Phase = ConstRxE*x*x + ConstRzE*zE2;
 				Phase = PhaseAddZ;
@@ -4194,8 +4326,10 @@ void srTGenOptElem::TreatStronglyOscillatingTermIrregMesh(srTSRWRadStructAccessD
 	if(TreatPolCompX) pEX0 = RadAccessData.pBaseRadX;
 	if(TreatPolCompZ) pEZ0 = RadAccessData.pBaseRadZ;
 
-	long PerX = RadAccessData.ne << 1;
-	long PerZ = PerX*RadAccessData.nx;
+	//long PerX = RadAccessData.ne << 1;
+	//long PerZ = PerX*RadAccessData.nx;
+	long long PerX = RadAccessData.ne << 1;
+	long long PerZ = PerX*RadAccessData.nx;
 
 	int ieStart=0, ieBefEnd=RadAccessData.ne;
 	if((ieOnly >= 0) && (ieOnly < RadAccessData.ne))
@@ -4231,7 +4365,8 @@ void srTGenOptElem::TreatStronglyOscillatingTermIrregMesh(srTSRWRadStructAccessD
 			ePh = RadAccessData.avgPhotEn; //?? OC041108
 		}
 
-		long Two_ie = ie << 1;
+		//long Two_ie = ie << 1;
+		long long Two_ie = ie << 1;
 
 		ConstRxE = ConstRx*ePh;
 		ConstRzE = ConstRz*ePh;
@@ -4254,7 +4389,8 @@ void srTGenOptElem::TreatStronglyOscillatingTermIrregMesh(srTSRWRadStructAccessD
 
 		for(int iz=0; iz<RadAccessData.nz; iz++)
 		{
-			long izPerZ = iz*PerZ;
+			//long izPerZ = iz*PerZ;
+			long long izPerZ = iz*PerZ;
 			float *pEX_StartForX = pEX0 + izPerZ;
 			float *pEZ_StartForX = pEZ0 + izPerZ;
 
@@ -4265,8 +4401,10 @@ void srTGenOptElem::TreatStronglyOscillatingTermIrregMesh(srTSRWRadStructAccessD
 
 			for(int ix=0; ix<RadAccessData.nx; ix++)
 			{
-				long ixPerX_p_Two_ie = ix*PerX + Two_ie;
-				long ixPerX_p_Two_ie_p_1 = ixPerX_p_Two_ie + 1;
+				//long ixPerX_p_Two_ie = ix*PerX + Two_ie;
+				//long ixPerX_p_Two_ie_p_1 = ixPerX_p_Two_ie + 1;
+				long long ixPerX_p_Two_ie = ix*PerX + Two_ie;
+				long long ixPerX_p_Two_ie_p_1 = ixPerX_p_Two_ie + 1;
 
 				x = *(pRayTrCrd_StartForX + ixPerX_p_Two_ie);
 				if((xMin_mi_xStepTol <= x) && (x <= xMax_pl_xStepTol))
@@ -4360,7 +4498,8 @@ void srTGenOptElem::TreatStronglyOscillatingTerm1D(srTRadSect1D& RadSect1D, char
 	float CosPh, SinPh;
 
 	float *pEX0 = RadSect1D.pEx, *pEZ0 = RadSect1D.pEz;
-	long Per = 2;
+	//long Per = 2;
+	long long Per = 2;
 
 	if(RadSect1D.Pres == 1)
 	{
@@ -4376,7 +4515,8 @@ void srTGenOptElem::TreatStronglyOscillatingTerm1D(srTRadSect1D& RadSect1D, char
 
 	for(int i=0; i<RadSect1D.np; i++)
 	{
-		long iPer = i*Per;
+		//long iPer = i*Per;
+		long long iPer = i*Per;
 		Phase = ConstRE*Arg*Arg;
 		CosAndSin(Phase, CosPh, SinPh);
 
@@ -4450,9 +4590,11 @@ int srTGenOptElem::GenExtractPhase(srTWaveAccessData& InWaveAccessData, double* 
 		float* AuxContainer = new float[nz << 1];
 		if(AuxContainer == 0) return MEMORY_ALLOCATION_FAILURE;
 
-		long iz, ixContrPass = 0;
+		//long iz, ixContrPass = 0;
+		//long PerZ = nx << 1;
+		long long iz, ixContrPass = 0;
+		long long PerZ = nx << 1;
 
-		long PerZ = nx << 1;
 		float *tAuxContainer = AuxContainer, *tInWaveData = (float*)InWaveAccessData.pWaveData + (ixContrPass << 1);
 		for(iz=0; iz<nz; iz++)
 		{
@@ -4475,7 +4617,8 @@ int srTGenOptElem::GenExtractPhase(srTWaveAccessData& InWaveAccessData, double* 
 		AuxWaveAccessData.DimStartValues[0] = InWaveAccessData.DimStartValues[0];
 		AuxWaveAccessData.DimSteps[0] = InWaveAccessData.DimSteps[0];
 
-		long OffsetForX = 0;
+		//long OffsetForX = 0;
+		long long OffsetForX = 0;
 		double *tOutMag = pOutMag, *tOutPhase = pOutPhase;
 		int zRemoveCount = 0;
 		for(iz=0; iz<nz; iz++)
@@ -4487,7 +4630,8 @@ int srTGenOptElem::GenExtractPhase(srTWaveAccessData& InWaveAccessData, double* 
 
 				double *tAuxMagArrayX = AuxMagArrayX, *tAuxPhaseArrayX = AuxPhaseArrayX;
 				int xRemoveCount = 0;
-				for(long ix=0; ix<nx; ix++)
+				//for(long ix=0; ix<nx; ix++)
+				for(long long ix=0; ix<nx; ix++)
 				{
 					if(++xRemoveCount > xToRemove)
 					{
@@ -4514,35 +4658,42 @@ int srTGenOptElem::GenExtractPhase(srTWaveAccessData& InWaveAccessData, double* 
 
 //*************************************************************************
 
-int srTGenOptElem::ExtractPhase1D(srTWaveAccessData& InWaveAccessData, double* pOutMag, double* pOutPhase, long i0, double Phi0)
+//int srTGenOptElem::ExtractPhase1D(srTWaveAccessData& InWaveAccessData, double* pOutMag, double* pOutPhase, long i0, double Phi0)
+int srTGenOptElem::ExtractPhase1D(srTWaveAccessData& InWaveAccessData, double* pOutMag, double* pOutPhase, long long i0, double Phi0)
 {
 	const double Pi = 3.14159265358979;
 	//const double TwoPi = 6.2831853071796;
 	const int MaxAmOfPer = 16;
 
 	float* pStartData = (float*)(InWaveAccessData.pWaveData);
-	long iTot = InWaveAccessData.DimSizes[0];
+	//long iTot = InWaveAccessData.DimSizes[0];
+	long long iTot = InWaveAccessData.DimSizes[0];
 
 	double PhPrev = FormalPhase(*pStartData, *(pStartData+1));
 	*pOutPhase = PhPrev;
 	*pOutMag = FormalMag(*pStartData, *(pStartData+1), PhPrev);
-	long kPrev = 0;
+	//long kPrev = 0;
+	long long kPrev = 0;
 
 	float* tData = pStartData + 2;
 	double* tMag = pOutMag + 1;
 	double* tPhase = pOutPhase + 1;
-	long i;
+	//long i;
+	long long i;
 	for(i=1; i<iTot; i++)
 	{
 		double PredictedPhase = PredictPhase(*(tPhase-1), *(tData-2), *(tData-1), *tData, *(tData+1));
-		long kStart = kPrev - (MaxAmOfPer >> 1);
+		//long kStart = kPrev - (MaxAmOfPer >> 1);
+		long long kStart = kPrev - (MaxAmOfPer >> 1);
 		double AuxPhase = FormalPhase(*tData, *(tData+1)) + kStart*Pi;
 
 		double MinPhaseDiff = 1.E+23;
 		double GoodPhase = AuxPhase;
 
-		long kNewPrev;
-		for(long k=0; k<MaxAmOfPer; k++)
+		//long kNewPrev;
+		long long kNewPrev;
+		//for(long k=0; k<MaxAmOfPer; k++)
+		for(long long k=0; k<MaxAmOfPer; k++)
 		{
 			double PhaseDiff = ::fabs(AuxPhase - PredictedPhase);
 			if(PhaseDiff < MinPhaseDiff) { MinPhaseDiff = PhaseDiff; kNewPrev = k; GoodPhase = AuxPhase;}

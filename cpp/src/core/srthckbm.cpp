@@ -145,10 +145,14 @@ void srTRadIntThickBeam::ComputeTotalStokesDistr(srTEbmDat* pElecBeam, srTMagFld
 
 	SetupInitialTrajArrays(pTrjDat, pMagLensCont, pPrcPar);
 
-	long PerE = 4;
-	long PerX = (pStokes->ne)*PerE;
-	long PerZ = (pStokes->nx)*PerX;
-	long PerY = (pStokes->nz)*PerZ;
+	//long PerE = 4;
+	//long PerX = (pStokes->ne)*PerE;
+	//long PerZ = (pStokes->nx)*PerX;
+	//long PerY = (pStokes->nz)*PerZ;
+	long long PerE = 4;
+	long long PerX = (pStokes->ne)*PerE;
+	long long PerZ = (pStokes->nx)*PerX;
+	long long PerY = (pStokes->nz)*PerZ;
 
 	double xc = pElecBeam->x0;
 	double zc = pElecBeam->z0;
@@ -170,11 +174,13 @@ void srTRadIntThickBeam::ComputeTotalStokesDistr(srTEbmDat* pElecBeam, srTMagFld
 	EXZY.y = pStokes->yStart;
 	for(int iy=0; iy<pStokes->ny; iy++)
 	{
-		long iyPerY = iy*PerY;
+		//long iyPerY = iy*PerY;
+		long long iyPerY = iy*PerY;
 		EXZY.e = pStokes->eStart;
 		for(int ie=0; ie<pStokes->ne; ie++)
 		{
-            long iePerE = ie*PerE;
+            //long iePerE = ie*PerE;
+            long long iePerE = ie*PerE;
 
             ComputeExpCoefXZArraysForInteg2D(EXZY.y, EXZY.e, *pPrcPar);
 
@@ -182,13 +188,15 @@ void srTRadIntThickBeam::ComputeTotalStokesDistr(srTEbmDat* pElecBeam, srTMagFld
 			for(int iz=0; iz<pStokes->nz; iz++)
 			{
 				if(FinalResAreSymOverZ) { if((EXZY.z - zc) > zTol) break;}
-				long izPerZ = iz*PerZ;
+				//long izPerZ = iz*PerZ;
+				long long izPerZ = iz*PerZ;
 
 				EXZY.x = pStokes->xStart;
 				for(int ix=0; ix<pStokes->nx; ix++)
 				{
 					if(FinalResAreSymOverX) { if((EXZY.x - xc) > xTol) break;}
-					long ixPerX = ix*PerX;
+					//long ixPerX = ix*PerX;
+					long long ixPerX = ix*PerX;
 
 					srTStokes CurSt;
 					ComputeStokesAtOneObsPoint(EXZY, *pPrcPar, CurSt);
@@ -361,9 +369,11 @@ void srTRadIntThickBeam::AnalyzeFinalResultsSymmetry(char& FinalResAreSymOverX, 
 
 //*************************************************************************
 
-long srTRadIntThickBeam::FindTotalAmOfPointsToCalc(srTStokesStructAccessData* pStokes, char FinalResAreSymOverX, char FinalResAreSymOverZ)
+//long srTRadIntThickBeam::FindTotalAmOfPointsToCalc(srTStokesStructAccessData* pStokes, char FinalResAreSymOverX, char FinalResAreSymOverZ)
+long long srTRadIntThickBeam::FindTotalAmOfPointsToCalc(srTStokesStructAccessData* pStokes, char FinalResAreSymOverX, char FinalResAreSymOverZ)
 {
-	long TotalAmOfOutPoints = (pStokes->ny)*(pStokes->nz)*(pStokes->nx)*(pStokes->ne);
+	//long TotalAmOfOutPoints = (pStokes->ny)*(pStokes->nz)*(pStokes->nx)*(pStokes->ne);
+	long long TotalAmOfOutPoints = ((long long)(pStokes->ny))*((long long)(pStokes->nz))*((long long)(pStokes->nx))*((long long)(pStokes->ne));
 	if(FinalResAreSymOverX && (pStokes->nx > 1)) TotalAmOfOutPoints >>= 1;
 	if(FinalResAreSymOverZ && (pStokes->nz > 1)) TotalAmOfOutPoints >>= 1;
 	return TotalAmOfOutPoints;
@@ -375,9 +385,12 @@ void srTRadIntThickBeam::FillInSymPartsOfResults(char FinalResAreSymOverX, char 
 {
     if(pStokes == 0) return;
 
-	long PerX = (pStokes->ne) << 2;
-	long PerZ = PerX*(pStokes->nx);
-	long PerY = PerZ*(pStokes->nz);
+	//long PerX = (pStokes->ne) << 2;
+	//long PerZ = PerX*(pStokes->nx);
+	//long PerY = PerZ*(pStokes->nz);
+	long long PerX = (pStokes->ne) << 2;
+	long long PerZ = PerX*(pStokes->nx);
+	long long PerY = PerZ*(pStokes->nz);
 	char SymWithRespectToXax, SymWithRespectToZax;
 
 	int HalfNz = (pStokes->nz) >> 1, Nz_mi_1 = (pStokes->nz) - 1;
@@ -398,11 +411,14 @@ void srTRadIntThickBeam::FillInSymPartsOfResults(char FinalResAreSymOverX, char 
 			SymWithRespectToXax = 0; SymWithRespectToZax = 1;
 			for(iy=0; iy<pStokes->ny; iy++)
 			{
-				long iyPerY = iy*PerY;
+				//long iyPerY = iy*PerY;
+				long long iyPerY = iy*PerY;
                 for(iz=0; iz<HalfNz; iz++)
                 {
-                    long izPerZ = iz*PerZ;
-					long iyPerY_p_izPerZ = iyPerY + izPerZ;
+					//long izPerZ = iz*PerZ;
+					//long iyPerY_p_izPerZ = iyPerY + izPerZ;
+                    long long izPerZ = iz*PerZ;
+					long long iyPerY_p_izPerZ = iyPerY + izPerZ;
                     for(ix=0; ix<HalfNx; ix++)
                     {
                         float* pOrigData = pStokes->pBaseSto + (iyPerY_p_izPerZ + ix*PerX);
@@ -416,16 +432,21 @@ void srTRadIntThickBeam::FillInSymPartsOfResults(char FinalResAreSymOverX, char 
 
 		for(iy=0; iy<pStokes->ny; iy++)
 		{
-			long iyPerY = iy*PerY;
+			//long iyPerY = iy*PerY;
+			long long iyPerY = iy*PerY;
 			for(iz=0; iz<HalfNz; iz++)
 			{
-				long izPerZ = iz*PerZ, BufZ = (Nz_mi_1 - iz)*PerZ;
-				long iyPerY_p_izPerZ = iyPerY + izPerZ;
-				long iyPerY_p_BufZ = iyPerY + BufZ;
+				//long izPerZ = iz*PerZ, BufZ = (Nz_mi_1 - iz)*PerZ;
+				//long iyPerY_p_izPerZ = iyPerY + izPerZ;
+				//long iyPerY_p_BufZ = iyPerY + BufZ;
+				long long izPerZ = iz*PerZ, BufZ = (Nz_mi_1 - iz)*PerZ;
+				long long iyPerY_p_izPerZ = iyPerY + izPerZ;
+				long long iyPerY_p_BufZ = iyPerY + BufZ;
 
 				for(ix=0; ix<pStokes->nx; ix++)
 				{
-                    long ixPerX = ix*PerX;
+                    //long ixPerX = ix*PerX;
+                    long long ixPerX = ix*PerX;
                     float* pOrigData = pStokes->pBaseSto + (iyPerY_p_izPerZ + ixPerX);
                     float* pSymData = pStokes->pBaseSto + (iyPerY_p_BufZ + ixPerX);
                     CopySymEnergySlice(pOrigData, pSymData, pStokes->ne, SymWithRespectToXax, SymWithRespectToZax);
@@ -439,11 +460,14 @@ void srTRadIntThickBeam::FillInSymPartsOfResults(char FinalResAreSymOverX, char 
 
 		for(iy=0; iy<pStokes->ny; iy++)
 		{
-			long iyPerY = iy*PerY;
+			//long iyPerY = iy*PerY;
+			long long iyPerY = iy*PerY;
             for(iz=0; iz<pStokes->nz; iz++)
             {
-                long izPerZ = iz*PerZ;
-				long iyPerY_p_izPerZ = iyPerY + izPerZ;
+				//long izPerZ = iz*PerZ;
+				//long iyPerY_p_izPerZ = iyPerY + izPerZ;
+                long long izPerZ = iz*PerZ;
+				long long iyPerY_p_izPerZ = iyPerY + izPerZ;
 
 				for(ix=0; ix<HalfNx; ix++)
                 {
@@ -505,25 +529,31 @@ void srTRadIntThickBeam::ComputeStokesAtOneObsPoint(srTEXZY EXZY, srTParPrecStok
 
 //*************************************************************************
 
-void srTRadIntThickBeam::ComputeStokesAtOneObsPoint_Intens_PrepAandB(srTFieldBasedArrays& FldArr, int iStart, int itStart, int CurNs, int CurNst, TComplexD* ArrA, TComplexD* ArrB)
+//void srTRadIntThickBeam::ComputeStokesAtOneObsPoint_Intens_PrepAandB(srTFieldBasedArrays& FldArr, int iStart, int itStart, int CurNs, int CurNst, TComplexD* ArrA, TComplexD* ArrB)
+void srTRadIntThickBeam::ComputeStokesAtOneObsPoint_Intens_PrepAandB(srTFieldBasedArrays& FldArr, long long iStart, long long itStart, long long CurNs, long long CurNst, TComplexD* ArrA, TComplexD* ArrB)
 {//to modify: take into account triangular alignement !
-	long ns = FldArr.Ns;
+	//long ns = FldArr.Ns;
+	long long ns = FldArr.Ns;
     double sStart = FldArr.sStart;
     double sStep = FldArr.sStep;
 
 	long TotNumCoefForOnePointA = gNumCoefForOnePointA*4; // 4 stokes components
 
-	for(int it=itStart; it<(itStart + CurNst); it++)
+	//for(int it=itStart; it<(itStart + CurNst); it++)
+	for(long long it=itStart; it<(itStart + CurNst); it++)
 	{
         double st = sStart + it*sStep;
 
-		long it_CurNs = (it - itStart)*CurNs;
-		for(int i=iStart; i<(iStart + CurNs); i++)
+		//long it_CurNs = (it - itStart)*CurNs;
+		long long it_CurNs = (it - itStart)*CurNs;
+		//for(int i=iStart; i<(iStart + CurNs); i++)
+		for(long long i=iStart; i<(iStart + CurNs); i++)
 		{
             double s = sStart + i*sStep;
 
             bool IsConjugate = false;
-			int itAct = it, iAct = i;
+			//int itAct = it, iAct = i;
+			long long itAct = it, iAct = i;
 			if(iAct < itAct)
 			{
 				IsConjugate = true;
@@ -534,14 +564,19 @@ void srTRadIntThickBeam::ComputeStokesAtOneObsPoint_Intens_PrepAandB(srTFieldBas
 
 			//long Offset1 = it*((2*ns - 1 - it) >> 1) + i;
 			//long Offset1 = itAct*(((ns << 1) - 1 - itAct) >> 1) + iAct;
-			long Offset1 = (itAct*((ns << 1) - 1 - itAct) >> 1) + iAct;
-			long OffsetCoefA = Offset1*TotNumCoefForOnePointA;
-            long OffsetCoefB = Offset1*gNumCoefForOnePointB;
-            //double s = sStart + i*sStep;
+			//long Offset1 = (itAct*((ns << 1) - 1 - itAct) >> 1) + iAct;
+			//long OffsetCoefA = Offset1*TotNumCoefForOnePointA;
+			//long OffsetCoefB = Offset1*gNumCoefForOnePointB;
+ 			long long Offset1 = (itAct*((ns << 1) - 1 - itAct) >> 1) + iAct;
+			long long OffsetCoefA = Offset1*TotNumCoefForOnePointA;
+            long long OffsetCoefB = Offset1*gNumCoefForOnePointB;
+			//double s = sStart + i*sStep;
             //double s = sStart + iAct*sStep;
 
-            long OffsetLocB = it_CurNs + (i - iStart);
-            long OffsetLocA = OffsetLocB << 2;
+            //long OffsetLocB = it_CurNs + (i - iStart);
+            //long OffsetLocA = OffsetLocB << 2;
+            long long OffsetLocB = it_CurNs + (i - iStart);
+            long long OffsetLocA = OffsetLocB << 2;
 
             ComputeIntensFuncPartsForInteg2D(s, st, gCoefA + OffsetCoefA, gCoefB + OffsetCoefB, ArrA + OffsetLocA, *(ArrB + OffsetLocB));
 			if(IsConjugate)
@@ -560,10 +595,14 @@ void srTRadIntThickBeam::ComputeStokesAtOneObsPoint_ExternIntens_AddBotLeft(srTF
 	//TComplexD ArrA[9*4], ArrB[9];
     //ComputeStokesAtOneObsPoint_Intens_PrepAandB(FldArr, 0, 0, 3, 3, ArrA, ArrB);
 
-	long Ns = FldArr.Ns;
-	long TwoNs = FldArr.Ns << 1;
-	long ThreeNs = 3*FldArr.Ns;
-	long FourNs = FldArr.Ns << 2;
+	//long Ns = FldArr.Ns;
+	//long TwoNs = FldArr.Ns << 1;
+	//long ThreeNs = 3*FldArr.Ns;
+	//long FourNs = FldArr.Ns << 2;
+	long long Ns = FldArr.Ns;
+	long long TwoNs = FldArr.Ns << 1;
+	long long ThreeNs = 3*FldArr.Ns;
+	long long FourNs = FldArr.Ns << 2;
 
 	TComplexD At_Stokes[16];
     ComputeResidTermA_Stokes(gBottomArrA, gBottomArrB, 0, FldArr.sStep, At_Stokes);
@@ -591,8 +630,10 @@ void srTRadIntThickBeam::ComputeStokesAtOneObsPoint_ExternIntens_AddBotLeft(srTF
 
 void srTRadIntThickBeam::ComputeStokesAtOneObsPoint_ExternIntens_AddCen(srTFieldBasedArrays& FldArr, char b_or_r, srTStokes& CurSt)
 {// b_or_r means 'b' or 'r' (bottom or right respectively)
-    int Ns = FldArr.Ns;
-	int Ns_mi_3 = Ns - 3;
+	//int Ns = FldArr.Ns;
+	//int Ns_mi_3 = Ns - 3;
+    long long Ns = FldArr.Ns;
+	long long Ns_mi_3 = Ns - 3;
 
     TComplexD ArrA[16];
     TComplexD ArrB[4];
@@ -600,13 +641,15 @@ void srTRadIntThickBeam::ComputeStokesAtOneObsPoint_ExternIntens_AddCen(srTField
     TComplexD At_Stokes[4];
 	srTStokes *LocStokesArr = new srTStokes[Ns]; 
 	srTStokes *tLocStokesArr = LocStokesArr;
-	for(int i=0; i<Ns; i++)
+	//for(int i=0; i<Ns; i++)
+	for(long long i=0; i<Ns; i++)
 	{
 		if(b_or_r == 'b')
 		{
 			for(int k=0; k<4; k++)
 			{
-				long OffsetB = i + Ns*k;
+				//long OffsetB = i + Ns*k;
+				long long OffsetB = i + Ns*k;
 				ArrB[k] = gBottomArrB[OffsetB];
 
 				TComplexD *tgBottomArrA = gBottomArrA + (OffsetB << 2);
@@ -618,10 +661,12 @@ void srTRadIntThickBeam::ComputeStokesAtOneObsPoint_ExternIntens_AddCen(srTField
 		{
 			if(i < 4)
 			{
-                long OffsetB0 = (Ns - 4) + i*Ns;
+                //long OffsetB0 = (Ns - 4) + i*Ns;
+                long long OffsetB0 = (Ns - 4) + i*Ns;
                 for(int k=0; k<4; k++)
                 {
-                    long OffsetB = OffsetB0 + k;
+                    //long OffsetB = OffsetB0 + k;
+                    long long OffsetB = OffsetB0 + k;
                     ArrB[k] = gBottomArrB[OffsetB];
                     //ArrA[k] = gBottomArrA[OffsetB << 2];
 
@@ -635,10 +680,12 @@ void srTRadIntThickBeam::ComputeStokesAtOneObsPoint_ExternIntens_AddCen(srTField
 			}
 			else
 			{
-                long OffsetB0 = (i - 4) << 2;
+                //long OffsetB0 = (i - 4) << 2;
+                long long OffsetB0 = (i - 4) << 2;
                 for(int k=0; k<4; k++)
                 {
-                    long OffsetB = OffsetB0 + k;
+                    //long OffsetB = OffsetB0 + k;
+                    long long OffsetB = OffsetB0 + k;
                     ArrB[k] = gRightArrB[OffsetB];
                     //ArrA[k] = gRightArrA[OffsetB << 2];
 
@@ -653,13 +700,16 @@ void srTRadIntThickBeam::ComputeStokesAtOneObsPoint_ExternIntens_AddCen(srTField
 		if(i < 3)
 		{
             LeftB[i] = ArrB[0];
-			int i_4 = i << 2;
+			//int i_4 = i << 2;
+			long long i_4 = i << 2;
 			for(int k=0; k<4; k++) LeftA[i_4 + k] = At_Stokes[k];
 		}
 		else if(i >= Ns_mi_3)
 		{
-			int i_mi_Ns_mi_3 = i - Ns_mi_3;
-            int i_mi_Ns_mi_3_4 = i_mi_Ns_mi_3 << 2;
+			//int i_mi_Ns_mi_3 = i - Ns_mi_3;
+			//int i_mi_Ns_mi_3_4 = i_mi_Ns_mi_3 << 2;
+			long long i_mi_Ns_mi_3 = i - Ns_mi_3;
+            long long i_mi_Ns_mi_3_4 = i_mi_Ns_mi_3 << 2;
             RightB[i_mi_Ns_mi_3] = ArrB[0];
 			for(int k=0; k<4; k++) RightA[i_mi_Ns_mi_3_4 + k] = At_Stokes[k];
 		}
@@ -741,14 +791,20 @@ void srTRadIntThickBeam::ComputeStokesAtOneObsPoint_ExternIntens_AddCen(srTField
 
 void srTRadIntThickBeam::ComputeStokesAtOneObsPoint_ExternIntens_AddBotRight(srTFieldBasedArrays& FldArr, srTStokes& CurSt)
 {
-	long Ns = FldArr.Ns;
-	long Ns_mi_4 = Ns - 4;
-	long TwoNs = FldArr.Ns << 1;
-	long ThreeNs = 3*FldArr.Ns;
-	long FourNs = FldArr.Ns << 2;
+	//long Ns = FldArr.Ns;
+	//long Ns_mi_4 = Ns - 4;
+	//long TwoNs = FldArr.Ns << 1;
+	//long ThreeNs = 3*FldArr.Ns;
+	//long FourNs = FldArr.Ns << 2;
+	long long Ns = FldArr.Ns;
+	long long Ns_mi_4 = Ns - 4;
+	long long TwoNs = FldArr.Ns << 1;
+	long long ThreeNs = 3*FldArr.Ns;
+	long long FourNs = FldArr.Ns << 2;
 
 	TComplexD At_Stokes[16];
-	long OffsetB = Ns_mi_4;
+	//long OffsetB = Ns_mi_4;
+	long long OffsetB = Ns_mi_4;
 	for(int i=0; i<4; i++)
 	{
         ComputeResidTermA_Stokes(gBottomArrA + (OffsetB << 2), gBottomArrB + OffsetB, 3, FldArr.sStep, At_Stokes + (i << 2));
@@ -773,20 +829,24 @@ void srTRadIntThickBeam::ComputeStokesAtOneObsPoint_ExternIntens_AddBotRight(srT
 
 void srTRadIntThickBeam::ComputeStokesAtOneObsPoint_ExternIntens_AddTopRight(srTFieldBasedArrays& FldArr, srTStokes& CurSt)
 {
-	long Ns = FldArr.Ns;
-	long Ns_mi_4 = Ns - 4;
-	//long FourNs = FldArr.Ns << 2;
-	long Four_Ns_mi_4 = Ns_mi_4 << 2;
+	//long Ns = FldArr.Ns;
+	//long Ns_mi_4 = Ns - 4;
+	//long Four_Ns_mi_4 = Ns_mi_4 << 2;
+	long long Ns = FldArr.Ns;
+	long long Ns_mi_4 = Ns - 4;
+	long long Four_Ns_mi_4 = Ns_mi_4 << 2;
 
 	TComplexD At_Stokes[16];
-	long OffsetB = Four_Ns_mi_4 - 16;
+	//long OffsetB = Four_Ns_mi_4 - 16;
+	long long OffsetB = Four_Ns_mi_4 - 16;
 	for(int i=0; i<4; i++)
 	{
         ComputeResidTermA_Stokes(gRightArrA + (OffsetB << 2), gRightArrB + OffsetB, 3, FldArr.sStep, At_Stokes + (i << 2));
         OffsetB += 4;
 	}
 
-	long AuxOffsetB = Four_Ns_mi_4 - 13;
+	//long AuxOffsetB = Four_Ns_mi_4 - 13;
+	long long AuxOffsetB = Four_Ns_mi_4 - 13;
 	TComplexD Bt[] = {gRightArrB[AuxOffsetB], gRightArrB[AuxOffsetB + 4], gRightArrB[AuxOffsetB + 8], gRightArrB[AuxOffsetB + 12]};
 	TComplexD At_StokesFin[4];
     ComputeResidTermA_Stokes(At_Stokes, Bt, 3, FldArr.sStep, At_StokesFin);
@@ -818,13 +878,17 @@ void srTRadIntThickBeam::ComputeStokesAtOneObsPoint_ExternIntens_AddTopRight(srT
 void srTRadIntThickBeam::ComputeExpCoefXZArraysForInteg2D_EvenMesh(double yObs, double eObs, srTFieldBasedArrays& FldArr, TComplexD* ArrA, TComplexD* ArrB)
 {
 	TComplexD *pA = ArrA, *pB = ArrB;
-	long Ns = FldArr.Ns;
+	//long Ns = FldArr.Ns;
+	long long Ns = FldArr.Ns;
 	long TotNumCoefForOnePointA = gNumCoefForOnePointA*4; //for 4 stokes components
 
-	long AuxCount = 0;
-	for(long ist=0; ist<Ns; ist++)
+	//long AuxCount = 0;
+	long long AuxCount = 0;
+	//for(long ist=0; ist<Ns; ist++)
+	for(long long ist=0; ist<Ns; ist++)
 	{
-		for(long is=ist; is<Ns; is++)
+		//for(long is=ist; is<Ns; is++)
+		for(long long is=ist; is<Ns; is++)
 		{
             ComputeExpCoefForOneObsPoint(is, ist, yObs, eObs, FldArr, pA, pB);
             pA += TotNumCoefForOnePointA;
@@ -837,7 +901,8 @@ void srTRadIntThickBeam::ComputeExpCoefXZArraysForInteg2D_EvenMesh(double yObs, 
 
 //*************************************************************************
 
-void srTRadIntThickBeam::ComputeExpCoefForOneObsPoint(long is, long ist, double yObs, double eObs, srTFieldBasedArrays& FldArr, TComplexD* ArrA, TComplexD* ArrB)
+//void srTRadIntThickBeam::ComputeExpCoefForOneObsPoint(long is, long ist, double yObs, double eObs, srTFieldBasedArrays& FldArr, TComplexD* ArrA, TComplexD* ArrB)
+void srTRadIntThickBeam::ComputeExpCoefForOneObsPoint(long long is, long long ist, double yObs, double eObs, srTFieldBasedArrays& FldArr, TComplexD* ArrA, TComplexD* ArrB)
 {
 	double s = FldArr.sStart + is*FldArr.sStep;
 	double us = FldArr.sStart + ist*FldArr.sStep;
@@ -1320,7 +1385,8 @@ void srTRadIntThickBeam::ComputeExpCoefForOneObsPoint(long is, long ist, double 
 
 //*************************************************************************
 
-void srTRadIntThickBeam::Integrate1DStokesArr(srTStokes* StokesArr, int Np, double h, srTStokes* pInitDer, srTStokes* pFinDer, srTStokes& ResSt)
+//void srTRadIntThickBeam::Integrate1DStokesArr(srTStokes* StokesArr, int Np, double h, srTStokes* pInitDer, srTStokes* pFinDer, srTStokes& ResSt)
+void srTRadIntThickBeam::Integrate1DStokesArr(srTStokes* StokesArr, long long Np, double h, srTStokes* pInitDer, srTStokes* pFinDer, srTStokes& ResSt)
 {//Np is assumed odd and >= 5!!!
 	const double we = 7./15.;
     const double w1 = 16./15.;
@@ -1331,8 +1397,10 @@ void srTRadIntThickBeam::Integrate1DStokesArr(srTStokes* StokesArr, int Np, doub
 	srTStokes Sum2(0,0,0,0);
 
 	srTStokes *t = StokesArr + 2;
-	int nLoops = (Np - 3) >> 1;
-    for(int i=0; i<nLoops; i++)
+	//int nLoops = (Np - 3) >> 1;
+	long long nLoops = (Np - 3) >> 1;
+    //for(int i=0; i<nLoops; i++)
+    for(long long i=0; i<nLoops; i++)
 	{
 		Sum2 += *(t++);
 		Sum1 += *(t++);
@@ -1349,15 +1417,18 @@ void srTRadIntThickBeam::Integrate1DStokesArr(srTStokes* StokesArr, int Np, doub
 
 //*************************************************************************
     
-void srTRadIntThickBeam::Integrate1DStokesFunc_EvenMesh_OddNp(srTFieldBasedArrays& FldArr, int it, int i_Offset, srTStokes* pFe1, srTStokes& ResSt)
+//void srTRadIntThickBeam::Integrate1DStokesFunc_EvenMesh_OddNp(srTFieldBasedArrays& FldArr, int it, int i_Offset, srTStokes* pFe1, srTStokes& ResSt)
+void srTRadIntThickBeam::Integrate1DStokesFunc_EvenMesh_OddNp(srTFieldBasedArrays& FldArr, long long it, long long i_Offset, srTStokes* pFe1, srTStokes& ResSt)
 {//Np is assumed odd and >= 5!!!
 	const double we = 7./15.;
     const double w1 = 16./15.;
     const double w2 = 14./15.;
     const double wd = 1./15.; 
 
-	int iStart = it + i_Offset;
-	int Np = FldArr.Ns - iStart;
+	//int iStart = it + i_Offset;
+	//int Np = FldArr.Ns - iStart;
+	long long iStart = it + i_Offset;
+	long long Np = FldArr.Ns - iStart;
 
 	srTStokes Fe1, Fe2, F1, F2, Sum1(0,0,0,0), Sum2(0,0,0,0);
     srTStokes dFe1, dFe2;
@@ -1378,9 +1449,12 @@ void srTRadIntThickBeam::Integrate1DStokesFunc_EvenMesh_OddNp(srTFieldBasedArray
         ComputeStokesAtOneObsPoint_FuncForInteg2D(FldArr, iStart + 3, it, F1);
 		Sum1 += F1;
 
-        int nLoops = (Np - 7) >> 1;
-		int ip = iStart + 4;
-        for(int k=0; k<nLoops; k++)
+		//int nLoops = (Np - 7) >> 1;
+		//int ip = iStart + 4;
+        long long nLoops = (Np - 7) >> 1;
+		long long ip = iStart + 4;
+        //for(int k=0; k<nLoops; k++)
+        for(long long k=0; k<nLoops; k++)
         {
             ComputeStokesAtOneObsPoint_FuncForInteg2D(FldArr, ip++, it, F2);
             Sum2 += F2;
@@ -1427,7 +1501,8 @@ void srTRadIntThickBeam::ComputeStokesAtOneObsPoint_InternIntens_EvenMesh(srTFie
         Integrate1DStokesFunc_EvenMesh(FldArr, 3, F1);
         Sum1 += F1;
 
-        int nLoops = (FldArr.Ns - 7) >> 1;
+        //int nLoops = (FldArr.Ns - 7) >> 1;
+        long long nLoops = (FldArr.Ns - 7) >> 1;
         int ip = 4;
         for(int k=0; k<nLoops; k++)
         {

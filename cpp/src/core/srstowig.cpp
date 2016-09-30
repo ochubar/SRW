@@ -61,16 +61,21 @@ int srTRadIntWiggler::ComputeTotalStokesDistr(srTStokesStructAccessData& StokesA
 	
 	MaxIntValWithinPointG = MinEstIntValWithinPointG;
 
-	long PerE = 4;
-	long PerX = StokesAccessData.ne*PerE;
-	long PerZ = StokesAccessData.nx*PerX;
+	//long PerE = 4;
+	//long PerX = StokesAccessData.ne*PerE;
+	//long PerZ = StokesAccessData.nx*PerX;
+	long long PerE = 4;
+	long long PerX = StokesAccessData.ne*PerE;
+	long long PerZ = StokesAccessData.nx*PerX;
 	
 	EXZ.z = StokesAccessData.zStart;
 
-	long TotalAmOfOutPoints = DistrInfoDat.nz*DistrInfoDat.nx*DistrInfoDat.nLamb;
+	//long TotalAmOfOutPoints = DistrInfoDat.nz*DistrInfoDat.nx*DistrInfoDat.nLamb;
+	long long TotalAmOfOutPoints = ((long long)DistrInfoDat.nz)*((long long)DistrInfoDat.nx)*((long long)DistrInfoDat.nLamb);
 	if(FinalResAreSymOverX) TotalAmOfOutPoints >>= 1;
 	if(FinalResAreSymOverZ) TotalAmOfOutPoints >>= 1;
-	long PointCount = 0;
+	//long PointCount = 0;
+	long long PointCount = 0;
 	double UpdateTimeInt_s = 0.5;
 	srTCompProgressIndicator CompProgressInd(TotalAmOfOutPoints, UpdateTimeInt_s);
 
@@ -78,13 +83,15 @@ int srTRadIntWiggler::ComputeTotalStokesDistr(srTStokesStructAccessData& StokesA
 	{
 		if(FinalResAreSymOverZ) { if((EXZ.z - zc) > zTol) break;}
 		
-		long izPerZ = iz*PerZ;
+		//long izPerZ = iz*PerZ;
+		long long izPerZ = iz*PerZ;
 		EXZ.x = StokesAccessData.xStart;
 		for(int ix=0; ix<DistrInfoDat.nx; ix++)
 		{
 			if(FinalResAreSymOverX) { if((EXZ.x - xc) > xTol) break;}
 			
-			long ixPerX = ix*PerX;
+			//long ixPerX = ix*PerX;
+			long long ixPerX = ix*PerX;
 			EXZ.e = StokesAccessData.eStart;
 			for(int ie=0; ie<DistrInfoDat.nLamb; ie++)
 			{
@@ -130,7 +137,8 @@ int srTRadIntWiggler::SetUpFieldBasedArrays()
 {
 	int result;
 	double sStepLoc;
-	long NsLoc;
+	//long NsLoc;
+	long long NsLoc;
 	if(result = TrjDatPtr->SetupLimitsByAnalizingField(LongIntTypeG, FieldBasedArrays.sStart, sStepLoc, NsLoc, FieldBasedArrays.Nper, FieldBasedArrays.NperLeft)) return result;
 	double sEndLoc = FieldBasedArrays.sStart + sStepLoc*(NsLoc - 1);
 
@@ -191,8 +199,10 @@ void srTRadIntWiggler::AnalizeFinalResultsSymmetry(char& FinalResAreSymOverX, ch
 
 void srTRadIntWiggler::FillInSymPartsOfResults(char FinalResAreSymOverX, char FinalResAreSymOverZ, srTStokesStructAccessData& StokesAccessData)
 {
-	long PerX = StokesAccessData.ne << 2;
-	long PerZ = PerX*DistrInfoDat.nx;
+	//long PerX = StokesAccessData.ne << 2;
+	//long PerZ = PerX*DistrInfoDat.nx;
+	long long PerX = StokesAccessData.ne << 2;
+	long long PerZ = PerX*DistrInfoDat.nx;
 	char SymWithRespectToXax, SymWithRespectToZax;
 	
 	int HalfNz = StokesAccessData.nz >> 1, Nz_mi_1 = StokesAccessData.nz - 1;
@@ -208,11 +218,14 @@ void srTRadIntWiggler::FillInSymPartsOfResults(char FinalResAreSymOverX, char Fi
 			SymWithRespectToXax = 0; SymWithRespectToZax = 1;
 			for(iz=0; iz<HalfNz; iz++)
 			{
-				long izPerZ = iz*PerZ;
+				//long izPerZ = iz*PerZ;
+				long long izPerZ = iz*PerZ;
 				for(ix=0; ix<HalfNx; ix++)
 				{
-					long OffsetOrig = izPerZ + ix*PerX;
-					long OffsetSym = izPerZ + (Nx_mi_1 - ix)*PerX;
+					//long OffsetOrig = izPerZ + ix*PerX;
+					//long OffsetSym = izPerZ + (Nx_mi_1 - ix)*PerX;
+					long long OffsetOrig = izPerZ + ix*PerX;
+					long long OffsetSym = izPerZ + (Nx_mi_1 - ix)*PerX;
 					float* pOrigData = StokesAccessData.pBaseSto + OffsetOrig;
 					float* pSymData = StokesAccessData.pBaseSto + OffsetSym;
 					CopySymEnergySlice(pOrigData, pSymData, SymWithRespectToXax, SymWithRespectToZax);
@@ -229,10 +242,12 @@ void srTRadIntWiggler::FillInSymPartsOfResults(char FinalResAreSymOverX, char Fi
 		SymWithRespectToXax = 1; SymWithRespectToZax = 0;
 		for(iz=0; iz<HalfNz; iz++)
 		{
-			long izPerZ = iz*PerZ, BufZ = (Nz_mi_1 - iz)*PerZ;
+			//long izPerZ = iz*PerZ, BufZ = (Nz_mi_1 - iz)*PerZ;
+			long long izPerZ = iz*PerZ, BufZ = (Nz_mi_1 - iz)*PerZ;
 			for(ix=0; ix<DistrInfoDat.nx; ix++)
 			{
-				long ixPerX = ix*PerX;
+				//long ixPerX = ix*PerX;
+				long long ixPerX = ix*PerX;
 				float* pOrigData = StokesAccessData.pBaseSto + izPerZ + ixPerX;
 				float* pSymData = StokesAccessData.pBaseSto + BufZ + ixPerX;
 				CopySymEnergySlice(pOrigData, pSymData, SymWithRespectToXax, SymWithRespectToZax);
@@ -251,11 +266,14 @@ void srTRadIntWiggler::FillInSymPartsOfResults(char FinalResAreSymOverX, char Fi
 		SymWithRespectToXax = 0; SymWithRespectToZax = 1;
 		for(iz=0; iz<DistrInfoDat.nz; iz++)
 		{
-			long izPerZ = iz*PerZ;
+			//long izPerZ = iz*PerZ;
+			long long izPerZ = iz*PerZ;
 			for(ix=0; ix<HalfNx; ix++)
 			{
-				long OffsetOrig = izPerZ + ix*PerX;
-				long OffsetSym = izPerZ + (Nx_mi_1 - ix)*PerX;
+				//long OffsetOrig = izPerZ + ix*PerX;
+				//long OffsetSym = izPerZ + (Nx_mi_1 - ix)*PerX;
+				long long OffsetOrig = izPerZ + ix*PerX;
+				long long OffsetSym = izPerZ + (Nx_mi_1 - ix)*PerX;
 				float* pOrigData = StokesAccessData.pBaseSto + OffsetOrig;
 				float* pSymData = StokesAccessData.pBaseSto + OffsetSym;
 				CopySymEnergySlice(pOrigData, pSymData, SymWithRespectToXax, SymWithRespectToZax);
@@ -499,13 +517,15 @@ int srTRadIntWiggler::ComputeCrossTermsAtPointPer(int StartIntervNo, int FinInte
 	double EnSprMult = 2.*PIdLamb_Inv_m*PIdLamb_Inv_m*(Ebm.GammaEm2)*(Ebm.GammaEm2)*(Ebm.SigmaRelE)*(Ebm.SigmaRelE);
 	double PerLen = 0.5*FieldBasedArrays.sStep*(FieldBasedArrays.Ns - 1);
 
-	int TotAmOfInt = FieldBasedArrays.Nper*AmOfInterv;
+	//int TotAmOfInt = FieldBasedArrays.Nper*AmOfInterv;
+	long long TotAmOfInt = FieldBasedArrays.Nper*AmOfInterv;
 	char NearField = 0;
 	double DelPhi = 0.5*MaxPhaseDifForThisObsPoint(NearField);
 
 	int IntCountI = 0, PerCountI = 0;
 	srTRadContribInterval *ti = pStartInterv;
-	for(int i=0; i<TotAmOfInt; i++)
+	//for(int i=0; i<TotAmOfInt; i++)
+	for(long long i=0; i<TotAmOfInt; i++)
 	{
 		if(IntCountI == AmOfInterv) { IntCountI = 0; ti = pStartInterv; PerCountI++;}
 		double si = ti->sc + (PerCountI - FieldBasedArrays.NperLeft)*PerLen;
@@ -516,7 +536,8 @@ int srTRadIntWiggler::ComputeCrossTermsAtPointPer(int StartIntervNo, int FinInte
 
 		int IntCountJ = IntCountI + 1, PerCountJ = PerCountI;
 		srTRadContribInterval *tj = ti + 1;
-		for(int j=(i + 1); j<TotAmOfInt; j++)
+		//for(int j=(i + 1); j<TotAmOfInt; j++)
+		for(long long j=(i + 1); j<TotAmOfInt; j++)
 		{
 			if(IntCountJ >= AmOfInterv) { IntCountJ = 0; tj = pStartInterv; PerCountJ++;}
 
@@ -586,18 +607,21 @@ int srTRadIntWiggler::ComputeAndAddOneMainTermNum(int TermNo)
 	const double wd = 1./15.;
 
 	srTRadContribInterval& ThisInterv = RadNumIntervals[TermNo];
-	int IndSt = ThisInterv.IndSt, IndFi = ThisInterv.IndFi;
+	//int IndSt = ThisInterv.IndSt, IndFi = ThisInterv.IndFi;
+	long long IndSt = ThisInterv.IndSt, IndFi = ThisInterv.IndFi;
 	double sStart = FieldBasedArrays.sStart + IndSt*FieldBasedArrays.sStep;
 	double sEnd = FieldBasedArrays.sStart + IndFi*FieldBasedArrays.sStep;
 
 	srTEFourier& E = ThisInterv.E;
 
-	int AmOfPoOnZeroLev = IndFi - IndSt + 1;
+	//int AmOfPoOnZeroLev = IndFi - IndSt + 1;
+	long long AmOfPoOnZeroLev = IndFi - IndSt + 1;
 	TrjArraysAux.Reset(AmOfPoOnZeroLev);
 
 	char NearField = (LongIntTypeG == 1);
 
-	int Np = AmOfPoOnZeroLev - 1;
+	//int Np = AmOfPoOnZeroLev - 1;
+	long long Np = AmOfPoOnZeroLev - 1;
 	double sStep = (sEnd - sStart)/double(Np), s;
 
 	double CosPh, SinPh; CosAndSinComp.CosAndSin(ThisInterv.Ph_St, CosPh, SinPh);
@@ -693,7 +717,8 @@ int srTRadIntWiggler::ComputeAndAddOneMainTermNum(int TermNo)
 
 			double DPhMax = 0.;
 
-		for(int i=0; i<Np; i++)
+		//for(int i=0; i<Np; i++)
+		for(long long i=0; i<Np; i++)
 		{
 			if(NearField)
 			{
@@ -1158,7 +1183,8 @@ char srTRadIntWiggler::FindMaxFieldPlane(srTFieldBasedArrays& FieldBasedArrays)
 {
 	double MaxAbsBx = 0., MaxAbsBz = 0.;
 	double *tBx = FieldBasedArrays.BxArr, *tBz = FieldBasedArrays.BzArr;
-	for(int i=0; i<FieldBasedArrays.Ns; i++)
+	//for(int i=0; i<FieldBasedArrays.Ns; i++)
+	for(long long i=0; i<FieldBasedArrays.Ns; i++)
 	{
 		double AbsBx = ::fabs(*(tBx++)), AbsBz = ::fabs(*(tBz++));
 		if(MaxAbsBx < AbsBx) MaxAbsBx = AbsBx;
@@ -1345,7 +1371,8 @@ int srTRadIntWiggler::TreatFiniteElecBeamEmittance(srTStokesStructAccessData& St
 	int result;
 	if((StokesAccessData.nx == 1) && (StokesAccessData.nz == 1)) return 0;
 
-	long LenFloatArr = (StokesAccessData.nx*StokesAccessData.nz);
+	//long LenFloatArr = (StokesAccessData.nx*StokesAccessData.nz);
+	long long LenFloatArr = (((long long)StokesAccessData.nx)*((long long)StokesAccessData.nz));
 	float *StokesCmpnArr = new float[LenFloatArr];
 	if(StokesCmpnArr == 0) return MEMORY_ALLOCATION_FAILURE;
 
@@ -1381,21 +1408,27 @@ void srTRadIntWiggler::ExtractStokesSliceConstE(srTStokesStructAccessData& Stoke
 	if(MainOrCrossTerms == 'm') pS0	= StokesAccessData.pBaseSto + StokesNo;
 	else if(MainOrCrossTerms == 'c') pS0 = CrossTermsContribArray + StokesNo;
 
-	long PerX = StokesAccessData.ne << 2;
-	long PerZ = PerX*StokesAccessData.nx;
+	//long PerX = StokesAccessData.ne << 2;
+	//long PerZ = PerX*StokesAccessData.nx;
+	long long PerX = StokesAccessData.ne << 2;
+	long long PerZ = PerX*StokesAccessData.nx;
 
-	long izPerZ = 0;
-	long iePerE = ie << 2;
+	//long izPerZ = 0;
+	//long iePerE = ie << 2;
+	long long izPerZ = 0;
+	long long iePerE = ie << 2;
 
 	float *tOutS = pOutS;
 	for(int iz=0; iz<StokesAccessData.nz; iz++)
 	{
 		float *pS_StartForX = pS0 + izPerZ;
-		long ixPerX = 0;
+		//long ixPerX = 0;
+		long long ixPerX = 0;
 
 		for(int ix=0; ix<StokesAccessData.nx; ix++)
 		{
-			long ixPerX_p_iePerE = ixPerX + iePerE;
+			//long ixPerX_p_iePerE = ixPerX + iePerE;
+			long long ixPerX_p_iePerE = ixPerX + iePerE;
 			float *pS = pS_StartForX + ixPerX_p_iePerE;
 			*(tOutS++) = *pS;
 
@@ -1413,21 +1446,27 @@ void srTRadIntWiggler::UpdateStokesSliceConstE(float* StokesCmpnArr, long ie, in
 	if(MainOrCrossTerms == 'm') pS0 = StokesAccessData.pBaseSto + StokesNo;
 	else if(MainOrCrossTerms == 'c') pS0 = CrossTermsContribArray + StokesNo;
 
-	long PerX = StokesAccessData.ne << 2;
-	long PerZ = PerX*StokesAccessData.nx;
+	//long PerX = StokesAccessData.ne << 2;
+	//long PerZ = PerX*StokesAccessData.nx;
+	long long PerX = StokesAccessData.ne << 2;
+	long long PerZ = PerX*StokesAccessData.nx;
 
-	long izPerZ = 0;
-	long iePerE = ie << 2;
+	//long izPerZ = 0;
+	//long iePerE = ie << 2;
+	long long izPerZ = 0;
+	long long iePerE = ie << 2;
 
 	float *tCmpn = StokesCmpnArr;
 	for(int iz=0; iz<StokesAccessData.nz; iz++)
 	{
 		float *pS_StartForX = pS0 + izPerZ;
-		long ixPerX = 0;
+		//long ixPerX = 0;
+		long long ixPerX = 0;
 
 		for(int ix=0; ix<StokesAccessData.nx; ix++)
 		{
-			long ixPerX_p_iePerE = ixPerX + iePerE;
+			//long ixPerX_p_iePerE = ixPerX + iePerE;
+			long long ixPerX_p_iePerE = ixPerX + iePerE;
 			float *pS = pS_StartForX + ixPerX_p_iePerE;
 			*pS = *(tCmpn++);
 
@@ -1608,13 +1647,16 @@ int srTRadIntWiggler::PerformConvolutionWithGaussian1D(float* ConvData, long New
 
 //*************************************************************************
 
-void srTRadIntWiggler::ExtractDataAfterConv1D(float* AuxConvData, long NpAux, long Np, float* CmpnArr)
+//void srTRadIntWiggler::ExtractDataAfterConv1D(float* AuxConvData, long NpAux, long Np, float* CmpnArr)
+void srTRadIntWiggler::ExtractDataAfterConv1D(float* AuxConvData, long long NpAux, long long Np, float* CmpnArr)
 {
-	long iDat = (NpAux - Np) >> 1;
+	//long iDat = (NpAux - Np) >> 1;
+	long long iDat = (NpAux - Np) >> 1;
 
 	float *tCmpn = CmpnArr;
 	float *tAux = AuxConvData + (iDat << 1);
-	for(long i=0; i<Np; i++)
+	//for(long i=0; i<Np; i++)
+	for(long long i=0; i<Np; i++)
 	{
 		*(tCmpn++) = *tAux; tAux += 2;
 	}
@@ -1726,30 +1768,31 @@ void srTRadIntWiggler::ConstructDataForConv2D(float* CmpnArr, float* NewData, lo
 	long OffsetXp = ixDat + DistrInfoDat.nx;
 	long OffsetZp = izDat + DistrInfoDat.nz;
 
-	long NewPerZ = NewNx << 1;
+	//long NewPerZ = NewNx << 1;
+	long long NewPerZ = NewNx << 1;
 	long ix, iz;
 	float V = *CmpnArr;
 	for(iz=0; iz<izDat; iz++)
 	{
-		float *tNew = NewData + iz*NewPerZ;
+		float *tNew = NewData + (iz*NewPerZ);
 		for(ix=0; ix<ixDat; ix++) { *(tNew++) = V; *(tNew++) = 0;}
 	}
 	V = *(CmpnArr + DistrInfoDat.nx - 1);
 	for(iz=0; iz<izDat; iz++)
 	{
-		float *tNew = NewData + iz*NewPerZ + (OffsetXp << 1);
+		float *tNew = NewData + (iz*NewPerZ + (OffsetXp << 1));
 		for(ix=OffsetXp; ix<NewNx; ix++) { *(tNew++) = V; *(tNew++) = 0;}
 	}
 	V = *(CmpnArr + (DistrInfoDat.nz - 1)*DistrInfoDat.nx);
 	for(iz=OffsetZp; iz<NewNz; iz++)
 	{
-		float *tNew = NewData + iz*NewPerZ;
+		float *tNew = NewData + (iz*NewPerZ);
 		for(ix=0; ix<ixDat; ix++) { *(tNew++) = V; *(tNew++) = 0;}
 	}
 	V = *(CmpnArr + DistrInfoDat.nz*DistrInfoDat.nx - 1);
 	for(iz=OffsetZp; iz<NewNz; iz++)
 	{
-		float *tNew = NewData + iz*NewPerZ + (OffsetXp << 1);
+		float *tNew = NewData + (iz*NewPerZ + (OffsetXp << 1));
 		for(ix=OffsetXp; ix<NewNx; ix++) { *(tNew++) = V; *(tNew++) = 0;}
 	}
 
@@ -1758,13 +1801,14 @@ void srTRadIntWiggler::ConstructDataForConv2D(float* CmpnArr, float* NewData, lo
 	for(iz=izDat; iz<(izDat + DistrInfoDat.nz); iz++)
 	{
 		V = *tOldL;
-		long izNewPerZ = iz*NewPerZ;
+		//long izNewPerZ = iz*NewPerZ;
+		long long izNewPerZ = iz*NewPerZ;
 		float *tNew = NewData + izNewPerZ;
 		for(ix=0; ix<ixDat; ix++) { *(tNew++) = V; *(tNew++) = 0;}
 		tOldL += DistrInfoDat.nx;
 
 		V = *tOldR;
-		tNew = NewData + izNewPerZ + (OffsetXp << 1);
+		tNew = NewData + (izNewPerZ + (OffsetXp << 1));
 		for(ix=OffsetXp; ix<NewNx; ix++) { *(tNew++) = V; *(tNew++) = 0;}
 		tOldR += DistrInfoDat.nx;
 	}
@@ -1778,14 +1822,14 @@ void srTRadIntWiggler::ConstructDataForConv2D(float* CmpnArr, float* NewData, lo
 		for(iz=0; iz<izDat; iz++) { *tNew = V; *(tNew+1) = 0; tNew += NewPerZ;}
 
 		V = *(tOldU++);
-		tNew = NewData + OffsetZp*NewPerZ + (ix << 1);
+		tNew = NewData + (OffsetZp*NewPerZ + (ix << 1));
 		for(iz=OffsetZp; iz<NewNz; iz++) { *tNew = V; *(tNew+1) = 0; tNew += NewPerZ;}
 	}
 
 	float *tOld = CmpnArr;
 	for(iz=izDat; iz<(izDat + DistrInfoDat.nz); iz++)
 	{
-		float *tNew = NewData + iz*NewPerZ + (ixDat << 1);
+		float *tNew = NewData + (iz*NewPerZ + (ixDat << 1));
 		for(ix=ixDat; ix<(ixDat + DistrInfoDat.nx); ix++)
 		{
 			*(tNew++) = *(tOld++); *(tNew++) = 0.;

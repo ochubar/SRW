@@ -187,7 +187,7 @@ typedef struct SRWLStructMagneticFieldContainer SRWLMagFldC;
 struct SRWLStructParticleTrajectory {
 	double *arX, *arXp, *arY, *arYp, *arZ, *arZp; /* arrays of horizontal, vertical and longitudinal positions and relative velocities */
 	double *arBx, *arBy, *arBz; /* arrays of horizontal, vertical and longitudinal magnetic field components 'seen' by particle (along trajectory) */
-	int np; /* number of trajectory points */
+	long long np; /* int np; number of trajectory points */
 	double ctStart, ctEnd; /* start and end values of independent variable (c*t) for which the trajectory should be (/is) calculated (is constant step enough?) */
 	SRWLParticle partInitCond; /* particle type and initial conditions for which the trajectory should be (/is) calculated */
 };
@@ -472,6 +472,7 @@ struct SRWLStructOpticsCrystal {
 	double angAs; /* asymmetry angle [rad] */
 	double nvx, nvy, nvz; /* horizontal, vertical and longitudinal coordinates of outward normal to crystal surface in the frame of incident beam */
 	double tvx, tvy; /* horizontal and vertical coordinates of central tangential vector [m] in the frame of incident beam */
+	char uc; /* crystal use case: 1- Bragg Reflection, 2- Bragg Transmission (Laue cases to be added) */
 };
 typedef struct SRWLStructOpticsCrystal SRWLOptCryst;
 

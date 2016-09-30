@@ -73,7 +73,8 @@ int srTIsotrSrc::CreateWavefrontElField(srTSRWRadStructAccessData& RadAccessData
 			for(int ie=0; ie<RadAccessData.ne; ie++)
 			{
 				double Phase = en*CoordPhaseTerm;
-				Phase -= TwoPI*long(Phase*InvTwoPI);
+				//Phase -= TwoPI*long(Phase*InvTwoPI);
+				Phase -= TwoPI*((long long)(Phase*InvTwoPI));
 
 				double CosPh = cos(Phase), SinPh = sin(Phase);
 

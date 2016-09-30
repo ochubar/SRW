@@ -46,7 +46,8 @@ public:
 		//if((x > 100.) && (ni == 0)) return 0; //commented out OC010609
 
 		double k = 0., c3 = 1E+10;
-		long rr = 0;
+		//long rr = 0;
+		long long rr = 0;
 
 		//while(c3 > prec)
 		while(c3 > absPrec) //OC221011

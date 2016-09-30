@@ -86,7 +86,7 @@ def uti_plot1d(ar1d, x_range, labels=('energy [eV]', 'ph/s/0.1%bw'), units=None)
     #print('*****In uti_plot1d')    
     _backend.uti_plot1d(ar1d, x_range, labels)
 
-def uti_plot2d(ar2d, x_range, y_range, labels=('Horizontal position [m]','Vertical position [m]'), units=None):
+def uti_plot2d(ar2d, x_range, y_range, labels=('Horizontal Position [m]','Vertical Position [m]'), units=None):
     """Generate quad mesh plot from given "flattened" array
 
     :param array ar2d: data points
@@ -104,7 +104,7 @@ def uti_plot2d(ar2d, x_range, y_range, labels=('Horizontal position [m]','Vertic
 
     _backend.uti_plot2d(ar2d, x_range, y_range, labels)
 
-def uti_plot2d1d(ar2d, x_range, y_range, x=0, y=0, labels=('Horizontal position', 'Vertical position', 'Intensity'), units=None, graphs_joined=True):
+def uti_plot2d1d(ar2d, x_range, y_range, x=0, y=0, labels=('Horizontal Position', 'Vertical Position', 'Intensity'), units=None, graphs_joined=True):
     """Generate 2d quad mesh plot from given "flattened" array, and 1d cuts passing through (x, y)
 
     :param array ar2d: data points
@@ -147,7 +147,8 @@ def uti_plot2d1d(ar2d, x_range, y_range, x=0, y=0, labels=('Horizontal position'
 
     _backend.uti_plot2d1d(ar2d, x_range, y_range, x, y, labels, graphs_joined)
     
-def uti_data_file_plot(_fname, _read_labels=1, _e=0, _x=0, _y=0, _graphs_joined=True, _traj_report=False, _traj_axis='x'):
+#def uti_data_file_plot(_fname, _read_labels=1, _e=0, _x=0, _y=0, _graphs_joined=True):
+def uti_data_file_plot(_fname, _read_labels=1, _e=0, _x=0, _y=0, _graphs_joined=True, _traj_report=False, _traj_axis='x'): #MR29072016
     """Generate plot from configuration in _fname
 
     :param str _fname: config loaded from here
@@ -158,7 +159,8 @@ def uti_data_file_plot(_fname, _read_labels=1, _e=0, _x=0, _y=0, _graphs_joined=
     :param bool _graphs_joined: if true, all plots in a single figure
     """
     #if '_backend' not in locals(): uti_plot_init() #?
-    _backend.uti_data_file_plot(_fname, _read_labels, _e, _x, _y, _graphs_joined, _traj_report, _traj_axis)
+    #_backend.uti_data_file_plot(_fname, _read_labels, _e, _x, _y, _graphs_joined)
+    _backend.uti_data_file_plot(_fname, _read_labels, _e, _x, _y, _graphs_joined, _traj_report, _traj_axis) #MR29072016
 
 class _BackendBase(object):
     def __getattr__(self, attr):

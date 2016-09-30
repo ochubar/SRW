@@ -320,7 +320,8 @@ public:
 		}
 	}
 
-	int SetupFieldBasedArrays(srTEbmDat& EbmDat, int Ns, double* pBtx, double* pBtz, double* pX, double* pZ, double* pIntBtE2);
+	//int SetupFieldBasedArrays(srTEbmDat& EbmDat, int Ns, double* pBtx, double* pBtz, double* pX, double* pZ, double* pIntBtE2);
+	int SetupFieldBasedArrays(srTEbmDat& EbmDat, long long Ns, double* pBtx, double* pBtz, double* pX, double* pZ, double* pIntBtE2);
 	
 	void AnalyzeFieldSymmetry()
 	{
@@ -420,7 +421,8 @@ public:
 		{
 			srTMagHarm& Harm = HarmVect[i];
 			double curPhase = Harm.Phase;
-			long nTwoPi = (long)(fabs(curPhase)/twoPi);
+			//long nTwoPi = (long)(fabs(curPhase)/twoPi);
+			long long nTwoPi = (long long)(fabs(curPhase)/twoPi);
 			if(curPhase > 0) curPhase -= twoPi*nTwoPi;
 			else if(curPhase < 0) curPhase += twoPi*nTwoPi;
 
@@ -804,8 +806,10 @@ public:
 			zt = (zr - z0)/zStepLocVar;
 		}
 
-		long perY = nx;
-		long perZ = perY*ny;
+		//long perY = nx;
+		//long perZ = perY*ny;
+		long long perY = nx;
+		long long perZ = perY*ny;
 
 		if(mInterp <= 1)
 		{
@@ -814,14 +818,22 @@ public:
 			//long ofst000 = ix*perX + iy + iz*perZ, ofst100 = ix1*perX + iy + iz*perZ, ofst010 = ix*perX + iy1 + iz*perZ, ofst001 = ix*perX + iy + iz1*perZ;
 			//long ofst110 = ix1*perX + iy1 + iz*perZ, ofst101 = ix1*perX + iy + iz1*perZ, ofst011 = ix*perX + iy1 + iz1*perZ, ofst111 = ix1*perX + iy1 + iz1*perZ;
 			//inArrFunc[] = {f(x0,y0,z0),f(x1,y0,z0),f(x0,y1,z0),f(x0,y0,z1),f(x1,y1,z0),f(x1,y0,z1),f(x0,y1,z1),f(x1,y1,z1)} //function values at the corners of the cube
-			long ofst000 = ix + iy*perY + iz*perZ;
-			long ofst100 = ix1 + iy*perY + iz*perZ;
-			long ofst010 = ix + iy1*perY + iz*perZ;
-			long ofst001 = ix + iy*perY + iz1*perZ;
-			long ofst110 = ix1 + iy1*perY + iz*perZ;
-			long ofst101 = ix1 + iy*perY + iz1*perZ;
-			long ofst011 = ix + iy1*perY + iz1*perZ;
-			long ofst111 = ix1 + iy1*perY + iz1*perZ;
+			//long ofst000 = ix + iy*perY + iz*perZ;
+			//long ofst100 = ix1 + iy*perY + iz*perZ;
+			//long ofst010 = ix + iy1*perY + iz*perZ;
+			//long ofst001 = ix + iy*perY + iz1*perZ;
+			//long ofst110 = ix1 + iy1*perY + iz*perZ;
+			//long ofst101 = ix1 + iy*perY + iz1*perZ;
+			//long ofst011 = ix + iy1*perY + iz1*perZ;
+			//long ofst111 = ix1 + iy1*perY + iz1*perZ;
+			long long ofst000 = ix + iy*perY + iz*perZ;
+			long long ofst100 = ix1 + iy*perY + iz*perZ;
+			long long ofst010 = ix + iy1*perY + iz*perZ;
+			long long ofst001 = ix + iy*perY + iz1*perZ;
+			long long ofst110 = ix1 + iy1*perY + iz*perZ;
+			long long ofst101 = ix1 + iy*perY + iz1*perZ;
+			long long ofst011 = ix + iy1*perY + iz1*perZ;
+			long long ofst111 = ix1 + iy1*perY + iz1*perZ;
 
 			if(BxArr != 0)
 			{
@@ -854,16 +866,27 @@ public:
 			if(iym1 < 0) iym1 = 0;
 			if(izm1 < 0) izm1 = 0;
 
-			long ofst_00m1 = ix0 + iy0*perY + izm1*perZ;
-			long ofst_0m10 = ix0 + iym1*perY + iz0*perZ;
-			long ofst_m100 = ixm1 + iy0*perY + iz0*perZ;
-			long ofst_000 = ix0 + iy0*perY + iz0*perZ;
-			long ofst_100 = ix1 + iy0*perY + iz0*perZ;
-			long ofst_010 = ix0 + iy1*perY + iz0*perZ;
-			long ofst_110 = ix1 + iy1*perY + iz0*perZ;
-			long ofst_001 = ix0 + iy0*perY + iz1*perZ;
-			long ofst_101 = ix1 + iy0*perY + iz1*perZ;
-			long ofst_011 = ix0 + iy1*perY + iz1*perZ;
+			//long ofst_00m1 = ix0 + iy0*perY + izm1*perZ;
+			//long ofst_0m10 = ix0 + iym1*perY + iz0*perZ;
+			//long ofst_m100 = ixm1 + iy0*perY + iz0*perZ;
+			//long ofst_000 = ix0 + iy0*perY + iz0*perZ;
+			//long ofst_100 = ix1 + iy0*perY + iz0*perZ;
+			//long ofst_010 = ix0 + iy1*perY + iz0*perZ;
+			//long ofst_110 = ix1 + iy1*perY + iz0*perZ;
+			//long ofst_001 = ix0 + iy0*perY + iz1*perZ;
+			//long ofst_101 = ix1 + iy0*perY + iz1*perZ;
+			//long ofst_011 = ix0 + iy1*perY + iz1*perZ;
+
+			long long ofst_00m1 = ix0 + iy0*perY + izm1*perZ;
+			long long ofst_0m10 = ix0 + iym1*perY + iz0*perZ;
+			long long ofst_m100 = ixm1 + iy0*perY + iz0*perZ;
+			long long ofst_000 = ix0 + iy0*perY + iz0*perZ;
+			long long ofst_100 = ix1 + iy0*perY + iz0*perZ;
+			long long ofst_010 = ix0 + iy1*perY + iz0*perZ;
+			long long ofst_110 = ix1 + iy1*perY + iz0*perZ;
+			long long ofst_001 = ix0 + iy0*perY + iz1*perZ;
+			long long ofst_101 = ix1 + iy0*perY + iz1*perZ;
+			long long ofst_011 = ix0 + iy1*perY + iz1*perZ;
 
 			if(BxArr != 0)
 			{
@@ -922,41 +945,77 @@ public:
 				//if(nz > 3) { izm1--; iz0--; iz1--; zt += 1.;}
 			}
 
-			long ofst_00m1 = ix0 + iy0*perY + izm1*perZ;
-			long ofst_10m1 = ix1 + iy0*perY + izm1*perZ;
-			long ofst_01m1 = ix0 + iy1*perY + izm1*perZ;
-			long ofst_11m1 = ix1 + iy1*perY + izm1*perZ;
+			//long ofst_00m1 = ix0 + iy0*perY + izm1*perZ;
+			//long ofst_10m1 = ix1 + iy0*perY + izm1*perZ;
+			//long ofst_01m1 = ix0 + iy1*perY + izm1*perZ;
+			//long ofst_11m1 = ix1 + iy1*perY + izm1*perZ;
 
-			long ofst_0m10 = ix0 + iym1*perY + iz0*perZ;
-			long ofst_1m10 = ix1 + iym1*perY + iz0*perZ;
-			long ofst_m100 = ixm1 + iy0*perY + iz0*perZ;
-			long ofst_000 = ix0 + iy0*perY + iz0*perZ;
-			long ofst_100 = ix1 + iy0*perY + iz0*perZ;
-			long ofst_200 = ix2 + iy0*perY + iz0*perZ;
-			long ofst_m110 = ixm1 + iy1*perY + iz0*perZ;
-			long ofst_010 = ix0 + iy1*perY + iz0*perZ;
-			long ofst_110 = ix1 + iy1*perY + iz0*perZ;
-			long ofst_210 = ix2 + iy1*perY + iz0*perZ;
-			long ofst_020 = ix0 + iy2*perY + iz0*perZ;
-			long ofst_120 = ix1 + iy2*perY + iz0*perZ;
+			//long ofst_0m10 = ix0 + iym1*perY + iz0*perZ;
+			//long ofst_1m10 = ix1 + iym1*perY + iz0*perZ;
+			//long ofst_m100 = ixm1 + iy0*perY + iz0*perZ;
+			//long ofst_000 = ix0 + iy0*perY + iz0*perZ;
+			//long ofst_100 = ix1 + iy0*perY + iz0*perZ;
+			//long ofst_200 = ix2 + iy0*perY + iz0*perZ;
+			//long ofst_m110 = ixm1 + iy1*perY + iz0*perZ;
+			//long ofst_010 = ix0 + iy1*perY + iz0*perZ;
+			//long ofst_110 = ix1 + iy1*perY + iz0*perZ;
+			//long ofst_210 = ix2 + iy1*perY + iz0*perZ;
+			//long ofst_020 = ix0 + iy2*perY + iz0*perZ;
+			//long ofst_120 = ix1 + iy2*perY + iz0*perZ;
 
-			long ofst_0m11 = ix0 + iym1*perY + iz1*perZ;
-			long ofst_1m11 = ix1 + iym1*perY + iz1*perZ;
-			long ofst_m101 = ixm1 + iy0*perY + iz1*perZ;
-			long ofst_001 = ix0 + iy0*perY + iz1*perZ;
-			long ofst_101 = ix1 + iy0*perY + iz1*perZ;
-			long ofst_201 = ix2 + iy0*perY + iz1*perZ;
-			long ofst_m111 = ixm1 + iy1*perY + iz1*perZ;
-			long ofst_011 = ix0 + iy1*perY + iz1*perZ;
-			long ofst_111 = ix1 + iy1*perY + iz1*perZ;
-			long ofst_211 = ix2 + iy1*perY + iz1*perZ;
-			long ofst_021 = ix0 + iy2*perY + iz1*perZ;
-			long ofst_121 = ix1 + iy2*perY + iz1*perZ;
+			//long ofst_0m11 = ix0 + iym1*perY + iz1*perZ;
+			//long ofst_1m11 = ix1 + iym1*perY + iz1*perZ;
+			//long ofst_m101 = ixm1 + iy0*perY + iz1*perZ;
+			//long ofst_001 = ix0 + iy0*perY + iz1*perZ;
+			//long ofst_101 = ix1 + iy0*perY + iz1*perZ;
+			//long ofst_201 = ix2 + iy0*perY + iz1*perZ;
+			//long ofst_m111 = ixm1 + iy1*perY + iz1*perZ;
+			//long ofst_011 = ix0 + iy1*perY + iz1*perZ;
+			//long ofst_111 = ix1 + iy1*perY + iz1*perZ;
+			//long ofst_211 = ix2 + iy1*perY + iz1*perZ;
+			//long ofst_021 = ix0 + iy2*perY + iz1*perZ;
+			//long ofst_121 = ix1 + iy2*perY + iz1*perZ;
 
-			long ofst_002 = ix0 + iy0*perY + iz2*perZ;
-			long ofst_102 = ix1 + iy0*perY + iz2*perZ;
-			long ofst_012 = ix0 + iy1*perY + iz2*perZ;
-			long ofst_112 = ix1 + iy1*perY + iz2*perZ;
+			//long ofst_002 = ix0 + iy0*perY + iz2*perZ;
+			//long ofst_102 = ix1 + iy0*perY + iz2*perZ;
+			//long ofst_012 = ix0 + iy1*perY + iz2*perZ;
+			//long ofst_112 = ix1 + iy1*perY + iz2*perZ;
+
+			long long ofst_00m1 = ix0 + iy0*perY + izm1*perZ;
+			long long ofst_10m1 = ix1 + iy0*perY + izm1*perZ;
+			long long ofst_01m1 = ix0 + iy1*perY + izm1*perZ;
+			long long ofst_11m1 = ix1 + iy1*perY + izm1*perZ;
+
+			long long ofst_0m10 = ix0 + iym1*perY + iz0*perZ;
+			long long ofst_1m10 = ix1 + iym1*perY + iz0*perZ;
+			long long ofst_m100 = ixm1 + iy0*perY + iz0*perZ;
+			long long ofst_000 = ix0 + iy0*perY + iz0*perZ;
+			long long ofst_100 = ix1 + iy0*perY + iz0*perZ;
+			long long ofst_200 = ix2 + iy0*perY + iz0*perZ;
+			long long ofst_m110 = ixm1 + iy1*perY + iz0*perZ;
+			long long ofst_010 = ix0 + iy1*perY + iz0*perZ;
+			long long ofst_110 = ix1 + iy1*perY + iz0*perZ;
+			long long ofst_210 = ix2 + iy1*perY + iz0*perZ;
+			long long ofst_020 = ix0 + iy2*perY + iz0*perZ;
+			long long ofst_120 = ix1 + iy2*perY + iz0*perZ;
+
+			long long ofst_0m11 = ix0 + iym1*perY + iz1*perZ;
+			long long ofst_1m11 = ix1 + iym1*perY + iz1*perZ;
+			long long ofst_m101 = ixm1 + iy0*perY + iz1*perZ;
+			long long ofst_001 = ix0 + iy0*perY + iz1*perZ;
+			long long ofst_101 = ix1 + iy0*perY + iz1*perZ;
+			long long ofst_201 = ix2 + iy0*perY + iz1*perZ;
+			long long ofst_m111 = ixm1 + iy1*perY + iz1*perZ;
+			long long ofst_011 = ix0 + iy1*perY + iz1*perZ;
+			long long ofst_111 = ix1 + iy1*perY + iz1*perZ;
+			long long ofst_211 = ix2 + iy1*perY + iz1*perZ;
+			long long ofst_021 = ix0 + iy2*perY + iz1*perZ;
+			long long ofst_121 = ix1 + iy2*perY + iz1*perZ;
+
+			long long ofst_002 = ix0 + iy0*perY + iz2*perZ;
+			long long ofst_102 = ix1 + iy0*perY + iz2*perZ;
+			long long ofst_012 = ix0 + iy1*perY + iz2*perZ;
+			long long ofst_112 = ix1 + iy1*perY + iz2*perZ;
 
 			if(BxArr != 0)
 			{
@@ -1062,7 +1121,8 @@ public:
 			{
 				pair<int,int> *pCurPairInd = arPairInd + i;
 				//long ofst = pCurPairInd->first + (pCurPairInd->second)*perY + izm1*perZ;
-				long ofst0 = pCurPairInd->first + (pCurPairInd->second)*perY;
+				//long ofst0 = pCurPairInd->first + (pCurPairInd->second)*perY;
+				long long ofst0 = pCurPairInd->first + (pCurPairInd->second)*perY;
 
 				CGenMathInterp *curSplineDataB = 0;
 				it = mAuxSplineDataB.find(*pCurPairInd);
@@ -1178,7 +1238,8 @@ public:
 
 	void AllocateArrays()
 	{
-		long Np = nx*ny*nz;
+		//long Np = nx*ny*nz;
+		long long Np = ((long long)nx)*((long long)ny)*((long long)nz);
         BxArr = new double[Np];
 		if(BxArr == 0) throw MEMORY_ALLOCATION_FAILURE;
 		ByArr = new double[Np];

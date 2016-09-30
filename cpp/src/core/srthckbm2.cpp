@@ -105,7 +105,8 @@ double srTRadIntThickBeam::GetNextElecEnergyFromGausDistrib(srTEbmDat& OrigElecB
 
 //*************************************************************************
 
-double srTRadIntThickBeam::UpdateResultStokesData(float* ArrAuxDataS0, float* ArrAuxDataS1, float* ArrAuxDataS2, float* ArrAuxDataS3, srTWfrSmp* pWfrSmp, int iElecEn, srTStokesStructAccessData* pStokes)
+//double srTRadIntThickBeam::UpdateResultStokesData(float* ArrAuxDataS0, float* ArrAuxDataS1, float* ArrAuxDataS2, float* ArrAuxDataS3, srTWfrSmp* pWfrSmp, int iElecEn, srTStokesStructAccessData* pStokes)
+double srTRadIntThickBeam::UpdateResultStokesData(float* ArrAuxDataS0, float* ArrAuxDataS1, float* ArrAuxDataS2, float* ArrAuxDataS3, srTWfrSmp* pWfrSmp, long long iElecEn, srTStokesStructAccessData* pStokes)
 {//this assumes that Stokes S0 is always defined
 	double RelPrec = 1E+23;
 
@@ -114,7 +115,8 @@ double srTRadIntThickBeam::UpdateResultStokesData(float* ArrAuxDataS0, float* Ar
 	int zAmStepsLeft = (int)((pStokes->zStart - pWfrSmp->zStart)/(pStokes->zStep) + 0.000001);
 	//int zAmStepsRight = (int)((pWfrSmp->zEnd - (pStokes->zStart + (pStokes->nz - 1)*(pStokes->zStep)))/(pStokes->zStep) + 0.000001);
 
-	int Offset0 = (zAmStepsLeft*(pWfrSmp->nx) + xAmStepsLeft)*(pWfrSmp->nLamb);
+	//int Offset0 = (zAmStepsLeft*(pWfrSmp->nx) + xAmStepsLeft)*(pWfrSmp->nLamb);
+	long long Offset0 = (((long long)zAmStepsLeft)*((long long)(pWfrSmp->nx)) + (long long)xAmStepsLeft)*((long long)(pWfrSmp->nLamb));
 	int ShiftBetweenRowsX = (xAmStepsRight + xAmStepsLeft)*(pWfrSmp->nLamb);
 
 	float *tBaseSto = pStokes->pBaseSto;
@@ -152,7 +154,8 @@ double srTRadIntThickBeam::UpdateResultStokesData(float* ArrAuxDataS0, float* Ar
 		if(S2_IsDefined) tAuxDataS2 += ShiftBetweenRowsX;
 		if(S3_IsDefined) tAuxDataS3 += ShiftBetweenRowsX;
 	}
-	long TotNp = (pStokes->nz)*(pStokes->nx)*(pStokes->ne);
+	//long TotNp = (pStokes->nz)*(pStokes->nx)*(pStokes->ne);
+	long long TotNp = ((long long)(pStokes->nz))*((long long)(pStokes->nx))*((long long)(pStokes->ne));
 	double AbsPrecSigma = ::sqrt(SumDifSq/double(TotNp));
 	double AvgS0 = SumNewS0/double(TotNp);
 	if(AvgS0 == 0) AvgS0 = 1.E-14;
@@ -195,7 +198,8 @@ void srTRadIntThickBeam::ComputeTotalStokesDistrViaSingleElec(srTEbmDat* pElecBe
 	double zc = pStokes->zStart + 0.5*(pStokes->nz - 1)*(pStokes->zStep);
 	double ec = pStokes->eStart;
 
-	long AmOfAuxData = (pWfrSmp->nLamb)*(pWfrSmp->nx)*(pWfrSmp->nz);
+	//long AmOfAuxData = (pWfrSmp->nLamb)*(pWfrSmp->nx)*(pWfrSmp->nz);
+	long long AmOfAuxData = ((long long)(pWfrSmp->nLamb))*((long long)(pWfrSmp->nx))*((long long)(pWfrSmp->nz));
 	float* ArrAuxDataS0 = new float[AmOfAuxData];
 	float* ArrAuxDataS1 = new float[AmOfAuxData];
 	float* ArrAuxDataS2 = new float[AmOfAuxData];
@@ -205,9 +209,11 @@ void srTRadIntThickBeam::ComputeTotalStokesDistrViaSingleElec(srTEbmDat* pElecBe
 
 	double RelPrecElecEn = pPrcPar->RelPrecOrStep;
 	double ActualRelPrecIntens = 1E+23;
-	int iElecEn = 0;
+	//int iElecEn = 0;
+	long long iElecEn = 0;
 
-	int MaxNumIter = 1000000;
+	//int MaxNumIter = 1000000;
+	long long MaxNumIter = 1000000;
 	if(pPrcPar->NumIter > 0)
 	{
         MaxNumIter = pPrcPar->NumIter;

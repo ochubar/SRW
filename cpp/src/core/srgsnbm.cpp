@@ -355,7 +355,8 @@ int srTGsnBeam::CreateWavefrontElFieldTimeDomain(srTSRWRadStructAccessData& RadA
 			double xe2 = x*x;
 
 			double Phase_T = m_AvgPhotEn_enMult_PropInvRx_T*xe2 + m_AvgPhotEn_enMult_PropInvRz_T*ze2 + m_PhaseLongDelay_T;
-			Phase_T -= TwoPI*long(Phase_T*InvTwoPI);
+			//Phase_T -= TwoPI*long(Phase_T*InvTwoPI);
+			Phase_T -= TwoPI*((long long)(Phase_T*InvTwoPI));
 			double CosPh_T = cos(Phase_T), SinPh_T = sin(Phase_T);
 			double argForExp0_T = -xe2*m_PropInvTwoSigXe2_T - ze2*m_PropInvTwoSigZe2_T;
 

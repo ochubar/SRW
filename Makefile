@@ -1,4 +1,4 @@
-# This Makefile is to compile SRW with optional compilation of FFTW-2.1.5.
+﻿# This Makefile is to compile SRW with optional compilation of FFTW-2.1.5.
 #
 # The following options are available:
 # - `make all` - will compile FFTW, C++ core and Python lib;

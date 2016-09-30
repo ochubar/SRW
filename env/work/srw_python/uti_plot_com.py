@@ -49,7 +49,8 @@ def _traj_file_load(fname, traj_axis='x'):  #MR20160725
 
 #****************************************************************************
 #def srw_ascii_load(fname):
-def _file_load(_fname, _read_labels=1):
+#def file_load(_fname, _read_labels=1):
+def _file_load(_fname, _read_labels=1): #MR20160725
     nLinesHead = 11
     hlp = []
     #with open(_fname,'r') as f: hlp = f.readlines(nLinesHead)
@@ -111,7 +112,7 @@ def _file_load(_fname, _read_labels=1):
     return data, mode, allrange, arLabels, arUnits
 
 
-def file_load(fname, read_labels=1, traj_report=False, traj_axis='x'):
+def file_load(fname, read_labels=1, traj_report=False, traj_axis='x'): #MR20160729
     if not traj_report:
         return _file_load(fname, read_labels)
     else:

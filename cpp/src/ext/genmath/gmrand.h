@@ -21,13 +21,21 @@
 
 class CGenMathRandLPTau {
 
-	long NR[6][20];
-	long IV[6][20];
-	long NG, IQ;
-	long NA, NB, NC, ND, NT;
+	//long NR[6][20];
+	//long IV[6][20];
+	//long NG, IQ;
+	//long NA, NB, NC, ND, NT;
 
-	long iQ, mQ;
-	long MaskArr[30], *MaskArrTrav;
+	//long iQ, mQ;
+	//long MaskArr[30], *MaskArrTrav;
+
+	long long NR[6][20];
+	long long IV[6][20];
+	long long NG, IQ;
+	long long NA, NB, NC, ND, NT;
+
+	long long iQ, mQ;
+	long long MaskArr[30], *MaskArrTrav;
 
 public:
 	CGenMathRandLPTau()
@@ -37,15 +45,23 @@ public:
 
 	void Initialize()
 	{
-		long LocNR1[] = {1,3,5,15,17,51,85,255,257,771,1285,3855,4369,13107,21845,65535,65537,196611,327685,983055};
-		long LocNR2[] = {1,1,7,11,13,61,67,79,465,721,823,4091,4125,4141,28723,45311,53505,250113,276231,326411};
-		long LocNR3[] = {1,3,7,5,7,43,49,147,439,1013,727,987,5889,6915,16647,49925,116487,83243,116529,715667};
-		long LocNR4[] = {1,1,5,3,15,51,125,141,177,759,267,1839,6929,16241,16565,17139,82207,50979,252717,851901};
-		long LocNR5[] = {1,3,1,1,9,59,25,89,321,835,833,4033,3913,11643,18777,35225,102401,45059,36865,299009};
-		//long LocNR6[] = {1,1,3,7,31,47,109,173,181,949,471,2515,6211,2147,3169,35873,33841,99889,247315,1032727};
+		//long LocNR1[] = {1,3,5,15,17,51,85,255,257,771,1285,3855,4369,13107,21845,65535,65537,196611,327685,983055};
+		//long LocNR2[] = {1,1,7,11,13,61,67,79,465,721,823,4091,4125,4141,28723,45311,53505,250113,276231,326411};
+		//long LocNR3[] = {1,3,7,5,7,43,49,147,439,1013,727,987,5889,6915,16647,49925,116487,83243,116529,715667};
+		//long LocNR4[] = {1,1,5,3,15,51,125,141,177,759,267,1839,6929,16241,16565,17139,82207,50979,252717,851901};
+		//long LocNR5[] = {1,3,1,1,9,59,25,89,321,835,833,4033,3913,11643,18777,35225,102401,45059,36865,299009};
+		////long LocNR6[] = {1,1,3,7,31,47,109,173,181,949,471,2515,6211,2147,3169,35873,33841,99889,247315,1032727};
+
+		long long LocNR1[] = {1,3,5,15,17,51,85,255,257,771,1285,3855,4369,13107,21845,65535,65537,196611,327685,983055};
+		long long LocNR2[] = {1,1,7,11,13,61,67,79,465,721,823,4091,4125,4141,28723,45311,53505,250113,276231,326411};
+		long long LocNR3[] = {1,3,7,5,7,43,49,147,439,1013,727,987,5889,6915,16647,49925,116487,83243,116529,715667};
+		long long LocNR4[] = {1,1,5,3,15,51,125,141,177,759,267,1839,6929,16241,16565,17139,82207,50979,252717,851901};
+		long long LocNR5[] = {1,3,1,1,9,59,25,89,321,835,833,4033,3913,11643,18777,35225,102401,45059,36865,299009};
+		//long long LocNR6[] = {1,1,3,7,31,47,109,173,181,949,471,2515,6211,2147,3169,35873,33841,99889,247315,1032727};
 		//dddddddddddddddddd
 
-		long *IV0Trav = IV[0], *IV1Trav = IV[1], *IV2Trav = IV[2], *IV3Trav = IV[3], *IV4Trav = IV[4], *IV5Trav = IV[5],
+		//long *IV0Trav = IV[0], *IV1Trav = IV[1], *IV2Trav = IV[2], *IV3Trav = IV[3], *IV4Trav = IV[4], *IV5Trav = IV[5],
+		long long *IV0Trav = IV[0], *IV1Trav = IV[1], *IV2Trav = IV[2], *IV3Trav = IV[3], *IV4Trav = IV[4], *IV5Trav = IV[5],
 			 *LocNR1Trav = LocNR1, *LocNR2Trav = LocNR2, *LocNR3Trav = LocNR3, *LocNR4Trav = LocNR4, *LocNR5Trav = LocNR5,
 			 *NR0Trav = NR[0], *NR1Trav = NR[1], *NR2Trav = NR[2], *NR3Trav = NR[3], *NR4Trav = NR[4], *NR5Trav = NR[5];
 
@@ -58,7 +74,8 @@ public:
 			*(NR4Trav++) = *LocNR4Trav;
 			*(NR5Trav++) = *LocNR5Trav;
 
-			long OneBuf = 1 << 21;
+			//long OneBuf = 1 << 21;
+			long long OneBuf = 1 << 21;
 			//long OneBuf = 1 << 39;
 			*(IV0Trav++) = OneBuf; 
 			*(IV1Trav++) = (*(LocNR1Trav++)) << 20;
@@ -75,7 +92,8 @@ public:
 		NT = 64;
 
 		MaskArrTrav = MaskArr; 
-		long BufNumb = 1;
+		//long BufNumb = 1;
+		long long BufNumb = 1;
 		for(int k=0; k<29; k++) { BufNumb <<= 1; *(MaskArrTrav++) = BufNumb;}
 		MaskArrTrav = MaskArr;
 		iQ = 0; mQ = 1;
@@ -106,7 +124,7 @@ public:
 
 	void LPTauSlow(int n, double* Q)
 	{
-		double a = (++iQ);
+		double a = (double)(++iQ);
 		int m = 1 + int(log(a)/0.693147);
 		
 		for(int j = 1; j <= n; j++)
@@ -114,11 +132,14 @@ public:
 			double s = 0.;
 			for(int k = 1; k <= m; k++)
 			{
-				int ns = 0;
+				//int ns = 0;
+				long long ns = 0;
 				for(int l = k; l <= m; l++)
 				{
-					double b = NR[j - 1][l - 1];
-					ns += int(2*D(a/pow(2.,l)))*int(2*D(b/pow(2.,l+1-k)));
+					//double b = NR[j - 1][l - 1];
+					double b = (double)NR[j - 1][l - 1];
+					//ns += int(2*D(a/pow(2.,l)))*int(2*D(b/pow(2.,l+1-k)));
+					ns += ((long long)(2*D(a/pow(2.,l))))*((long long)(2*D(b/pow(2.,l+1-k))));
 				}
 				s += D(0.5*ns)/pow(2.,k-1);
 			}
@@ -126,7 +147,8 @@ public:
 		}
 	}
 	
-	double D(double x) { return x - long(x);}
+	//double D(double x) { return x - long(x);}
+	double D(double x) { return x - ((long long)(x));}
 
 	void LPTauQuick(long i, int n, double q)
 	{

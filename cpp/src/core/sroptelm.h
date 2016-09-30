@@ -190,7 +190,8 @@ public:
 	//int CheckAndSuggestNextValueWithProp1D(srTRadSect1D&, char, srTAuxTestValues&, srTRelAndAbsTolerance&);
 	//char CheckRangeAndSuggestNextValue1D(srTRadSect1D&, double, double&);
 
-	void FindMaximumAbsReE(srTRadSect1D&, float&, long&, float&, long&);
+	//void FindMaximumAbsReE(srTRadSect1D&, float&, long&, float&, long&);
+	void FindMaximumAbsReE(srTRadSect1D&, float&, long long&, float&, long long&);
 	//float MaximumAbsReEx(srTRadSect1D&, long&);
 	//float ClosestLocMaxAbsReE_FromRight(srTRadSect1D&, long&, char);
 	//float ClosestLocMaxAbsReE_FromLeft(srTRadSect1D&, long&, char);
@@ -227,7 +228,8 @@ public:
 	int SetRadRepres1D(srTRadSect1D*, char);
 
 	int SetupWfrEdgeCorrData(srTSRWRadStructAccessData*, float*, float*, srTDataPtrsForWfrEdgeCorr&);
-	inline void SetupExpCorrArray(float*, long, double, double, double);
+	//inline void SetupExpCorrArray(float*, long, double, double, double);
+	inline void SetupExpCorrArray(float*, long long, double, double, double);
 	void MakeWfrEdgeCorrection(srTSRWRadStructAccessData*, float*, float*, srTDataPtrsForWfrEdgeCorr&);
 
 	int SetupWfrEdgeCorrData1D(srTRadSect1D*, float*, float*, srTDataPtrsForWfrEdgeCorr1D&);
@@ -242,7 +244,8 @@ public:
 	int RadResizeCore_OnlyLargerRange(srTSRWRadStructAccessData& OldRadAccessData, srTSRWRadStructAccessData& NewRadAccessData, srTRadResize& RadResizeStruct, char PolComp);
 	int RadResizeCore_OnlyLargerRangeE(srTSRWRadStructAccessData& OldRadAccessData, srTSRWRadStructAccessData& NewRadAccessData, srTRadResize& RadResizeStruct, char PolComp);
 
-	inline void GetCellDataForInterpol(float*, long, long, srTInterpolAuxF*);
+	//inline void GetCellDataForInterpol(float*, long, long, srTInterpolAuxF*);
+	inline void GetCellDataForInterpol(float*, long long , long long, srTInterpolAuxF*);
 	inline void SetupCellDataI(srTInterpolAuxF*, srTInterpolAuxF*);
 	//char WaveFrontTermCanBeTreated(srTSRWRadStructAccessData&);
 	char WaveFrontTermCanBeTreated(srTSRWRadStructAccessData&, bool checkBenefit=true);
@@ -266,7 +269,8 @@ public:
 	int RadResizeCore1D(srTRadSect1D&, srTRadSect1D&, srTRadResize1D&);
 	char WaveFrontTermCanBeTreated1D(srTRadSect1D&);
 	void TreatStronglyOscillatingTerm1D(srTRadSect1D&, char);
-	inline void GetCellDataForInterpol1D(float*, long, srTInterpolAuxF_1D*);
+	//inline void GetCellDataForInterpol1D(float*, long, srTInterpolAuxF_1D*);
+	inline void GetCellDataForInterpol1D(float*, long long, srTInterpolAuxF_1D*);
 	inline void SetupCellDataI1D(srTInterpolAuxF_1D*, srTInterpolAuxF_1D*);
 	inline int CheckForLowOrderInterp1D(srTInterpolAuxF_1D*, srTInterpolAuxF_1D*, int, srTInterpolAux01_1D*, srTInterpolAux02_1D*, srTInterpolAux02_1D*);
 	inline void SetupInterpolAux02_LowOrder1D(srTInterpolAuxF_1D*, srTInterpolAux01_1D*, srTInterpolAux02_1D*);
@@ -279,7 +283,8 @@ public:
 	int RadRearrangeOnRegularMesh(srTSRWRadStructAccessData* pRadAccessData, float* CoordX, float* CoordZ);
 
 	int GenExtractPhase(srTWaveAccessData&, double*, double*, int, int);
-	int ExtractPhase1D(srTWaveAccessData&, double*, double*, long, double);
+	//int ExtractPhase1D(srTWaveAccessData&, double*, double*, long, double);
+	int ExtractPhase1D(srTWaveAccessData&, double*, double*, long long, double);
 	inline double PredictPhase(double, float, float, float, float);
 	inline double FormalPhase(float, float);
 	inline double FormalMag(float, float, double);
@@ -343,7 +348,8 @@ public:
 
 //*************************************************************************
 
-inline void srTGenOptElem::GetCellDataForInterpol(float* pSt, long PerX_Old, long PerZ_Old, srTInterpolAuxF* tF)
+//inline void srTGenOptElem::GetCellDataForInterpol(float* pSt, long PerX_Old, long PerZ_Old, srTInterpolAuxF* tF)
+inline void srTGenOptElem::GetCellDataForInterpol(float* pSt, long long PerX_Old, long long PerZ_Old, srTInterpolAuxF* tF)
 {// Fills Re and Im parts of Ex or Ez
 	float *pf00 = pSt; tF->f00 = *pf00;
 	float *pf10 = pf00 + PerX_Old; tF->f10 = *pf10;
@@ -374,7 +380,8 @@ inline void srTGenOptElem::GetCellDataForInterpol(float* pSt, long PerX_Old, lon
 
 //*************************************************************************
 
-inline void srTGenOptElem::GetCellDataForInterpol1D(float* pSt, long Per_Old, srTInterpolAuxF_1D* tF)
+//inline void srTGenOptElem::GetCellDataForInterpol1D(float* pSt, long Per_Old, srTInterpolAuxF_1D* tF)
+inline void srTGenOptElem::GetCellDataForInterpol1D(float* pSt, long long Per_Old, srTInterpolAuxF_1D* tF)
 {// Fills Re and Im parts of Ex or Ez
 	float *pf0 = pSt; tF->f0 = *pf0;
 	float *pf1 = pf0 + Per_Old; tF->f1 = *pf1;
@@ -741,7 +748,8 @@ inline void srTGenOptElem::CosAndSin(double x, float& Cos, float& Sin)
 {
 	if((x < -1.E+08) || (x > 1.E+08)) { Cos = (float)cos(x); Sin = (float)sin(x); return;} //OC13112011
 
-	x -= TwoPI*((long)(x*One_dTwoPI));
+	//x -= TwoPI*((long)(x*One_dTwoPI));
+	x -= TwoPI*((long long)(x*One_dTwoPI));
 	if(x < 0.) x += TwoPI;
 
 	char ChangeSign=0;
@@ -811,13 +819,15 @@ inline void srTGenOptElem::TreatPhaseShift(srTEFieldPtrs& EPtrs, double PhShift)
 
 //*************************************************************************
 
-inline void srTGenOptElem::SetupExpCorrArray(float* pCmpData, long AmOfPt, double x, double qStart, double qStep)
+//inline void srTGenOptElem::SetupExpCorrArray(float* pCmpData, long AmOfPt, double x, double qStart, double qStep)
+inline void srTGenOptElem::SetupExpCorrArray(float* pCmpData, long long AmOfPt, double x, double qStart, double qStep)
 {
 	const double TwoPi = 6.28318530717959;
 	double TwoPiX = TwoPi*x;
 	double q = qStart;
 	float *tCmpData = pCmpData;
-	for(long i=0; i<AmOfPt; i++)
+	//for(long i=0; i<AmOfPt; i++)
+	for(long long i=0; i<AmOfPt; i++)
 	{
 		double Arg = TwoPiX*q;
 		float Co, Si;
@@ -831,13 +841,17 @@ inline void srTGenOptElem::SetupExpCorrArray(float* pCmpData, long AmOfPt, doubl
 
 inline void srTGenOptElem::SetupRadXorZSectFromSliceConstE(float* pInEx, float* pInEz, long nx, long nz, char vsX_or_vsZ, long iSect, float* pOutEx, float* pOutEz)
 {
-	long Per = (vsX_or_vsZ == 'x')? 2 : (nx << 1);
+	//long Per = (vsX_or_vsZ == 'x')? 2 : (nx << 1);
+	long long Per = (vsX_or_vsZ == 'x')? 2 : (nx << 1);
 	float *tOutEx = pOutEx, *tOutEz = pOutEz;
-	long StartOffset = (vsX_or_vsZ == 'x')? iSect*(nx << 1) : (iSect << 1);
+	//long StartOffset = (vsX_or_vsZ == 'x')? iSect*(nx << 1) : (iSect << 1);
+	long long StartOffset = (vsX_or_vsZ == 'x')? iSect*(nx << 1) : (iSect << 1);
 	float *tEx = pInEx + StartOffset, *tEz = pInEz + StartOffset;
-	long nPt = (vsX_or_vsZ == 'x')? nx : nz;
+	//long nPt = (vsX_or_vsZ == 'x')? nx : nz;
+	long long nPt = (vsX_or_vsZ == 'x')? nx : nz;
 
-	for(int i=0; i<nPt; i++)
+	//for(int i=0; i<nPt; i++)
+	for(long long i=0; i<nPt; i++)
 	{
 		*(tOutEx++) = *tEx; *(tOutEx++) = *(tEx + 1);
 		*(tOutEz++) = *tEz; *(tOutEz++) = *(tEz + 1);
@@ -850,11 +864,14 @@ inline void srTGenOptElem::SetupRadXorZSectFromSliceConstE(float* pInEx, float* 
 inline float srTGenOptElem::IntegrateElField1D(srTRadSect1D& Sect1D, char TreatExOrEz, float& IntegOnHalfInterv)
 {
 	float* tVal = (TreatExOrEz == 'x')? Sect1D.pEx : Sect1D.pEz;
-	long np_mi_1 = Sect1D.np - 1;
-	long Half_np_mi_1 = np_mi_1 >> 1;
+	//long np_mi_1 = Sect1D.np - 1;
+	//long Half_np_mi_1 = np_mi_1 >> 1;
+	long long np_mi_1 = Sect1D.np - 1;
+	long long Half_np_mi_1 = np_mi_1 >> 1;
 	float Sum = (float)(0.5*((*tVal) + (*(tVal + (np_mi_1 << 1)))));
 	float SumHalf = (float)(0.5*((*tVal) + np_mi_1));
-	for(long i=1; i<np_mi_1; i++) 
+	//for(long i=1; i<np_mi_1; i++) 
+	for(long long i=1; i<np_mi_1; i++) 
 	{ 
 		Sum += *tVal;
 		if(i < Half_np_mi_1) SumHalf += *tVal;
@@ -878,7 +895,8 @@ inline long srTGenOptElem::IntegerOffsetCoord(double xStart, double xStep, doubl
 inline char srTGenOptElem::ChooseTreatExOrEzBasedOnMax(srTRadSect1D& Sect1D)
 {
 	float MaxAbsEx, MaxAbsEz;
-	long IndMaxAbsEx, IndMaxAbsEz;
+	//long IndMaxAbsEx, IndMaxAbsEz;
+	long long IndMaxAbsEx, IndMaxAbsEz;
 	FindMaximumAbsReE(Sect1D, MaxAbsEx, IndMaxAbsEx, MaxAbsEz, IndMaxAbsEz);
 	return (MaxAbsEx > MaxAbsEz)? 'x' : 'z';
 }
@@ -1015,7 +1033,8 @@ inline void srTGenOptElem::RejectSmallResize(srTRadResize& Resize)
 inline double srTGenOptElem::MaxIntInHorString(long iz, srTSRWRadStructAccessData* pRadAccessData)
 {
 	double IMax = 0.;
-	long Offset = ((pRadAccessData->nx) << 1)*iz;
+	//long Offset = ((pRadAccessData->nx) << 1)*iz;
+	long long Offset = ((pRadAccessData->nx) << 1)*iz;
 	float *tEx = pRadAccessData->pBaseRadX + Offset, *tEz = pRadAccessData->pBaseRadZ + Offset;
 	for(long ix=0; ix<pRadAccessData->nx; ix++)
 	{
@@ -1032,8 +1051,10 @@ inline double srTGenOptElem::MaxIntInHorString(long iz, srTSRWRadStructAccessDat
 inline double srTGenOptElem::MaxIntInVertString(long ix, long izSt, long izFi, srTSRWRadStructAccessData* pRadAccessData)
 {
 	double IMax = 0.;
-	long Per = (pRadAccessData->nx) << 1;
-	long Offset = Per*izSt + (ix << 1);
+	//long Per = (pRadAccessData->nx) << 1;
+	//long Offset = Per*izSt + (ix << 1);
+	long long Per = (pRadAccessData->nx) << 1;
+	long long Offset = Per*izSt + (ix << 1);
 	float *tEx = pRadAccessData->pBaseRadX + Offset, *tEz = pRadAccessData->pBaseRadZ + Offset;
 	for(long iz=izSt; iz<=izFi; iz++)
 	{

@@ -158,8 +158,10 @@ int srTShapedOptElem::PropagateByRays(srTSRWRadStructAccessData* pRadAccessData)
 
 	float *pEX0 = pRadAccessData->pBaseRadX;
 	float *pEZ0 = pRadAccessData->pBaseRadZ;
-	long PerX = pRadAccessData->ne << 1;
-	long PerY = PerX*pRadAccessData->nx;
+	//long PerX = pRadAccessData->ne << 1;
+	//long PerY = PerX*pRadAccessData->nx;
+	long long PerX = pRadAccessData->ne << 1;
+	long long PerY = PerX*pRadAccessData->nx;
 	double ePh = pRadAccessData->eStart, x, y;
 
 	//long nx_mi_1 = pRadAccessData->nx - 1;
@@ -167,21 +169,24 @@ int srTShapedOptElem::PropagateByRays(srTSRWRadStructAccessData* pRadAccessData)
 	for(long ie=0; ie<pRadAccessData->ne; ie++)
 	{
 		double TwoPi_d_LambdaM = ePh*5.067681604E+06;
-		long Two_ie = ie << 1;
+		//long Two_ie = ie << 1;
+		long long Two_ie = ie << 1;
 		double *t_arAuxRayTrCoord = arAuxRayTrCoord;
 
 		y = pRadAccessData->zStart;
 
 		for(long iy=0; iy<pRadAccessData->nz; iy++)
 		{
-			long iyPerY = iy*PerY;
+			//long iyPerY = iy*PerY;
+			long long iyPerY = iy*PerY;
 			float *pEX_StartForX = pEX0 + iyPerY;
 			float *pEZ_StartForX = pEZ0 + iyPerY;
 
 			x = pRadAccessData->xStart;
 			for(long ix=0; ix<pRadAccessData->nx; ix++)
 			{
-				long ixPerX_p_Two_ie = ix*PerX + Two_ie;
+				//long ixPerX_p_Two_ie = ix*PerX + Two_ie;
+				long long ixPerX_p_Two_ie = ix*PerX + Two_ie;
 				float *pExRe = pEX_StartForX + ixPerX_p_Two_ie;
 				float *pExIm = pExRe + 1;
 				float *pEzRe = pEZ_StartForX + ixPerX_p_Two_ie;

@@ -117,7 +117,8 @@ public:
     void AnalyzeFinalResultsSymmetry(char& FinalResAreSymOverX, char& FinalResAreSymOverZ, srTEbmDat* pElecBeam, srTTrjDat* pTrjDat, srTMagFldCont* pMagLensCont, srTStokesStructAccessData* pStokes);
     void FillInSymPartsOfResults(char FinalResAreSymOverX, char FinalResAreSymOverZ, srTStokesStructAccessData* pStokes);
     void CopySymEnergySlice(float* pOrigData, float* pSymData, long Ne, char SymWithRespectToXax, char SymWithRespectToZax);
-    long FindTotalAmOfPointsToCalc(srTStokesStructAccessData* pStokes, char FinalResAreSymOverX, char FinalResAreSymOverZ);
+    //long FindTotalAmOfPointsToCalc(srTStokesStructAccessData* pStokes, char FinalResAreSymOverX, char FinalResAreSymOverZ);
+    long long FindTotalAmOfPointsToCalc(srTStokesStructAccessData* pStokes, char FinalResAreSymOverX, char FinalResAreSymOverZ);
 	void ComputeStokesAtOneObsPoint(srTEXZY EXZY, srTParPrecStokesArb& Prec, srTStokes& CurSt);
     void ComputeStokesAtOneObsPoint_InternIntens_EvenMesh(srTFieldBasedArrays& FldArr, srTStokes& CurSt);
 	
@@ -125,14 +126,17 @@ public:
     void ComputeStokesAtOneObsPoint_ExternIntens_AddCen(srTFieldBasedArrays& FldArr, char b_or_r, srTStokes& CurSt);
     void ComputeStokesAtOneObsPoint_ExternIntens_AddBotRight(srTFieldBasedArrays& FldArr, srTStokes& CurSt);
     void ComputeStokesAtOneObsPoint_ExternIntens_AddTopRight(srTFieldBasedArrays& FldArr, srTStokes& CurSt);
-    void ComputeStokesAtOneObsPoint_Intens_PrepAandB(srTFieldBasedArrays& FldArr, int CurNs, int CurNst, int iStart, int itStart, TComplexD* ArrA, TComplexD* ArrB);
+    //void ComputeStokesAtOneObsPoint_Intens_PrepAandB(srTFieldBasedArrays& FldArr, int CurNs, int CurNst, int iStart, int itStart, TComplexD* ArrA, TComplexD* ArrB);
+    void ComputeStokesAtOneObsPoint_Intens_PrepAandB(srTFieldBasedArrays& FldArr, long long CurNs, long long CurNst, long long iStart, long long itStart, TComplexD* ArrA, TComplexD* ArrB);
 	
-	void Integrate1DStokesArr(srTStokes* StokesArr, int Np, double Step, srTStokes* pInitDer, srTStokes* pFinDer, srTStokes& ResSt);
+	//void Integrate1DStokesArr(srTStokes* StokesArr, int Np, double Step, srTStokes* pInitDer, srTStokes* pFinDer, srTStokes& ResSt);
+	void Integrate1DStokesArr(srTStokes* StokesArr, long long Np, double Step, srTStokes* pInitDer, srTStokes* pFinDer, srTStokes& ResSt);
 
 	void EstimateExtraObservRangesToIncludeEmittance(srTStokesStructAccessData* pStokes, srTEbmDat* pElecBeam, double* ArrExtraRanges);
     srTSRWRadStructAccessData* CreateNewRadStructWithConstParams(srTEbmDat* pElecBeam, srTTrjDat* pTrjDat, srTStokesStructAccessData* pStokes, srTWfrSmp*& pWfrSmp);
     double GetNextElecEnergyFromGausDistrib(srTEbmDat& OrigElecBeam, CGenMathRand& RandGen);
-	double UpdateResultStokesData(float* ArrAuxDataS0, float* ArrAuxDataS1, float* ArrAuxDataS2, float* ArrAuxDataS3, srTWfrSmp* pWfrSmp, int iElecEn, srTStokesStructAccessData* pStokes);
+	//double UpdateResultStokesData(float* ArrAuxDataS0, float* ArrAuxDataS1, float* ArrAuxDataS2, float* ArrAuxDataS3, srTWfrSmp* pWfrSmp, int iElecEn, srTStokesStructAccessData* pStokes);
+	double UpdateResultStokesData(float* ArrAuxDataS0, float* ArrAuxDataS1, float* ArrAuxDataS2, float* ArrAuxDataS3, srTWfrSmp* pWfrSmp, long long iElecEn, srTStokesStructAccessData* pStokes);
 
     void ComputeStokesAtOneObsPoint_ExternIntens(srTFieldBasedArrays& FldArr, srTStokes& CurSt)
 	{
@@ -162,7 +166,8 @@ public:
 		}
 	}
 
-	void ComputeStokesAtOneObsPoint_FuncForInteg2D_AB(srTFieldBasedArrays& FldArr, int i, int it, TComplexD* pA_Stokes, TComplexD& B)
+	//void ComputeStokesAtOneObsPoint_FuncForInteg2D_AB(srTFieldBasedArrays& FldArr, int i, int it, TComplexD* pA_Stokes, TComplexD& B)
+	void ComputeStokesAtOneObsPoint_FuncForInteg2D_AB(srTFieldBasedArrays& FldArr, long long i, long long it, TComplexD* pA_Stokes, TComplexD& B)
 	{
 		TComplexD* tA_Stokes = pA_Stokes;
 		bool AB_ShouldBeComputed = true;
@@ -171,7 +176,8 @@ public:
 		{
 			if((gBottomArrA != 0) && (gBottomArrB != 0))
 			{
-                long OffsB = it*FldArr.Ns + i;
+                //long OffsB = it*FldArr.Ns + i;
+                long long OffsB = it*FldArr.Ns + i;
                 B = gBottomArrB[OffsB];
 				TComplexD* tBottomArrA = gBottomArrA + (OffsB<<2);
                 for(int k=0; k<4; k++) *(tA_Stokes++) = *(tBottomArrA++);
@@ -182,7 +188,8 @@ public:
 		{
 			if((gRightArrA != 0) && (gRightArrB != 0))
 			{
-                long OffsB = ((it - 4) << 2) + (i - (FldArr.Ns - 4));
+                //long OffsB = ((it - 4) << 2) + (i - (FldArr.Ns - 4));
+                long long OffsB = ((it - 4) << 2) + (i - (FldArr.Ns - 4));
                 B = gRightArrB[OffsB];
 				TComplexD* tBottomArrA = gBottomArrA + (OffsB<<2);
                 for(int k=0; k<4; k++) *(tA_Stokes++) = *(tBottomArrA++);
@@ -194,9 +201,12 @@ public:
 			double s = FldArr.sStart + i*FldArr.sStep;
 			double st = FldArr.sStart + it*FldArr.sStep;
 
-			long Offset1 = it*((((FldArr.Ns) << 1) - 1 - it) >> 1) + i;
-			long OffsetCoefA = Offset1*(gNumCoefForOnePointA << 2);
-			long OffsetCoefB = Offset1*gNumCoefForOnePointB;
+			//long Offset1 = it*((((FldArr.Ns) << 1) - 1 - it) >> 1) + i;
+			long long Offset1 = it*((((FldArr.Ns) << 1) - 1 - it) >> 1) + i;
+			//long OffsetCoefA = Offset1*(gNumCoefForOnePointA << 2);
+			//long OffsetCoefB = Offset1*gNumCoefForOnePointB;
+			long long OffsetCoefA = Offset1*(gNumCoefForOnePointA << 2);
+			long long OffsetCoefB = Offset1*gNumCoefForOnePointB;
 			ComputeIntensFuncPartsForInteg2D(s, st, gCoefA + OffsetCoefA, gCoefB + OffsetCoefB, pA_Stokes, B);
 		}
 	}
@@ -215,7 +225,8 @@ public:
 		ResSt.s3 = 2*((LocA_Stokes+3)->x);
 	}
 
-	void ComputeStokesAtOneObsPoint_FuncForInteg2D(srTFieldBasedArrays& FldArr, int i, int it, srTStokes& ResSt)
+	//void ComputeStokesAtOneObsPoint_FuncForInteg2D(srTFieldBasedArrays& FldArr, int i, int it, srTStokes& ResSt)
+	void ComputeStokesAtOneObsPoint_FuncForInteg2D(srTFieldBasedArrays& FldArr, long long i, long long it, srTStokes& ResSt)
 	{
 		TComplexD A_Stokes[4], B;
         ComputeStokesAtOneObsPoint_FuncForInteg2D_AB(FldArr, i, it, A_Stokes, B);
@@ -230,10 +241,13 @@ public:
 		//ResSt.s3 = 2*((A_Stokes+3)->x);
 	}
 
-    void Integrate1DStokesFunc_EvenMesh(srTFieldBasedArrays& FldArr, int it, srTStokes& ResSt)
+    //void Integrate1DStokesFunc_EvenMesh(srTFieldBasedArrays& FldArr, int it, srTStokes& ResSt)
+    void Integrate1DStokesFunc_EvenMesh(srTFieldBasedArrays& FldArr, long long it, srTStokes& ResSt)
     {
-		int Ns = FldArr.Ns;
-		int Ns_mi_4 = Ns - 4;
+		//int Ns = FldArr.Ns;
+		//int Ns_mi_4 = Ns - 4;
+		long long Ns = FldArr.Ns;
+		long long Ns_mi_4 = Ns - 4;
         if(it >= Ns_mi_4) 
 		{
             srTStokes F;
@@ -252,14 +266,16 @@ public:
 		ResSt *= gAuxPar.Cm;
 	}
 
-    void Integrate1DStokesFunc_EvenMesh_2p(srTFieldBasedArrays& FldArr, int it, srTStokes& ResSt, srTStokes& F2)
+    //void Integrate1DStokesFunc_EvenMesh_2p(srTFieldBasedArrays& FldArr, int it, srTStokes& ResSt, srTStokes& F2)
+    void Integrate1DStokesFunc_EvenMesh_2p(srTFieldBasedArrays& FldArr, long long it, srTStokes& ResSt, srTStokes& F2)
 	{
         srTStokes F1;
         ComputeStokesAtOneObsPoint_FuncForInteg2D(FldArr, it, it, F1);
         ComputeStokesAtOneObsPoint_FuncForInteg2D(FldArr, it + 1, it, F2);
 		ResSt = (0.5*FldArr.sStep)*(F1 + F2);
 	}
-    void Integrate1DStokesFunc_EvenMesh_3p(srTFieldBasedArrays& FldArr, int it, srTStokes& ResSt, srTStokes& F3)
+    //void Integrate1DStokesFunc_EvenMesh_3p(srTFieldBasedArrays& FldArr, int it, srTStokes& ResSt, srTStokes& F3)
+    void Integrate1DStokesFunc_EvenMesh_3p(srTFieldBasedArrays& FldArr, long long it, srTStokes& ResSt, srTStokes& F3)
 	{
         srTStokes F1, F2;
         ComputeStokesAtOneObsPoint_FuncForInteg2D(FldArr, it, it, F1);
@@ -267,7 +283,8 @@ public:
         ComputeStokesAtOneObsPoint_FuncForInteg2D(FldArr, it + 2, it, F3);
 		ResSt = (FldArr.sStep/3.)*(F1 + (4*F2) + F3);
 	}
-    void Integrate1DStokesFunc_EvenMesh_4p(srTFieldBasedArrays& FldArr, int it, srTStokes& ResSt, srTStokes& F4)
+    //void Integrate1DStokesFunc_EvenMesh_4p(srTFieldBasedArrays& FldArr, int it, srTStokes& ResSt, srTStokes& F4)
+    void Integrate1DStokesFunc_EvenMesh_4p(srTFieldBasedArrays& FldArr, long long it, srTStokes& ResSt, srTStokes& F4)
 	{
         srTStokes F1, F2, F3;
         ComputeStokesAtOneObsPoint_FuncForInteg2D(FldArr, it, it, F1);
@@ -276,7 +293,8 @@ public:
         ComputeStokesAtOneObsPoint_FuncForInteg2D(FldArr, it + 3, it, F4);
 		ResSt = (0.375*FldArr.sStep)*(F1 + (3*(F2 + F3)) + F4);
 	}
-    void Integrate1DStokesFunc_EvenMesh_OddNp(srTFieldBasedArrays& FldArr, int it, int i_Offset, srTStokes* pFe1, srTStokes& ResSt);
+    //void Integrate1DStokesFunc_EvenMesh_OddNp(srTFieldBasedArrays& FldArr, int it, int i_Offset, srTStokes* pFe1, srTStokes& ResSt);
+    void Integrate1DStokesFunc_EvenMesh_OddNp(srTFieldBasedArrays& FldArr, long long it, long long i_Offset, srTStokes* pFe1, srTStokes& ResSt);
 
 	//void ComputeStokesIntensFuncAtPoint(long is, long ist, srTFieldBasedArrays& FldArr, srTStokesC& A, srTStokesC& B, srTStokesC& C);
 	//void ComputeStokesFluxFuncAtPoint(long is, long ist, srTFieldBasedArrays& FldArr, srTStokesC& A, srTStokesC& B, srTStokesC& C);
@@ -285,7 +303,8 @@ public:
 	//	if(IntOrFlux == 'i') ComputeStokesIntensFuncAtPoint(is, ist, FldArr, A, B, C);
 	//	else if(IntOrFlux == 'f') ComputeStokesFluxFuncAtPoint(is, ist, FldArr, A, B, C);
 	//}
-	void ComputeExpCoefForOneObsPoint(long is, long ist, double yObs, double eObs, srTFieldBasedArrays& FldArr, TComplexD* ArrA, TComplexD* ArrB);
+	//void ComputeExpCoefForOneObsPoint(long is, long ist, double yObs, double eObs, srTFieldBasedArrays& FldArr, TComplexD* ArrA, TComplexD* ArrB);
+	void ComputeExpCoefForOneObsPoint(long long is, long long ist, double yObs, double eObs, srTFieldBasedArrays& FldArr, TComplexD* ArrA, TComplexD* ArrB);
 	void ComputeExpCoefXZArraysForInteg2D_EvenMesh(double yObs, double eObs, srTFieldBasedArrays& FldArr, TComplexD* ArrA, TComplexD* ArrB);
 
 	void ComputeExpCoefXZArraysForInteg2D(double yObs, double eObs, srTParPrecStokesArb& PrecPar)
@@ -375,7 +394,8 @@ public:
 		//return ExpB*((A0/dBdx) + (((A0*d2Bdx2) - (dAdx*dBdx))/(dBdx*dBdx*dBdx)));
 	}
 
-	srTStokes DerivWithExpStokes3p(TComplexD* A, TComplexD* B, double sStep, int ic)
+	//srTStokes DerivWithExpStokes3p(TComplexD* A, TComplexD* B, double sStep, int ic)
+	srTStokes DerivWithExpStokes3p(TComplexD* A, TComplexD* B, double sStep, long long ic)
 	{// assumes A[12] and B[3]; ic=0 for start of array, ic=2 for end of array
         double ExpReB0 = exp(B[ic].x);
         TComplexD ExpB(ExpReB0*cos(B[ic].y), ExpReB0*sin(B[ic].y));
@@ -399,9 +419,11 @@ public:
 		return OutStokes;
 	}
 
-	void ComputeStokesAtOneObsPoint_DerivOverS_FromAB(srTFieldBasedArrays& FldArr, int i, int it, int ic, srTStokes& StokesDerF, srTStokes* ArrStokesF)
+	//void ComputeStokesAtOneObsPoint_DerivOverS_FromAB(srTFieldBasedArrays& FldArr, int i, int it, int ic, srTStokes& StokesDerF, srTStokes* ArrStokesF)
+	void ComputeStokesAtOneObsPoint_DerivOverS_FromAB(srTFieldBasedArrays& FldArr, long long i, long long it, long long ic, srTStokes& StokesDerF, srTStokes* ArrStokesF)
 	{//assumes ic=0 for start of array, ic=2 for end of array
-		int iStart = i - ic;
+		//int iStart = i - ic;
+		long long iStart = i - ic;
         TComplexD A_Stokes[12], B[3];
 		TComplexD *tA_Stokes = A_Stokes;
 		//srTStokes *tStokesF = ArrStokesF;
@@ -414,32 +436,39 @@ public:
         StokesDerF = DerivWithExpStokes3p(A_Stokes, B, FldArr.sStep, ic);
 	}
 
-	void AllocateCoefArraysForInteg2D(long Ns)
+	//void AllocateCoefArraysForInteg2D(long Ns)
+	void AllocateCoefArraysForInteg2D(long long Ns)
 	{
 		if(gCoefA != 0) { delete gCoefA; gCoefA = 0;}
 		if(gCoefB != 0) { delete gCoefB; gCoefB = 0;}
 
-		long NsTriang = ((Ns + 1)*Ns) >> 1;
-		long NpA = (4*gNumCoefForOnePointA)*NsTriang;
-		long NpB = gNumCoefForOnePointB*NsTriang;
+		//long NsTriang = ((Ns + 1)*Ns) >> 1;
+		//long NpA = (4*gNumCoefForOnePointA)*NsTriang;
+		//long NpB = gNumCoefForOnePointB*NsTriang;
+		long long NsTriang = ((Ns + 1)*Ns) >> 1;
+		long long NpA = (4*gNumCoefForOnePointA)*NsTriang;
+		long long NpB = gNumCoefForOnePointB*NsTriang;
 
 		gCoefA = new TComplexD[NpA];
 		if(gCoefA == 0) throw MEMORY_ALLOCATION_FAILURE;
 		gCoefB = new TComplexD[NpB];
 		if(gCoefB == 0) throw MEMORY_ALLOCATION_FAILURE;
 	}
-	void AllocateFuncArraysForExternInteg(long Ns)
+	//void AllocateFuncArraysForExternInteg(long Ns)
+	void AllocateFuncArraysForExternInteg(long long Ns)
 	{
 		if(gBottomArrA != 0) { delete gBottomArrA; gBottomArrA = 0;}
 		if(gBottomArrB != 0) { delete gBottomArrB; gBottomArrB = 0;}
 		if(gRightArrA != 0) { delete gRightArrA; gRightArrA = 0;}
 		if(gRightArrB != 0) { delete gRightArrB; gRightArrB = 0;}
 
-		long NpBottomB = Ns<<2;
+		//long NpBottomB = Ns<<2;
+		long long NpBottomB = Ns<<2;
 		gBottomArrA = new TComplexD[NpBottomB<<2];
 		gBottomArrB = new TComplexD[NpBottomB];
 
-		long NpRightB = (Ns-4)<<2;
+		//long NpRightB = (Ns-4)<<2;
+		long long NpRightB = (Ns-4)<<2;
 		gRightArrA = new TComplexD[NpRightB<<2];
 		gRightArrB = new TComplexD[NpRightB];
 	}

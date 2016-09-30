@@ -177,11 +177,15 @@ int srTRadIntPeriodic::ComputeTotalStokesDistr(srTStokesStructAccessData* pStoke
 	char FinalResAreSymOverX = 0, FinalResAreSymOverZ = 0;
 	AnalizeFinalResultsSymmetry(FinalResAreSymOverX, FinalResAreSymOverZ);
 
-	long PerX = DistrInfoDat.nLamb << 2;
-	long PerZ = PerX*DistrInfoDat.nx;
+	//long PerX = DistrInfoDat.nLamb << 2;
+	//long PerZ = PerX*DistrInfoDat.nx;
+	long long PerX = DistrInfoDat.nLamb << 2;
+	long long PerZ = PerX*DistrInfoDat.nx;
 
-	long PerX1 = DistrInfoDat.nLamb;
-	long PerZ1 = PerX1*DistrInfoDat.nx;
+	//long PerX1 = DistrInfoDat.nLamb;
+	//long PerZ1 = PerX1*DistrInfoDat.nx;
+	long long PerX1 = DistrInfoDat.nLamb;
+	long long PerZ1 = PerX1*DistrInfoDat.nx;
 
 	double xAngStart, xAngStep, zAngStart, zAngStep;
 	FindAngularObsGrid(xAngStart, xAngStep, zAngStart, zAngStep);
@@ -189,13 +193,15 @@ int srTRadIntPeriodic::ComputeTotalStokesDistr(srTStokesStructAccessData* pStoke
 	double zTol = zAngStep*0.001; // To steer
 
 	srTCompProgressIndicator CompProgressInd;
-	long TotalAmOfOutCounts = DistrInfoDat.nz*DistrInfoDat.nx*(IntPerStoPrec.FinHarm - IntPerStoPrec.InitHarm + 1);
+	//long TotalAmOfOutCounts = DistrInfoDat.nz*DistrInfoDat.nx*(IntPerStoPrec.FinHarm - IntPerStoPrec.InitHarm + 1);
+	long long TotalAmOfOutCounts = DistrInfoDat.nz*DistrInfoDat.nx*(IntPerStoPrec.FinHarm - IntPerStoPrec.InitHarm + 1);
 	if(FinalResAreSymOverX) TotalAmOfOutCounts >>= 1;
 	if(FinalResAreSymOverZ) TotalAmOfOutCounts >>= 1;
 	char ProgressIndicatorEnabled = (TotalAmOfOutCounts >= 5); // To steer
 	double UpdateTimeInt_s = 0.5; // To steer
 	if(ProgressIndicatorEnabled) if(result = CompProgressInd.InitializeIndicator(TotalAmOfOutCounts, UpdateTimeInt_s)) return result;
-	long ProgressCount = 0;
+	//long ProgressCount = 0;
+	long long ProgressCount = 0;
 
 	for(int n=IntPerStoPrec.InitHarm; n<=IntPerStoPrec.FinHarm; n++)
 	{
@@ -236,7 +242,8 @@ int srTRadIntPeriodic::ComputeTotalStokesDistr(srTStokesStructAccessData* pStoke
 				SetUpAvgEnergy(n); // Since it depends on EXZ.x, EXZ.z
 
 				//if(result = ComputeHarmContribToSpecAtDir(n, EnAzGrid, LongIntArrays, LongIntArrInfo, pStartEnSlice)) return result;
-				long ofstSt = iz*PerZ1 + ix*PerX1; //OC020112
+				//long ofstSt = iz*PerZ1 + ix*PerX1; //OC020112
+				long long ofstSt = iz*PerZ1 + ix*PerX1; //OC020112
 				if(result = ComputeHarmContribToSpecAtDir(n, EnAzGrid, LongIntArrays, LongIntArrInfo, pStartEnSlice, pStokesSRWL, ofstSt)) return result;
 
 				if(result = srYield.Check()) return result;
@@ -259,7 +266,8 @@ int srTRadIntPeriodic::ComputeTotalStokesDistr(srTStokesStructAccessData* pStoke
 //*************************************************************************
 
 //int srTRadIntPeriodic::ComputeHarmContribToSpecAtDir(int n, srTEnergyAzimuthGrid& EnAzGrid, float** LongIntArrays, int** LongIntArrInfo, float* pOutEnSlice)
-int srTRadIntPeriodic::ComputeHarmContribToSpecAtDir(int n, srTEnergyAzimuthGrid& EnAzGrid, double** LongIntArrays, int** LongIntArrInfo, float* pOutEnSlice, SRWLStructStokes* pStokesSRWL, long ofstSt)
+//int srTRadIntPeriodic::ComputeHarmContribToSpecAtDir(int n, srTEnergyAzimuthGrid& EnAzGrid, double** LongIntArrays, int** LongIntArrInfo, float* pOutEnSlice, SRWLStructStokes* pStokesSRWL, long ofstSt)
+int srTRadIntPeriodic::ComputeHarmContribToSpecAtDir(int n, srTEnergyAzimuthGrid& EnAzGrid, double** LongIntArrays, int** LongIntArrInfo, float* pOutEnSlice, SRWLStructStokes* pStokesSRWL, long long ofstSt)
 {
 	int result;
 
@@ -950,7 +958,8 @@ void srTRadIntPeriodic::FindIntegralOfInfNperData(int n, srTEnergyAzimuthGrid& E
 //*************************************************************************
 
 //int srTRadIntPeriodic::FilamentTreatEnergySpreadAndFiniteNumberOfPeriods(int n, srTEnergyAzimuthGrid& EnAzGrid, float* InfNperHarmData, float* pOutEnSlice)
-int srTRadIntPeriodic::FilamentTreatEnergySpreadAndFiniteNumberOfPeriods(int n, srTEnergyAzimuthGrid& EnAzGrid, float* InfNperHarmData, float* pOutEnSlice, SRWLStructStokes* pStokesSRWL, long ofstSt) //OC020112
+//int srTRadIntPeriodic::FilamentTreatEnergySpreadAndFiniteNumberOfPeriods(int n, srTEnergyAzimuthGrid& EnAzGrid, float* InfNperHarmData, float* pOutEnSlice, SRWLStructStokes* pStokesSRWL, long ofstSt) //OC020112
+int srTRadIntPeriodic::FilamentTreatEnergySpreadAndFiniteNumberOfPeriods(int n, srTEnergyAzimuthGrid& EnAzGrid, float* InfNperHarmData, float* pOutEnSlice, SRWLStructStokes* pStokesSRWL, long long ofstSt) //OC020112
 {
 	int result;
 
@@ -971,7 +980,8 @@ int srTRadIntPeriodic::FilamentTreatEnergySpreadAndFiniteNumberOfPeriods(int n, 
 //*************************************************************************
 
 //int srTRadIntPeriodic::TreatEnergySpreadAndFiniteNumberOfPeriods(int n, srTEnergyAzimuthGrid& EnAzGrid, float* FinNperHarmData, float* pOutEnSlice)
-int srTRadIntPeriodic::TreatEnergySpreadAndFiniteNumberOfPeriods(int n, srTEnergyAzimuthGrid& EnAzGrid, float* FinNperHarmData, float* pOutEnSlice, SRWLStructStokes* pStokesSRWL, long ofstSt) //OC020112
+//int srTRadIntPeriodic::TreatEnergySpreadAndFiniteNumberOfPeriods(int n, srTEnergyAzimuthGrid& EnAzGrid, float* FinNperHarmData, float* pOutEnSlice, SRWLStructStokes* pStokesSRWL, long ofstSt) //OC020112
+int srTRadIntPeriodic::TreatEnergySpreadAndFiniteNumberOfPeriods(int n, srTEnergyAzimuthGrid& EnAzGrid, float* FinNperHarmData, float* pOutEnSlice, SRWLStructStokes* pStokesSRWL, long long ofstSt) //OC020112
 {
 	if(FilamentTreatmentIsPossible(EnAzGrid)) return FilamentTreatEnergySpreadAndFiniteNumberOfPeriods(n, EnAzGrid, FinNperHarmData, pOutEnSlice, pStokesSRWL, ofstSt);
 
@@ -1034,7 +1044,8 @@ int srTRadIntPeriodic::TreatEnergySpreadAndFiniteNumberOfPeriods(int n, srTEnerg
 //*************************************************************************
 
 //int srTRadIntPeriodic::ConvStokesCompon(int StokesNo, srTEnergyAzimuthGrid& EnAzGrid, float* FinNperHarmData, float* ConvFactorData, float* pOutEnSlice)
-int srTRadIntPeriodic::ConvStokesCompon(int StokesNo, srTEnergyAzimuthGrid& EnAzGrid, float* FinNperHarmData, float* ConvFactorData, float* pOutEnSlice, SRWLStructStokes* pStokesSRWL, long ofstSt) //OC020112
+//int srTRadIntPeriodic::ConvStokesCompon(int StokesNo, srTEnergyAzimuthGrid& EnAzGrid, float* FinNperHarmData, float* ConvFactorData, float* pOutEnSlice, SRWLStructStokes* pStokesSRWL, long ofstSt) //OC020112
+int srTRadIntPeriodic::ConvStokesCompon(int StokesNo, srTEnergyAzimuthGrid& EnAzGrid, float* FinNperHarmData, float* ConvFactorData, float* pOutEnSlice, SRWLStructStokes* pStokesSRWL, long long ofstSt) //OC020112
 {
 	int result;
 

@@ -1,6 +1,7 @@
 #############################################################################
 # uti_math module: misc. mathematical utilities / functions
-# v 0.01
+# v 0.02
+# Authors: O.C., Maksim Rakitin
 #############################################################################
 
 from __future__ import print_function #Python 2.7 compatibility
@@ -356,6 +357,38 @@ def num_round(_x, _ndig=8):
     return res
 
 #****************************************************************************
+def find_ar_max(_ar, _ib=0, _ie=-1, _min=False):
+    """
+    Finds array (or list) maximum (or minimum), index and value 
+    :param _ar: array (or list) to find max. or min.
+    :param _ib: array index to start search
+    :param _ie: array index to finish search
+    :param _min: switch specifying that minimum (rather than maximum) has to be searched
+    """
+
+    if((_ar == None) or (len(_ar) <= 0)): raise Exception('Incorrect input array.')
+    if(_ie < _ib): raise Exception('Incorrect definition of start and end indexes.')
+
+    nTot = len(_ar)
+
+    iBeg = _ib
+    if(_ib < 0): iBeg = 0
+    
+    iEnd = _ie
+    if(_ie >= nTot): iEnd = nTot - 1
+
+    curExtr = _ar[0]
+    curInd = 0
+    for i in range(iBeg, iEnd + 1, 1):
+        curVal = _ar[i]
+        if(_min == True): curVal *= -1
+        if(curExtr < curVal): 
+            curExtr = curVal
+            curInd = i
+
+    return curExtr, curInd
+
+#****************************************************************************
 def integ_array(_ar, _h, _dupl=False):
     """
     Integrates array (or list), eventually making a copy of it before the integration
@@ -376,6 +409,140 @@ def integ_array(_ar, _h, _dupl=False):
         auxInt += hd2*(ar_i + _ar[i + 1])
     ar[lenAr - 1] = auxInt
     return ar
+
+#****************************************************************************
+def integ_ar_2d(_ar, _ar_align, _x_grid, _y_grid, _x_lim=None, _y_lim=None):
+    """
+    Integrates 2d array (or list) within given limits
+    :param _ar: input array to integrate
+    :param _ar_align: input array alignment (1- _ar is C-type alignment, 2- _ar is 2d array)
+    :param _x_grid: list/array specifying grid vs one dimensions (_x_grid[0] is start, _x_grid[1] is end, _x_grid[2] is number of points)
+    :param _y_grid: list/array specifying grid vs another dimensions (_y_grid[0] is start, _y_grid[1] is end, _y_grid[2] is number of points)
+    :param _x_lim: list/array specifying inegration limits vs one dimensions (_x_lim[0] is start, _x_lim[1] is end)
+    :param _y_lim: list/array specifying inegration limits vs another dimensions (_y_lim[0] is start, _y_lim[1] is end)
+    """
+
+    if(_x_lim != None):
+        #print(_x_lim[0], _x_lim[1])
+        if(_x_lim[0] >= _x_lim[1]): return 0.
+
+    if(_y_lim != None):
+        #print(_y_lim[0], _y_lim[1])
+        if(_y_lim[0] >= _y_lim[1]): return 0.
+
+    #print(_x_grid); print(_x_lim)
+    #print(_y_grid); print(_y_lim)
+    
+    xStart = _x_grid[0]; xEnd = _x_grid[1]; nx = _x_grid[2]
+    xStep = (xEnd - xStart)/(nx - 1)
+    yStart = _y_grid[0]; yEnd = _y_grid[1]; ny = _y_grid[2]
+    yStep = (yEnd - yStart)/(ny - 1)
+
+    if((xStep == 0) or (yStep == 0)): return 0.
+
+    x_min = xStart; x_max = xEnd; nxInteg = 0
+    if(_x_lim != None):
+        x_min = _x_lim[0]
+        x_max = _x_lim[1]
+        if(len(_x_lim) > 2): nxInteg = int(round(_x_lim[2]))
+
+    y_min = yStart; y_max = yEnd; nyInteg = 0
+    if(_y_lim != None):
+        y_min = _y_lim[0]
+        y_max = _y_lim[1]
+        if(len(_y_lim) > 2): nyInteg = int(round(_y_lim[2]))
+
+    if((nxInteg > 2) and (nyInteg > 2) and (_ar_align == 1)): #perform inregration using 2D interpolation
+        
+        arAuxIntegWave2Dx = array('d', [0]*nxInteg)
+        if(x_min < xStart): x_min = xStart
+        if(x_max > xEnd): x_max = xEnd
+        xStepInteg = (x_max - x_min)/(nxInteg - 1)
+        
+        arAuxIntegWave2Dy = array('d', [0]*nyInteg)
+        if(y_min < yStart): y_min = yStart
+        if(y_max > yEnd): y_max = yEnd
+        yStepInteg = (y_max - y_min)/(nyInteg - 1)
+
+        yy = y_min
+        for iy in range(nyInteg):
+            xx = x_min
+            for ix in range(nxInteg):
+                arAuxIntegWave2Dx[ix] = interp_2d(xx, yy, xStart, xStep, nx, yStart, yStep, ny, _ar, _ord=2)
+                xx += xStepInteg
+
+            arAux = integ_array(arAuxIntegWave2Dx, xStepInteg)
+            arAuxIntegWave2Dy[iy] = arAux[nxInteg - 1]
+            yy += yStepInteg
+
+        arAux = integ_array(arAuxIntegWave2Dy, yStepInteg)
+        resInteg = arAux[nyInteg - 1]
+        return resInteg
+
+    ixStart = int((x_min - xStart)/xStep + 0.e-12)
+    if(ixStart < 0): ixStart = 0
+    else:
+        if(ixStart >= nx): ixStart = nx - 1
+    #print('ixStart=', ixStart)
+    
+    iyStart = int((y_min - yStart)/yStep + 0.e-12)
+    if(iyStart < 0): iyStart = 0
+    else:
+        if(iyStart >= ny): iyStart = ny - 1
+    #print('iyStart=', iyStart)
+
+    ixEnd = int((x_max - xStart)/xStep - 1.e-06) + 1
+    if(ixEnd < 0): ixEnd = 0
+    else: 
+        if(ixEnd >= nx): ixEnd = nx - 1
+    #print('ixStart=', ixStart, 'ixEnd=', ixEnd)
+
+    iyEnd = int((y_max - yStart)/yStep - 1.e-06) + 1
+    if(iyEnd < 0): iyEnd = 0
+    else:
+        if(iyEnd >= ny): iyEnd = ny - 1
+    #print('iyStart=', iyStart, 'iyEnd=', iyEnd)
+
+    if((ixStart >= ixEnd) or (iyStart >= iyEnd)): return 0.
+
+    nxi = ixEnd - ixStart + 1
+    ##make/O/N=(nxi) wAuxIntegWave2Dx
+    ##SetScale/P x, xStart + ixStart*xStep, xStep, "", wAuxIntegWave2Dx
+    arAuxIntegWave2Dx = array('d', [0]*nxi)
+
+    nyi = iyEnd - iyStart + 1
+    ##make/O/N=(nyi) wAuxIntegWave2Dy
+    ##SetScale/P x, yStart + iyStart*yStep, yStep, "", wAuxIntegWave2Dy
+    arAuxIntegWave2Dy = array('d', [0]*nyi)
+
+    ##for(iy = 0; iy < nyi; iy += 1)
+    ##	wAuxIntegWave2Dx = w2d[ixStart + p][iyStart + iy]
+    ##	integrate/T wAuxIntegWave2Dx
+    ##	wAuxIntegWave2Dy[iy] = wAuxIntegWave2Dx(x_max) - wAuxIntegWave2Dx(x_min)
+    ##endfor
+
+    iyAbs_nx = 0
+    ar_iyAbs = None
+    for iy in range(nyi):
+        iyAbs = iy + iyStart
+        if(_ar_align == 1): iyAbs_nx = iyAbs*nx
+        else: ar_iyAbs = _ar[iyAbs]
+        
+        for ix in range(nxi):
+            ixAbs = ix + ixStart
+            if(_ar_align == 1): arAuxIntegWave2Dx[ix] = _ar[iyAbs_nx + ixAbs]
+            else: arAuxIntegWave2Dx[ix] = ar_iyAbs[ixAbs]
+
+        #print(xStep, arAuxIntegWave2Dx)
+        arAux = integ_array(arAuxIntegWave2Dx, xStep)
+        arAuxIntegWave2Dy[iy] = arAux[nxi - 1]
+
+    ##integrate/T wAuxIntegWave2Dy
+    ##variable res = wAuxIntegWave2Dy(y_max) - wAuxIntegWave2Dy(y_min)
+
+    arAux = integ_array(arAuxIntegWave2Dy, yStep)
+    resInteg = arAux[nyi - 1]
+    return resInteg
 
 #****************************************************************************
 def matr_prod(_A, _B):
@@ -444,8 +611,8 @@ def trf_rotation(_V, _ang, _P):
     V = matr_prod(M0, _P)
     return [M, V]
 
-
-def fwhm(x, y):
+#****************************************************************************
+def fwhm(x, y): #MR27092016
     """The function searches x-values (roots) where y=0 based on linear interpolation, and calculates FWHM"""
 
     def is_positive(num):
@@ -463,8 +630,8 @@ def fwhm(x, y):
     else:
         raise Exception('Number of roots is less than 2!')
 
-
-def fwhm_scipy(x, y):
+#****************************************************************************
+def fwhm_scipy(x, y): #MR27092016
     """Computing FWHM (Full width at half maximum)"""
     try:
         from scipy.interpolate import UnivariateSpline

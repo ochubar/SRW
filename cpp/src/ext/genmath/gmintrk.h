@@ -102,7 +102,8 @@ public:
 		}
 	}
 
-	void solve(double* initCond, double xmin, double xmax, int np, double* res);
+	//void solve(double* initCond, double xmin, double xmax, int np, double* res);
+	void solve(double* initCond, double xmin, double xmax, long long np, double* res);
 	void stepRungeKutta4(double* y, double* dydx, double x, double h);
 	void stepRungeKutta5(double* y, double* dydx, double* x, double htry, double* hdid, double* hnext);
 	void autoPropagate(double* ystart, double x1, double x2, double h1, double hmin, int* nok, int* nbad);
@@ -124,7 +125,8 @@ public:
 // np - number of points
 // resArr - resulting flat array, length is equal to (m_AmOfEq + 1)*np
 //-------------------------------------------------------------------------
-template <class T> void CGenMathIntRungeKutta<T>::solve(double* initCond, double xmin, double xmax, int np, double* resArr)
+//template <class T> void CGenMathIntRungeKutta<T>::solve(double* initCond, double xmin, double xmax, int np, double* resArr)
+template <class T> void CGenMathIntRungeKutta<T>::solve(double* initCond, double xmin, double xmax, long long np, double* resArr)
 {
 	double step_x = (xmax - xmin)/double(np - 1);
 	double x = xmin;
@@ -135,13 +137,16 @@ template <class T> void CGenMathIntRungeKutta<T>::solve(double* initCond, double
 	for(int k=0; k<m_AmOfEq; k++) m_Y[k] = initCond[k];
 
 	int amOfEq_p_1 = m_AmOfEq + 1;
-	int np_mi_1 = np - 1;
+	//int np_mi_1 = np - 1;
+	long long np_mi_1 = np - 1;
 
-	for(int i=0; i<np; i++)
+	//for(int i=0; i<np; i++)
+	for(long long i=0; i<np; i++)
 	{
 		if(!m_OnPrc) (m_PtrT->*m_pFuncDerivF)(x, m_Y, m_dYdx);
 
-		int i_amOfEq_p_1 = i*amOfEq_p_1; //, i_amOfEq_p_1_p_1 = i_amOfEq_p_1 + 1;
+		//int i_amOfEq_p_1 = i*amOfEq_p_1; //, i_amOfEq_p_1_p_1 = i_amOfEq_p_1 + 1;
+		long long i_amOfEq_p_1 = i*amOfEq_p_1; //, i_amOfEq_p_1_p_1 = i_amOfEq_p_1 + 1;
 		
 		double *t_res =  resArr + i_amOfEq_p_1;
 		*(t_res++) = x;

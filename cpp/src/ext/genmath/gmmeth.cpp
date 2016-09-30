@@ -42,7 +42,8 @@ double CGenMathMeth::Integ1D_FuncWithEdgeDer(double (*pF)(double), double x1, do
 	const double wf2 = 14./15.;
 	const double wd = 1./15.;
 
-	long NpOnLevel = 5; // Must be non-even!
+	//long NpOnLevel = 5; // Must be non-even!
+	long long NpOnLevel = 5; // Must be non-even!
 	double xStep = (x2 - x1)/(NpOnLevel - 1);
 
 	double Sum1=0., Sum2=0.;
@@ -51,7 +52,8 @@ double CGenMathMeth::Integ1D_FuncWithEdgeDer(double (*pF)(double), double x1, do
 
 	wF = (*pF)(x1);
     double x = x1 + xStep;
-	int AmOfPass = (NpOnLevel - 3) >> 1;
+	//int AmOfPass = (NpOnLevel - 3) >> 1;
+	long long AmOfPass = (NpOnLevel - 3) >> 1;
 	for(int i=0; i<AmOfPass; i++)
 	{
         Sum1 += (*pF)(x); x += xStep;
@@ -80,7 +82,8 @@ double CGenMathMeth::Integ1D_FuncWithEdgeDer(double (*pF)(double), double x1, do
 		x = x1 + HalfStep;
 
 		//long NpOnLevel_mi_1 = NpOnLevel - 1;
-		for(int i=0; i<NpOnLevel; i++)
+		//for(int i=0; i<NpOnLevel; i++)
+		for(long long i=0; i<NpOnLevel; i++)
 		{
 			Sum1 += (*pF)(x); x += xStep;
 		}

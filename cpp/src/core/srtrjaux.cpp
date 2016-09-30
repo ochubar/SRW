@@ -20,13 +20,15 @@ int srTTrjArraysAux::AllocateArraysOnLevels(int StLevNo, int FiLevNo)
 	if((StLevNo < 0) || (StLevNo > FiLevNo)) return 0;
 	if((FiLevNo < 0) || (FiLevNo > LEN_POINTERS - 1)) return 0;
 	
-	long TotAmOfPointsWithThis = TotAmOfPointsIncludingTheLevel(FiLevNo);
+	//long TotAmOfPointsWithThis = TotAmOfPointsIncludingTheLevel(FiLevNo);
+	long long TotAmOfPointsWithThis = TotAmOfPointsIncludingTheLevel(FiLevNo);
 	char UseActualAlloc = (TotAmOfPointsWithThis*10 > LEN_SMALL_CONT);
 	
 	for(int iLev=StLevNo; iLev<=FiLevNo; iLev++)
 	{
 		DeallocateArraysOnLevel(iLev);
-		long NpOnLevel = AmOfPointsOnLevel(iLev);
+		//long NpOnLevel = AmOfPointsOnLevel(iLev);
+		long long NpOnLevel = AmOfPointsOnLevel(iLev);
 		
 		double **tBxArrP = BxArrP+iLev, **tBtxArrP = BtxArrP+iLev, **tXArrP = XArrP+iLev, **tIntBtxE2ArrP = IntBtxE2ArrP+iLev, **tdBxdsArrP = dBxdsArrP+iLev;
 		double **tBzArrP = BzArrP+iLev, **tBtzArrP = BtzArrP+iLev, **tZArrP = ZArrP+iLev, **tIntBtzE2ArrP = IntBtzE2ArrP+iLev, **tdBzdsArrP = dBzdsArrP+iLev;
@@ -39,7 +41,8 @@ int srTTrjArraysAux::AllocateArraysOnLevels(int StLevNo, int FiLevNo)
 		}
 		else
 		{
-			long Offset = 10*TotAmOfPointsIncludingTheLevel(iLev - 1);
+			//long Offset = 10*TotAmOfPointsIncludingTheLevel(iLev - 1);
+			long long Offset = 10*TotAmOfPointsIncludingTheLevel(iLev - 1);
 			*tBxArrP = SmallDataCont + Offset;
 		}
 		
@@ -63,7 +66,8 @@ int srTTrjArraysAux::AllocateArraysOnThisLevelNeglectingOthers(int LevNo)
 {
 	if((LevNo < 0) || (LevNo > LEN_POINTERS - 1)) return 0;
 
-	long NpOnLevel = AmOfPointsOnLevel(LevNo);
+	//long NpOnLevel = AmOfPointsOnLevel(LevNo);
+	long long NpOnLevel = AmOfPointsOnLevel(LevNo);
 	char UseActualAlloc = (NpOnLevel*10 > LEN_SMALL_CONT);
 
 	DeallocateArraysOnLevel(LevNo);
@@ -73,14 +77,16 @@ int srTTrjArraysAux::AllocateArraysOnThisLevelNeglectingOthers(int LevNo)
 
 	if(UseActualAlloc)
 	{
-		long TotAmDat = NpOnLevel*10;
+		//long TotAmDat = NpOnLevel*10;
+		long long TotAmDat = NpOnLevel*10;
 		*tBxArrP = new double[TotAmDat];
 		if(*tBxArrP == 0) { DeallocateArrays(); return MEMORY_ALLOCATION_FAILURE;}
 		LevIsActuallyAlloc[LevNo] = 1;
 	}
 	else
 	{
-		long Offset = 0;
+		//long Offset = 0;
+		long long Offset = 0;
 		*tBxArrP = SmallDataCont + Offset;
 	}
 

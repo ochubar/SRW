@@ -90,33 +90,74 @@ public:
 
 	//int WfrInterpolOnOrigGrid(srTSRWRadStructAccessData* pWfr, float* arRayTrCoord, float* arEX, float* arEY, float xRelOutMin, float xRelOutMax, float yRelOutMin, float yRelOutMax);
 	int WfrInterpolOnOrigGrid(srTSRWRadStructAccessData* pWfr, double* arRayTrCoord, float* arEX, float* arEY, double xRelOutMin, double xRelOutMax, double yRelOutMin, double yRelOutMax);
+	//int WfrInterpolOnOrigGrid2(srTSRWRadStructAccessData* pWfr, double* arRayTrCoord, long* arIndRayTrCoord, float* arEX, float* arEZ, double xMin, double xMax, double zMin, double zMax);
+	int WfrInterpolOnOrigGrid2(srTSRWRadStructAccessData* pWfr, double* arRayTrCoord, long long* arIndRayTrCoord, float* arEX, float* arEZ, double xMin, double xMax, double zMin, double zMax);
 
 	virtual void FindSurfNormalInLocFrame(double x, double y, TVector3d& vN) {}
 	virtual double SurfHeightInLocFrame(double x, double y) { return 0;}
 
 	virtual bool FindRayIntersectWithSurfInLocFrame(TVector3d& inP, TVector3d& inV, TVector3d& resP, TVector3d* pResN=0) 
 	{//find the intersection numerically; to imrove!!
-		const double badHeightThresh = -1.E+20;
 		const int maxIt = 15;
-		double ax = inV.x/inV.z, ay = inV.y/inV.z;
-		double x0 = inP.x, y0 = inP.y, z0 = inP.z;
-		double z = 0., y, x;
-		for(int i=0; i<maxIt; i++)
+		const double relSurfHeightTol = 1.E-15;
+		const double minAbsSurfHeightTol = 1.E-18; //[m]
+		
+		TVector3d vPpl(0.,0.,0.), vNpl(0.,0.,1.); //Initial Point on Plane and Normal
+		double t, x, y, z, zPl, absSurfHeightTol;
+		int i;
+		for(i=0; i<maxIt; i++)
 		{
-			x = ax*(z - z0) + x0;
-			y = ay*(z - z0) + y0;
-			z = SurfHeightInLocFrame(x, y);
-			if(z < badHeightThresh) return false;
-		}
-		resP.x = ax*(z - z0) + x0;
-		resP.y = ay*(z - z0) + y0;
-		resP.z = z;
+			//Finding Intersection Point with Tangential Plane
+			t = ((vPpl - inP)*vNpl)/(inV*vNpl);
+			x = inP.x + inV.x*t;
+			y = inP.y + inV.y*t;
+			zPl = inP.z + inV.z*t;
 
+			if(i == 0)
+			{
+				double dx = x - inP.x, dy = y - inP.y, dz = zPl - inP.z;
+				double maxDistEstim = sqrt(dx*dx + dy*dy + dz*dz);
+				absSurfHeightTol = maxDistEstim*relSurfHeightTol;
+				if(absSurfHeightTol < minAbsSurfHeightTol) absSurfHeightTol = minAbsSurfHeightTol;
+			}
+
+			//Finding Surface Height for (x, y) coordinates of Intersection Point with Tangential Plane
+			z = SurfHeightInLocFrame(x, y);
+
+			if(::fabs(z - zPl) < absSurfHeightTol) break;
+
+			//Finding Normal to the new Tangential Plane
+			FindSurfNormalInLocFrame(x, y, vNpl);
+			//Setting the Point on the new Tangential Plane
+			vPpl.x = x; vPpl.y = y; vPpl.z = z;
+		}
+		resP.x = x; resP.y = y; resP.z = z;
 		if(pResN != 0)
 		{
-			FindSurfNormalInLocFrame(resP.x, resP.y, *pResN);
+			FindSurfNormalInLocFrame(x, y, *pResN);
 		}
 		return true;
+
+		//const double badHeightThresh = -1.E+20;
+		//double ax = inV.x/inV.z, ay = inV.y/inV.z;
+		//double x0 = inP.x, y0 = inP.y, z0 = inP.z;
+		//double z = 0., y, x;
+		//for(int i=0; i<maxIt; i++)
+		//{
+		//	x = ax*(z - z0) + x0;
+		//	y = ay*(z - z0) + y0;
+		//	z = SurfHeightInLocFrame(x, y);
+		//	if(z < badHeightThresh) return false;
+		//}
+		//resP.x = ax*(z - z0) + x0;
+		//resP.y = ay*(z - z0) + y0;
+		//resP.z = z;
+
+		//if(pResN != 0)
+		//{
+		//	FindSurfNormalInLocFrame(resP.x, resP.y, *pResN);
+		//}
+		//return true;
 	}
 
 	int PropagateRadiation(srTSRWRadStructAccessData* pRadAccessData, srTParPrecWfrPropag& ParPrecWfrPropag, srTRadResizeVect& ResBeforeAndAfterVect) //virtual in srTGenOptElem
@@ -189,8 +230,10 @@ public:
 		int nComp = m_reflData.DimSizes[2];
 
 		const long perPhotEn = 2;
-		long perAng = perPhotEn*ne;
-		const long perSigPi = perAng*nAng;
+		//long perAng = perPhotEn*ne;
+		//const long perSigPi = perAng*nAng;
+		long long perAng = perPhotEn*ne;
+		long long perSigPi = perAng*nAng;
 
 		int ie = (int)((phEn - eStart)/eStep + 0.00001);
 		if((phEn - (eStart + ie*eStep)) > 0.5*eStep) ie++;
@@ -202,7 +245,8 @@ public:
 		if(iAng < 0) iAng = 0;
 		if(iAng >= nAng) iAng = nAng - 1;
 
-		long ofstSig = perPhotEn*ie + perAng*iAng;
+		//long ofstSig = perPhotEn*ie + perAng*iAng;
+		long long ofstSig = perPhotEn*ie + perAng*iAng;
 		//setting appropriate pointer type 
 		if(m_reflData.DataType[1] == 'f')
 		{
@@ -666,14 +710,12 @@ public:
 	srTMirrorToroid(srTStringVect* pElemInfo, srTDataMD* pExtraData);
 	srTMirrorToroid(const SRWLOptMirTor& mirTor);
 
-	bool FindRayIntersectWithSurfInLocFrame(TVector3d& inP, TVector3d& inV, TVector3d& resP, TVector3d* pResN = 0) //virtual in srTMirror
-	{//To implement!
-		return true;
-	}
+	//bool FindRayIntersectWithSurfInLocFrame(TVector3d& inP, TVector3d& inV, TVector3d& resP, TVector3d* pResN = 0) 
+	//use the iterative version of srTMirror
 
 	double SurfHeightInLocFrame(double x, double y) //virtual in srTMirror
 	{
-		const double badRes = -1.E+23; //to return in case if anything goes wrong
+		const double badRes = -1.E+23; //to return in case if anything goes wrong, i.e. if (x, y) don't belong to torus
 		double ry = y/m_Rs;
 		double rye2 = ry*ry;
 		if(rye2 > 1.) return badRes;
@@ -686,6 +728,26 @@ public:
 
 	void FindSurfNormalInLocFrame(double x, double y, TVector3d& vN) //virtual in srTMirror
 	{//In the Local frame: tangential direction is X, saggital Y; output vector is normalized to 1
+		//const double badRes = -1.E+23; //to return in case if anything goes wrong, i.e. if (x, y) don't belong to torus
+		vN.x = 0.; vN.y = 0.; vN.y = 0.;
+
+		double ry = y/m_Rs;
+		double rye2 = ry*ry;
+		if(rye2 > 1.) return;
+
+		double radSmi1 = CGenMathMeth::radicalOnePlusSmallMinusOne(-rye2);
+		double a1 = radSmi1*m_Rs/m_Rt;
+		double rx = x/m_Rt;
+		double a2 = a1*(a1 + 2.) - rx*rx;
+		if(a2 < -1.) return;
+		double invRad = 1./(CGenMathMeth::radicalOnePlusSmallMinusOne(a2) + 1.);
+
+		vN.x = -rx*invRad;
+		vN.y = -ry*invRad*(a1 + 1.)/(radSmi1 + 1.);
+		vN.z = 1.;
+		vN.Normalize();
+
+/**
 		double sqrt1 = sqrt(m_Rs*m_Rs - y*y);
 		double R_mi_r_p_radS = m_Rt - m_Rs + sqrt1;
 		double inv_sqrt2 = 1./sqrt(R_mi_r_p_radS*R_mi_r_p_radS - x*x);
@@ -695,6 +757,7 @@ public:
 		vN.x = nx*inv_norm;
 		vN.y = ny*inv_norm;
 		vN.z = inv_norm;
+**/
 	}
 };
 

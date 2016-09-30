@@ -66,8 +66,10 @@ public:
 
 	static int ReallocateStokesAccordingToWfr(srTSRWRadStructAccessData& LocWfr, srTStokesStructAccessData& OutStokes);
 	
-	static int AddWfrToStokes(srTSRWRadStructAccessData& Wfr, srTStokesStructAccessData& Stokes, long MacroPartCount, double& CurRelPrec);
-	static int AddWfrToStokesWithInterpXZ(srTSRWRadStructAccessData& Wfr, srTStokesStructAccessData& Stokes, long MacroPartCount);
+	//static int AddWfrToStokes(srTSRWRadStructAccessData& Wfr, srTStokesStructAccessData& Stokes, long MacroPartCount, double& CurRelPrec);
+	static int AddWfrToStokes(srTSRWRadStructAccessData& Wfr, srTStokesStructAccessData& Stokes, long long MacroPartCount, double& CurRelPrec);
+	//static int AddWfrToStokesWithInterpXZ(srTSRWRadStructAccessData& Wfr, srTStokesStructAccessData& Stokes, long MacroPartCount);
+	static int AddWfrToStokesWithInterpXZ(srTSRWRadStructAccessData& Wfr, srTStokesStructAccessData& Stokes, long long MacroPartCount);
 
 	static void SetupNextThinEbm(srTEbmDat& EbmDat, srTSigleElecVars&, srTEbmDat& OutThinEbmDat);
 	static void SimulateWfrFromOffAxisEbm(srTEbmDat& OnAxisEbmDat, srTEbmDat& OffAxisEbmDat, srTSigleElecVars&, srTSRWRadStructAccessData& Wfr);

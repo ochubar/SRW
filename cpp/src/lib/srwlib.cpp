@@ -760,14 +760,16 @@ EXP int CALL srwlUtiConvWithGaussian(char* pcData, char typeData, double* arMesh
 		if(ny > 1) dimFFT = 2;
 
 		//Create auxiliary complex array
-		long nTot = nx*ny;
+		//long nTot = nx*ny;
+		long long nTot = ((long long)nx)*((long long)ny);
 
 		long nxAdj = nx;
 		if(((nx >> 1) << 1) != nx) nxAdj++;
 		long nyAdj = ny;
 		if((ny != 1) && (((ny >> 1) << 1) != ny)) nyAdj++;
 
-		long nTotC = (nxAdj*nyAdj) << 1;
+		//long nTotC = (nxAdj*nyAdj) << 1;
+		long long nTotC = (((long long)nxAdj)*((long long)nyAdj)) << 1;
 		float *arDataC = new float[nTotC];
 
 		float *pfData = (float*)pcData;
@@ -775,39 +777,50 @@ EXP int CALL srwlUtiConvWithGaussian(char* pcData, char typeData, double* arMesh
 
 		if((nxAdj == nx) && (nyAdj == ny))
 		{
-			for(long i=0; i<nTot; i++) { *(t_arDataC++) = *(tfData++); *(t_arDataC++) = 0.;}
+			//for(long i=0; i<nTot; i++) { *(t_arDataC++) = *(tfData++); *(t_arDataC++) = 0.;}
+			for(long long i=0; i<nTot; i++) { *(t_arDataC++) = *(tfData++); *(t_arDataC++) = 0.;}
 		}
 		else
 		{
 			for(long iy=0; iy<ny; iy++)
 			{
-				long iy_nx = iy*nx;
+				//long iy_nx = iy*nx;
+				long long iy_nx = iy*nx;
 				for(long ix=0; ix<nx; ix++)
 				{
-					long ofst = iy_nx + ix;
-					long ofst2 = ofst << 1;
+					//long ofst = iy_nx + ix;
+					//long ofst2 = ofst << 1;
+					long long ofst = iy_nx + ix;
+					long long ofst2 = ofst << 1;
 					arDataC[ofst2] = pfData[ofst]; arDataC[ofst2+1] = 0.;
 				}
 				if(nxAdj > nx) 
 				{
-					long ofst = iy_nx + nx;
-					long ofst2 = ofst << 1;
+					//long ofst = iy_nx + nx;
+					//long ofst2 = ofst << 1;
+					long long ofst = iy_nx + nx;
+					long long ofst2 = ofst << 1;
 					arDataC[ofst2] = 0.; arDataC[ofst2+1] = 0.;
 				}
 			}
 			if(nyAdj > ny)
 			{
-				long ny_nx = ny*nx;
+				//long ny_nx = ny*nx;
+				long long ny_nx = ((long long)ny)*((long long)nx);
 				for(long ix=0; ix<nx; ix++)
 				{
-					long ofst = ny_nx + ix;
-					long ofst2 = ofst << 1;
+					//long ofst = ny_nx + ix;
+					//long ofst2 = ofst << 1;
+					long long ofst = ny_nx + ix;
+					long long ofst2 = ofst << 1;
 					arDataC[ofst2] = 0.; arDataC[ofst2+1] = 0.;
 				}
 				if(nxAdj > nx) 
 				{
-					long ofst = ny_nx + nx;
-					long ofst2 = ofst << 1;
+					//long ofst = ny_nx + nx;
+					//long ofst2 = ofst << 1;
+					long long ofst = ny_nx + nx;
+					long long ofst2 = ofst << 1;
 					arDataC[ofst2] = 0.; arDataC[ofst2+1] = 0.;
 				}
 			}
@@ -871,16 +884,19 @@ EXP int CALL srwlUtiConvWithGaussian(char* pcData, char typeData, double* arMesh
 		if((nxAdj == nx) && (nyAdj == ny))
 		{
 			t_arDataC = arDataC; tfData = pfData;
-			for(long i=0; i<nTot; i++) { *(tfData++) = *(t_arDataC++); t_arDataC++;}
+			//for(long i=0; i<nTot; i++) { *(tfData++) = *(t_arDataC++); t_arDataC++;}
+			for(long long i=0; i<nTot; i++) { *(tfData++) = *(t_arDataC++); t_arDataC++;}
 		}
 		else
 		{
 			for(long iy=0; iy<ny; iy++)
 			{
-				long iy_nx = iy*nx;
+				//long iy_nx = iy*nx;
+				long long iy_nx = iy*nx;
 				for(long ix=0; ix<nx; ix++)
 				{
-					long ofst = iy_nx + ix;
+					//long ofst = iy_nx + ix;
+					long long ofst = iy_nx + ix;
 					pfData[ofst] = arDataC[ofst << 1];
 				}
 			}

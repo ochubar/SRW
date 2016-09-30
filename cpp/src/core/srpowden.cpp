@@ -224,12 +224,17 @@ int srTRadIntPowerDensity::ComputeTotalPowerDensityDistr(srTPowDensStructAccessD
 	//	vCenSurf.y = CGenMathMeth::interpFunc2D(vCenSurf.x, vCenSurf.z, DistrInfoDat.xStart, DistrInfoDat.xEnd, DistrInfoDat.nx, DistrInfoDat.zStart, DistrInfoDat.zEnd, DistrInfoDat.nz, pObSurfData);
 	//}
 
-	long PerZ = DistrInfoDat.nx;
+	//long PerZ = DistrInfoDat.nx;
+	long long PerZ = DistrInfoDat.nx;
 
-	long TotalAmOfOutPoints = DistrInfoDat.nz*DistrInfoDat.nx;
+	//long TotalAmOfOutPoints = DistrInfoDat.nz*DistrInfoDat.nx;
+	long long TotalAmOfOutPoints = DistrInfoDat.nz*DistrInfoDat.nx;
+
 	if(FinalResAreSymOverX) TotalAmOfOutPoints >>= 1;
 	if(FinalResAreSymOverZ) TotalAmOfOutPoints >>= 1;
-	long PointCount = 0;
+
+	//long PointCount = 0;
+	long long PointCount = 0;
 	double UpdateTimeInt_s = 0.5;
 	srTCompProgressIndicator CompProgressInd(TotalAmOfOutPoints, UpdateTimeInt_s);
 
@@ -291,7 +296,7 @@ int srTRadIntPowerDensity::ComputeTotalPowerDensityDistr(srTPowDensStructAccessD
 				PobsLocG = TrLab2Loc.TrPoint(PobsLocG);
 			}
 
-			float* pPowDens = PowDensAccessData.pBasePowDens + iz*PerZ + ix;
+			float* pPowDens = PowDensAccessData.pBasePowDens + (iz*PerZ + ix);
 			if(result = ComputePowerDensityAtPoint(pPowDens)) return result;
 
 			DistrInfoDat.yStart = yStartOrig;
@@ -477,26 +482,32 @@ int srTRadIntPowerDensity::ComputePowerDensityAtPoint(float* pPowDens)
 	const double wf2 = 14./15.;
 	const double wd = 1./15.;
 
-	long AmOfExtrInBx = TrjHndl.rep->AmOfExtremInBx, AmOfExtrInBz = TrjHndl.rep->AmOfExtremInBz;
-	long MinNpAcceptedForExtrem = (AmOfExtrInBx > AmOfExtrInBz)? AmOfExtrInBx : AmOfExtrInBz;
+	//long AmOfExtrInBx = TrjHndl.rep->AmOfExtremInBx, AmOfExtrInBz = TrjHndl.rep->AmOfExtremInBz;
+	long long AmOfExtrInBx = TrjHndl.rep->AmOfExtremInBx, AmOfExtrInBz = TrjHndl.rep->AmOfExtremInBz;
+	//long MinNpAcceptedForExtrem = (AmOfExtrInBx > AmOfExtrInBz)? AmOfExtrInBx : AmOfExtrInBz;
+	long long MinNpAcceptedForExtrem = (AmOfExtrInBx > AmOfExtrInBz)? AmOfExtrInBx : AmOfExtrInBz;
 	if(MinNpAcceptedForExtrem < 7) MinNpAcceptedForExtrem = 7;
 	//char MultiExtremCase = (MinNpAcceptedForExtrem > 100);
 	
-	long MinNpAcceptedForField = TrjHndl.rep->EstimMinNpForRadInteg(2); //OC07052010
+	//long MinNpAcceptedForField = TrjHndl.rep->EstimMinNpForRadInteg(2); //OC07052010
+	long long MinNpAcceptedForField = TrjHndl.rep->EstimMinNpForRadInteg(2); //OC07052010
 
-	const long NpOnLevelMaxNoResult = 500000000; //5000000; // To steer; to stop computation as unsuccessful
+	//const long NpOnLevelMaxNoResult = 500000000; //5000000; // To steer; to stop computation as unsuccessful
+	const long long NpOnLevelMaxNoResult = 500000000; //5000000; // To steer; to stop computation as unsuccessful
 	const long NpOnLevelCritResultMayBeSmall = 256; // To steer
 	const int MaxAmOfNotCompInterv = 50; // To steer
 
 	const long LevelNoCritToAnalizeNotComp = 9; // To steer
 	double RelRatioNotComp = (1.E-08)*sIntegRelPrecG; //1.E-05*sIntegRelPrecG; // To steer
-	long AmOfNotCompInterv = 0;
+	//long AmOfNotCompInterv = 0;
+	long long AmOfNotCompInterv = 0;
 
 	double GamEm1 = 1./TrjHndl.rep->EbmDat.Gamma;
 	//double MaxBetDifAllowed = 2.*GamEm1; // To steer
 	double MaxBetDifAllowed = 2.*GamEm1/IntPowDenPrec.PrecFact; //OC180408 ??
 	
-	long NpOnLevel = 5; // Must be non-even!
+	//long NpOnLevel = 5; // Must be non-even!
+	long long NpOnLevel = 5; // Must be non-even!
 
 	double sStart = sIntegStartG;
 	double sEnd = sIntegFinG;
@@ -515,8 +526,10 @@ int srTRadIntPowerDensity::ComputePowerDensityAtPoint(float* pPowDens)
 	PowDensFun(sStart, *(pBx++), *(pBtx++), *(pX++), *(pBz++), *(pBtz++), *(pZ++), wFx, wFz);
 
 	double s = sStart + sStep;
-	int AmOfPass = (NpOnLevel - 3) >> 1;
-	for(int i=0; i<AmOfPass; i++)
+	//int AmOfPass = (NpOnLevel - 3) >> 1;
+	long long AmOfPass = (NpOnLevel - 3) >> 1;
+	//for(int i=0; i<AmOfPass; i++)
+	for(long long i=0; i<AmOfPass; i++)
 	{
 		PowDensFun(s, *(pBx++), *(pBtx++), *(pX++), *(pBz++), *(pBtz++), *(pZ++), Fx, Fz);
 		Sum1X += Fx; Sum1Z += Fz; s += sStep;
@@ -563,7 +576,9 @@ int srTRadIntPowerDensity::ComputePowerDensityAtPoint(float* pPowDens)
 
 		double MaxF = 0.;
 		double BtxPrev, BtzPrev, MaxBtxDif = 0., MaxBtzDif = 0.;
-		long NpOnLevel_mi_1 = NpOnLevel - 1;
+		//long NpOnLevel_mi_1 = NpOnLevel - 1;
+		long long NpOnLevel_mi_1 = NpOnLevel - 1;
+
 		char PrevPointWasComputed = 0;
 		int NotCompIntervCount = 0;
 		for(int i=0; i<NpOnLevel; i++)
@@ -597,6 +612,12 @@ int srTRadIntPowerDensity::ComputePowerDensityAtPoint(float* pPowDens)
 					pBtz = &BtzLoc; pZ = &zLoc; pBz = &BzLoc;
 					TrjHndl.rep->CompTrjDataDerivedAtPointPowDens(s, *pBtx, *pBtz, *pX, *pZ, *pBx, *pBz);
 				}
+
+					//DEBUG
+					if(i == 287)
+					{
+						int aha = 1;
+					}
 
 				PowDensFun(s, *pBx, *pBtx, *pX, *pBz, *pBtz, *pZ, Fx, Fz);
 				Sum1X += Fx; Sum1Z += Fz;
@@ -708,18 +729,21 @@ int srTRadIntPowerDensity::ComputePowerDensityAtPointConstMagField(float* pPowDe
 
 //*************************************************************************
 
-void srTRadIntPowerDensity::SetupNotCompIntervBorders(double MinValNotComp, double sStart, double sStep, long Np, long& AmOfInterv)
+//void srTRadIntPowerDensity::SetupNotCompIntervBorders(double MinValNotComp, double sStart, double sStep, long Np, long& AmOfInterv)
+void srTRadIntPowerDensity::SetupNotCompIntervBorders(double MinValNotComp, double sStart, double sStep, long long Np, long long& AmOfInterv)
 {
 	double HalfStep = 0.5*sStep;
 	double s = sStart + HalfStep;
-	long IntervCount = 0;
+	//long IntervCount = 0;
+	long long IntervCount = 0;
 	char IntervStarted = 0;
 
 	float *tNotCompIntervBorders = NotCompIntervBorders;
 	srTPairOfFloat *tNotCompInterv = NotCompInterv;
 	double PrevVal = 0.;
 	char DerivSign = 1;
-	for(long ip=0; ip<Np; ip++)
+	//for(long ip=0; ip<Np; ip++)
+	for(long long ip=0; ip<Np; ip++)
 	{
 		if(*tNotCompIntervBorders < MinValNotComp)
 		{
@@ -784,8 +808,10 @@ void srTRadIntPowerDensity::SetupNotCompIntervBorders(double MinValNotComp, doub
 
 void srTRadIntPowerDensity::FillInSymPartsOfResults(char FinalResAreSymOverX, char FinalResAreSymOverZ, srTPowDensStructAccessData& PowDensAccessData)
 {
-	long PerX = 1;
-	long PerZ = PerX*DistrInfoDat.nx;
+	//long PerX = 1;
+	//long PerZ = PerX*DistrInfoDat.nx;
+	long long PerX = 1;
+	long long PerZ = PerX*DistrInfoDat.nx;
 	char SymWithRespectToXax, SymWithRespectToZax;
 
 	int HalfNz = DistrInfoDat.nz >> 1, Nz_mi_1 = DistrInfoDat.nz - 1;
@@ -801,7 +827,8 @@ void srTRadIntPowerDensity::FillInSymPartsOfResults(char FinalResAreSymOverX, ch
 			SymWithRespectToXax = 0; SymWithRespectToZax = 1;
 			for(iz=0; iz<HalfNz; iz++)
 			{
-				long izPerZ = iz*PerZ;
+				//long izPerZ = iz*PerZ;
+				long long izPerZ = iz*PerZ;
 				for(ix=0; ix<HalfNx; ix++)
 				{
 					float* pOrigData = PowDensAccessData.pBasePowDens + izPerZ + ix*PerX;
@@ -813,13 +840,15 @@ void srTRadIntPowerDensity::FillInSymPartsOfResults(char FinalResAreSymOverX, ch
 		SymWithRespectToXax = 1; SymWithRespectToZax = 0;
 		for(iz=0; iz<HalfNz; iz++)
 		{
-			long izPerZ = iz*PerZ, BufZ = (Nz_mi_1 - iz)*PerZ;
+			//long izPerZ = iz*PerZ, BufZ = (Nz_mi_1 - iz)*PerZ;
+			long long izPerZ = iz*PerZ, BufZ = (Nz_mi_1 - iz)*PerZ;
 
 			for(ix=0; ix<DistrInfoDat.nx; ix++)
 			{
-				long ixPerX = ix*PerX;
-				float* pOrigData = PowDensAccessData.pBasePowDens + izPerZ + ixPerX;
-				float* pSymData = PowDensAccessData.pBasePowDens + BufZ + ixPerX;
+				//long ixPerX = ix*PerX;
+				long long ixPerX = ix*PerX;
+				float* pOrigData = PowDensAccessData.pBasePowDens + (izPerZ + ixPerX);
+				float* pSymData = PowDensAccessData.pBasePowDens + (BufZ + ixPerX);
 				*pSymData = *pOrigData;
 			}
 		}
@@ -829,7 +858,8 @@ void srTRadIntPowerDensity::FillInSymPartsOfResults(char FinalResAreSymOverX, ch
 		SymWithRespectToXax = 0; SymWithRespectToZax = 1;
 		for(iz=0; iz<DistrInfoDat.nz; iz++)
 		{
-			long izPerZ = iz*PerZ;
+			//long izPerZ = iz*PerZ;
+			long long izPerZ = iz*PerZ;
 			for(ix=0; ix<HalfNx; ix++)
 			{
 				float* pOrigData = PowDensAccessData.pBasePowDens + izPerZ + ix*PerX;
@@ -986,33 +1016,37 @@ void srTRadIntPowerDensity::ConstructDataForConv(srTPowDensStructAccessData& Pow
 	long ixDat = (NewNx - PowDensAccessData.nx) >> 1;
 	long izDat = (NewNz - PowDensAccessData.nz) >> 1;
 
-	long OffsetXp = ixDat + PowDensAccessData.nx;
-	long OffsetZp = izDat + PowDensAccessData.nz;
+	//long OffsetXp = ixDat + PowDensAccessData.nx;
+	//long OffsetZp = izDat + PowDensAccessData.nz;
+	long long OffsetXp = ixDat + PowDensAccessData.nx;
+	long long OffsetZp = izDat + PowDensAccessData.nz;
 
-	long NewPerZ = NewNx << 1;
-	long ix, iz;
+	//long NewPerZ = NewNx << 1;
+	long long NewPerZ = NewNx << 1;
+	//long ix, iz;
+	long long ix, iz;
 	float V = *(PowDensAccessData.pBasePowDens);
 	for(iz=0; iz<izDat; iz++)
 	{
-		float *tNew = NewData + iz*NewPerZ;
+		float *tNew = NewData + (iz*NewPerZ);
 		for(ix=0; ix<ixDat; ix++) { *(tNew++) = V; *(tNew++) = 0;}
 	}
 	V = *(PowDensAccessData.pBasePowDens + PowDensAccessData.nx - 1);
 	for(iz=0; iz<izDat; iz++)
 	{
-		float *tNew = NewData + iz*NewPerZ + (OffsetXp << 1);
+		float *tNew = NewData + (iz*NewPerZ + (OffsetXp << 1));
 		for(ix=OffsetXp; ix<NewNx; ix++) { *(tNew++) = V; *(tNew++) = 0;}
 	}
 	V = *(PowDensAccessData.pBasePowDens + (PowDensAccessData.nz - 1)*PowDensAccessData.nx);
 	for(iz=OffsetZp; iz<NewNz; iz++)
 	{
-		float *tNew = NewData + iz*NewPerZ;
+		float *tNew = NewData + (iz*NewPerZ);
 		for(ix=0; ix<ixDat; ix++) { *(tNew++) = V; *(tNew++) = 0;}
 	}
 	V = *(PowDensAccessData.pBasePowDens + PowDensAccessData.nz*PowDensAccessData.nx - 1);
 	for(iz=OffsetZp; iz<NewNz; iz++)
 	{
-		float *tNew = NewData + iz*NewPerZ + (OffsetXp << 1);
+		float *tNew = NewData + (iz*NewPerZ + (OffsetXp << 1));
 		for(ix=OffsetXp; ix<NewNx; ix++) { *(tNew++) = V; *(tNew++) = 0;}
 	}
 
@@ -1021,19 +1055,20 @@ void srTRadIntPowerDensity::ConstructDataForConv(srTPowDensStructAccessData& Pow
 	for(iz=izDat; iz<(izDat + PowDensAccessData.nz); iz++)
 	{
 		V = *tOldL;
-		long izNewPerZ = iz*NewPerZ;
+		//long izNewPerZ = iz*NewPerZ;
+		long long izNewPerZ = iz*NewPerZ;
 		float *tNew = NewData + izNewPerZ;
 		for(ix=0; ix<ixDat; ix++) { *(tNew++) = V; *(tNew++) = 0;}
 		tOldL += PowDensAccessData.nx;
 
 		V = *tOldR;
-		tNew = NewData + izNewPerZ + (OffsetXp << 1);
+		tNew = NewData + (izNewPerZ + (OffsetXp << 1));
 		for(ix=OffsetXp; ix<NewNx; ix++) { *(tNew++) = V; *(tNew++) = 0;}
 		tOldR += PowDensAccessData.nx;
 	}
 
 	float *tOldD = PowDensAccessData.pBasePowDens;
-	float *tOldU = PowDensAccessData.pBasePowDens + (PowDensAccessData.nz - 1)*PowDensAccessData.nx;
+	float *tOldU = PowDensAccessData.pBasePowDens + (((long long)(PowDensAccessData.nz - 1))*((long long)PowDensAccessData.nx));
 	for(ix=ixDat; ix<(ixDat + PowDensAccessData.nx); ix++)
 	{
 		V = *(tOldD++);
@@ -1041,14 +1076,14 @@ void srTRadIntPowerDensity::ConstructDataForConv(srTPowDensStructAccessData& Pow
 		for(iz=0; iz<izDat; iz++) { *tNew = V; *(tNew+1) = 0; tNew += NewPerZ;}
 
 		V = *(tOldU++);
-		tNew = NewData + OffsetZp*NewPerZ + (ix << 1);
+		tNew = NewData + (OffsetZp*NewPerZ + (ix << 1));
 		for(iz=OffsetZp; iz<NewNz; iz++) { *tNew = V; *(tNew+1) = 0; tNew += NewPerZ;}
 	}
 
 	float *tOld = PowDensAccessData.pBasePowDens;
 	for(iz=izDat; iz<(izDat + PowDensAccessData.nz); iz++)
 	{
-		float *tNew = NewData + iz*NewPerZ + (ixDat << 1);
+		float *tNew = NewData + (iz*NewPerZ + (ixDat << 1));
 		for(ix=ixDat; ix<(ixDat + PowDensAccessData.nx); ix++)
 		{
 			*(tNew++) = *(tOld++); *(tNew++) = 0.;
@@ -1123,17 +1158,23 @@ int srTRadIntPowerDensity::PerformConvolutionWithGaussian(float* ConvData, long 
 
 void srTRadIntPowerDensity::ExtractFinalDataAfterConv(float* AuxConvData, long NxAux, long NzAux, srTPowDensStructAccessData& PowDensAccessData)
 {
-	long ixDat = (NxAux - PowDensAccessData.nx) >> 1;
-	long izDat = (NzAux - PowDensAccessData.nz) >> 1;
+	//long ixDat = (NxAux - PowDensAccessData.nx) >> 1;
+	//long izDat = (NzAux - PowDensAccessData.nz) >> 1;
+	long long ixDat = (NxAux - PowDensAccessData.nx) >> 1;
+	long long izDat = (NzAux - PowDensAccessData.nz) >> 1;
 
-	long Two_ixDat = ixDat << 1;
-	long AuxPerZ = NxAux << 1;
+	//long Two_ixDat = ixDat << 1;
+	//long AuxPerZ = NxAux << 1;
+	long long Two_ixDat = ixDat << 1;
+	long long AuxPerZ = NxAux << 1;
 
 	float *tPow = PowDensAccessData.pBasePowDens;
-	for(long iz=0; iz<PowDensAccessData.nz; iz++)
+	//for(long iz=0; iz<PowDensAccessData.nz; iz++)
+	for(long long iz=0; iz<PowDensAccessData.nz; iz++)
 	{
-		float *tAux = AuxConvData + (izDat + iz)*AuxPerZ + Two_ixDat;
-		for(long ix=0; ix<PowDensAccessData.nx; ix++)
+		float *tAux = AuxConvData + ((izDat + iz)*AuxPerZ + Two_ixDat);
+		//for(long ix=0; ix<PowDensAccessData.nx; ix++)
+		for(long long ix=0; ix<PowDensAccessData.nx; ix++)
 		{
 			*(tPow++) = *tAux; tAux += 2;
 		}

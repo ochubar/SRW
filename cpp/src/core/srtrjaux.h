@@ -33,7 +33,8 @@ public:
 	double *BzArrP[LEN_POINTERS], *BtzArrP[LEN_POINTERS], *ZArrP[LEN_POINTERS], *IntBtzE2ArrP[LEN_POINTERS], *dBzdsArrP[LEN_POINTERS];
 	char LevIsActuallyAlloc[LEN_POINTERS], LevelIsFilled[LEN_POINTERS];
 
-	int AmOfPointsOnZeroLevel;
+	//int AmOfPointsOnZeroLevel;
+	long long AmOfPointsOnZeroLevel;
 
 	srTTrjArraysAux(int InAmOfPointsOnZeroLevel =5)
 	{
@@ -44,7 +45,8 @@ public:
 		DeallocateArrays();
 	}
 
-	void Initialize(int InAmOfPointsOnZeroLevel)
+	//void Initialize(int InAmOfPointsOnZeroLevel)
+	void Initialize(long long InAmOfPointsOnZeroLevel)
 	{
 		AmOfPointsOnZeroLevel = InAmOfPointsOnZeroLevel;
 		for(int k=0; k<LEN_POINTERS; k++) 
@@ -53,7 +55,8 @@ public:
 			BxArrP[k] = 0;
 		}
 	}
-	void Reset(int InAmOfPointsOnZeroLevel)
+	//void Reset(int InAmOfPointsOnZeroLevel)
+	void Reset(long long InAmOfPointsOnZeroLevel)
 	{
 		DeallocateArrays();
 		Initialize(InAmOfPointsOnZeroLevel);
@@ -88,7 +91,8 @@ public:
 		int result;
 		if(result = AllocateArraysOnLevels(LevNo, LevNo)) return result;
 
-		long Np = AmOfPointsOnLevel(LevNo);
+		//long Np = AmOfPointsOnLevel(LevNo);
+		long long Np = AmOfPointsOnLevel(LevNo);
 		TrjHndl.rep->CompTotalTrjData(sStart, sEnd, Np, BtxArrP[LevNo], BtzArrP[LevNo], XArrP[LevNo], ZArrP[LevNo], IntBtxE2ArrP[LevNo], IntBtzE2ArrP[LevNo], BxArrP[LevNo], BzArrP[LevNo], dBxdsArrP[LevNo], dBzdsArrP[LevNo]);
 		LevelIsFilled[LevNo] = 1;
 		return 0;
@@ -102,17 +106,21 @@ public:
 		int result;
 		if(result = AllocateArraysOnThisLevelNeglectingOthers(LevNo)) return result;
 
-		long Np = AmOfPointsOnLevel(LevNo);
+		//long Np = AmOfPointsOnLevel(LevNo);
+		long long Np = AmOfPointsOnLevel(LevNo);
 		TrjDatPtr->CompTotalTrjData(sStart, sEnd, Np, BtxArrP[LevNo], BtzArrP[LevNo], XArrP[LevNo], ZArrP[LevNo], IntBtxE2ArrP[LevNo], IntBtzE2ArrP[LevNo], BxArrP[LevNo], BzArrP[LevNo], dBxdsArrP[LevNo], dBzdsArrP[LevNo]);
 		LevelIsFilled[LevNo] = 1;
 		return 0;
 	}
 
-	long AmOfPointsOnLevel(int LevNo)
+	//long AmOfPointsOnLevel(int LevNo)
+	long long AmOfPointsOnLevel(int LevNo)
 	{
 		return (LevNo == 0)? AmOfPointsOnZeroLevel : ((AmOfPointsOnZeroLevel - 1) << (LevNo - 1));
+		//return (LevNo == 0)? AmOfPointsOnZeroLevel : ((AmOfPointsOnZeroLevel - 1) << ((long long)(LevNo - 1)));
 	}
-	long TotAmOfPointsIncludingTheLevel(int LevNo)
+	//long TotAmOfPointsIncludingTheLevel(int LevNo)
+	long long TotAmOfPointsIncludingTheLevel(int LevNo)
 	{
 		return (LevNo < 0)? 0 : (1 + ((AmOfPointsOnZeroLevel - 1) << LevNo));
 	}

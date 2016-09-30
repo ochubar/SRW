@@ -38,7 +38,8 @@ struct srLambXYZ {
 struct srTEXZ {
 	double e, x, z;
 	char VsXorZ;
-	long aux_offset;
+	//long aux_offset;
+	long long aux_offset;
 };
 
 //*************************************************************************
@@ -52,9 +53,12 @@ struct srTEXZY {
 //*************************************************************************
 
 struct srTStNoFiNo {
-	int StNo, FiNo, StOffset;
-	srTStNoFiNo(int InStNo, int InFiNo) { StNo = InStNo; FiNo = InFiNo; StOffset = 0;}
-	srTStNoFiNo(int InStNo, int InFiNo, int InStOffset) 
+	//int StNo, FiNo, StOffset;
+	long long StNo, FiNo, StOffset;
+	//srTStNoFiNo(int InStNo, int InFiNo) { StNo = InStNo; FiNo = InFiNo; StOffset = 0;}
+	srTStNoFiNo(long long InStNo, long long InFiNo) { StNo = InStNo; FiNo = InFiNo; StOffset = 0;}
+	//srTStNoFiNo(int InStNo, int InFiNo, int InStOffset) 
+	srTStNoFiNo(long long InStNo, long long InFiNo, long long InStOffset) 
 	{ 
 		StNo = InStNo; FiNo = InFiNo; StOffset = InStNo; StOffset = InStOffset;
 	}
@@ -305,7 +309,8 @@ struct iterator_traits <char**> {
 //*************************************************************************
 
 struct srTRadIntervVal {
-	int InitLevelNo, SecondInt;
+	//int InitLevelNo, SecondInt;
+	long long InitLevelNo, SecondInt;
 	double sStart, sEnd;
 };
 
@@ -313,7 +318,8 @@ struct srTRadIntervVal {
 
 struct srTSMeshData {
 	double s;
-	int LevelNo, NoOfPoOnLev;
+	//int LevelNo, NoOfPoOnLev;
+	long long LevelNo, NoOfPoOnLev;
 };
 
 //*************************************************************************
@@ -433,10 +439,12 @@ struct srTMinMaxEParam {
 		zIndMaxReEx = zIndMaxImEx = zIndMaxReEz = zIndMaxImEz = zIndMinReEx = zIndMinImEx = zIndMinReEz = zIndMinImEz = 0;
 	}
 
-	void FindAbsMaxAmongReAndIm(float& MaxAbsEx, long& xIndMaxAbsEx, long& zIndMaxAbsEx, float& MaxAbsEz, long& xIndMaxAbsEz, long& zIndMaxAbsEz)
+	//void FindAbsMaxAmongReAndIm(float& MaxAbsEx, long& xIndMaxAbsEx, long& zIndMaxAbsEx, float& MaxAbsEz, long& xIndMaxAbsEz, long& zIndMaxAbsEz)
+	void FindAbsMaxAmongReAndIm(float& MaxAbsEx, long long& xIndMaxAbsEx, long long& zIndMaxAbsEx, float& MaxAbsEz, long long& xIndMaxAbsEz, long long& zIndMaxAbsEz)
 	{
 		float AbsMaxReEx, AbsMaxImEx;
-		long xIndAbsMaxReEx, zIndAbsMaxReEx, xIndAbsMaxImEx, zIndAbsMaxImEx;
+		//long xIndAbsMaxReEx, zIndAbsMaxReEx, xIndAbsMaxImEx, zIndAbsMaxImEx;
+		long long xIndAbsMaxReEx, zIndAbsMaxReEx, xIndAbsMaxImEx, zIndAbsMaxImEx;
 		if(::fabs(MaxReEx) > ::fabs(MinReEx))
 		{
 			AbsMaxReEx = (float)::fabs(MaxReEx); xIndAbsMaxReEx = xIndMaxReEx; zIndAbsMaxReEx = zIndMaxReEx; 
@@ -465,7 +473,8 @@ struct srTMinMaxEParam {
 		}
 
 		float AbsMaxReEz, AbsMaxImEz;
-		long xIndAbsMaxReEz, zIndAbsMaxReEz, xIndAbsMaxImEz, zIndAbsMaxImEz;
+		//long xIndAbsMaxReEz, zIndAbsMaxReEz, xIndAbsMaxImEz, zIndAbsMaxImEz;
+		long long xIndAbsMaxReEz, zIndAbsMaxReEz, xIndAbsMaxImEz, zIndAbsMaxImEz;
 
 		if(::fabs(MaxReEz) > ::fabs(MinReEz))
 		{
@@ -495,10 +504,12 @@ struct srTMinMaxEParam {
 		}
 	}
 
-	void FindGenMaxAbsE(float& MaxAbsE, long& xIndMaxAbsE, long& zIndMaxAbsE)
+	//void FindGenMaxAbsE(float& MaxAbsE, long& xIndMaxAbsE, long& zIndMaxAbsE)
+	void FindGenMaxAbsE(float& MaxAbsE, long long& xIndMaxAbsE, long long& zIndMaxAbsE)
 	{
 		float MaxAbsEx, MaxAbsEz;
-		long xIndMaxAbsEx, zIndMaxAbsEx, xIndMaxAbsEz, zIndMaxAbsEz;
+		//long xIndMaxAbsEx, zIndMaxAbsEx, xIndMaxAbsEz, zIndMaxAbsEz;
+		long long xIndMaxAbsEx, zIndMaxAbsEx, xIndMaxAbsEz, zIndMaxAbsEz;
 		FindAbsMaxAmongReAndIm(MaxAbsEx, xIndMaxAbsEx, zIndMaxAbsEx, MaxAbsEz, xIndMaxAbsEz, zIndMaxAbsEz);
 		if(MaxAbsEx > MaxAbsEz)
 		{
@@ -920,7 +931,8 @@ public:
 
 		if(MemoryShouldBeAllocated)
 		{
-			long Np = In_ne*In_nx*In_nz;
+			//long Np = In_ne*In_nx*In_nz;
+			long long Np = ((long long)In_ne)*((long long)In_nx)*((long long)In_nz);
 			if(Np <= 0) return;
 			
 			pBaseSto = new float[Np << 2];
@@ -936,7 +948,8 @@ public:
 
 		if(MemoryShouldBeAllocated)
 		{
-			long Np = In_ne*In_nx*In_nz*In_ny;
+			//long Np = In_ne*In_nx*In_nz*In_ny;
+			long long Np = ((long long)In_ne)*((long long)In_nx)*((long long)In_nz)*((long long)In_ny);
 			if(Np <= 0) return;
 			
 			pBaseSto = new float[Np << 2];
@@ -965,7 +978,8 @@ public:
 			ny = pWfrSmp->ny; 
 			yStep = (ny > 1)? (pWfrSmp->yEnd - yStart)/(ny - 1) : 0;
 
-			long Np = ne*nx*nz*ny;
+			//long Np = ne*nx*nz*ny;
+			long long Np = ((long long)ne)*((long long)nx)*((long long)nz)*((long long)ny);
 			if(Np <= 0) throw INCORRECT_GRID_FOR_WAVEFRONT;
 			pBaseSto = new float[Np << 2];
 			MemoryWasAllocatedInternally = true;
@@ -1027,10 +1041,12 @@ public:
 	{
 		if(pBaseSto == 0) return;
 		//long LenData = (ne << 2)*nx*nz;
-		long LenData = (ne << 2)*nx*nz*ny;
+		//long LenData = (ne << 2)*nx*nz*ny;
+		long long LenData = (ne << 2)*((long long)nx)*((long long)nz)*((long long)ny);
 		if(LenData <= 0) return;
 		float *tData = pBaseSto;
-		for(long i=0; i<LenData; i++) *(tData++) = 0.;
+		//for(long i=0; i<LenData; i++) *(tData++) = 0.;
+		for(long long i=0; i<LenData; i++) *(tData++) = 0.;
 	}
 
 	void OutDataPtrs(srTSRWStokesInData* pStokesInData)
@@ -1109,7 +1125,8 @@ public:
 		if(pWfrSmp->nx > 1) xStep = (pWfrSmp->xEnd - pWfrSmp->xStart)/(pWfrSmp->nx - 1);
 		if(pWfrSmp->nz > 1) zStep = (pWfrSmp->zEnd - pWfrSmp->zStart)/(pWfrSmp->nz - 1);
 
-		long LenData = nx*nz;
+		//long LenData = nx*nz;
+		long long LenData = ((long long)nx)*((long long)nz);
 		if(LenData <= 0) throw INCORRECT_PARAMS_SR_COMP;
 		pBasePowDens = 0;
 		pBasePowDens = new float[LenData];
@@ -1346,7 +1363,8 @@ struct srTWaveAccessData {
 struct srTWaveAccessDataD1D {
 
 	DOUBLE* pData;
-	long np;
+	//long np;
+	long long np;
 	double Start;
 	double Step;
 	char ArgUnits[255];

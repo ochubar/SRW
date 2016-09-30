@@ -7,7 +7,6 @@
 from __future__ import print_function #Python 2.7 compatibility
 from srwlib import *
 import os
-#import sys
 
 print('SRWLIB Python Example # 8:')
 print('Simulating emission and propagation of undulator radiation (UR) wavefront through a simple optical scheme including CRL')

@@ -665,8 +665,10 @@ int srTSend::OutRadDistrFormat1(srTRadInt& RadInt)
 		if((numRowsInWave != numRows) || (numColumnsInWave != numColumns) || (numLayersInWave != numLayers))
 			return BAD_RAD_OUTPUT_WAVE_DIMENSIONS;
 
-		long pointsPerColumn = numRows*2;
-		long pointsPerLayer = pointsPerColumn*numColumns;
+		//long pointsPerColumn = numRows*2;
+		//long pointsPerLayer = pointsPerColumn*numColumns;
+		long long pointsPerColumn = numRows*2;
+		long long pointsPerLayer = pointsPerColumn*numColumns;
 
 		long dataOffset;
 		if(result = MDAccessNumericWaveData(wavH, kMDWaveAccessMode0, &dataOffset)) return result;

@@ -127,17 +127,21 @@ public:
 	static void PropagateElecBeamMoments(srTElecBeamMoments& ElecBeamMom, double* p4x4PropMatr, double* p4Vect);
 
 	void PadImZerosToRealData(float*, long, long);
-	void ShiftData(float* pStart, long LenData, long ShiftLen)
+	//void ShiftData(float* pStart, long LenData, long ShiftLen)
+	void ShiftData(float* pStart, long long LenData, long long ShiftLen)
 	{
-		long LenData_mi_1 = LenData - 1;
+		//long LenData_mi_1 = LenData - 1;
+		long long LenData_mi_1 = LenData - 1;
 		float* pOrig = pStart + LenData_mi_1;
 		float* pFin = pOrig + ShiftLen;
 		for(long i=0; i<LenData; i++) *(pFin--) = *(pOrig--);
 	}
-	void SetDataToZero(float* pStart, long LenData)
+	//void SetDataToZero(float* pStart, long LenData)
+	void SetDataToZero(float* pStart, long long LenData)
 	{
 		float* p = pStart;
-		for(long i=0; i<LenData; i++) *(p++) = 0.;
+		//for(long i=0; i<LenData; i++) *(p++) = 0.;
+		for(long long i=0; i<LenData; i++) *(p++) = 0.;
 	}
 
 	void SetupPolarizVect(complex<float>* PolVect, int PolCom)

@@ -677,13 +677,15 @@ public:
 		if(ChangeSign) { Cos = -Cos; Sin = -Sin;}
 	}
 
-	void SetupExpCorrArray(float* pCmpData, long AmOfPt, double x, double qStart, double qStep)
+	//void SetupExpCorrArray(float* pCmpData, long AmOfPt, double x, double qStart, double qStep)
+	void SetupExpCorrArray(float* pCmpData, long long AmOfPt, double x, double qStart, double qStep)
 	{
 		const double TwoPi = 6.28318530717959;
 		double TwoPiX = TwoPi*x;
 		double q = qStart;
 		float *tCmpData = pCmpData;
-		for(long i=0; i<AmOfPt; i++)
+		//for(long i=0; i<AmOfPt; i++)
+		for(long long i=0; i<AmOfPt; i++)
 		{
 			double Arg = TwoPiX*q;
 			float Co, Si;
@@ -785,8 +787,10 @@ public:
 		if(TreatPolCompX) pEX0 = pBaseRadX;
 		if(TreatPolCompZ) pEZ0 = pBaseRadZ;
 
-		long PerX = ne << 1;
-		long PerZ = PerX*nx;
+		//long PerX = ne << 1;
+		//long PerZ = PerX*nx;
+		long long PerX = ne << 1;
+		long long PerZ = PerX*nx;
 
 		int ieStart=0, ieBefEnd=ne;
 		if((ieOnly >= 0) && (ieOnly < ne))
@@ -801,7 +805,8 @@ public:
 				ePh = avgPhotEn; //?? OC041108
 			}
 
-			long Two_ie = ie << 1;
+			//long Two_ie = ie << 1;
+			long long Two_ie = ie << 1;
 
 			ConstRxE = ConstRx*ePh;
 			ConstRzE = ConstRz*ePh;
@@ -824,7 +829,8 @@ public:
 
 			for(int iz=0; iz<nz; iz++)
 			{
-				long izPerZ = iz*PerZ;
+				//long izPerZ = iz*PerZ;
+				long long izPerZ = iz*PerZ;
 				float *pEX_StartForX = pEX0 + izPerZ;
 				float *pEZ_StartForX = pEZ0 + izPerZ;
 
@@ -832,7 +838,8 @@ public:
 
 				for(int ix=0; ix<nx; ix++)
 				{
-					long ixPerX_p_Two_ie = ix*PerX + Two_ie;
+					//long ixPerX_p_Two_ie = ix*PerX + Two_ie;
+					long long ixPerX_p_Two_ie = ix*PerX + Two_ie;
 
 					//Phase = ConstRxE*x*x + ConstRzE*zE2;
 					Phase = PhaseAddZ;

@@ -222,7 +222,7 @@ f__nowwriting(unit *x)
 #endif
 {
 	long loc;
-	int k;
+	//int k; //OC29032016
 	extern char *f__w_mode[];
 
 	if (!x->ufnm)

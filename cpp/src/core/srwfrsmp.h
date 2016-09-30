@@ -144,10 +144,12 @@ public:
 
 		if(pSurfData != 0)
 		{//allocate and copy observ. surface data
-			long totNumPtSurf = hN*vN;
+			//long totNumPtSurf = hN*vN;
+			long long totNumPtSurf = ((long long)hN)*((long long)vN);
 			double *pSurfDataLoc = new double[totNumPtSurf];
 			double *t_pSurfDataLoc = pSurfDataLoc, *t_pSurfData = pSurfData;
-			for(long i=0; i<totNumPtSurf; i++) 
+			//for(long i=0; i<totNumPtSurf; i++) 
+			for(long long i=0; i<totNumPtSurf; i++) 
 			{
 				*(t_pSurfDataLoc++) = *(t_pSurfData++);
 			}

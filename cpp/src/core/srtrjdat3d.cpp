@@ -17,7 +17,8 @@
 //*************************************************************************
 //Not Used? (RK moved to srTGenTrjDat)
 
-void srTTrjDat3d::CompTrjDataForDisp(double* pOutBtxData, double* pOutXData, double* pOutBtyData, double* pOutYData, double* pOutBtzData, double* pOutZData, int ns, double sStart, double sStep)
+//void srTTrjDat3d::CompTrjDataForDisp(double* pOutBtxData, double* pOutXData, double* pOutBtyData, double* pOutYData, double* pOutBtzData, double* pOutZData, int ns, double sStart, double sStep)
+void srTTrjDat3d::CompTrjDataForDisp(double* pOutBtxData, double* pOutXData, double* pOutBtyData, double* pOutYData, double* pOutBtzData, double* pOutZData, long long ns, double sStart, double sStep)
 {//Corrected for SRWL:
  //Independent variable is s = c*t
  //3D trajectory is calculated in Laboratory Frame
@@ -57,7 +58,8 @@ void srTTrjDat3d::CompTrjDataForDisp(double* pOutBtxData, double* pOutXData, dou
 	CGenMathIntRungeKutta<srTTrjDat3d> gmIntRK(this, &srTTrjDat3d::funcDerivF, numEq, false, 0); // manual mode, based on number of points
 	double initCond[] = {EbmDat.x0, EbmDat.dxds0, EbmDat.z0, EbmDat.dzds0, EbmDat.sc};
 	
-	long is0 = 0;
+	//long is0 = 0;
+	long long is0 = 0;
 	double s0Act = 0.;
 	//double gamEm2 = 1./(EbmDat.Gamma*EbmDat.Gamma), btx, bty;
 	double gamEm2 = EbmDat.GammaEm2, btx, bty;
@@ -93,7 +95,8 @@ void srTTrjDat3d::CompTrjDataForDisp(double* pOutBtxData, double* pOutXData, dou
 			if(dataShouldBeRotatedAfterSolve)
 			{
 				double *t_auxTrjRes = auxTrjRes;
-				for(int j=0; j<ns; j++)
+				//for(int j=0; j<ns; j++)
+				for(long long j=0; j<ns; j++)
 				{
 					t_auxTrjRes++; //may need to be put into another place (to check)
 					*(tOutXData++) = *(t_auxTrjRes++);
@@ -108,7 +111,8 @@ void srTTrjDat3d::CompTrjDataForDisp(double* pOutBtxData, double* pOutXData, dou
 			else
 			{
 				double *t_auxTrjRes = auxTrjRes + ns*(numEq + 1) - 1;
-				for(int j=0; j<ns; j++)
+				//for(int j=0; j<ns; j++)
+				for(long long j=0; j<ns; j++)
 				{
 					//if(pOutBtzData) *(tOutBtzData++) = *(t_auxTrjRes--);
 					if(pOutZData) *(tOutZData++) = *t_auxTrjRes;
@@ -125,7 +129,8 @@ void srTTrjDat3d::CompTrjDataForDisp(double* pOutBtxData, double* pOutXData, dou
 		}
 		else
 		{
-			is0 = (int)fabs((-sMin + sAbsEdgeToler)/sStep);
+			//is0 = (int)fabs((-sMin + sAbsEdgeToler)/sStep);
+			is0 = (long long)fabs((-sMin + sAbsEdgeToler)/sStep);
 			if(is0 >= ns) is0 = ns - 1;
 			s0Act = sMin + is0*sStep;
 			if(s0Act < -sAbsEdgeToler)
@@ -138,7 +143,8 @@ void srTTrjDat3d::CompTrjDataForDisp(double* pOutBtxData, double* pOutXData, dou
 			}
 
 			//arrived to s0Act; now solve for the left part of the trajectory:
-			int nsLeft = is0 + 1;
+			//int nsLeft = is0 + 1;
+			long long nsLeft = is0 + 1;
 			double *auxTrjRes = new double[nsLeft*(numEq + 1)];
 			if(auxTrjRes == 0) throw MEMORY_ALLOCATION_FAILURE;
 
@@ -153,7 +159,8 @@ void srTTrjDat3d::CompTrjDataForDisp(double* pOutBtxData, double* pOutXData, dou
 			if(dataShouldBeRotatedAfterSolve)
 			{
 				double *t_auxTrjRes = auxTrjRes;
-				for(int j=0; j<nsLeft; j++)
+				//for(int j=0; j<nsLeft; j++)
+				for(long long j=0; j<nsLeft; j++)
 				{
 					t_auxTrjRes++; //may need to be put into another place (to check)
 					*(tOutXData++) = *(t_auxTrjRes++);
@@ -167,8 +174,9 @@ void srTTrjDat3d::CompTrjDataForDisp(double* pOutBtxData, double* pOutXData, dou
 			}
 			else
 			{
-				double *t_auxTrjRes = auxTrjRes + nsLeft*(numEq + 1) - 1;
-				for(int j=0; j<nsLeft; j++)
+				double *t_auxTrjRes = auxTrjRes + (nsLeft*(numEq + 1) - 1);
+				//for(int j=0; j<nsLeft; j++)
+				for(long long j=0; j<nsLeft; j++)
 				{
 					//if(pOutBtzData) *(tOutBtzData++) = *(t_auxTrjRes--);
 					if(pOutZData) *(tOutZData++) = *t_auxTrjRes;
@@ -216,7 +224,8 @@ void srTTrjDat3d::CompTrjDataForDisp(double* pOutBtxData, double* pOutXData, dou
 			if(dataShouldBeRotatedAfterSolve)
 			{
 				double *t_auxTrjRes = auxTrjRes + ns*(numEq + 1) - 1;
-				for(int j=0; j<ns; j++)
+				//for(int j=0; j<ns; j++)
+				for(long long j=0; j<ns; j++)
 				{
 					//if(pOutBtzData) *(tOutBtzData++) = *(t_auxTrjRes--);
 					if(pOutZData) *(tOutZData++) = *t_auxTrjRes;
@@ -232,7 +241,8 @@ void srTTrjDat3d::CompTrjDataForDisp(double* pOutBtxData, double* pOutXData, dou
 			else
 			{
 				double *t_auxTrjRes = auxTrjRes;
-				for(int j=0; j<ns; j++)
+				//for(int j=0; j<ns; j++)
+				for(long long j=0; j<ns; j++)
 				{
 					t_auxTrjRes++;
 					*(tOutXData++) = *(t_auxTrjRes++);
@@ -249,7 +259,8 @@ void srTTrjDat3d::CompTrjDataForDisp(double* pOutBtxData, double* pOutXData, dou
 		else
 		{
 			//normally, initial conditions should be already set here
-			int nsRight = ns - is0;
+			//int nsRight = ns - is0;
+			long long nsRight = ns - is0;
 			if(nsRight < 1) nsRight = 1;
 			double *auxTrjRes = new double[nsRight*(numEq + 1)];
 			if(auxTrjRes == 0) throw MEMORY_ALLOCATION_FAILURE;
@@ -264,8 +275,9 @@ void srTTrjDat3d::CompTrjDataForDisp(double* pOutBtxData, double* pOutXData, dou
 
 			if(dataShouldBeRotatedAfterSolve)
 			{
-				double *t_auxTrjRes = auxTrjRes + nsRight*(numEq + 1) - 1;
-				for(int j=0; j<nsRight; j++)
+				double *t_auxTrjRes = auxTrjRes + (nsRight*(numEq + 1) - 1);
+				//for(int j=0; j<nsRight; j++)
+				for(long long j=0; j<nsRight; j++)
 				{
 					if(pOutZData) *(tOutZData++) = *t_auxTrjRes;
 					t_auxTrjRes--;
@@ -280,7 +292,8 @@ void srTTrjDat3d::CompTrjDataForDisp(double* pOutBtxData, double* pOutXData, dou
 			else
 			{
 				double *t_auxTrjRes = auxTrjRes;
-				for(int j=0; j<nsRight; j++)
+				//for(int j=0; j<nsRight; j++)
+				for(long long j=0; j<nsRight; j++)
 				{
 					t_auxTrjRes++;
 					*(tOutXData++) = *(t_auxTrjRes++);
@@ -295,7 +308,6 @@ void srTTrjDat3d::CompTrjDataForDisp(double* pOutBtxData, double* pOutXData, dou
 			delete[] auxTrjRes;
 		}
 	}
-
 
 /**
 
