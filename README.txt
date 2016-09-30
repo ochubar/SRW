@@ -40,7 +40,18 @@ can be found in SRW_Dev/cpp/vc. These project files allow for compiling SRW for 
 
 II. Compiling and testing SRW Library and its Python binding on Linux:
 ------------------------------------------------------------------
-1. Download and compile fftw-2.1.5 library as required for SRW:
+1. Compile SRWLib library and Python binding:
+	This can be done either using Python "distutils" (see section 2.1 below) or without it (see section 2.2)
+
+1.1. Compiling using Python "distutils" module:
+	Make sure the "distutils" module of the Python version you would like to use is properly installed and configured. If this is done, the compilation and installation is simple:
+	cd SRW_Dev
+	make all
+	This should compile libsrw.a and srwlpy.so, and copy srwlpy.so to SRW_Dev/env/work/srw_python/
+
+1.2. Compiling without "distutils":
+
+1.2.1. Download and compile fftw-2.1.5 library as required for SRW:
 	Download fftw-2.1.5.tar.gz from FFTW site (probably http://www.fftw.org/download.html) and place it to SRW_Dev/ext_lib
 	cd SRW_Dev/ext_lib
 	tar -zxvf fftw-2.1.5.tar.gz
@@ -51,16 +62,7 @@ II. Compiling and testing SRW Library and its Python binding on Linux:
 	make install
 	cp fftw/.libs/libfftw.a SRW_Dev/ext_lib/
 
-2. Compile SRWLib library and Python binding:
-	This can be done either using Python "distutils" (see section 2.1 below) or without it (see section 2.2)
-
-2.1. Compiling using Python "distutils" module:
-	Make sure the "distutils" module of the Python version you would like to use is properly installed and configured. If this is done, the compilation and installation is simple:
-	cd SRW_Dev
-	make all
-	This should compile libsrw.a and srwlpy.so, and copy srwlpy.so to SRW_Dev/env/work/srw_python/
-
-2.2. Compiling without "distutils":
+1.2.2. Compile the SRW library and Python binding:
 	cd SRW_Dev/cpp/gcc
 	Make sure that Python 3.2 or higher (or Python 2.7) is installed 
 	In Makefile, modify/correct PYPATH and PYFLAGS variables, i.e. specify path to Python header and library files
@@ -68,9 +70,9 @@ II. Compiling and testing SRW Library and its Python binding on Linux:
 	make all
 	cp srwlpy.so ../../env/work/srw_python/
 
-3. Check examples:
-	Make sure that path to Python 3.2 (or 2.7) is added to the PATH variable and "srw_python" to PYTHONPATH variable:
-	export PATH="$PATH:<absolute path to Python 3.2>" # this is not necessary if you install python using the distro's package manager
+2. Check examples:
+	Make sure the path to Python 3.5 (or 2.7) is added to the PATH variable and "srw_python" to PYTHONPATH variable:
+	export PATH="$PATH:<absolute path to Python 3.5>" # this is not necessary if you install python using the distro's package manager
 	export PYTHONPAH="$PYTHONPATH:SRW_Dev/env/work/srw_python/" # temporarely solution
 	or
 	echo "export PYTHONPATH=$PYTHONPATH:SRW_Dev/env/work/srw_python/" >> ~/.bashrc # permanent solution for a single user
@@ -92,6 +94,7 @@ G. Geloni (E-XFEL)
 I. Agapov (E-XFEL)
 J. Sutter (DIAMOND)
 D. Laundy (DIAMOND)
+M. Rakitin (BNL)
 N. Canestrari (ESRF - BNL)
 A. Suvorov (BNL)
 R. Reininger (ANL)

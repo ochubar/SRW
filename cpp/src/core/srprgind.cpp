@@ -15,7 +15,8 @@
 
 //*************************************************************************
 
-int srTCompProgressIndicator::InitializeIndicator(long InTotalAmOfOutPoints, double InUpdateTimeInt_s, char CountCallsInside)
+//int srTCompProgressIndicator::InitializeIndicator(long InTotalAmOfOutPoints, double InUpdateTimeInt_s, char CountCallsInside)
+int srTCompProgressIndicator::InitializeIndicator(long long InTotalAmOfOutPoints, double InUpdateTimeInt_s, char CountCallsInside)
 {
 	TotalAmOfOutPoints = InTotalAmOfOutPoints;
 

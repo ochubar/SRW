@@ -20,7 +20,8 @@
 
 //*************************************************************************
 
-void srTGenTrjDat::CompTrjCrdVelRK(double sStart, double sEnd, long ns, double* pPrecPar, double* pOutBtxData, double* pOutXData, double* pOutBtyData, double* pOutYData, double* pOutBtzData, double* pOutZData, double* pOutBxData, double* pOutByData, double* pOutBzData)
+//void srTGenTrjDat::CompTrjCrdVelRK(double sStart, double sEnd, long ns, double* pPrecPar, double* pOutBtxData, double* pOutXData, double* pOutBtyData, double* pOutYData, double* pOutBtzData, double* pOutZData, double* pOutBxData, double* pOutByData, double* pOutBzData)
+void srTGenTrjDat::CompTrjCrdVelRK(double sStart, double sEnd, long long ns, double* pPrecPar, double* pOutBtxData, double* pOutXData, double* pOutBtyData, double* pOutYData, double* pOutBtzData, double* pOutZData, double* pOutBxData, double* pOutByData, double* pOutBzData)
 {//Corrected for SRWL:
  //Independent variable is s = c*t; initial conditions are assumed to be defined for s = c*t = 0
  //3D trajectory is calculated in Laboratory Frame
@@ -91,7 +92,8 @@ void srTGenTrjDat::CompTrjCrdVelRK(double sStart, double sEnd, long ns, double* 
 	//double initCond[] = {EbmDat.x0, EbmDat.dxds0, EbmDat.z0, EbmDat.dzds0, EbmDat.sc};
 	double initCond[] = {EbmDat.x0, EbmDat.dxds0, EbmDat.z0, EbmDat.dzds0, EbmDat.s0}; //?
 	
-	long is0 = 0;
+	//long is0 = 0;
+	long long is0 = 0;
 	double s0Act = 0.;
 	//double gamEm2 = 1./(EbmDat.Gamma*EbmDat.Gamma), btx, bty;
 	double gamEm2 = EbmDat.GammaEm2, btx, bty;
@@ -127,7 +129,8 @@ void srTGenTrjDat::CompTrjCrdVelRK(double sStart, double sEnd, long ns, double* 
 			if(dataShouldBeRotatedAfterSolve)
 			{
 				double *t_auxTrjRes = auxTrjRes;
-				for(int j=0; j<ns; j++)
+				//for(int j=0; j<ns; j++)
+				for(long long j=0; j<ns; j++)
 				{
 					t_auxTrjRes++; //may need to be put into another place (to check)
 					*(tOutXData++) = *(t_auxTrjRes++);
@@ -142,7 +145,8 @@ void srTGenTrjDat::CompTrjCrdVelRK(double sStart, double sEnd, long ns, double* 
 			else
 			{
 				double *t_auxTrjRes = auxTrjRes + ns*(numEq + 1) - 1;
-				for(int j=0; j<ns; j++)
+				//for(int j=0; j<ns; j++)
+				for(long long j=0; j<ns; j++)
 				{
 					//if(pOutBtzData) *(tOutBtzData++) = *(t_auxTrjRes--);
 					if(pOutZData) *(tOutZData++) = *t_auxTrjRes;
@@ -172,7 +176,8 @@ void srTGenTrjDat::CompTrjCrdVelRK(double sStart, double sEnd, long ns, double* 
 			}
 
 			//arrived to s0Act; now solve for the left part of the trajectory:
-			int nsLeft = is0 + 1;
+			//int nsLeft = is0 + 1;
+			long long nsLeft = is0 + 1;
 			double *auxTrjRes = new double[nsLeft*(numEq + 1)];
 			if(auxTrjRes == 0) throw MEMORY_ALLOCATION_FAILURE;
 
@@ -187,7 +192,8 @@ void srTGenTrjDat::CompTrjCrdVelRK(double sStart, double sEnd, long ns, double* 
 			if(dataShouldBeRotatedAfterSolve)
 			{
 				double *t_auxTrjRes = auxTrjRes;
-				for(int j=0; j<nsLeft; j++)
+				//for(int j=0; j<nsLeft; j++)
+				for(long long j=0; j<nsLeft; j++)
 				{
 					t_auxTrjRes++; //may need to be put into another place (to check)
 					*(tOutXData++) = *(t_auxTrjRes++);
@@ -202,7 +208,8 @@ void srTGenTrjDat::CompTrjCrdVelRK(double sStart, double sEnd, long ns, double* 
 			else
 			{
 				double *t_auxTrjRes = auxTrjRes + nsLeft*(numEq + 1) - 1;
-				for(int j=0; j<nsLeft; j++)
+				//for(int j=0; j<nsLeft; j++)
+				for(long long j=0; j<nsLeft; j++)
 				{
 					//if(pOutBtzData) *(tOutBtzData++) = *(t_auxTrjRes--);
 					if(pOutZData) *(tOutZData++) = *t_auxTrjRes;
@@ -250,7 +257,8 @@ void srTGenTrjDat::CompTrjCrdVelRK(double sStart, double sEnd, long ns, double* 
 			if(dataShouldBeRotatedAfterSolve)
 			{
 				double *t_auxTrjRes = auxTrjRes + ns*(numEq + 1) - 1;
-				for(int j=0; j<ns; j++)
+				//for(int j=0; j<ns; j++)
+				for(long long j=0; j<ns; j++)
 				{
 					//if(pOutBtzData) *(tOutBtzData++) = *(t_auxTrjRes--);
 					if(pOutZData) *(tOutZData++) = *t_auxTrjRes;
@@ -266,7 +274,8 @@ void srTGenTrjDat::CompTrjCrdVelRK(double sStart, double sEnd, long ns, double* 
 			else
 			{
 				double *t_auxTrjRes = auxTrjRes;
-				for(int j=0; j<ns; j++)
+				//for(int j=0; j<ns; j++)
+				for(long long j=0; j<ns; j++)
 				{
 					t_auxTrjRes++;
 					*(tOutXData++) = *(t_auxTrjRes++);
@@ -283,7 +292,8 @@ void srTGenTrjDat::CompTrjCrdVelRK(double sStart, double sEnd, long ns, double* 
 		else
 		{
 			//normally, initial conditions should be already set here
-			int nsRight = ns - is0;
+			//int nsRight = ns - is0;
+			long long nsRight = ns - is0;
 			if(nsRight < 1) nsRight = 1;
 			double *auxTrjRes = new double[nsRight*(numEq + 1)];
 			if(auxTrjRes == 0) throw MEMORY_ALLOCATION_FAILURE;
@@ -299,7 +309,8 @@ void srTGenTrjDat::CompTrjCrdVelRK(double sStart, double sEnd, long ns, double* 
 			if(dataShouldBeRotatedAfterSolve)
 			{
 				double *t_auxTrjRes = auxTrjRes + nsRight*(numEq + 1) - 1;
-				for(int j=0; j<nsRight; j++)
+				//for(int j=0; j<nsRight; j++)
+				for(long long j=0; j<nsRight; j++)
 				{
 					if(pOutZData) *(tOutZData++) = *t_auxTrjRes;
 					t_auxTrjRes--;
@@ -314,7 +325,8 @@ void srTGenTrjDat::CompTrjCrdVelRK(double sStart, double sEnd, long ns, double* 
 			else
 			{
 				double *t_auxTrjRes = auxTrjRes;
-				for(int j=0; j<nsRight; j++)
+				//for(int j=0; j<nsRight; j++)
+				for(long long j=0; j<nsRight; j++)
 				{
 					t_auxTrjRes++;
 					*(tOutXData++) = *(t_auxTrjRes++);
@@ -336,7 +348,8 @@ void srTGenTrjDat::CompTrjCrdVelRK(double sStart, double sEnd, long ns, double* 
 	{
 		double *tOutXData = pOutXData, *tOutYData = pOutYData, *tOutZData = pOutZData;
 		double *tOutBxData = pOutBxData, *tOutByData = pOutByData, *tOutBzData = pOutBzData;
-		for(int i=0; i<ns; i++)
+		//for(int i=0; i<ns; i++)
+		for(long long i=0; i<ns; i++)
 		{
 			TVector3d P(*(tOutXData++), *(tOutYData++), *(tOutZData++)), B;
 			m_hMagElem.rep->compB(P, B);
@@ -349,7 +362,8 @@ void srTGenTrjDat::CompTrjCrdVelRK(double sStart, double sEnd, long ns, double* 
 
 //*************************************************************************
 
-void srTGenTrjDat::CompTrjKickMatr(SRWLKickM* arKickM, int nKickM, double sStart, double sEnd, long ns, double* pInPrecPar, double* pOutBtX, double* pOutX, double* pOutBtY, double* pOutY, double* pOutBtZ, double* pOutZ)
+//void srTGenTrjDat::CompTrjKickMatr(SRWLKickM* arKickM, int nKickM, double sStart, double sEnd, long ns, double* pInPrecPar, double* pOutBtX, double* pOutX, double* pOutBtY, double* pOutY, double* pOutBtZ, double* pOutZ)
+void srTGenTrjDat::CompTrjKickMatr(SRWLKickM* arKickM, int nKickM, double sStart, double sEnd, long long ns, double* pInPrecPar, double* pOutBtX, double* pOutX, double* pOutBtY, double* pOutY, double* pOutBtZ, double* pOutZ)
 {
 	if((arKickM == 0) || (nKickM <= 0)) throw SRWL_INCORRECT_PARAM_FOR_TRJ_COMP;
 	if(ns <= 0) throw SRWL_INCORRECT_PARAM_FOR_TRJ_COMP;
@@ -416,7 +430,8 @@ void srTGenTrjDat::CompTrjKickMatr(SRWLKickM* arKickM, int nKickM, double sStart
 	double inv_B_pho = EbmDat.Inv_B_rho(); //[1/(T*m)]
 
 	double gamEm2 = EbmDat.GammaEm2, btx, bty;
-	long is0 = 0;
+	//long is0 = 0;
+	long long is0 = 0;
 	double s0Act = 0.;
 
 	if(integOnLeftIsNeeded)
@@ -449,7 +464,8 @@ void srTGenTrjDat::CompTrjKickMatr(SRWLKickM* arKickM, int nKickM, double sStart
 			//else gmIntRK.solve(initCond, sMax, sMin, ns, auxTrjRes);
 
 			double *t_auxTrjRes = auxTrjRes + (ns*5 - 1);
-			for(int j=0; j<ns; j++)
+			//for(int j=0; j<ns; j++)
+			for(long long j=0; j<ns; j++)
 			{
 				if(trjShouldBeAdded)
 				{
@@ -491,7 +507,8 @@ void srTGenTrjDat::CompTrjKickMatr(SRWLKickM* arKickM, int nKickM, double sStart
 			}
 
 			//arrived to s0Act; now solve for the left part of the trajectory:
-			int nsLeft = is0 + 1;
+			//int nsLeft = is0 + 1;
+			long long nsLeft = is0 + 1;
 			double *auxTrjRes = new double[nsLeft*5];
 			if(auxTrjRes == 0) throw MEMORY_ALLOCATION_FAILURE;
 	
@@ -505,7 +522,8 @@ void srTGenTrjDat::CompTrjKickMatr(SRWLKickM* arKickM, int nKickM, double sStart
 			//else gmIntRK.solve(initCond, s0Act, sMin, nsLeft, auxTrjRes);
 
 			double *t_auxTrjRes = auxTrjRes + nsLeft*5 - 1;
-			for(int j=0; j<nsLeft; j++)
+			//for(int j=0; j<nsLeft; j++)
+			for(long long j=0; j<nsLeft; j++)
 			{
 				if(trjShouldBeAdded)
 				{
@@ -563,7 +581,8 @@ void srTGenTrjDat::CompTrjKickMatr(SRWLKickM* arKickM, int nKickM, double sStart
 			//else gmIntRK.solve(initCond, sMin, sMax, ns, auxTrjRes);
 
 			double *t_auxTrjRes = auxTrjRes;
-			for(int j=0; j<ns; j++)
+			//for(int j=0; j<ns; j++)
+			for(long long j=0; j<ns; j++)
 			{
 				if(trjShouldBeAdded)
 				{
@@ -591,7 +610,8 @@ void srTGenTrjDat::CompTrjKickMatr(SRWLKickM* arKickM, int nKickM, double sStart
 		else
 		{
 			//normally, initial conditions should be already set here
-			int nsRight = ns - is0;
+			//int nsRight = ns - is0;
+			long long nsRight = ns - is0;
 			if(nsRight < 1) nsRight = 1;
 			double *auxTrjRes = new double[nsRight*5];
 			if(auxTrjRes == 0) throw MEMORY_ALLOCATION_FAILURE;
@@ -607,7 +627,8 @@ void srTGenTrjDat::CompTrjKickMatr(SRWLKickM* arKickM, int nKickM, double sStart
 			//else gmIntRK.solve(initCond, s0Act, sMax, nsRight, auxTrjRes);
 
 			double *t_auxTrjRes = auxTrjRes;
-			for(int j=0; j<nsRight; j++)
+			//for(int j=0; j<nsRight; j++)
+			for(long long j=0; j<nsRight; j++)
 			{
 				if(trjShouldBeAdded)
 				{
@@ -643,7 +664,8 @@ void srTGenTrjDat::CompTrjKickMatr(SRWLKickM* arKickM, int nKickM, double sStart
 // ns - number of points
 // pTrjRes - resulting flat trajectory array, length is equal to 5*ns
 //-------------------------------------------------------------------------
-void srTGenTrjDat::IntegrateKicks(SRWLKickM* arKickM, vector<vector<int> >& vIndNonOverlapKickGroups, vector<pair<double, double> >& vIndNonOverlapKickGroupRanges, double inv_B_pho, double* initCond, double sStart, double sEnd, int ns, double* pTrjRes)
+//void srTGenTrjDat::IntegrateKicks(SRWLKickM* arKickM, vector<vector<int> >& vIndNonOverlapKickGroups, vector<pair<double, double> >& vIndNonOverlapKickGroupRanges, double inv_B_pho, double* initCond, double sStart, double sEnd, int ns, double* pTrjRes)
+void srTGenTrjDat::IntegrateKicks(SRWLKickM* arKickM, vector<vector<int> >& vIndNonOverlapKickGroups, vector<pair<double, double> >& vIndNonOverlapKickGroupRanges, double inv_B_pho, double* initCond, double sStart, double sEnd, long long ns, double* pTrjRes)
 {
 	int nGroups = (int)vIndNonOverlapKickGroups.size();
 	if((arKickM == 0) || (nGroups <= 0) || (initCond == 0) || (pTrjRes == 0)) return;
@@ -656,7 +678,8 @@ void srTGenTrjDat::IntegrateKicks(SRWLKickM* arKickM, vector<vector<int> >& vInd
 	double sStep = (ns > 1)? (sEnd - sStart)/(ns - 1) : 0.;
 	//s is longitudinal position from here on!
 	double s = initCond[4]; //sStart; // + sStep;
-	for(int is=0; is<(ns-1); is++)
+	//for(int is=0; is<(ns-1); is++)
+	for(long long is=0; is<(ns-1); is++)
 	{
 		//double Xprev = *tX, BtXprev = *tBtX, Yprev = *tY, BtYprev = *tBtY, Zprev = *tZ;
 		double dX = 0., dBtX = 0., dY = 0., dBtY = 0., dZ = 0.;
@@ -765,30 +788,52 @@ void srTGenTrjDat::IntegrateKicks(SRWLKickM* arKickM, vector<vector<int> >& vInd
 											ix0 = Nx - 1; xt = 0.;
 										}
 									}
-									int ixm1 = ix0 - 1; if(ixm1 < 0) ixm1 = 0;
-									int ix1 = ix0 + 1; if(ix1 >= Nx) ix1 = Nx - 1;
-									int ix2 = ix1 + 1; if(ix2 >= Nx) ix2 = Nx - 1;
-									int iym1 = iy0 - 1; if(iym1 < 0) iym1 = 0;
-									int iy1 = iy0 + 1; if(iy1 >= Ny) iy1 = Ny - 1;
-									int iy2 = iy1 + 1; if(iy2 >= Ny) iy2 = Ny - 1;
+									//int ixm1 = ix0 - 1; if(ixm1 < 0) ixm1 = 0;
+									//int ix1 = ix0 + 1; if(ix1 >= Nx) ix1 = Nx - 1;
+									//int ix2 = ix1 + 1; if(ix2 >= Nx) ix2 = Nx - 1;
+									//int iym1 = iy0 - 1; if(iym1 < 0) iym1 = 0;
+									//int iy1 = iy0 + 1; if(iy1 >= Ny) iy1 = Ny - 1;
+									//int iy2 = iy1 + 1; if(iy2 >= Ny) iy2 = Ny - 1;
+									long long ixm1 = ix0 - 1; if(ixm1 < 0) ixm1 = 0;
+									long long ix1 = ix0 + 1; if(ix1 >= Nx) ix1 = Nx - 1;
+									long long ix2 = ix1 + 1; if(ix2 >= Nx) ix2 = Nx - 1;
+									long long iym1 = iy0 - 1; if(iym1 < 0) iym1 = 0;
+									long long iy1 = iy0 + 1; if(iy1 >= Ny) iy1 = Ny - 1;
+									long long iy2 = iy1 + 1; if(iy2 >= Ny) iy2 = Ny - 1;
 
 									//find current contributions to kx, ky by interpolation, taking into account kick order
-									long Nx_iym1 = Nx*iym1;
-									long i0m1 = ix0 + Nx_iym1; //f0m1
-									long i1m1 = ix1 + Nx_iym1; //f1m1
-									long Nx_iy0 = Nx*iy0;
-									long im10 = ixm1 + Nx_iy0; //fm10
-									long i00 = ix0 + Nx_iy0; //f00
-									long i10 = ix1 + Nx_iy0; //f10
-									long i20 = ix2 + Nx_iy0; //f20
-									long Nx_iy1 = Nx*iy1;
-									long im11 = ixm1 + Nx_iy1; //fm11
-									long i01 = ix0 + Nx_iy1; //f01
-									long i11 = ix1 + Nx_iy1; //f11
-									long i21 = ix2 + Nx_iy1; //f21
-									long Nx_iy2 = Nx*iy2;
-									long i02 = ix0 + Nx_iy2; //f02
-									long i12 = ix1 + Nx_iy2; //f12
+									//long Nx_iym1 = Nx*iym1;
+									//long i0m1 = ix0 + Nx_iym1; //f0m1
+									//long i1m1 = ix1 + Nx_iym1; //f1m1
+									//long Nx_iy0 = Nx*iy0;
+									//long im10 = ixm1 + Nx_iy0; //fm10
+									//long i00 = ix0 + Nx_iy0; //f00
+									//long i10 = ix1 + Nx_iy0; //f10
+									//long i20 = ix2 + Nx_iy0; //f20
+									//long Nx_iy1 = Nx*iy1;
+									//long im11 = ixm1 + Nx_iy1; //fm11
+									//long i01 = ix0 + Nx_iy1; //f01
+									//long i11 = ix1 + Nx_iy1; //f11
+									//long i21 = ix2 + Nx_iy1; //f21
+									//long Nx_iy2 = Nx*iy2;
+									//long i02 = ix0 + Nx_iy2; //f02
+									//long i12 = ix1 + Nx_iy2; //f12
+									long long Nx_iym1 = Nx*iym1;
+									long long i0m1 = ix0 + Nx_iym1; //f0m1
+									long long i1m1 = ix1 + Nx_iym1; //f1m1
+									long long Nx_iy0 = Nx*iy0;
+									long long im10 = ixm1 + Nx_iy0; //fm10
+									long long i00 = ix0 + Nx_iy0; //f00
+									long long i10 = ix1 + Nx_iy0; //f10
+									long long i20 = ix2 + Nx_iy0; //f20
+									long long Nx_iy1 = Nx*iy1;
+									long long im11 = ixm1 + Nx_iy1; //fm11
+									long long i01 = ix0 + Nx_iy1; //f01
+									long long i11 = ix1 + Nx_iy1; //f11
+									long long i21 = ix2 + Nx_iy1; //f21
+									long long Nx_iy2 = Nx*iy2;
+									long long i02 = ix0 + Nx_iy2; //f02
+									long long i12 = ix1 + Nx_iy2; //f12
 
 									double newKickX = 0., newKickY = 0.;
 									double *pM = pCurKickM->arKickMx;

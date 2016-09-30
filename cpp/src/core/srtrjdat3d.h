@@ -30,7 +30,8 @@ public:
 	srTTrjDat3d(srTMagFld3d& _Fld3d) : m_Fld3d(_Fld3d) {}
 	srTTrjDat3d(srTMagFld3d& _Fld3d, srTEbmDat& _EbmDat) : m_Fld3d(_Fld3d), srTGenTrjDat(&_EbmDat) {}
 
-	void CompTrjDataForDisp(double* pOutBtxData, double* pOutXData, double* pOutBtyData, double* pOutYData, double* pOutBtzData, double* pOutZData, int ns, double sStart, double sStep); //virtual
+	//void CompTrjDataForDisp(double* pOutBtxData, double* pOutXData, double* pOutBtyData, double* pOutYData, double* pOutBtzData, double* pOutZData, int ns, double sStart, double sStep); //virtual
+	void CompTrjDataForDisp(double* pOutBtxData, double* pOutXData, double* pOutBtyData, double* pOutYData, double* pOutBtzData, double* pOutZData, long long ns, double sStart, double sStep); //virtual
 
 	void funcDerivF(double s, double* arr_F, double* arr_dFds)
 	{

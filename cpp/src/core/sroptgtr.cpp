@@ -212,8 +212,10 @@ int srTGenTransmission::EstimateMinimalContinuousIntervals()
 	int iDzContinT = Nz - 1, iDzContinP = Nz - 1;
 
 	//long zPer = Nx << 1;
-	long xPer = Ne << 1;
-	long zPer = xPer*Nx;
+	//long xPer = Ne << 1;
+	//long zPer = xPer*Nx;
+	long long xPer = Ne << 1;
+	long long zPer = xPer*Nx;
 
 	DOUBLE *pT0 = (DOUBLE*)(GenTransNumData.pData);
 	if(pT0 == 0) return IMPROPER_OPTICAL_COMPONENT_STRUCTURE;
@@ -783,7 +785,8 @@ int srTGenTransmission::ExtractNumStructSect1DAndCheckSampling(char x_or_z, doub
 
 void srTGenTransmission::CopyNumStructValuesToSect1DAndCheckSampling(srTRadSect1D& Sect1D, double* PhaseCont, char& PhaseIsContinuousOneExtrem)
 {
-	long Period, InitialOffset, Np, Nz, Nx, Ne=1, iec=0;
+	//long Period, InitialOffset, Np, Nz, Nx, Ne=1, iec=0;
+	long long Period, InitialOffset, Np, Nz, Nx, Ne=1, iec=0;
 
 	//Nx = (GenTransNumData.DimSizes)[0];
 
@@ -820,7 +823,8 @@ void srTGenTransmission::CopyNumStructValuesToSect1DAndCheckSampling(srTRadSect1
 
 		Np = Nz;
 	}
-	long Np_mi_1 = Np - 1;
+	//long Np_mi_1 = Np - 1;
+	long long Np_mi_1 = Np - 1;
 
 	DOUBLE *tPh0 = (DOUBLE*)(GenTransNumData.pData) + InitialOffset + 1;
 	DOUBLE *tPh = tPh0;
@@ -840,7 +844,8 @@ void srTGenTransmission::CopyNumStructValuesToSect1DAndCheckSampling(srTRadSect1
 	//if(OptPathOrPhase == 2) AddPh *= InvOptPathMult; 
 	//OC
 
-	for(long i=0; i<Np; i++)
+	//for(long i=0; i<Np; i++)
+	for(long long i=0; i<Np; i++)
 	{
 		double Ph = *tPh;
 		if(OptPathOrPhase == 1) Ph *= OptPathMult; // TwoPi_d_Lambda_m
@@ -893,7 +898,8 @@ void srTGenTransmission::CopyNumStructValuesToSect1DAndCheckSampling(srTRadSect1
 	else AddPh = -PhMin;
 
 	tPhOut = PhaseCont;
-	for(long k=0; k<Np; k++) *(tPhOut++) += AddPh;
+	//for(long k=0; k<Np; k++) *(tPhOut++) += AddPh;
+	for(long long k=0; k<Np; k++) *(tPhOut++) += AddPh;
 }
 
 //*************************************************************************
@@ -1198,9 +1204,10 @@ void srTGenTransmission::RadPointModifier(srTEXZ& EXZ, srTEFieldPtrs& EPtrs)
 	double xrzr = xr*zr;
 	if((GenTransNumData.AmOfDims == 2) || ((GenTransNumData.AmOfDims == 3) && (Ne == 1)))
 	{
-		long zPer = Nx << 1;
+		//long zPer = Nx << 1;
+		long long zPer = Nx << 1;
 
-		DOUBLE *p00 = (DOUBLE*)(GenTransNumData.pData) + iz*zPer + (ix << 1);
+		DOUBLE *p00 = (DOUBLE*)(GenTransNumData.pData) + (iz*zPer + (ix << 1));
 		DOUBLE *p10 = p00 + 2, *p01 = p00 + zPer;
 		DOUBLE *p11 = p01 + 2;
 
@@ -1231,9 +1238,11 @@ void srTGenTransmission::RadPointModifier(srTEXZ& EXZ, srTEFieldPtrs& EPtrs)
 		//double erxr = er*xr, erzr = er*zr;
 		//double erxrzr = erxr*zr;
 
-		long xPer = Ne << 1;
-		long zPer = Nx*xPer;
-		DOUBLE *p000 = (DOUBLE*)(GenTransNumData.pData) + iz*zPer + ix*xPer + (ie << 1);
+		//long xPer = Ne << 1;
+		//long zPer = Nx*xPer;
+		long long xPer = Ne << 1;
+		long long zPer = Nx*xPer;
+		DOUBLE *p000 = (DOUBLE*)(GenTransNumData.pData) + (iz*zPer + ix*xPer + (ie << 1));
 		DOUBLE *p100 = p000 + 2, *p010 = p000 + xPer, *p001 = p000 + zPer;
 		DOUBLE *p110 = p100 + xPer, *p101 = p100 + zPer, *p011 = p010 + zPer;
 		DOUBLE *p111 = p110 + zPer;
@@ -1326,8 +1335,10 @@ void srTGenTransmission::RadPointModifier1D(srTEXZ& EXZ, srTEFieldPtrs& EPtrs)
 
 	if((GenTransNumData.AmOfDims == 2) || ((GenTransNumData.AmOfDims == 3) && (Ne == 1)))
 	{
-		long zPer = Nx << 1;
-		DOUBLE *p0 = (DOUBLE*)(GenTransNumData.pData) + iz*zPer + (ix << 1);
+		//long zPer = Nx << 1;
+		long long zPer = Nx << 1;
+		DOUBLE *p0 = (DOUBLE*)(GenTransNumData.pData) + (iz*zPer + (ix << 1));
+
 		if(EXZ.VsXorZ == 'x')
 		{
 			T = (*(p0 + 2) - *p0)*xr + *p0; p0++;
@@ -1350,9 +1361,11 @@ void srTGenTransmission::RadPointModifier1D(srTEXZ& EXZ, srTEFieldPtrs& EPtrs)
 
 		double er = (EXZ.e - (ie*eStep + eStart))/eStep;
 
-		long xPer = Ne << 1;
-		long zPer = Nx*xPer;
-		DOUBLE *p00 = (DOUBLE*)(GenTransNumData.pData) + iz*zPer + ix*xPer + (ie << 1);
+		//long xPer = Ne << 1;
+		//long zPer = Nx*xPer;
+		long long xPer = Ne << 1;
+		long long zPer = Nx*xPer;
+		DOUBLE *p00 = (DOUBLE*)(GenTransNumData.pData) + (iz*zPer + ix*xPer + (ie << 1));
 		DOUBLE *p10 = p00 + 2;
 		DOUBLE *p01=0, *p11=0;
 		double one_mi_er = 1.- er, ar = 1., one_mi_ar = 1.;

@@ -91,9 +91,12 @@ struct srTFieldBasedArrays {
     double IntZ01toS0, IntZ02toS0, IntZ11toS0, IntZ12toS0, IntZ22toS0;
 
 	double sStart, sStep;
-	long Ns;
-	int Nper;
-	int NperLeft;
+	//long Ns;
+	//int Nper;
+	//int NperLeft;
+	long long Ns;
+	long long Nper;
+	long long NperLeft;
 
 	srTFieldBasedArrays()
 	{
@@ -154,7 +157,8 @@ struct srTFieldBasedArrays {
 
 		ZeroPtrs();
 	}
-	int AllocateArrays(long InNs, srTFieldBasedArrayKeys& Keys);
+	//int AllocateArrays(long InNs, srTFieldBasedArrayKeys& Keys);
+	int AllocateArrays(long long InNs, srTFieldBasedArrayKeys& Keys);
 };
 
 //*************************************************************************
@@ -180,7 +184,8 @@ public:
 	short HorFieldIsNotZero, VerFieldIsNotZero;
 	double BetaNormConst, BetaNormConstE2, InvBetaNormConst;
 
-	long AmOfExtremInBx, AmOfExtremInBz;
+	//long AmOfExtremInBx, AmOfExtremInBz;
+	long long AmOfExtremInBx, AmOfExtremInBz;
 
 	srTGenTrjDat(srTEbmDat* pEbmDat)
 	{
@@ -204,8 +209,10 @@ public:
 
 	virtual void CompTrjDataDerivedAtPointPowDens(double s, double& Btx, double& Btz, double& X, double& Z, double& Bx, double& Bz) {}
 	virtual void CompTotalTrjData(srTFieldBasedArrayKeys& Keys, srTFieldBasedArrays& FieldBasedArrays) {}
-	virtual void CompTotalTrjData(double sSt, double sEn, long Np, double* pBtx, double* pBtz, double* pX, double* pZ, double* pBx, double* pBz) {}
-	virtual void CompTotalTrjData(double sSt, double sEn, long Np, double* pBtx, double* pBtz, double* pX, double* pZ, double* pIntBtxE2, double* pIntBtzE2, double* pBx, double* pBz, double* pdBxds, double* pdBzds) {}
+	//virtual void CompTotalTrjData(double sSt, double sEn, long Np, double* pBtx, double* pBtz, double* pX, double* pZ, double* pBx, double* pBz) {}
+	virtual void CompTotalTrjData(double sSt, double sEn, long long Np, double* pBtx, double* pBtz, double* pX, double* pZ, double* pBx, double* pBz) {}
+	//virtual void CompTotalTrjData(double sSt, double sEn, long Np, double* pBtx, double* pBtz, double* pX, double* pZ, double* pIntBtxE2, double* pIntBtzE2, double* pBx, double* pBz, double* pdBxds, double* pdBzds) {}
+	virtual void CompTotalTrjData(double sSt, double sEn, long long Np, double* pBtx, double* pBtz, double* pX, double* pZ, double* pIntBtxE2, double* pIntBtzE2, double* pBx, double* pBz, double* pdBxds, double* pdBzds) {}
 
 	virtual int SetUpFieldBasedArraysAtOnePeriod(srTFieldBasedArrayKeys&, srTFieldBasedArrays&) { return 0;}
 	virtual int SetUpFieldBasedArraysTotal(srTFieldBasedArrayKeys&, srTFieldBasedArrays&) { return 0;}
@@ -216,16 +223,22 @@ public:
 	virtual void ShowFullLimits(double& sIntegStart, double& sIntegFin) {}
 	virtual int ShowLimitsAndInitInteg(srTWfrSmp& DistrInfoDat, char LongIntType, double& sIntegStart, double& sIntegFin, int& AmOfPer, bool doInit = true) { return 0;}
 	virtual int InitTrjComp() { return 0;}
-	virtual int SetupLimitsByAnalizingField(char LongIntType, double& sStart, double& sStep, long& Ns, int& NperTot, int& NperLeft) { return 0;}
+	//virtual int SetupLimitsByAnalizingField(char LongIntType, double& sStart, double& sStep, long& Ns, int& NperTot, int& NperLeft) { return 0;}
+	virtual int SetupLimitsByAnalizingField(char LongIntType, double& sStart, double& sStep, long long& Ns, int& NperTot, int& NperLeft) { return 0;}
 	virtual int ConvertToArbTrjDat(char, srTWfrSmp&, srTGenTrjHndl&) { return 0;}
 
-	virtual void CompTrjDataForDisp(double* pOutBtxData, double* pOutXData, double* pOutBtyData, double* pOutYData, double* pOutBtzData, double* pOutZData, int ns, double sStart, double sStep) {}; //virtual
+	//virtual void CompTrjDataForDisp(double* pOutBtxData, double* pOutXData, double* pOutBtyData, double* pOutYData, double* pOutBtzData, double* pOutZData, int ns, double sStart, double sStep) {}; //virtual
+	virtual void CompTrjDataForDisp(double* pOutBtxData, double* pOutXData, double* pOutBtyData, double* pOutYData, double* pOutBtzData, double* pOutZData, long long ns, double sStart, double sStep) {}; //virtual
 
-	void CompTrjCrdVelRK(double sSt, double sEn, long np, double* pInPrecPar, double* pOutBtxData, double* pOutXData, double* pOutBtyData, double* pOutYData, double* pOutBtzData, double* pOutZData, double* pOutBxData, double* pOutByData, double* pOutBzData);
-	void CompTrjKickMatr(SRWLKickM* arKickM, int nKickM, double sSt, double sEn, long np, double* pInPrecPar, double* pOutBtxData, double* pOutXData, double* pOutBtyData, double* pOutYData, double* pOutBtzData, double* pOutZData);
-	void IntegrateKicks(SRWLKickM* arKickM, vector<vector<int> >& vIndNonOverlapKickGroups, vector<pair<double, double> >& vIndNonOverlapKickGroupRanges, double inv_B_pho, double* initCond, double sStart, double sEnd, int ns, double* pTrjRes);
+	//void CompTrjCrdVelRK(double sSt, double sEn, long np, double* pInPrecPar, double* pOutBtxData, double* pOutXData, double* pOutBtyData, double* pOutYData, double* pOutBtzData, double* pOutZData, double* pOutBxData, double* pOutByData, double* pOutBzData);
+	void CompTrjCrdVelRK(double sSt, double sEn, long long np, double* pInPrecPar, double* pOutBtxData, double* pOutXData, double* pOutBtyData, double* pOutYData, double* pOutBtzData, double* pOutZData, double* pOutBxData, double* pOutByData, double* pOutBzData);
+	//void CompTrjKickMatr(SRWLKickM* arKickM, int nKickM, double sSt, double sEn, long np, double* pInPrecPar, double* pOutBtxData, double* pOutXData, double* pOutBtyData, double* pOutYData, double* pOutBtzData, double* pOutZData);
+	void CompTrjKickMatr(SRWLKickM* arKickM, int nKickM, double sSt, double sEn, long long np, double* pInPrecPar, double* pOutBtxData, double* pOutXData, double* pOutBtyData, double* pOutYData, double* pOutBtzData, double* pOutZData);
+	//void IntegrateKicks(SRWLKickM* arKickM, vector<vector<int> >& vIndNonOverlapKickGroups, vector<pair<double, double> >& vIndNonOverlapKickGroupRanges, double inv_B_pho, double* initCond, double sStart, double sEnd, int ns, double* pTrjRes);
+	void IntegrateKicks(SRWLKickM* arKickM, vector<vector<int> >& vIndNonOverlapKickGroups, vector<pair<double, double> >& vIndNonOverlapKickGroupRanges, double inv_B_pho, double* initCond, double sStart, double sEnd, long long ns, double* pTrjRes);
 
-	virtual long EstimMinNpForRadInteg(char typeInt)
+	//virtual long EstimMinNpForRadInteg(char typeInt)
+	virtual long long EstimMinNpForRadInteg(char typeInt)
 	{//typeInt == 1: monochromatic emission in frequency domain
 	 //typeInt == 2: power density (integral over all photon energies)
 		return 5; //to be re-defined in derived classes
@@ -244,7 +257,8 @@ public:
 		InvBetaNormConst = 1./BetaNormConst;
 	}
 
-	void CompTrjCrdVel(double sSt, double sEn, long np, double* pInPrecPar, double* pOutBtxData, double* pOutXData, double* pOutBtyData, double* pOutYData, double* pOutBtzData, double* pOutZData, double* pOutBxData, double* pOutByData, double* pOutBzData)
+	//void CompTrjCrdVel(double sSt, double sEn, long np, double* pInPrecPar, double* pOutBtxData, double* pOutXData, double* pOutBtyData, double* pOutYData, double* pOutBtzData, double* pOutZData, double* pOutBxData, double* pOutByData, double* pOutBzData)
+	void CompTrjCrdVel(double sSt, double sEn, long long np, double* pInPrecPar, double* pOutBtxData, double* pOutXData, double* pOutBtyData, double* pOutYData, double* pOutBtzData, double* pOutZData, double* pOutBxData, double* pOutByData, double* pOutBzData)
 	{
 		int methNo = 1; //RK4
 		//methNo = 2; //RK5

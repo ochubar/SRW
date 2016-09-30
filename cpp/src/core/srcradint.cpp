@@ -237,8 +237,10 @@ void srTCSR::copySymEnergySlice(float* pOrigDataEx, float* pOrigDataEz, float* p
 
 void srTCSR::fillInSymPartsOfResults(char FinalResAreSymOverX, char FinalResAreSymOverZ)
 {
-	long PerX = m_Wfr.ne << 1;
-	long PerZ = PerX*m_Wfr.nx;
+	//long PerX = m_Wfr.ne << 1;
+	//long PerZ = PerX*m_Wfr.nx;
+	long long PerX = m_Wfr.ne << 1;
+	long long PerZ = PerX*m_Wfr.nx;
 
 	char SymWithRespectToXax, SymWithRespectToZax;
 	int HalfNz = m_Wfr.nz >> 1, Nz_mi_1 = m_Wfr.nz - 1;
@@ -254,13 +256,16 @@ void srTCSR::fillInSymPartsOfResults(char FinalResAreSymOverX, char FinalResAreS
 			SymWithRespectToXax = 0; SymWithRespectToZax = 1;
 			for(iz=0; iz<HalfNz; iz++)
 			{
-				long izPerZ = iz*PerZ;
+				//long izPerZ = iz*PerZ;
+				long long izPerZ = iz*PerZ;
 				for(ix=0; ix<HalfNx; ix++)
 				{
-					long Offset = izPerZ + ix*PerX;
+					//long Offset = izPerZ + ix*PerX;
+					long long Offset = izPerZ + ix*PerX;
 					float* pOrigDataEx = m_Wfr.pBaseRadX + Offset;
 					float* pOrigDataEz = m_Wfr.pBaseRadZ + Offset;
-					long OffsetSym = izPerZ + (Nx_mi_1 - ix)*PerX;
+					//long OffsetSym = izPerZ + (Nx_mi_1 - ix)*PerX;
+					long long OffsetSym = izPerZ + (Nx_mi_1 - ix)*PerX;
 					float* pSymDataEx = m_Wfr.pBaseRadX + OffsetSym;
 					float* pSymDataEz = m_Wfr.pBaseRadZ + OffsetSym;
 					copySymEnergySlice(pOrigDataEx, pOrigDataEz, pSymDataEx, pSymDataEz, SymWithRespectToXax, SymWithRespectToZax);
@@ -270,14 +275,18 @@ void srTCSR::fillInSymPartsOfResults(char FinalResAreSymOverX, char FinalResAreS
 		SymWithRespectToXax = 1; SymWithRespectToZax = 0;
 		for(iz=0; iz<HalfNz; iz++)
 		{
-			long izPerZ = iz*PerZ, BufZ = (Nz_mi_1 - iz)*PerZ;
+			//long izPerZ = iz*PerZ, BufZ = (Nz_mi_1 - iz)*PerZ;
+			long long izPerZ = iz*PerZ, BufZ = (Nz_mi_1 - iz)*PerZ;
 			for(ix=0; ix<m_Wfr.nx; ix++)
 			{
-				long ixPerX = ix*PerX;
-				long Offset = izPerZ + ixPerX;
+				//long ixPerX = ix*PerX;
+				//long Offset = izPerZ + ixPerX;
+				long long ixPerX = ix*PerX;
+				long long Offset = izPerZ + ixPerX;
 				float* pOrigDataEx = m_Wfr.pBaseRadX + Offset;
 				float* pOrigDataEz = m_Wfr.pBaseRadZ + Offset;
-				long OffsetSym = BufZ + ixPerX;
+				//long OffsetSym = BufZ + ixPerX;
+				long long OffsetSym = BufZ + ixPerX;
 				float* pSymDataEx = m_Wfr.pBaseRadX + OffsetSym;
 				float* pSymDataEz = m_Wfr.pBaseRadZ + OffsetSym;
 				copySymEnergySlice(pOrigDataEx, pOrigDataEz, pSymDataEx, pSymDataEz, SymWithRespectToXax, SymWithRespectToZax);
@@ -289,13 +298,16 @@ void srTCSR::fillInSymPartsOfResults(char FinalResAreSymOverX, char FinalResAreS
 		SymWithRespectToXax = 0; SymWithRespectToZax = 1;
 		for(iz=0; iz<m_Wfr.nz; iz++)
 		{
-			long izPerZ = iz*PerZ;
+			//long izPerZ = iz*PerZ;
+			long long izPerZ = iz*PerZ;
 			for(ix=0; ix<HalfNx; ix++)
 			{
-				long Offset = izPerZ + ix*PerX;
+				//long Offset = izPerZ + ix*PerX;
+				long long Offset = izPerZ + ix*PerX;
 				float* pOrigDataEx = m_Wfr.pBaseRadX + Offset;
 				float* pOrigDataEz = m_Wfr.pBaseRadZ + Offset;
-				long OffsetSym = izPerZ + (Nx_mi_1 - ix)*PerX;
+				//long OffsetSym = izPerZ + (Nx_mi_1 - ix)*PerX;
+				long long OffsetSym = izPerZ + (Nx_mi_1 - ix)*PerX;
 				float* pSymDataEx = m_Wfr.pBaseRadX + OffsetSym;
 				float* pSymDataEz = m_Wfr.pBaseRadZ + OffsetSym;
 				copySymEnergySlice(pOrigDataEx, pOrigDataEz, pSymDataEx, pSymDataEz, SymWithRespectToXax, SymWithRespectToZax);
@@ -446,8 +458,10 @@ void srTCSR::computeElectricFieldFreqDomain()
 	double zc = m_TrjDat.EbmDat.z0;
 	double xTol = StepX*0.001, zTol = StepZ*0.001; // To steer
 
-	long PerX = m_Wfr.ne << 1;
-	long PerZ = m_Wfr.nx*PerX;
+	//long PerX = m_Wfr.ne << 1;
+	//long PerZ = m_Wfr.nx*PerX;
+	long long PerX = m_Wfr.ne << 1;
+	long long PerZ = m_Wfr.nx*PerX;
 	float *pEx0 = m_Wfr.pBaseRadX;
 	float *pEz0 = m_Wfr.pBaseRadZ;
 
@@ -456,7 +470,8 @@ void srTCSR::computeElectricFieldFreqDomain()
 	instEXZY.z = m_Wfr.zStart;
 	srTEFourier Ew;
 
-	long TotalAmOfOutPoints = m_Wfr.nz*m_Wfr.nx*m_Wfr.ne, PointCount = 0;
+	//long TotalAmOfOutPoints = m_Wfr.nz*m_Wfr.nx*m_Wfr.ne, PointCount = 0;
+	long long TotalAmOfOutPoints = m_Wfr.nz*m_Wfr.nx*m_Wfr.ne, PointCount = 0;
 	if(FinalResAreSymOverX) TotalAmOfOutPoints >>= 1;
 	if(FinalResAreSymOverZ) TotalAmOfOutPoints >>= 1;
 	double UpdateTimeInt_s = 0.5;
@@ -467,19 +482,22 @@ void srTCSR::computeElectricFieldFreqDomain()
 	{
         if(FinalResAreSymOverZ) { if((instEXZY.z - zc) > zTol) break;}
 
-		long izPerZ = iz*PerZ;
+		//long izPerZ = iz*PerZ;
+		long long izPerZ = iz*PerZ;
 		instEXZY.x = m_Wfr.xStart;
 		for(int ix=0; ix<m_Wfr.nx; ix++)
 		{
 			if(FinalResAreSymOverX) { if((instEXZY.x - xc) > xTol) break;}
 
-			long ixPerX = ix*PerX;
+			//long ixPerX = ix*PerX;
+			long long ixPerX = ix*PerX;
 			instEXZY.e = m_Wfr.eStart;
 			for(int ie=0; ie<m_Wfr.ne; ie++)
 			{
 				genRadIntegration(instEXZY, Ew);
 
-				long Offset = izPerZ + ixPerX + (ie << 1);
+				//long Offset = izPerZ + ixPerX + (ie << 1);
+				long long Offset = izPerZ + ixPerX + (ie << 1);
 				float *pEx = pEx0 + Offset, *pEz = pEz0 + Offset;
 
 				*pEx = (float)Ew.EwX_Re; //float(RadIntegValues->real());
@@ -549,7 +567,8 @@ void srTCSR::radIntegrationResiduals(srTEXZY& exzy,	srTEFourier& Ew, srTEFourier
 
 //Right Residual
 	int iCount = 0;
-	for(int i=(m_FldArr.Ns - npDer); i<m_FldArr.Ns; i++) 
+	//for(int i=(m_FldArr.Ns - npDer); i<m_FldArr.Ns; i++) 
+	for(long long i=(m_FldArr.Ns - npDer); i<m_FldArr.Ns; i++) 
 	{
         computeFuncToIntegAtOnePointOnTrj(i, exzy, EwDummy, arrAmpX[iCount], arrAmpZ[iCount], arrArg[iCount]);
 		iCount++;
@@ -602,8 +621,10 @@ void srTCSR::radIntegrationManual(srTEXZY& exzy, srTEFourier* arr_dEwds, srTEFou
 	srTEFourier initDer, finDer, auxDer;
 	complex<double> auxAmpX, auxAmpZ, auxArg;
 
-	long Ns_mi_1 = m_FldArr.Ns - 1;
-	for(long i=0; i<m_FldArr.Ns; i++)
+	//long Ns_mi_1 = m_FldArr.Ns - 1;
+	long long Ns_mi_1 = m_FldArr.Ns - 1;
+	//for(long i=0; i<m_FldArr.Ns; i++)
+	for(long long i=0; i<m_FldArr.Ns; i++)
 	{
 		char calcDeriv = 0;
 		if((i == 0) || (i == Ns_mi_1)) calcDeriv = 1;
@@ -620,7 +641,8 @@ void srTCSR::radIntegrationManual(srTEXZY& exzy, srTEFourier* arr_dEwds, srTEFou
 
 //*************************************************************************
 
-void srTCSR::integrateSimpleEwArr(srTEFourier* arrEw, long np, double h, srTEFourier* pDer, srTEFourier& resEw)
+//void srTCSR::integrateSimpleEwArr(srTEFourier* arrEw, long np, double h, srTEFourier* pDer, srTEFourier& resEw)
+void srTCSR::integrateSimpleEwArr(srTEFourier* arrEw, long long np, double h, srTEFourier* pDer, srTEFourier& resEw)
 {//Np is assumed odd and >= 5!!!
 	const double we = 7./15.;
     const double w1 = 16./15.;
@@ -631,8 +653,10 @@ void srTCSR::integrateSimpleEwArr(srTEFourier* arrEw, long np, double h, srTEFou
 	srTEFourier Sum2(0,0,0,0);
 
 	srTEFourier *t = arrEw + 2;
-	long nLoops = (np - 3) >> 1;
-    for(long i=0; i<nLoops; i++)
+	//long nLoops = (np - 3) >> 1;
+	long long nLoops = (np - 3) >> 1;
+    //for(long i=0; i<nLoops; i++)
+    for(long long i=0; i<nLoops; i++)
 	{
 		Sum2 += *(t++);
 		Sum1 += *(t++);
@@ -669,7 +693,8 @@ void srTCSR::radIntegrationAutoWig(srTEXZY& exzy, srTEFourier* arr_dEwds, srTEFo
 
 //*************************************************************************
 
-void srTCSR::computeFuncToIntegAtOnePointOnTrj(long i, srTEXZY exzy, srTEFourier& Ew, complex<double>& ampX, complex<double>& ampZ, complex<double>& arg)
+//void srTCSR::computeFuncToIntegAtOnePointOnTrj(long i, srTEXZY exzy, srTEFourier& Ew, complex<double>& ampX, complex<double>& ampZ, complex<double>& arg)
+void srTCSR::computeFuncToIntegAtOnePointOnTrj(long long i, srTEXZY exzy, srTEFourier& Ew, complex<double>& ampX, complex<double>& ampZ, complex<double>& arg)
 {
 	double s = m_FldArr.sStart + i*m_FldArr.sStep;
 	double invR = 1./(exzy.y - s);

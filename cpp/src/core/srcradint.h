@@ -123,7 +123,8 @@ struct TAuxParamForIntegCSR {
 		disposeArrays();
 	}
 
-	void allocateArrays(int meth, long ns)
+	//void allocateArrays(int meth, long ns)
+	void allocateArrays(int meth, long long ns)
 	{
 		disposeArrays();
 
@@ -249,8 +250,10 @@ public:
 	void computeTrajArrays(srTFieldBasedArrays& FldArr, srTMagFldCont* pMagLensCont);
 	void computeOffAxisTrajArrays(srTFieldBasedArrays& FldArr, srTMagFldCont* pMagLensCont);
 	void setupInitialTrajArrays(srTMagFldCont* pMagLensCont);
-	void integrateSimpleEwArr(srTEFourier* arrEw, long np, double h, srTEFourier* pDer, srTEFourier& resEw);
-	void computeFuncToIntegAtOnePointOnTrj(long i, srTEXZY exzy, srTEFourier& Ew, complex<double>& ampX, complex<double>& ampZ, complex<double>& arg);
+	//void integrateSimpleEwArr(srTEFourier* arrEw, long np, double h, srTEFourier* pDer, srTEFourier& resEw);
+	void integrateSimpleEwArr(srTEFourier* arrEw, long long np, double h, srTEFourier* pDer, srTEFourier& resEw);
+	//void computeFuncToIntegAtOnePointOnTrj(long i, srTEXZY exzy, srTEFourier& Ew, complex<double>& ampX, complex<double>& ampZ, complex<double>& arg);
+	void computeFuncToIntegAtOnePointOnTrj(long long i, srTEXZY exzy, srTEFourier& Ew, complex<double>& ampX, complex<double>& ampZ, complex<double>& arg);
 
     void computeElectricFieldFreqDomain();
 };

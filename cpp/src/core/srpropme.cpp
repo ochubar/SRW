@@ -24,7 +24,8 @@ int srTPropagMultiE::PropagateElecFieldStokesAuto(srTEbmDat& ThickEbmDat, srTSRW
 {
 	int result = 0;
 	//double RelPrec = 0.001; // corresponding to PrecParMultiE = 1
-	long MaxAmOfMacroPrt = 1000000;
+	//long MaxAmOfMacroPrt = 1000000;
+	long long MaxAmOfMacroPrt = 1000000;
 	//int AmOfSecurityPasses = 1;
 	gRandGen.Initialize();
 
@@ -81,7 +82,8 @@ int srTPropagMultiE::PropagateElecFieldStokesAuto(srTEbmDat& ThickEbmDat, srTSRW
 	//srTEbmDat SmallThickEbmDat = ThickEbmDat;
 	//SmallThickEbmDat.
 
-	for(int i=1; i<MaxAmOfMacroPrt; i++)
+	//for(int i=1; i<MaxAmOfMacroPrt; i++)
+	for(long long i=1; i<MaxAmOfMacroPrt; i++)
 	{
 		pLocWfr = new srTSRWRadStructAccessData(&InWfr);
 		//pLocWfr->UseStartTrToShiftAtChangingRepresToCoord = true;
@@ -121,7 +123,8 @@ int srTPropagMultiE::PropagateElecFieldStokes(srTEbmDat& ThickEbmDat, srTSRWRadS
 {
 	int result = 0;
 	double RelPrec = 0.001; // corresponding to PrecParMultiE = 1
-	long MaxAmOfMacroPrt = 1000000;
+	//long MaxAmOfMacroPrt = 1000000;
+	long long MaxAmOfMacroPrt = 1000000;
 	int AmOfSecurityPasses = 1;
 	gRandGen.Initialize();
 
@@ -131,7 +134,8 @@ int srTPropagMultiE::PropagateElecFieldStokes(srTEbmDat& ThickEbmDat, srTSRWRadS
 	{
 		RelPrec /= PrecParMultiE;
 	}
-	if(pPrecPar[1] >= 1.) MaxAmOfMacroPrt = (long)pPrecPar[1];
+	//if(pPrecPar[1] >= 1.) MaxAmOfMacroPrt = (long)pPrecPar[1];
+	if(pPrecPar[1] >= 1.) MaxAmOfMacroPrt = (long long)pPrecPar[1];
 
 	//srTEbmDat ThickEbmDat;
 	//if(result = InWfr.OutElectronBeamStruct(ThickEbmDat)) return result;
@@ -274,7 +278,8 @@ int srTPropagMultiE::ReallocateStokesAccordingToWfr(srTSRWRadStructAccessData& L
 
 //*************************************************************************
 
-int srTPropagMultiE::AddWfrToStokesWithInterpXZ(srTSRWRadStructAccessData& Wfr, srTStokesStructAccessData& Stokes, long MacroPartCountZeroBased)
+//int srTPropagMultiE::AddWfrToStokesWithInterpXZ(srTSRWRadStructAccessData& Wfr, srTStokesStructAccessData& Stokes, long MacroPartCountZeroBased)
+int srTPropagMultiE::AddWfrToStokesWithInterpXZ(srTSRWRadStructAccessData& Wfr, srTStokesStructAccessData& Stokes, long long MacroPartCountZeroBased)
 {
 	//int result = 0;
 	//if(AllowResize)
@@ -287,24 +292,29 @@ int srTPropagMultiE::AddWfrToStokesWithInterpXZ(srTSRWRadStructAccessData& Wfr, 
 	float fInvN = (float)(1./(MacroPartCountZeroBased + 1));
 	float fMacroPartCountZeroBased = (float)MacroPartCountZeroBased;
 
-	long PerE = 4;
-	long PerX = Stokes.ne*PerE;
-	long PerZ = Stokes.nx*PerX;
+	//long PerE = 4;
+	//long PerX = Stokes.ne*PerE;
+	//long PerZ = Stokes.nx*PerX;
+	long long PerE = 4;
+	long long PerX = Stokes.ne*PerE;
+	long long PerZ = Stokes.nx*PerX;
 
 	srTEXZ EXZ;
     EXZ.z = Stokes.zStart;
 
 	for(int iz=0; iz<Stokes.nz; iz++)
 	{
-		long izPerZ = iz*PerZ;
+		//long izPerZ = iz*PerZ;
+		long long izPerZ = iz*PerZ;
 		EXZ.x = Stokes.xStart;
 		for(int ix=0; ix<Stokes.nx; ix++)
 		{
-			long ixPerX = ix*PerX;
+			//long ixPerX = ix*PerX;
+			long long ixPerX = ix*PerX;
 			EXZ.e = Stokes.eStart;
 			for(int ie=0; ie<Stokes.ne; ie++)
 			{
-				float *pSto = Stokes.pBaseSto + izPerZ + ixPerX +ie*PerE;
+				float *pSto = Stokes.pBaseSto + (izPerZ + ixPerX +ie*PerE);
 
 				float *tSto = pSto;
 				for(int k=0; k<4; k++) *(tSto++) *= fMacroPartCountZeroBased; 
@@ -321,25 +331,28 @@ int srTPropagMultiE::AddWfrToStokesWithInterpXZ(srTSRWRadStructAccessData& Wfr, 
 		}
 		EXZ.z += Stokes.zStep;
 	}
-
 	return 0;
 }
 
 //*************************************************************************
 
-int srTPropagMultiE::AddWfrToStokes(srTSRWRadStructAccessData& Wfr, srTStokesStructAccessData& Stokes, long MacroPartCount, double& CurRelPrec)
+//int srTPropagMultiE::AddWfrToStokes(srTSRWRadStructAccessData& Wfr, srTStokesStructAccessData& Stokes, long MacroPartCount, double& CurRelPrec)
+int srTPropagMultiE::AddWfrToStokes(srTSRWRadStructAccessData& Wfr, srTStokesStructAccessData& Stokes, long long MacroPartCount, double& CurRelPrec)
 {
 	if((Wfr.ne != Stokes.ne) || (Wfr.nx != Stokes.nx) || (Wfr.nz != Stokes.nz)) return NON_COMPATIBLE_WAVEFRONT_AND_STOKES_STRUCTS;
 
-	long AmOfPts = Stokes.ne*Stokes.nx*Stokes.nz;
+	//long AmOfPts = Stokes.ne*Stokes.nx*Stokes.nz;
+	long long AmOfPts = ((long long)Stokes.ne)*((long long)Stokes.nx)*((long long)Stokes.nz);
 	float *tSto = Stokes.pBaseSto;
 	float *tEx = Wfr.pBaseRadX, *tEz = Wfr.pBaseRadZ; 
 
 	float StokesVal[4];
 	double InvN = 1./MacroPartCount;
-	long Nmi1 = MacroPartCount - 1;
+	//long Nmi1 = MacroPartCount - 1;
+	long long Nmi1 = MacroPartCount - 1;
 	double SqDif = 0.;
-	for(long i=0; i<AmOfPts; i++)
+	//for(long i=0; i<AmOfPts; i++)
+	for(long long i=0; i<AmOfPts; i++)
 	{
 		CalcStokesFromE(tEx, tEz, StokesVal);
 		
@@ -447,27 +460,32 @@ void srTPropagMultiE::SimulateWfrFromOffAxisEbm(srTEbmDat& OnAxisEbmDat, srTEbmD
 
 		float *pEx0 = Wfr.pBaseRadX;
 		float *pEz0 = Wfr.pBaseRadZ;
-		long PerX = Wfr.ne << 1;
-		long PerZ = PerX*Wfr.nx;
+		//long PerX = Wfr.ne << 1;
+		//long PerZ = PerX*Wfr.nx;
+		long long PerX = Wfr.ne << 1;
+		long long PerZ = PerX*Wfr.nx;
 
 		srTEFieldPtrs EFieldPtrs;
 		srTEXZ EXZ;
 		EXZ.z = Wfr.zStart;
-		long izPerZ = 0;
+		//long izPerZ = 0;
+		long long izPerZ = 0;
 
 		for(int iz=0; iz<Wfr.nz; iz++)
 		{
 			float *pEx_StartForX = pEx0 + izPerZ;
 			float *pEz_StartForX = pEz0 + izPerZ;
 			EXZ.x = Wfr.xStart;
-			long ixPerX = 0;
+			//long ixPerX = 0;
+			long long ixPerX = 0;
 		
 			for(int ix=0; ix<Wfr.nx; ix++)
 			{
 				float *pEx_StartForE = pEx_StartForX + ixPerX;
 				float *pEz_StartForE = pEz_StartForX + ixPerX;
 				EXZ.e = Wfr.eStart;
-				long iePerE = 0;
+				//long iePerE = 0;
+				long long iePerE = 0;
 
 				for(int ie=0; ie<Wfr.ne; ie++)
 				{
@@ -528,7 +546,6 @@ void srTPropagMultiE::SimulateWfrFromOffAxisEbm(srTEbmDat& OnAxisEbmDat, srTEbmD
 			Wfr.zWfrMin += dz; Wfr.zWfrMax += dz;
 			Wfr.zc += dz;
 		}
-
 	}
 /*
 Variable WaveNumb = (2*Pi)/(6.27774e-11)
@@ -536,7 +553,6 @@ Variable dxp = 0.000004
 Variable ph = WaveNumb*dxp*x
 return cos(ph) + cmplx(0,1)*sin(ph)
 */
-
 }
 
 //*************************************************************************

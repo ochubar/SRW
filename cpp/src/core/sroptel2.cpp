@@ -859,26 +859,29 @@ int srTGenOptElem::SetupCharacteristicSections1D(srTSRWRadStructAccessData* pRad
 	srTMinMaxEParam MinMaxE2D;
 	pRadAccessData->FindMinMaxReE(MinMaxE2D);
 	float MaxAbsE2D;
-	long xIndMaxAbsE2D, zIndMaxAbsE2D;
+	//long xIndMaxAbsE2D, zIndMaxAbsE2D;
+	long long xIndMaxAbsE2D, zIndMaxAbsE2D;
 	MinMaxE2D.FindGenMaxAbsE(MaxAbsE2D, xIndMaxAbsE2D, zIndMaxAbsE2D);
 
 	float MaxAbsEVsX, MaxAbsEVsZ;
-	long IndMaxAbsEVsX, IndMaxAbsEVsZ, IndDummy;
+	//long IndMaxAbsEVsX, IndMaxAbsEVsZ, IndDummy;
+	long long IndMaxAbsEVsX, IndMaxAbsEVsZ, IndDummy;
 	srTMinMaxEParam MinMaxE1D;
 	SectVsX.FindMinMaxReE(MinMaxE1D);
 	MinMaxE1D.FindGenMaxAbsE(MaxAbsEVsX, IndMaxAbsEVsX, IndDummy);
 	SectVsZ.FindMinMaxReE(MinMaxE1D);
 	MinMaxE1D.FindGenMaxAbsE(MaxAbsEVsZ, IndMaxAbsEVsZ, IndDummy);
 
-	long ixcPrev = ixc, izcPrev = izc;
+	//long ixcPrev = ixc, izcPrev = izc;
+	long long ixcPrev = ixc, izcPrev = izc;
 	float MaxAbsE2D_RatForMinE = (float)(MaxAbsE2D*RatForMinE);
 	if(MaxAbsEVsX < MaxAbsE2D_RatForMinE) 
 	{
-		izc = zIndMaxAbsE2D;
+		izc = (long)zIndMaxAbsE2D;
 	}
 	if(MaxAbsEVsZ < MaxAbsE2D_RatForMinE)
 	{
-		ixc = xIndMaxAbsE2D;
+		ixc = (long)xIndMaxAbsE2D;
 	}
 	
 	//if((izc != izcPrev) || (ixc != ixcPrev))
@@ -1077,10 +1080,12 @@ int srTGenOptElem::FindPostResizeCenterCorrection(srTRadSect1D& Sect1D, srTParPr
 		if(result = PropagateRadiationSimple1D(&SectDpl)) return result;
 	}
 
-	long MaxAbsReExInd;
+	//long MaxAbsReExInd;
+	long long MaxAbsReExInd;
 	float MaxAbsReEx, MaxAbsEx, MaxAbsEz;
 	char TreatExOrEz;
-	long IndMaxAbsEx, IndMaxAbsEz;
+	//long IndMaxAbsEx, IndMaxAbsEz;
+	long long IndMaxAbsEx, IndMaxAbsEz;
 	FindMaximumAbsReE(SectDpl, MaxAbsEx, IndMaxAbsEx, MaxAbsEz, IndMaxAbsEz);
 	if(MaxAbsEx > MaxAbsEz)
 	{
@@ -1351,14 +1356,16 @@ int srTGenOptElem::AnalizeFringes(srTRadSect1D& Sect1D, char TreatExOrEz, srTFri
 		//OC210508
 		if(TotFringes <= 0) TotFringes = 1;
 
-		long SumOfPoints = 0;
+		//long SumOfPoints = 0;
+		long long SumOfPoints = 0;
 		for(int i=iSt; i<=iFi; i++) SumOfPoints += FringeContent[i];
 		LeftPointsPerFringe = 0.8*double(SumOfPoints)/double(TotFringes); // To steer
 		RightPointsPerFringe = LeftPointsPerFringe;
 	}
 	else if(TreatTwoEdgeIntervals)
 	{
-		long SumOfPoints = 0;
+		//long SumOfPoints = 0;
+		long long SumOfPoints = 0;
 		for(int i1=1; i1<(AmOfFringesToTreatAtEdges + 1); i1++) SumOfPoints += FringeContent[i1];
 		LeftPointsPerFringe = double(SumOfPoints)/double(AmOfFringesToTreatAtEdges);
 
@@ -1791,12 +1798,14 @@ int srTGenOptElem::FindPostResizeForRange1D(srTRadSect1D& Sect1D, srTParPrecWfrP
 		if(result = PropagateRadiationSimple1D(&SectDpl)) return result; // To implement in all elements
 	}
 
-	long MaxAbsReExInd;
+	//long MaxAbsReExInd;
+	long long MaxAbsReExInd;
 	float MaxAbsReEx;
 	char TreatExOrEz;
 
 	float MaxAbsEx, MaxAbsEz;
-	long IndMaxAbsEx, IndMaxAbsEz;
+	//long IndMaxAbsEx, IndMaxAbsEz;
+	long long IndMaxAbsEx, IndMaxAbsEz;
 	FindMaximumAbsReE(SectDpl, MaxAbsEx, IndMaxAbsEx, MaxAbsEz, IndMaxAbsEz);
 	if(MaxAbsEx > MaxAbsEz)
 	{
@@ -1860,12 +1869,14 @@ void srTGenOptElem::FindThresholdBorders(srTRadSect1D& Sect1D, double AbsThresh,
 
 //*************************************************************************
 
-void srTGenOptElem::FindMaximumAbsReE(srTRadSect1D& Sect1D, float& MaxAbsEx, long& IndMaxAbsEx, float& MaxAbsEz, long& IndMaxAbsEz)
+//void srTGenOptElem::FindMaximumAbsReE(srTRadSect1D& Sect1D, float& MaxAbsEx, long& IndMaxAbsEx, float& MaxAbsEz, long& IndMaxAbsEz)
+void srTGenOptElem::FindMaximumAbsReE(srTRadSect1D& Sect1D, float& MaxAbsEx, long long& IndMaxAbsEx, float& MaxAbsEz, long long& IndMaxAbsEz)
 {
 	float MaxValEx = (float)(-1.E+23), MaxValEz = (float)(-1.E+23);
 	float *tEx = Sect1D.pEx, *tEz = Sect1D.pEz;
 
-	for(long i=0; i<Sect1D.np; i++)
+	//for(long i=0; i<Sect1D.np; i++)
+	for(long long i=0; i<Sect1D.np; i++)
 	{
 		float TestMaxEx = (float)::fabs(*tEx); tEx += 2;
 		if(TestMaxEx > MaxValEx) 

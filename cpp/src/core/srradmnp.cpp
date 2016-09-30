@@ -79,23 +79,28 @@ int srTRadGenManip::ExtractSingleElecFlux1DvsE(srTRadExtract& RadExtract)
 	float *pEx0 = RadAccessData.pBaseRadX;
 	float *pEz0 = RadAccessData.pBaseRadZ;
 
-	long PerX = RadAccessData.ne << 1;
-	long PerZ = PerX*RadAccessData.nx;
+	//long PerX = RadAccessData.ne << 1;
+	//long PerZ = PerX*RadAccessData.nx;
+	long long PerX = RadAccessData.ne << 1;
+	long long PerZ = PerX*RadAccessData.nx;
 
 	long Nz_mi_1 = RadAccessData.nz - 1;
 	long Nx_mi_1 = RadAccessData.nx - 1;
 
-    long iePerE = 0;
+    //long iePerE = 0;
+    long long iePerE = 0;
 	for(long ie=0; ie<RadAccessData.ne; ie++)
 	{
-        long izPerZ = 0;
+        //long izPerZ = 0;
+        long long izPerZ = 0;
 
 		double Sum = 0;
 		for(long iz=0; iz<RadAccessData.nz; iz++)
 		{
 			float *pEx_StartForX = pEx0 + izPerZ;
             float *pEz_StartForX = pEz0 + izPerZ;
-            long ixPerX = 0;
+            //long ixPerX = 0;
+            long long ixPerX = 0;
 
 			double SumX = 0.;
 
@@ -138,14 +143,16 @@ int srTRadGenManip::ExtractMultiElecFlux1DvsE(srTRadExtract& RadExtract)
 	FFT2D.NextCorrectNumberForFFT(Nx);
 	FFT2D.NextCorrectNumberForFFT(Nz);
 
-	long TotAmOfNewData = (Nx*Nz) << 1;
+	//long TotAmOfNewData = (Nx*Nz) << 1;
+	long long TotAmOfNewData = (((long long)Nx)*((long long)Nz)) << 1;
 
 	float* pTempStorage = new float[TotAmOfNewData];
 	if(pTempStorage == 0) return MEMORY_ALLOCATION_FAILURE;
 
 		//test
 		float *tTempStorage = pTempStorage;
-		for(long i=0; i<TotAmOfNewData; i++) *(tTempStorage++) = 0;
+		//for(long i=0; i<TotAmOfNewData; i++) *(tTempStorage++) = 0;
+		for(long long i=0; i<TotAmOfNewData; i++) *(tTempStorage++) = 0;
 		//end test
 
 	srTRadExtract OwnRadExtract = RadExtract;
@@ -157,8 +164,10 @@ int srTRadGenManip::ExtractMultiElecFlux1DvsE(srTRadExtract& RadExtract)
 	long Ne = RadAccessData.ne;
 	float *pF = RadExtract.pExtractedData;
 
-	long Nz_mi_1 = Nz - 1;
-	long Nx_mi_1 = Nx - 1;
+	//long Nz_mi_1 = Nz - 1;
+	//long Nx_mi_1 = Nx - 1;
+	long long Nz_mi_1 = Nz - 1;
+	long long Nx_mi_1 = Nx - 1;
 
 	//double xStepLoc = ((RadAccessData.xStep)*(RadAccessData.nx - 1))/Nx_mi_1;
 	//double zStepLoc = ((RadAccessData.zStep)*(RadAccessData.nz - 1))/Nz_mi_1;
@@ -209,24 +218,29 @@ int srTRadGenManip::ExtractSingleElecIntensity1DvsE(srTRadExtract& RadExtract)
 	float *pEx0 = RadAccessData.pBaseRadX;
 	float *pEz0 = RadAccessData.pBaseRadZ;
 
-	long PerX = RadAccessData.ne << 1;
-	long PerZ = PerX*RadAccessData.nx;
+	//long PerX = RadAccessData.ne << 1;
+	//long PerZ = PerX*RadAccessData.nx;
+	long long PerX = RadAccessData.ne << 1;
+	long long PerZ = PerX*RadAccessData.nx;
 
 	long ix0=0, ix1=0, iz0=0, iz1=0;
 	double InvStepRelArg1, InvStepRelArg2;
 	SetupIntCoord('x', RadExtract.x, ix0, ix1, InvStepRelArg1);
 	SetupIntCoord('z', RadExtract.z, iz0, iz1, InvStepRelArg2);
 
-	long iz0PerZ = iz0*PerZ, iz1PerZ = iz1*PerZ;
+	//long iz0PerZ = iz0*PerZ, iz1PerZ = iz1*PerZ;
+	long long iz0PerZ = iz0*PerZ, iz1PerZ = iz1*PerZ;
 	float *pEx_StartForX_iz0 = pEx0 + iz0PerZ, *pEx_StartForX_iz1 = pEx0 + iz1PerZ;
 	float *pEz_StartForX_iz0 = pEz0 + iz0PerZ, *pEz_StartForX_iz1 = pEz0 + iz1PerZ;
 
-	long ix0PerX = ix0*PerX, ix1PerX = ix1*PerX;
+	//long ix0PerX = ix0*PerX, ix1PerX = ix1*PerX;
+	long long ix0PerX = ix0*PerX, ix1PerX = ix1*PerX;
 	float *pEx_StartForE_ix0_iz0 = pEx_StartForX_iz0 + ix0PerX, *pEx_StartForE_ix1_iz0 = pEx_StartForX_iz0 + ix1PerX;
 	float *pEx_StartForE_ix0_iz1 = pEx_StartForX_iz1 + ix0PerX, *pEx_StartForE_ix1_iz1 = pEx_StartForX_iz1 + ix1PerX;
 	float *pEz_StartForE_ix0_iz0 = pEz_StartForX_iz0 + ix0PerX, *pEz_StartForE_ix1_iz0 = pEz_StartForX_iz0 + ix1PerX;
 	float *pEz_StartForE_ix0_iz1 = pEz_StartForX_iz1 + ix0PerX, *pEz_StartForE_ix1_iz1 = pEz_StartForX_iz1 + ix1PerX;
-	long iePerE = 0;
+	//long iePerE = 0;
+	long long iePerE = 0;
 
 	for(long ie=0; ie<RadAccessData.ne; ie++)
 	{
@@ -262,8 +276,10 @@ int srTRadGenManip::ExtractSingleElecIntensity1DvsX(srTRadExtract& RadExtract)
 	float *pEx0 = RadAccessData.pBaseRadX;
 	float *pEz0 = RadAccessData.pBaseRadZ;
 
-	long PerX = RadAccessData.ne << 1;
-	long PerZ = PerX*RadAccessData.nx;
+	//long PerX = RadAccessData.ne << 1;
+	//long PerZ = PerX*RadAccessData.nx;
+	long long PerX = RadAccessData.ne << 1;
+	long long PerZ = PerX*RadAccessData.nx;
 
 	long ie0=0, ie1=0, iz0=0, iz1=0;
 	double InvStepRelArg1, InvStepRelArg2;
@@ -284,10 +300,12 @@ int srTRadGenManip::ExtractSingleElecIntensity1DvsX(srTRadExtract& RadExtract)
 
 	long Two_ie0 = ie0 << 1, Two_ie1 = ie1 << 1;
 
-	long iz0PerZ = iz0*PerZ, iz1PerZ = iz1*PerZ;
+	//long iz0PerZ = iz0*PerZ, iz1PerZ = iz1*PerZ;
+	long long iz0PerZ = iz0*PerZ, iz1PerZ = iz1*PerZ;
 	float *pEx_StartForX_iz0 = pEx0 + iz0PerZ, *pEx_StartForX_iz1 = pEx0 + iz1PerZ;
 	float *pEz_StartForX_iz0 = pEz0 + iz0PerZ, *pEz_StartForX_iz1 = pEz0 + iz1PerZ;
-	long ixPerX = 0;
+	//long ixPerX = 0;
+	long long ixPerX = 0;
 
 	for(long ix=0; ix<RadAccessData.nx; ix++)
 	{
@@ -348,8 +366,10 @@ int srTRadGenManip::ExtractSingleElecIntensity1DvsZ(srTRadExtract& RadExtract)
 	float *pEx0 = RadAccessData.pBaseRadX;
 	float *pEz0 = RadAccessData.pBaseRadZ;
 
-	long PerX = RadAccessData.ne << 1;
-	long PerZ = PerX*RadAccessData.nx;
+	//long PerX = RadAccessData.ne << 1;
+	//long PerZ = PerX*RadAccessData.nx;
+	long long PerX = RadAccessData.ne << 1;
+	long long PerZ = PerX*RadAccessData.nx;
 
 	long ie0=0, ie1=0, ix0=0, ix1=0;
 	double InvStepRelArg1, InvStepRelArg2;
@@ -369,8 +389,10 @@ int srTRadGenManip::ExtractSingleElecIntensity1DvsZ(srTRadExtract& RadExtract)
 	double ConstPhotEnInteg = 1.; //1 Phot/s/.1%bw correspond(s) to : 1.60219e-16 W/eV
 
 	long Two_ie0 = ie0 << 1, Two_ie1 = ie1 << 1;
-	long ix0PerX = ix0*PerX, ix1PerX = ix1*PerX;
-	long izPerZ = 0;
+	//long ix0PerX = ix0*PerX, ix1PerX = ix1*PerX;
+	//long izPerZ = 0;
+	long long ix0PerX = ix0*PerX, ix1PerX = ix1*PerX;
+	long long izPerZ = 0;
 
 	for(long iz=0; iz<RadAccessData.nz; iz++)
 	{
@@ -433,8 +455,10 @@ int srTRadGenManip::ExtractSingleElecIntensity2DvsXZ(srTRadExtract& RadExtract)
 	float *pEx0 = RadAccessData.pBaseRadX;
 	float *pEz0 = RadAccessData.pBaseRadZ;
 
-	long PerX = RadAccessData.ne << 1;
-	long PerZ = PerX*RadAccessData.nx;
+	//long PerX = RadAccessData.ne << 1;
+	//long PerZ = PerX*RadAccessData.nx;
+	long long PerX = RadAccessData.ne << 1;
+	long long PerZ = PerX*RadAccessData.nx;
 
 	long ie0=0, ie1=0;
 	double InvStepRelArg=0;
@@ -452,7 +476,8 @@ int srTRadGenManip::ExtractSingleElecIntensity2DvsXZ(srTRadExtract& RadExtract)
 	double ConstPhotEnInteg = 1.; //1 Phot/s/.1%bw correspond(s) to : 1.60219e-16 W/eV
 
 	long Two_ie0 = ie0 << 1, Two_ie1 = ie1 << 1;
-	long izPerZ = 0;
+	//long izPerZ = 0;
+	long long izPerZ = 0;
 
 	for(long iz=0; iz<RadAccessData.nz; iz++)
 	{
@@ -519,18 +544,22 @@ int srTRadGenManip::ExtractSingleElecIntensity2DvsEX(srTRadExtract& RadExtract)
 	float *pEx0 = RadAccessData.pBaseRadX;
 	float *pEz0 = RadAccessData.pBaseRadZ;
 
-	long PerX = RadAccessData.ne << 1;
-	long PerZ = PerX*RadAccessData.nx;
+	//long PerX = RadAccessData.ne << 1;
+	//long PerZ = PerX*RadAccessData.nx;
+	long long PerX = RadAccessData.ne << 1;
+	long long PerZ = PerX*RadAccessData.nx;
 
 	long iz0=0, iz1=0;
 	double InvStepRelArg;
 	SetupIntCoord('z', RadExtract.z, iz0, iz1, InvStepRelArg);
 
-	long iz0PerZ = iz0*PerZ, iz1PerZ = iz1*PerZ;
+	//long iz0PerZ = iz0*PerZ, iz1PerZ = iz1*PerZ;
+	long long iz0PerZ = iz0*PerZ, iz1PerZ = iz1*PerZ;
 	float *pEx_StartForX_iz0 = pEx0 + iz0PerZ, *pEx_StartForX_iz1 = pEx0 + iz1PerZ;
 	float *pEz_StartForX_iz0 = pEz0 + iz0PerZ, *pEz_StartForX_iz1 = pEz0 + iz1PerZ;
 
-	long ixPerX = 0;
+	//long ixPerX = 0;
+	long long ixPerX = 0;
 
 	for(long ix=0; ix<RadAccessData.nx; ix++)
 	{
@@ -565,15 +594,19 @@ int srTRadGenManip::ExtractSingleElecIntensity2DvsEZ(srTRadExtract& RadExtract)
 	float *pEx0 = RadAccessData.pBaseRadX;
 	float *pEz0 = RadAccessData.pBaseRadZ;
 
-	long PerX = RadAccessData.ne << 1;
-	long PerZ = PerX*RadAccessData.nx;
+	//long PerX = RadAccessData.ne << 1;
+	//long PerZ = PerX*RadAccessData.nx;
+	long long PerX = RadAccessData.ne << 1;
+	long long PerZ = PerX*RadAccessData.nx;
 
 	long ix0=0, ix1=0;
 	double InvStepRelArg;
 	SetupIntCoord('x', RadExtract.x, ix0, ix1, InvStepRelArg);
 
-	long ix0PerX = ix0*PerX, ix1PerX = ix1*PerX;
-	long izPerZ = 0;
+	//long ix0PerX = ix0*PerX, ix1PerX = ix1*PerX;
+	//long izPerZ = 0;
+	long long ix0PerX = ix0*PerX, ix1PerX = ix1*PerX;
+	long long izPerZ = 0;
 
 	for(long iz=0; iz<RadAccessData.nz; iz++)
 	{
@@ -610,15 +643,19 @@ int srTRadGenManip::ExtractSingleElecIntensity3D(srTRadExtract& RadExtract)
 	float *pEx0 = RadAccessData.pBaseRadX;
 	float *pEz0 = RadAccessData.pBaseRadZ;
 
-	long PerX = RadAccessData.ne << 1;
-	long PerZ = PerX*RadAccessData.nx;
-	long izPerZ = 0;
+	//long PerX = RadAccessData.ne << 1;
+	//long PerZ = PerX*RadAccessData.nx;
+	//long izPerZ = 0;
+	long long PerX = RadAccessData.ne << 1;
+	long long PerZ = PerX*RadAccessData.nx;
+	long long izPerZ = 0;
 
 	for(long iz=0; iz<RadAccessData.nz; iz++)
 	{
 		float *pEx_StartForX = pEx0 + izPerZ;
 		float *pEz_StartForX = pEz0 + izPerZ;
-		long ixPerX = 0;
+		//long ixPerX = 0;
+		long long ixPerX = 0;
 
 		for(long ix=0; ix<RadAccessData.nx; ix++)
 		{
@@ -662,7 +699,8 @@ int srTRadGenManip::ComputeConvolutedIntensity(srTRadExtract& RadExtract)
 	FFT2D.NextCorrectNumberForFFT(Nx);
 	FFT2D.NextCorrectNumberForFFT(Nz);
 
-	long TotAmOfNewData = (Nx*Nz) << 1;
+	//long TotAmOfNewData = (Nx*Nz) << 1;
+	long long TotAmOfNewData = (((long long)Nx)*((long long)Nz)) << 1;
 
 	pTempStorage = new float[TotAmOfNewData];
 	if(pTempStorage == 0) return MEMORY_ALLOCATION_FAILURE;
@@ -784,12 +822,14 @@ void srTRadGenManip::PadImZerosToRealData(float* pData, long Nx, long Nz)
 {
 	srTSRWRadStructAccessData& RadAccessData = *((srTSRWRadStructAccessData*)(hRadAccessData.ptr()));
 
-	long NxNzOld = RadAccessData.nx*RadAccessData.nz;
+	//long NxNzOld = RadAccessData.nx*RadAccessData.nz;
+	long long NxNzOld = ((long long)RadAccessData.nx)*((long long)RadAccessData.nz);
 
 	float* pOrig = pData + (NxNzOld - 1);
 	float* pTot = pData + ((NxNzOld << 1) - 2);
 
-	for(long is=0; is<NxNzOld; is++)
+	//for(long is=0; is<NxNzOld; is++)
+	for(long long is=0; is<NxNzOld; is++)
 	{
 		*pTot = *(pOrig--); *(pTot + 1) = 0.; 
 		pTot -= 2;
@@ -801,7 +841,9 @@ void srTRadGenManip::PadImZerosToRealData(float* pData, long Nx, long Nz)
 		//for(long iz=NxNzOld; iz<Nz; iz++) //OC bug fix?
 
         //pTot = pData + ((Nx << 1)*(Nz - 1)); //OC another fix 18jan2005
-        pTot = pData + ((Nx << 1)*(RadAccessData.nz));
+        //pTot = pData + ((Nx << 1)*(RadAccessData.nz));
+        pTot = pData + ((((long long)Nx) << 1)*((long long)RadAccessData.nz));
+
 		for(long iz=RadAccessData.nz; iz<Nz; iz++)
 		{
 			for(long ix=0; ix<Nx; ix++)
@@ -816,8 +858,10 @@ void srTRadGenManip::PadImZerosToRealData(float* pData, long Nx, long Nz)
 		long NzOld_mi_1 = RadAccessData.nz - 1;
 		long ShiftPer = (Nx - RadAccessData.nx) << 1;
 
-		float* pOrig_Start = pData + (TwoNxOld*NzOld_mi_1);
-		long ShiftLen = ShiftPer*NzOld_mi_1;
+		//float* pOrig_Start = pData + (TwoNxOld*NzOld_mi_1);
+		float* pOrig_Start = pData + (((long long)TwoNxOld)*((long long)NzOld_mi_1));
+		//long ShiftLen = ShiftPer*NzOld_mi_1;
+		long long ShiftLen = ((long long)ShiftPer)*((long long)NzOld_mi_1);
 
 		for(long iz=0; iz<NzOld_mi_1; iz++)
 		{
@@ -1019,9 +1063,11 @@ void srTRadGenManip::PutConstPhotEnergySliceInExtractPlace(long ie, long NxSlice
 	long Nx, Nz;
 	double RelArgX, RelArgZ;
 	double zAbs, xAbs, xAbsStart;
-	long PerZ_Slice = NxSlice << 1;
+	//long PerZ_Slice = NxSlice << 1;
+	long long PerZ_Slice = NxSlice << 1;
 
-	long PerX_Gen, PerZ_Gen;
+	//long PerX_Gen, PerZ_Gen;
+	long long PerX_Gen, PerZ_Gen;
 
 	int PT = RadExtract.PlotType;
 	if(PT == 0) // vs e
@@ -1078,7 +1124,8 @@ void srTRadGenManip::PutConstPhotEnergySliceInExtractPlace(long ie, long NxSlice
 	float Sum = 0.;
 
 	long ix0_Slice, ix1_Slice, iz0_Slice, iz1_Slice;
-	long izPerZ_Gen = 0;
+	//long izPerZ_Gen = 0;
+	long long izPerZ_Gen = 0;
 
 	long Nz_mi_1 = Nz - 1;
 	long Nx_mi_1 = Nx - 1;
@@ -1091,11 +1138,14 @@ void srTRadGenManip::PutConstPhotEnergySliceInExtractPlace(long ie, long NxSlice
 
 		SetupIntCoord('z', zAbs, iz0_Slice, iz1_Slice, RelArgZ);
 
-		float *pSliceStartForX_iz0 = pSlice0 + iz0_Slice*PerZ_Slice;
-		float *pSliceStartForX_iz1 = pSlice0 + iz1_Slice*PerZ_Slice;
+		//float *pSliceStartForX_iz0 = pSlice0 + iz0_Slice*PerZ_Slice;
+		//float *pSliceStartForX_iz1 = pSlice0 + iz1_Slice*PerZ_Slice;
+		float *pSliceStartForX_iz0 = pSlice0 + (((long long)iz0_Slice)*PerZ_Slice);
+		float *pSliceStartForX_iz1 = pSlice0 + (((long long)iz1_Slice)*PerZ_Slice);
 
 		xAbs = xAbsStart;
-		long ixPerX_Gen = 0;
+		//long ixPerX_Gen = 0;
+		long long ixPerX_Gen = 0;
 
 		for(long ix=0; ix<Nx; ix++)
 		{

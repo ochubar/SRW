@@ -302,8 +302,11 @@ int srTRadInt::ComputeTotalRadDistrDirectOut(srTSRWRadStructAccessData& SRWRadSt
 	double StepX = (DistrInfoDat.nx > 1)? (DistrInfoDat.xEnd - DistrInfoDat.xStart)/(DistrInfoDat.nx - 1) : 0.;
 	double StepZ = (DistrInfoDat.nz > 1)? (DistrInfoDat.zEnd - DistrInfoDat.zStart)/(DistrInfoDat.nz - 1) : 0.;
 
-	long PerX = DistrInfoDat.nLamb << 1;
-	long PerZ = DistrInfoDat.nx*PerX;
+	//long PerX = DistrInfoDat.nLamb << 1;
+	//long PerZ = DistrInfoDat.nx*PerX;
+	long long PerX = DistrInfoDat.nLamb << 1;
+	long long PerZ = DistrInfoDat.nx*PerX;
+
 	float *pEx0 = SRWRadStructAccessData.pBaseRadX;
 	float *pEz0 = SRWRadStructAccessData.pBaseRadZ;
 
@@ -317,10 +320,12 @@ int srTRadInt::ComputeTotalRadDistrDirectOut(srTSRWRadStructAccessData& SRWRadSt
 	double zc = TrjDatPtr->EbmDat.z0;
 	double xTol = StepX*0.001, zTol = StepZ*0.001; // To steer
 
-	long TotalAmOfOutPointsForInd = DistrInfoDat.nz*DistrInfoDat.nx*DistrInfoDat.nLamb;
+	//long TotalAmOfOutPointsForInd = DistrInfoDat.nz*DistrInfoDat.nx*DistrInfoDat.nLamb;
+	long TotalAmOfOutPointsForInd = ((long long)DistrInfoDat.nz)*((long long)DistrInfoDat.nx)*((long long)DistrInfoDat.nLamb);
 	if(FinalResAreSymOverX) TotalAmOfOutPointsForInd >>= 1;
 	if(FinalResAreSymOverZ) TotalAmOfOutPointsForInd >>= 1;
-	long PointCount = 0;
+	//long PointCount = 0;
+	long long PointCount = 0;
 	double UpdateTimeInt_s = 0.5;
 	//srTCompProgressIndicator* pCompProgressInd = 0;
 	//if(showProgressInd) pCompProgressInd = new srTCompProgressIndicator(TotalAmOfOutPoints, UpdateTimeInt_s);
@@ -335,19 +340,22 @@ int srTRadInt::ComputeTotalRadDistrDirectOut(srTSRWRadStructAccessData& SRWRadSt
 	{
 		if(FinalResAreSymOverZ) { if((ObsCoor.z - zc) > zTol) break;}
 
-		long izPerZ = iz*PerZ;
+		//long izPerZ = iz*PerZ;
+		long long izPerZ = iz*PerZ;
 		ObsCoor.x = DistrInfoDat.xStart;
 		for(int ix=0; ix<DistrInfoDat.nx; ix++)
 		{
 			if(FinalResAreSymOverX) { if((ObsCoor.x - xc) > xTol) break;}
 
-			long ixPerX = ix*PerX;
+			//long ixPerX = ix*PerX;
+			long long ixPerX = ix*PerX;
 			ObsCoor.Lamb = DistrInfoDat.LambStart;
 			for(int iLamb=0; iLamb<DistrInfoDat.nLamb; iLamb++)
 			{
 				if(result = GenRadIntegration(RadIntegValues, &EwNormDer)) return result;
 
-				long Offset = izPerZ + ixPerX + (iLamb << 1);
+				//long Offset = izPerZ + ixPerX + (iLamb << 1);
+				long long Offset = izPerZ + ixPerX + (iLamb << 1);
 				float *pEx = pEx0 + Offset, *pEz = pEz0 + Offset;
 
 				*pEx = float(RadIntegValues->real());
@@ -949,7 +957,8 @@ srTEFourier srTRadInt::ComputeRightPartOfRadIntegralInNearField(double sStGen, d
 
 	for(int j=0; j<AmOfParts; j++)
 	{
-		int NpOnLevel = 5;
+		//int NpOnLevel = 5;
+		long long NpOnLevel = 5;
 		srTEFourier EwSum1(0,0,0,0), EwSum2(0,0,0,0);
 		
 		double sStep = (sEnd - sStart)/(NpOnLevel - 1);
@@ -957,8 +966,10 @@ srTEFourier srTRadInt::ComputeRightPartOfRadIntegralInNearField(double sStGen, d
 		srTEFourier EwSt = RadFuncInDriftSpace(s, sStGen, Btx, xSt, Btz, zSt, IntBtE2xzSt, Ph);
 		PhInit = Ph;
 		s += sStep;
-		int AmOfLoops = (NpOnLevel - 3) >> 1;
-		for(int i=0; i<AmOfLoops; i++)
+		//int AmOfLoops = (NpOnLevel - 3) >> 1;
+		long long AmOfLoops = (NpOnLevel - 3) >> 1;
+		//for(int i=0; i<AmOfLoops; i++)
+		for(long long i=0; i<AmOfLoops; i++)
 		{
 			EwSum1 += RadFuncInDriftSpace(s, sStGen, Btx, xSt, Btz, zSt, IntBtE2xzSt, Ph);
 			s += sStep;
@@ -995,7 +1006,8 @@ srTEFourier srTRadInt::ComputeRightPartOfRadIntegralInNearField(double sStGen, d
 			double HalfStep = 0.5*sStep;
 			s = sStart + HalfStep;
 		
-			for(int i=0; i<NpOnLevel; i++)
+			//for(int i=0; i<NpOnLevel; i++)
+			for(long long i=0; i<NpOnLevel; i++)
 			{
 				EwSum1 += RadFuncInDriftSpace(s, sStGen, Btx, xSt, Btz, zSt, IntBtE2xzSt, Ph);
 				s += sStep;
@@ -1049,7 +1061,8 @@ int srTRadInt::ComputePreResid(double sSt, double sFi, double Btx, double x0, do
 	const double wf1 = 1.0666666666667;
 	const double wf2 = 0.93333333333333;
 	const double wd = 0.066666666666667;
-	int NpOnLevel = 5;
+	//int NpOnLevel = 5;
+	long long NpOnLevel = 5;
 
 	double sStart = sSt, sEnd = sFi;
 	double sStep = (sEnd - sStart)/(NpOnLevel - 1);
@@ -1073,9 +1086,11 @@ int srTRadInt::ComputePreResid(double sSt, double sFi, double Btx, double x0, do
 	PhInit = Ph;
 
 	double s = sStart + sStep;
-	int AmOfLoops = (NpOnLevel - 3) >> 1;
+	//int AmOfLoops = (NpOnLevel - 3) >> 1;
+	long long AmOfLoops = (NpOnLevel - 3) >> 1;
 
-	for(int i=0; i<AmOfLoops; i++)
+	//for(int i=0; i<AmOfLoops; i++)
+	for(long long i=0; i<AmOfLoops; i++)
 	{
 		One_d_ymis = 1./(yObs - s); 
 		xObs_mi_x = xObs - X_FreeSpace(s, Sc, Btx, x0);
@@ -1141,7 +1156,8 @@ int srTRadInt::ComputePreResid(double sSt, double sFi, double Btx, double x0, do
 
 		double DPhMax = 0.;
 
-		for(int i=0; i<NpOnLevel; i++)
+		//for(int i=0; i<NpOnLevel; i++)
+		for(long long i=0; i<NpOnLevel; i++)
 		{
 			One_d_ymis = 1./(yObs - s);
 			xObs_mi_x = xObs - X_FreeSpace(s, Sc, Btx, x0); 
@@ -1202,8 +1218,10 @@ int srTRadInt::RadIntegrationManualSlower(double& OutIntXRe, double& OutIntXIm, 
 	double s = sIntegStart;
 	FunForRadInt(s, Fb); 
 
-	int AmOfLoops = (AmOfPointsForManIntegr - 3) >> 1; // AmOfPointsForManIntegr assumed non-even
-	for(int i=1; i<=AmOfLoops; i++)
+	//int AmOfLoops = (AmOfPointsForManIntegr - 3) >> 1; // AmOfPointsForManIntegr assumed non-even
+	long long AmOfLoops = (AmOfPointsForManIntegr - 3) >> 1; // AmOfPointsForManIntegr assumed non-even
+	//for(int i=1; i<=AmOfLoops; i++)
+	for(long long i=1; i<=AmOfLoops; i++)
 	{
 		s += sIntegStep; 
 		FunForRadInt(s, F1);
@@ -1258,11 +1276,13 @@ int srTRadInt::RadIntegrationManualFaster0(double& OutIntXRe, double& OutIntXIm,
 	double Ny, L_x_N;
 
 	char CountTo3 = 0;
-	int AmOfPointsForManIntegr_mi_1 = AmOfPointsForManIntegr - 1;
+	//int AmOfPointsForManIntegr_mi_1 = AmOfPointsForManIntegr - 1;
+	long long AmOfPointsForManIntegr_mi_1 = AmOfPointsForManIntegr - 1;
 
 	if(DistrInfoDat.CoordOrAngPresentation == CoordPres)
 	{
-		for(int i=0; i<AmOfPointsForManIntegr; i++)
+		//for(int i=0; i<AmOfPointsForManIntegr; i++)
+		for(long long i=0; i<AmOfPointsForManIntegr; i++)
 		{
 			if(i==AmOfPointsForManIntegr_mi_1) CountTo3 = 0;
 			if(CountTo3==3) CountTo3 = 1;
@@ -1313,7 +1333,8 @@ int srTRadInt::RadIntegrationManualFaster0(double& OutIntXRe, double& OutIntXIm,
 	else if(DistrInfoDat.CoordOrAngPresentation == AngPres)
 	{
 		double AngPhConst = GmEm2 + xObs*xObs + zObs*zObs;
-		for(int i=0; i<AmOfPointsForManIntegr; i++)
+		//for(int i=0; i<AmOfPointsForManIntegr; i++)
+		for(long long i=0; i<AmOfPointsForManIntegr; i++)
 		{
 			if(CountTo3==3) CountTo3 = 1;
 			if(i==AmOfPointsForManIntegr_mi_1) CountTo3 = 0;
@@ -1374,7 +1395,9 @@ int srTRadInt::RadIntegrationManualFaster1(double& OutIntXRe, double& OutIntXIm,
 	//char CountTo3 = 0;
 	//int AmOfPointsForManIntegr_mi_1 = AmOfPointsForManIntegr - 1;
 
-	int AmOfLoops = (AmOfPointsForManIntegr - 3) >> 1;
+	//int AmOfLoops = (AmOfPointsForManIntegr - 3) >> 1;
+	long long AmOfLoops = (AmOfPointsForManIntegr - 3) >> 1;
+
 	const double One_d_15 = 1./15.;
 	const double Seven_d_15 = 7.*One_d_15;
 	double sIntegStep_d_15 = sIntegStep*One_d_15;
@@ -1405,7 +1428,8 @@ int srTRadInt::RadIntegrationManualFaster1(double& OutIntXRe, double& OutIntXIm,
 
 		sArg += sIntegStep;
 
-		for(int i=1; i<=AmOfLoops; i++)
+		//for(int i=1; i<=AmOfLoops; i++)
+		for(long long i=1; i<=AmOfLoops; i++)
 		{
 			One_d_ymis = 1./(yObs - sArg);
 			xObs_mi_x = xObs - *(pX++);
@@ -1514,7 +1538,8 @@ int srTRadInt::RadIntegrationManualFaster1(double& OutIntXRe, double& OutIntXIm,
 		Az = *(pBtz++) - zObs; FzRe = Az*CosPhase; FzIm = Az*SinPhase;
 		sArg += sIntegStep;
 
-		for(int i=1; i<=AmOfLoops; i++)
+		//for(int i=1; i<=AmOfLoops; i++)
+		for(long long i=1; i<=AmOfLoops; i++)
 		{
 			Phase = PIm10e9_d_Lamb*(sArg*AngPhConst + *(pIntBtxE2++) + *(pIntBtzE2++) - (Two_xObs*(*(pX++)) + Two_zObs*(*(pZ++))));
 			CosAndSin(Phase, CosPhase, SinPhase);
@@ -1595,11 +1620,13 @@ int srTRadInt::RadIntegrationManualFaster2(double& OutIntXRe, double& OutIntXIm,
 	double GmEm2 = TrjDatPtr->EbmDat.GammaEm2;
 
 	char CountTo4 = 0;
-	int AmOfPointsForManIntegr_mi_1 = AmOfPointsForManIntegr - 1;
+	//int AmOfPointsForManIntegr_mi_1 = AmOfPointsForManIntegr - 1;
+	long long AmOfPointsForManIntegr_mi_1 = AmOfPointsForManIntegr - 1;
 
 	if(DistrInfoDat.CoordOrAngPresentation == CoordPres)
 	{
-		for(int i=0; i<AmOfPointsForManIntegr; i++)
+		//for(int i=0; i<AmOfPointsForManIntegr; i++)
+		for(long long i=0; i<AmOfPointsForManIntegr; i++)
 		{
 			if(i==AmOfPointsForManIntegr_mi_1) CountTo4 = 0;
 			if(CountTo4==4) CountTo4 = 1;
@@ -1645,7 +1672,8 @@ int srTRadInt::RadIntegrationManualFaster2(double& OutIntXRe, double& OutIntXIm,
 	else if(DistrInfoDat.CoordOrAngPresentation == AngPres)
 	{
 		double AngPhConst = GmEm2 + xObs*xObs + zObs*zObs;
-		for(int i=0; i<AmOfPointsForManIntegr; i++)
+		//for(int i=0; i<AmOfPointsForManIntegr; i++)
+		for(long long i=0; i<AmOfPointsForManIntegr; i++)
 		{
 			if(CountTo4==4) CountTo4 = 1;
 			if(i==AmOfPointsForManIntegr_mi_1) CountTo4 = 0;
@@ -1698,7 +1726,8 @@ int srTRadInt::RadIntegrationManualFaster2(double& OutIntXRe, double& OutIntXIm,
 
 int srTRadInt::RadIntegrationAuto1(double& OutIntXRe, double& OutIntXIm, double& OutIntZRe, double& OutIntZIm, srTEFourier* pEwNormDer)
 {
-	const long NpOnLevelMaxNoResult = 800000000; //5000000; //2000000; // To steer; to stop computation as unsuccessful
+	//const long NpOnLevelMaxNoResult = 800000000; //5000000; //2000000; // To steer; to stop computation as unsuccessful
+	const long long NpOnLevelMaxNoResult = 800000000; //5000000; //2000000; // To steer; to stop computation as unsuccessful
 
 	double ActNormConst = (DistrInfoDat.TreatLambdaAsEnergyIn_eV)? NormalizingConst*ObsCoor.Lamb*0.80654658E-03 : NormalizingConst/ObsCoor.Lamb;
 	double PIm10e9_d_Lamb = (DistrInfoDat.TreatLambdaAsEnergyIn_eV)? PIm10e6dEnCon*ObsCoor.Lamb : PIm10e6*1000./ObsCoor.Lamb;
@@ -1713,7 +1742,8 @@ int srTRadInt::RadIntegrationAuto1(double& OutIntXRe, double& OutIntXIm, double&
 
 	char NearField = (DistrInfoDat.CoordOrAngPresentation == CoordPres);
 
-	long NpOnLevel = 5; // Must be non-even!
+	//long NpOnLevel = 5; // Must be non-even!
+	long long NpOnLevel = 5; // Must be non-even!
 
 	int result;
 	if(NumberOfLevelsFilled == 0) if(result = FillNextLevel(0, sStart, sEnd, NpOnLevel)) return result;
@@ -1762,9 +1792,11 @@ int srTRadInt::RadIntegrationAuto1(double& OutIntXRe, double& OutIntXIm, double&
 
 	double s = sStart + sStep;
 	IndxOnLevel = 1;
-	int AmOfLoops = (NpOnLevel - 3) >> 1;
+	//int AmOfLoops = (NpOnLevel - 3) >> 1;
+	long long AmOfLoops = (NpOnLevel - 3) >> 1;
 
-	for(int i=0; i<AmOfLoops; i++)
+	//for(int i=0; i<AmOfLoops; i++)
+	for(long long i=0; i<AmOfLoops; i++)
 	{
 		if(NearField)
 		{
@@ -1902,7 +1934,8 @@ int srTRadInt::RadIntegrationAuto1(double& OutIntXRe, double& OutIntXIm, double&
 
 			double DPhMax = 0.;
 
-		for(long i=0; i<NpOnLevel; i++)
+		//for(long i=0; i<NpOnLevel; i++)
+		for(long long i=0; i<NpOnLevel; i++)
 		{
 			if(LevelNo > MaxLevelForMeth_10_11)
 			{
@@ -1950,12 +1983,11 @@ int srTRadInt::RadIntegrationAuto1(double& OutIntXRe, double& OutIntXIm, double&
 
 			PhPrev = Ph;
 
-				if(i > NpOnLevel - 30)
-				{
-					//int aha = 1;
-					Ph *= 1.;
-
-				}
+				//if(i > NpOnLevel - 30)
+				//{
+				//	//int aha = 1;
+				//	Ph *= 1.;
+				//}
 		}
 		double ActNormConstHalfStep = ActNormConst*HalfStep;
 		double LocIntXRe = OutIntXRe + ActNormConstHalfStep*(wFxRe + wf1*Sum1XRe + wf2*Sum2XRe + HalfStep*wDifDerXRe);
@@ -2003,9 +2035,11 @@ int srTRadInt::RadIntegrationAuto1(double& OutIntXRe, double& OutIntXIm, double&
 
 //*************************************************************************
 
-int srTRadInt::RadIntegrationAuto1M(double sStart, double sEnd, double* FunArr, double* EdgeDerArr, int AmOfInitPo, int ThisLevNo, double& OutIntXRe, double& OutIntXIm, double& OutIntZRe, double& OutIntZIm)
+//int srTRadInt::RadIntegrationAuto1M(double sStart, double sEnd, double* FunArr, double* EdgeDerArr, int AmOfInitPo, int ThisLevNo, double& OutIntXRe, double& OutIntXIm, double& OutIntZRe, double& OutIntZIm)
+int srTRadInt::RadIntegrationAuto1M(double sStart, double sEnd, double* FunArr, double* EdgeDerArr, long long AmOfInitPo, int ThisLevNo, double& OutIntXRe, double& OutIntXIm, double& OutIntZRe, double& OutIntZIm)
 {
-	const long NpOnLevelMaxNoResult = 800000000; //5000000; // To steer; to stop computation as unsuccessful
+	//const long NpOnLevelMaxNoResult = 800000000; //5000000; // To steer; to stop computation as unsuccessful
+	const long long NpOnLevelMaxNoResult = 800000000; //5000000; // To steer; to stop computation as unsuccessful
 	//const int NpOnZeroLev = 5;
 	//const int NpOnZeroLev_mi_1 = NpOnZeroLev - 1;
 	//double GenInterv = sIntegFin - sIntegStart;
@@ -2016,8 +2050,10 @@ int srTRadInt::RadIntegrationAuto1M(double sStart, double sEnd, double* FunArr, 
 	const double wf2 = 14./15.;
 	const double wd = 1./15.;
 
-	int AmOfInitPo_mi_1 = AmOfInitPo - 1;
-	int AmOfInitPoMi1_mu_4 = AmOfInitPo_mi_1*4;
+	//int AmOfInitPo_mi_1 = AmOfInitPo - 1;
+	//int AmOfInitPoMi1_mu_4 = AmOfInitPo_mi_1*4;
+	long long AmOfInitPo_mi_1 = AmOfInitPo - 1;
+	long long AmOfInitPoMi1_mu_4 = AmOfInitPo_mi_1*4;
 
 	double *t1 = FunArr, *t2 = FunArr + AmOfInitPoMi1_mu_4;
 	double wFxRe = wfe*(*(t1++) + *(t2++));
@@ -2038,8 +2074,10 @@ int srTRadInt::RadIntegrationAuto1M(double sStart, double sEnd, double* FunArr, 
 	double *t = FunArr + 4; 
 	if(AmOfInitPo > 3)
 	{
-		int AmOfLoops = (AmOfInitPo - 3) >> 1;
-		for(int i=0; i<AmOfLoops; i++)
+		//int AmOfLoops = (AmOfInitPo - 3) >> 1;
+		long long AmOfLoops = (AmOfInitPo - 3) >> 1;
+		//for(int i=0; i<AmOfLoops; i++)
+		for(long long i=0; i<AmOfLoops; i++)
 		{
 			Sum1XRe += *(t++); Sum1XIm += *(t++); Sum1ZRe += *(t++); Sum1ZIm += *(t++);
 			Sum2XRe += *(t++); Sum2XIm += *(t++); Sum2ZRe += *(t++); Sum2ZIm += *(t++);
@@ -2051,7 +2089,8 @@ int srTRadInt::RadIntegrationAuto1M(double sStart, double sEnd, double* FunArr, 
 		Sum1XRe += *(t++); Sum1XIm += *(t++); Sum1ZRe += *(t++); Sum1ZIm += *t;
 	}
 
-	long Np = AmOfInitPo - 1;
+	//long Np = AmOfInitPo - 1;
+	long long Np = AmOfInitPo - 1;
 	double sStep = (sEnd - sStart)/double(Np), s;
 
 	double ActNormConst = (DistrInfoDat.TreatLambdaAsEnergyIn_eV)? NormalizingConst*ObsCoor.Lamb*0.80654658E-03 : NormalizingConst/ObsCoor.Lamb;
@@ -2096,7 +2135,8 @@ int srTRadInt::RadIntegrationAuto1M(double sStart, double sEnd, double* FunArr, 
 		}
 				double DPhMax = 0.;
 
-		for(long i=0; i<Np; i++)
+		//for(long i=0; i<Np; i++)
+		for(long long i=0; i<Np; i++)
 		{
 			if(LevelNo > MaxLevelForMeth_10_11)
 			{
@@ -2200,7 +2240,8 @@ int srTRadInt::RadIntegrationAuto2(double& OutIntXRe, double& OutIntXIm, double&
 
 	const int NpOnZeroLev_mi_1 = NpOnZeroLev - 1;
 	double GenInterv = sIntegFin - sIntegStart;
-	int NpOnLevel = NpOnZeroLev;
+	//int NpOnLevel = NpOnZeroLev;
+	long long NpOnLevel = NpOnZeroLev;
 
 	double ActNormConst = (DistrInfoDat.TreatLambdaAsEnergyIn_eV)? NormalizingConst*ObsCoor.Lamb*0.80654658E-03 : NormalizingConst/ObsCoor.Lamb;
 	double PIm10e9_d_Lamb = (DistrInfoDat.TreatLambdaAsEnergyIn_eV)? PIm10e6dEnCon*ObsCoor.Lamb : PIm10e6*1000./ObsCoor.Lamb;
@@ -2248,14 +2289,16 @@ int srTRadInt::RadIntegrationAuto2(double& OutIntXRe, double& OutIntXIm, double&
 	double HalfStep = 0.5*sStep;
 	int LevelNo = 0;
 
-	int TotNp = NpOnLevel;
+	//int TotNp = NpOnLevel;
+	long long TotNp = NpOnLevel;
 
 	double t1xd = 0., t2xd = 0.,t1zd = 0., t2zd = 0., d2Phds2_d_dPhds = 0.; //OC190815
 
 	int AmOfLoops_mi_1 = AmOfLoops - 1;
 	for(int k=0; k<AmOfLoops; k++)
 	{
-		for(int i=0; i<NpOnLevel; i++)
+		//for(int i=0; i<NpOnLevel; i++)
+		for(long long i=0; i<NpOnLevel; i++)
 		{
 			if(NearField) 
 			{
@@ -2361,11 +2404,15 @@ int srTRadInt::RadIntegrationAuto2(double& OutIntXRe, double& OutIntXIm, double&
 
 		if(k != AmOfLoops_mi_1)
 		{
-			int TotNp_mi_1 = TotNp-1;
-			int ia = TotNp_mi_1;
-			for(int ii=0; ii<TotNp_mi_1; ii++)
+			//int TotNp_mi_1 = TotNp-1;
+			//int ia = TotNp_mi_1;
+			long long TotNp_mi_1 = TotNp-1;
+			long long ia = TotNp_mi_1;
+			//for(int ii=0; ii<TotNp_mi_1; ii++)
+			for(long long ii=0; ii<TotNp_mi_1; ii++)
 			{
-				int ib = 2*ia;
+				//int ib = 2*ia;
+				long long ib = 2*ia;
 				IntXReArrAuto[ib] = IntXReArrAuto[ia];
 				IntXImArrAuto[ib] = IntXImArrAuto[ia];
 				IntZReArrAuto[ib] = IntZReArrAuto[ia];
@@ -2495,7 +2542,8 @@ int srTRadInt::RadIntegrationAuto2(double& OutIntXRe, double& OutIntXIm, double&
 
 			if(AmOfPoInNumArrayIsEven)
 			{
-				int PrevAnLen = (pAnRadInt-1)->SecondInt - (pAnRadInt-1)->InitLevelNo;
+				//int PrevAnLen = (pAnRadInt-1)->SecondInt - (pAnRadInt-1)->InitLevelNo;
+				long long PrevAnLen = (pAnRadInt-1)->SecondInt - (pAnRadInt-1)->InitLevelNo;
 				if(PrevAnLen == 1)
 				{
 					AmOfAnArrays--;
@@ -2623,7 +2671,8 @@ int srTRadInt::RadIntegrationAuto2(double& OutIntXRe, double& OutIntXIm, double&
 		double *t = FunArr, *td = EdgeDerArr;
 		pPh = PhArrAuto; pdPhds = dPhdsArrAuto; pAx = AxArrAuto; pdAxds = dAxdsArrAuto; pAz = AzArrAuto; pdAzds = dAzdsArrAuto;
 		double InitPh = *pPh;
-		for(int i=0; i<TotNp; i++)
+		//for(int i=0; i<TotNp; i++)
+		for(long long i=0; i<TotNp; i++)
 		{
 			CosAndSin(*pPh, CosPh, SinPh);
 			if((i==0) || (i==(TotNp-1)))
@@ -2649,8 +2698,10 @@ int srTRadInt::RadIntegrationAuto2(double& OutIntXRe, double& OutIntXIm, double&
 
 	for(int kAn=0; kAn<AmOfAnArrays; kAn++)
 	{
-		int IndSt = pAnRadInt->InitLevelNo;
-		int IndFi = pAnRadInt->SecondInt;
+		//int IndSt = pAnRadInt->InitLevelNo;
+		//int IndFi = pAnRadInt->SecondInt;
+		long long IndSt = pAnRadInt->InitLevelNo;
+		long long IndFi = pAnRadInt->SecondInt;
 
 		double CosPh, SinPh;
 		double Ph = PhArrAuto[IndFi], dPhds = dPhdsArrAuto[IndFi], d2Phds2 = d2Phds2ArrAuto[IndFi];
@@ -2692,10 +2743,12 @@ int srTRadInt::RadIntegrationAuto2(double& OutIntXRe, double& OutIntXIm, double&
 	pNumRadInt = NumRadIntervAuto;
 	for(int n=0; n<AmOfNumArrays; n++)
 	{
-		int TotAmOfPo = pNumRadInt->SecondInt - pNumRadInt->InitLevelNo + 1;
+		//int TotAmOfPo = pNumRadInt->SecondInt - pNumRadInt->InitLevelNo + 1;
+		long long TotAmOfPo = pNumRadInt->SecondInt - pNumRadInt->InitLevelNo + 1;
 
 		double *t = FunArr, *td = EdgeDerArr;
-		int StNo = pNumRadInt->InitLevelNo, FiNo = pNumRadInt->SecondInt;
+		//int StNo = pNumRadInt->InitLevelNo, FiNo = pNumRadInt->SecondInt;
+		long long StNo = pNumRadInt->InitLevelNo, FiNo = pNumRadInt->SecondInt;
 		//int FiNo_mi_1 = FiNo - 1;
 
 		pPh = PhArrAuto+StNo; pdPhds = dPhdsArrAuto+StNo; 
@@ -2703,7 +2756,8 @@ int srTRadInt::RadIntegrationAuto2(double& OutIntXRe, double& OutIntXIm, double&
 		pAz = AzArrAuto+StNo; pdAzds = dAzdsArrAuto+StNo;
 		double InitPh = *pPh;
 
-		for(int jj=StNo; jj<=FiNo; jj++)
+		//for(int jj=StNo; jj<=FiNo; jj++)
+		for(long long jj=StNo; jj<=FiNo; jj++)
 		{
 			CosAndSin(*pPh, CosPh, SinPh);
 			if((jj==StNo) || (jj==FiNo))
@@ -2730,19 +2784,24 @@ int srTRadInt::RadIntegrationAuto2(double& OutIntXRe, double& OutIntXIm, double&
 
 //*************************************************************************
 
-int srTRadInt::FillNextLevelPart(int LevelNo, double sStart, double sEnd, long Np, double*** TrjPtrs)
+//int srTRadInt::FillNextLevelPart(int LevelNo, double sStart, double sEnd, long Np, double*** TrjPtrs)
+int srTRadInt::FillNextLevelPart(int LevelNo, double sStart, double sEnd, long long Np, double*** TrjPtrs)
 {
 	srTStNoFiNoVect& StNoFiNoVect = StNoFiNoVectArr[LevelNo];
-	int TotalNpOnLevel = (LevelNo > 0)? (*AmOfPointsOnLevel - 1)*(1 << (LevelNo - 1)) : Np;
+	//int TotalNpOnLevel = (LevelNo > 0)? (*AmOfPointsOnLevel - 1)*(1 << (LevelNo - 1)) : Np;
+	long long TotalNpOnLevel = (LevelNo > 0)? (*AmOfPointsOnLevel - 1)*(((long long)1) << ((long long)(LevelNo - 1))) : Np;
 
-	int GenStartOffset = 0;
+	//int GenStartOffset = 0;
+	long long GenStartOffset = 0;
 
 	if(TotalNpOnLevel != Np)
 	{
 		double Two_h = (sIntegFin - sIntegStart)/TotalNpOnLevel;
 		double h = 0.5*Two_h;
-		int iSt = int((sStart - sIntegStart - h)/Two_h + 1.E-08);
-		int iFi = iSt + Np - 1;
+		//int iSt = int((sStart - sIntegStart - h)/Two_h + 1.E-08);
+		//int iFi = iSt + Np - 1;
+		long long iSt = (long long)((sStart - sIntegStart - h)/Two_h + 1.E-08);
+		long long iFi = iSt + Np - 1;
 
 		if(NumberOfLevelsFilled > LevelNo) 
 		{
@@ -2816,8 +2875,10 @@ int srTRadInt::FillNextLevelPart(int LevelNo, double sStart, double sEnd, long N
 				if(NoOfPartTotallyInside < (OldVectSize - 1))
 				{
 					srTStNoFiNo StNoFiNo_TotInside = StNoFiNoVect[NoOfPartTotallyInside];
-					int LocOffs = StNoFiNo_TotInside.StOffset;
-					int AmOfPo_TotInside = StNoFiNo_TotInside.FiNo - StNoFiNo_TotInside.StNo + 1;
+					//int LocOffs = StNoFiNo_TotInside.StOffset;
+					long long LocOffs = StNoFiNo_TotInside.StOffset;
+					//int AmOfPo_TotInside = StNoFiNo_TotInside.FiNo - StNoFiNo_TotInside.StNo + 1;
+					long long AmOfPo_TotInside = StNoFiNo_TotInside.FiNo - StNoFiNo_TotInside.StNo + 1;
 
 					double *pBtx = BtxArrP[LevelNo], *pX = XArrP[LevelNo], *pIntBtxE2 = IntBtxE2ArrP[LevelNo], *pBx = BxArrP[LevelNo];
 					double *pBtz = BtzArrP[LevelNo], *pZ = ZArrP[LevelNo], *pIntBtzE2 = IntBtzE2ArrP[LevelNo], *pBz = BzArrP[LevelNo];
@@ -2828,11 +2889,13 @@ int srTRadInt::FillNextLevelPart(int LevelNo, double sStart, double sEnd, long N
 					for(int k=(NoOfPartTotallyInside+1); k<OldVectSize; k++)
 					{
 						srTStNoFiNo& StNoFiNo_Next = StNoFiNoVect[k];
-						int OffsNext = StNoFiNo_Next.StOffset;
+						//int OffsNext = StNoFiNo_Next.StOffset;
+						long long OffsNext = StNoFiNo_Next.StOffset;
 						double *tBtx_Nx = pBtx+OffsNext, *tX_Nx = pX+OffsNext, *tIntBtxE2_Nx = pIntBtxE2+OffsNext, *tBx_Nx = pBx+OffsNext;
 						double *tBtz_Nx = pBtz+OffsNext, *tZ_Nx = pZ+OffsNext, *tIntBtzE2_Nx = pIntBtzE2+OffsNext, *tBz_Nx = pBz+OffsNext;
 
-						for(int m=StNoFiNo_Next.StNo; m<=StNoFiNo_Next.FiNo; m++)
+						//for(int m=StNoFiNo_Next.StNo; m<=StNoFiNo_Next.FiNo; m++)
+						for(long long m=StNoFiNo_Next.StNo; m<=StNoFiNo_Next.FiNo; m++)
 						{
 							*(tBtx++) = *(tBtx_Nx++); *(tX++) = *(tX_Nx++); *(tIntBtxE2++) = *(tIntBtxE2_Nx++); *(tBx++) = *(tBx_Nx++);
 							*(tBtz++) = *(tBtz_Nx++); *(tZ++) = *(tZ_Nx++), *(tIntBtzE2++) = *(tIntBtzE2_Nx++); *(tBz++) = *(tBz_Nx++);
@@ -2882,13 +2945,15 @@ int srTRadInt::FillNextLevelPart(int LevelNo, double sStart, double sEnd, long N
 			}
 			// End Recent part
 
-			int SizeToAllocate = iFi - iSt + 1;
+			//int SizeToAllocate = iFi - iSt + 1;
+			long long SizeToAllocate = iFi - iSt + 1;
 			if(NoOfPart_iStIntersect > -1) 
 			{
 				srTStNoFiNo StNoFiNo = StNoFiNoVect[NoOfPart_iStIntersect];
 				SizeToAllocate += iSt - StNoFiNo.StNo;
 
-				int DifInt = StNoFiNo.FiNo - iSt + 1;
+				//int DifInt = StNoFiNo.FiNo - iSt + 1;
+				long long DifInt = StNoFiNo.FiNo - iSt + 1;
 				sStart += Two_h*DifInt; 
 				Np -= DifInt;
 			}
@@ -2897,7 +2962,8 @@ int srTRadInt::FillNextLevelPart(int LevelNo, double sStart, double sEnd, long N
 				srTStNoFiNo StNoFiNo = StNoFiNoVect[NoOfPart_iFiIntersect];
 				SizeToAllocate += StNoFiNo.FiNo - iFi;
 
-				int DifInt = iFi - StNoFiNo.StNo + 1;
+				//int DifInt = iFi - StNoFiNo.StNo + 1;
+				long long DifInt = iFi - StNoFiNo.StNo + 1;
 				sEnd -= Two_h*DifInt; 
 				Np -= DifInt;
 			}
@@ -2960,7 +3026,8 @@ int srTRadInt::FillNextLevelPart(int LevelNo, double sStart, double sEnd, long N
 				for(int ii = 0; ii <= NoOfPartLeftFrom_iSt; ii++)
 				{
 					srTStNoFiNo StNoFiNo = StNoFiNoVect[ii];
-					for(int jj = StNoFiNo.StNo; jj <= StNoFiNo.FiNo; jj++)
+					//for(int jj = StNoFiNo.StNo; jj <= StNoFiNo.FiNo; jj++)
+					for(long long jj = StNoFiNo.StNo; jj <= StNoFiNo.FiNo; jj++)
 					{
 						*(TrBufBtxArrP++) = *(pBtx++); *(TrBufXArrP++) = *(pX++); *(TrBufIntBtxE2ArrP++) = *(pIntBtxE2++); *(TrBufBxArrP++) = *(pBx++);
 						*(TrBufBtzArrP++) = *(pBtz++); *(TrBufZArrP++) = *(pZ++); *(TrBufIntBtzE2ArrP++) = *(pIntBtzE2++); *(TrBufBzArrP++) = *(pBz++);
@@ -2971,7 +3038,8 @@ int srTRadInt::FillNextLevelPart(int LevelNo, double sStart, double sEnd, long N
 			{
 				srTStNoFiNo StNoFiNo = StNoFiNoVect[NoOfPart_iStIntersect];
 
-				for(int jj = StNoFiNo.StNo; jj <= StNoFiNo.FiNo; jj++)
+				//for(int jj = StNoFiNo.StNo; jj <= StNoFiNo.FiNo; jj++)
+				for(long long jj = StNoFiNo.StNo; jj <= StNoFiNo.FiNo; jj++)
 				{
 					*(TrBufBtxArrP++) = *(pBtx++); *(TrBufXArrP++) = *(pX++); *(TrBufIntBtxE2ArrP++) = *(pIntBtxE2++); *(TrBufBxArrP++) = *(pBx++);
 					*(TrBufBtzArrP++) = *(pBtz++); *(TrBufZArrP++) = *(pZ++); *(TrBufIntBtzE2ArrP++) = *(pIntBtzE2++); *(TrBufBzArrP++) = *(pBz++);
@@ -2989,11 +3057,13 @@ int srTRadInt::FillNextLevelPart(int LevelNo, double sStart, double sEnd, long N
 
 				pBtx = BtxArrP[LevelNo], pX = XArrP[LevelNo], pIntBtxE2 = IntBtxE2ArrP[LevelNo], pBx = BxArrP[LevelNo];
 				pBtz = BtzArrP[LevelNo], pZ = ZArrP[LevelNo], pIntBtzE2 = IntBtzE2ArrP[LevelNo], pBz = BzArrP[LevelNo];
-				int Offset = StNoFiNo.StOffset;
+				//int Offset = StNoFiNo.StOffset;
+				long long Offset = StNoFiNo.StOffset;
 				pBtx += Offset; pX += Offset; pIntBtxE2 += Offset; pBx += Offset;
 				pBtz += Offset; pZ += Offset; pIntBtzE2 += Offset; pBz += Offset;
 
-				for(int jj = StNoFiNo.StNo; jj <= StNoFiNo.FiNo; jj++)
+				//for(int jj = StNoFiNo.StNo; jj <= StNoFiNo.FiNo; jj++)
+				for(long long jj = StNoFiNo.StNo; jj <= StNoFiNo.FiNo; jj++)
 				{
 					*(TrBufBtxArrP++) = *(pBtx++); *(TrBufXArrP++) = *(pX++); *(TrBufIntBtxE2ArrP++) = *(pIntBtxE2++); *(TrBufBxArrP++) = *(pBx++);
 					*(TrBufBtzArrP++) = *(pBtz++); *(TrBufZArrP++) = *(pZ++); *(TrBufIntBtzE2ArrP++) = *(pIntBtzE2++); *(TrBufBzArrP++) = *(pBz++);
@@ -3004,7 +3074,8 @@ int srTRadInt::FillNextLevelPart(int LevelNo, double sStart, double sEnd, long N
 				for(int ii = NoOfPartRightFrom_iFi; ii < OldVectSize; ii++)
 				{
 					srTStNoFiNo StNoFiNo = StNoFiNoVect[ii];
-					for(int jj = StNoFiNo.StNo; jj <= StNoFiNo.FiNo; jj++)
+					//for(int jj = StNoFiNo.StNo; jj <= StNoFiNo.FiNo; jj++)
+					for(long long jj = StNoFiNo.StNo; jj <= StNoFiNo.FiNo; jj++)
 					{
 						*(TrBufBtxArrP++) = *(pBtx++); *(TrBufXArrP++) = *(pX++); *(TrBufIntBtxE2ArrP++) = *(pIntBtxE2++); *(TrBufBxArrP++) = *(pBx++);
 						*(TrBufBtzArrP++) = *(pBtz++); *(TrBufZArrP++) = *(pZ++); *(TrBufIntBtzE2ArrP++) = *(pIntBtzE2++); *(TrBufBzArrP++) = *(pBz++);
@@ -3022,7 +3093,8 @@ int srTRadInt::FillNextLevelPart(int LevelNo, double sStart, double sEnd, long N
 			BzArrP[LevelNo] = BufBzArrP;
 
 			srTStNoFiNoVect LocStNoFiNoVect;
-			int LocStNo = iSt, LocFiNo = iFi, LocStOffset = -1;
+			//int LocStNo = iSt, LocFiNo = iFi, LocStOffset = -1;
+			long long LocStNo = iSt, LocFiNo = iFi, LocStOffset = -1;
 
 			if(NoOfPartLeftFrom_iSt > -1)
 			{
@@ -3069,7 +3141,8 @@ int srTRadInt::FillNextLevelPart(int LevelNo, double sStart, double sEnd, long N
 			if(NoOfPartRightFrom_iFi > -1)
 			{
 				int ActNoOfPartRight = MergePartFromRight? (NoOfPartRightFrom_iFi + 1) : NoOfPartRightFrom_iFi;
-				int CorrectedOffset = LocStOffset + (LocFiNo - LocStNo + 1);
+				//int CorrectedOffset = LocStOffset + (LocFiNo - LocStNo + 1);
+				long long CorrectedOffset = LocStOffset + (LocFiNo - LocStNo + 1);
 				for(int ii = ActNoOfPartRight; ii < OldVectSize; ii++)
 				{
 					srTStNoFiNo StNoFiNo = StNoFiNoVect[ii];
@@ -3175,8 +3248,10 @@ void srTRadInt::AnalizeFinalResultsSymmetry(char& FinalResAreSymOverX, char& Fin
 
 void srTRadInt::FillInSymPartsOfResults(char FinalResAreSymOverX, char FinalResAreSymOverZ, srTSRWRadStructAccessData& Rad)
 {
-	long PerX = DistrInfoDat.nLamb << 1;
-	long PerZ = PerX*DistrInfoDat.nx;
+	//long PerX = DistrInfoDat.nLamb << 1;
+	//long PerZ = PerX*DistrInfoDat.nx;
+	long long PerX = DistrInfoDat.nLamb << 1;
+	long long PerZ = PerX*DistrInfoDat.nx;
 
 	char SymWithRespectToXax, SymWithRespectToZax;
 	int HalfNz = DistrInfoDat.nz >> 1, Nz_mi_1 = DistrInfoDat.nz - 1;
@@ -3192,13 +3267,16 @@ void srTRadInt::FillInSymPartsOfResults(char FinalResAreSymOverX, char FinalResA
 			SymWithRespectToXax = 0; SymWithRespectToZax = 1;
 			for(iz=0; iz<HalfNz; iz++)
 			{
-				long izPerZ = iz*PerZ;
+				//long izPerZ = iz*PerZ;
+				long long izPerZ = iz*PerZ;
 				for(ix=0; ix<HalfNx; ix++)
 				{
-					long Offset = izPerZ + ix*PerX;
+					//long Offset = izPerZ + ix*PerX;
+					long long Offset = izPerZ + ix*PerX;
 					float* pOrigDataEx = Rad.pBaseRadX + Offset;
 					float* pOrigDataEz = Rad.pBaseRadZ + Offset;
-					long OffsetSym = izPerZ + (Nx_mi_1 - ix)*PerX;
+					//long OffsetSym = izPerZ + (Nx_mi_1 - ix)*PerX;
+					long long OffsetSym = izPerZ + (Nx_mi_1 - ix)*PerX;
 					float* pSymDataEx = Rad.pBaseRadX + OffsetSym;
 					float* pSymDataEz = Rad.pBaseRadZ + OffsetSym;
 					CopySymEnergySlice(pOrigDataEx, pOrigDataEz, pSymDataEx, pSymDataEz, SymWithRespectToXax, SymWithRespectToZax);
@@ -3208,14 +3286,18 @@ void srTRadInt::FillInSymPartsOfResults(char FinalResAreSymOverX, char FinalResA
 		SymWithRespectToXax = 1; SymWithRespectToZax = 0;
 		for(iz=0; iz<HalfNz; iz++)
 		{
-			long izPerZ = iz*PerZ, BufZ = (Nz_mi_1 - iz)*PerZ;
+			//long izPerZ = iz*PerZ, BufZ = (Nz_mi_1 - iz)*PerZ;
+			long long izPerZ = iz*PerZ, BufZ = (Nz_mi_1 - iz)*PerZ;
 			for(ix=0; ix<DistrInfoDat.nx; ix++)
 			{
-				long ixPerX = ix*PerX;
-				long Offset = izPerZ + ixPerX;
+				//long ixPerX = ix*PerX;
+				//long Offset = izPerZ + ixPerX;
+				long long ixPerX = ix*PerX;
+				long long Offset = izPerZ + ixPerX;
 				float* pOrigDataEx = Rad.pBaseRadX + Offset;
 				float* pOrigDataEz = Rad.pBaseRadZ + Offset;
-				long OffsetSym = BufZ + ixPerX;
+				//long OffsetSym = BufZ + ixPerX;
+				long long OffsetSym = BufZ + ixPerX;
 				float* pSymDataEx = Rad.pBaseRadX + OffsetSym;
 				float* pSymDataEz = Rad.pBaseRadZ + OffsetSym;
 				CopySymEnergySlice(pOrigDataEx, pOrigDataEz, pSymDataEx, pSymDataEz, SymWithRespectToXax, SymWithRespectToZax);
@@ -3227,13 +3309,16 @@ void srTRadInt::FillInSymPartsOfResults(char FinalResAreSymOverX, char FinalResA
 		SymWithRespectToXax = 0; SymWithRespectToZax = 1;
 		for(iz=0; iz<DistrInfoDat.nz; iz++)
 		{
-			long izPerZ = iz*PerZ;
+			//long izPerZ = iz*PerZ;
+			long long izPerZ = iz*PerZ;
 			for(ix=0; ix<HalfNx; ix++)
 			{
-				long Offset = izPerZ + ix*PerX;
+				//long Offset = izPerZ + ix*PerX;
+				long long Offset = izPerZ + ix*PerX;
 				float* pOrigDataEx = Rad.pBaseRadX + Offset;
 				float* pOrigDataEz = Rad.pBaseRadZ + Offset;
-				long OffsetSym = izPerZ + (Nx_mi_1 - ix)*PerX;
+				//long OffsetSym = izPerZ + (Nx_mi_1 - ix)*PerX;
+				long long OffsetSym = izPerZ + (Nx_mi_1 - ix)*PerX;
 				float* pSymDataEx = Rad.pBaseRadX + OffsetSym;
 				float* pSymDataEz = Rad.pBaseRadZ + OffsetSym;
 				CopySymEnergySlice(pOrigDataEx, pOrigDataEz, pSymDataEx, pSymDataEz, SymWithRespectToXax, SymWithRespectToZax);
@@ -3353,7 +3438,8 @@ int srTRadInt::RadInterpolationOnePointXZ(srTEFourierVect* pEwVect, int ixOffset
 	double xE3 = xE2*x, xE2z = xE2*z, xzE2 = x*zE2, zE3 = zE2*z, xE2zE2 = xE2*zE2;
 	double xE3z = xE3*z, xE3zE2 = xE3*zE2, xE3zE3 = xE3*zE3, xE2zE3 = xE2*zE3, xzE3 = x*zE3;
 
-	long AbsIndSt = izSt*nx + ixSt;
+	//long AbsIndSt = izSt*nx + ixSt;
+	long long AbsIndSt = izSt*nx + ixSt;
 	srTEFourierVect::iterator ItBegin = pEwVect->begin();
 	srTEFourierVect::iterator It = ItBegin + AbsIndSt;
 	srTEFourier &f00 = *(It++), &f10 = *(It++), &f20 = *(It++), &f30 = *(It++);

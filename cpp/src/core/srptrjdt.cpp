@@ -16,7 +16,8 @@
 
 //*************************************************************************
 
-int srTMagFieldPeriodic::SetupFieldBasedArrays(srTEbmDat& EbmDat, int Ns, double* pBtx, double* pBtz, double* pX, double* pZ, double* pIntBtE2)
+//int srTMagFieldPeriodic::SetupFieldBasedArrays(srTEbmDat& EbmDat, int Ns, double* pBtx, double* pBtz, double* pX, double* pZ, double* pIntBtE2)
+int srTMagFieldPeriodic::SetupFieldBasedArrays(srTEbmDat& EbmDat, long long Ns, double* pBtx, double* pBtz, double* pX, double* pZ, double* pIntBtE2)
 {
 	const double pi = 3.14159265358979;
 
@@ -34,7 +35,8 @@ int srTMagFieldPeriodic::SetupFieldBasedArrays(srTEbmDat& EbmDat, int Ns, double
 	double s = 0.;
 	double PrevBtE2 = 0.;
 
-	for(int is=0; is<Ns; is++)
+	//for(int is=0; is<Ns; is++)
+	for(long long is=0; is<Ns; is++)
 	{
 		*pBtx = Btx0; *pBtz = Btz0; *pX = x0 + Btx0*s; *pZ = z0 + Btz0*s; *pIntBtE2 = 0.;
 		for(int i=0; i<AmOfHarm; i++)
@@ -140,7 +142,8 @@ void srTPerTrjDat::CompTotalTrjData(srTFieldBasedArrayKeys& Keys, srTFieldBasedA
 	double PrevBtxE2 = 0., PrevBtzE2 = 0.;
 	double Btx, Btz;
 
-	for(int is=0; is<FieldBasedArrays.Ns; is++)
+	//for(int is=0; is<FieldBasedArrays.Ns; is++)
+	for(long long is=0; is<FieldBasedArrays.Ns; is++)
 	{
 		Btx = Btx0; Btz = Btz0;
 
@@ -224,7 +227,8 @@ void srTPerTrjDat::CompTotalTrjData(srTFieldBasedArrayKeys& Keys, srTFieldBasedA
 
 //*************************************************************************
 
-void srTPerTrjDat::CompTotalTrjData(double sSt, double sEn, long Np, double* pBtx, double* pBtz, double* pX, double* pZ, double* pBx, double* pBz)
+//void srTPerTrjDat::CompTotalTrjData(double sSt, double sEn, long Np, double* pBtx, double* pBtz, double* pX, double* pZ, double* pBx, double* pBz)
+void srTPerTrjDat::CompTotalTrjData(double sSt, double sEn, long long Np, double* pBtx, double* pBtz, double* pX, double* pZ, double* pBx, double* pBz)
 {// Length units are m here !
 	const double pi = 3.14159265358979;
 	//const double HalfPi = 0.5*pi;
@@ -241,7 +245,8 @@ void srTPerTrjDat::CompTotalTrjData(double sSt, double sEn, long Np, double* pBt
 	//double HalfStep = 0.5*sStep;
 	double s = sSt;
 
-	for(long is=0; is<Np; is++)
+	//for(long is=0; is<Np; is++)
+	for(long long is=0; is<Np; is++)
 	{
 		*pBx = 0.; *pBz = 0.;
 		*pBtx = Btx0; *pBtz = Btz0;
@@ -282,7 +287,8 @@ void srTPerTrjDat::CompTotalTrjData(double sSt, double sEn, long Np, double* pBt
 
 //*************************************************************************
 
-void srTPerTrjDat::CompTotalTrjData(double sSt, double sEn, long Np, double* pBtx, double* pBtz, double* pX, double* pZ, double* pIntBtxE2, double* pIntBtzE2, double* pBx, double* pBz, double* pdBxds, double* pdBzds)
+//void srTPerTrjDat::CompTotalTrjData(double sSt, double sEn, long Np, double* pBtx, double* pBtz, double* pX, double* pZ, double* pIntBtxE2, double* pIntBtzE2, double* pBx, double* pBz, double* pdBxds, double* pdBzds)
+void srTPerTrjDat::CompTotalTrjData(double sSt, double sEn, long long Np, double* pBtx, double* pBtz, double* pX, double* pZ, double* pIntBtxE2, double* pIntBtzE2, double* pBx, double* pBz, double* pdBxds, double* pdBzds)
 {// This does not compute correctly pIntBtxE2, pIntBtzE2.
 
 	const double pi = 3.14159265358979;
@@ -301,7 +307,8 @@ void srTPerTrjDat::CompTotalTrjData(double sSt, double sEn, long Np, double* pBt
 	double s = sSt;
 	double PrevBtxE2 = 0., PrevBtzE2 = 0.;
 
-	for(long is=0; is<Np; is++)
+	//for(long is=0; is<Np; is++)
+	for(long long is=0; is<Np; is++)
 	{
 		*pdBxds = 0.; *pdBzds = 0.;
 		*pBx = 0.; *pBz = 0.;
@@ -434,7 +441,8 @@ int srTPerTrjDat::ConvertToArbTrjDat(char Periodicity, srTWfrSmp&, srTGenTrjHndl
 	pNewTrjDat->VerFieldIsNotZero = VerFieldIsNotZero;
 
 	int Nper = int(MagPer.TotLength/MagPer.PerLength);
-	long TotAmOfPo = (Periodicity == 2)? ((AmOfPoPerPeriod << 1) + 1) : AmOfPoPerPeriod*Nper;
+	//long TotAmOfPo = (Periodicity == 2)? ((AmOfPoPerPeriod << 1) + 1) : AmOfPoPerPeriod*Nper;
+	long long TotAmOfPo = (Periodicity == 2)? ((AmOfPoPerPeriod << 1) + 1) : AmOfPoPerPeriod*Nper;
 
 	pNewTrjDat->LenFieldData = TotAmOfPo;
 	pNewTrjDat->AuxBxLen = TotAmOfPo;
@@ -497,7 +505,8 @@ int srTPerTrjDat::ConvertToArbTrjDat(char Periodicity, srTWfrSmp&, srTGenTrjHndl
 	srTFunDer *tFunDerZ = pNewTrjDat->BzInData;
 	double *tBx = AuxFieldArrays.BxArr, *tdBxds = AuxFieldArrays.dBxdsArr;
 	double *tBz = AuxFieldArrays.BzArr, *tdBzds = AuxFieldArrays.dBzdsArr;
-	for(long i=0; i<TotAmOfPo; i++)
+	//for(long i=0; i<TotAmOfPo; i++)
+	for(long long i=0; i<TotAmOfPo; i++)
 	{
 		tFunDerX->f = *(tBx++);
 		(tFunDerX++)->dfds = *(tdBxds++);
@@ -512,7 +521,8 @@ int srTPerTrjDat::ConvertToArbTrjDat(char Periodicity, srTWfrSmp&, srTGenTrjHndl
 
 //*************************************************************************
 
-int srTPerTrjDat::SetupLimitsByAnalizingField(char LongIntType, double& sStart, double& sStep, long& Ns, int& NperTot, int& NperLeft) 
+//int srTPerTrjDat::SetupLimitsByAnalizingField(char LongIntType, double& sStart, double& sStep, long& Ns, int& NperTot, int& NperLeft) 
+int srTPerTrjDat::SetupLimitsByAnalizingField(char LongIntType, double& sStart, double& sStep, long long& Ns, int& NperTot, int& NperLeft) 
 {
 	const double MinStepSteerCoef = 0.4;
 	const int NsMin = 10;
@@ -528,7 +538,8 @@ int srTPerTrjDat::SetupLimitsByAnalizingField(char LongIntType, double& sStart, 
 		double ActualTotLength = NperTot*MagPer.PerLength;
 
 		sStart = -0.5*ActualTotLength;
-		Ns = int(ActualTotLength/dsMin);
+		//Ns = int(ActualTotLength/dsMin);
+		Ns = (long long)(ActualTotLength/dsMin);
 		if(Ns < NsMin) Ns = NsMin;
 
 		sStep = ActualTotLength/double(Ns - 1);
@@ -549,7 +560,8 @@ int srTPerTrjDat::SetupLimitsByAnalizingField(char LongIntType, double& sStart, 
 			sStart = -0.5*MagPer.PerLength;
 			NperLeft = (NperTot - 1) >> 1;
 		}
-		Ns = int(MagPer.PerLength/dsMin);
+		//Ns = int(MagPer.PerLength/dsMin);
+		Ns = (long long)(MagPer.PerLength/dsMin);
 		if(Ns < NsMin) Ns = NsMin;
 
 		sStep = MagPer.PerLength/double(Ns - 1);

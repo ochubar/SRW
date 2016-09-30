@@ -26,8 +26,10 @@ class srTPartAutoRadInt {
 
 	double *BtxArrP[50], *XArrP[50], *IntBtxE2ArrP[50], *BxArrP[50];
 	double *BtzArrP[50], *ZArrP[50], *IntBtzE2ArrP[50], *BzArrP[50];
-	int AmOfPointsOnLevel[50];
-	int NumberOfLevelsFilled, NpOnZeroLevel;
+	//int AmOfPointsOnLevel[50];
+	long long AmOfPointsOnLevel[50];
+	//int NumberOfLevelsFilled, NpOnZeroLevel;
+	long long NumberOfLevelsFilled, NpOnZeroLevel;
 
 	double sIntegStart, sIntegFin, sIntegStep, sIntegRelPrec;
 	double MaxFluxDensVal, CurrentAbsPrec;
@@ -47,7 +49,8 @@ public:
 
 	char SomethingIsWrong;
 
-	srTPartAutoRadInt(srTTrjDat* InTrjDatPtr, srTWfrSmp* InDistrInfoDatPtr, srLambXYZ* InObsCoorPtr, double In_sStart, double In_sFin, double In_sRelPrec, int InNpOnZeroLevel);
+	//srTPartAutoRadInt(srTTrjDat* InTrjDatPtr, srTWfrSmp* InDistrInfoDatPtr, srLambXYZ* InObsCoorPtr, double In_sStart, double In_sFin, double In_sRelPrec, int InNpOnZeroLevel);
+	srTPartAutoRadInt(srTTrjDat* InTrjDatPtr, srTWfrSmp* InDistrInfoDatPtr, srLambXYZ* InObsCoorPtr, double In_sStart, double In_sFin, double In_sRelPrec, long long InNpOnZeroLevel);
 
 	~srTPartAutoRadInt() 
 	{
@@ -70,7 +73,8 @@ public:
 		if(ChangeSign) { Cos = -Cos; Sin = -Sin;}
 	}
 
-	int FillNextLevel(int LevelNo, double sStart, double sEnd, long Np)
+	//int FillNextLevel(int LevelNo, double sStart, double sEnd, long Np)
+	int FillNextLevel(int LevelNo, double sStart, double sEnd, long long Np)
 	{
 		double* BasePtr;
 		if(LevelNo == 2) BasePtr = (AuxDataPtr == 0)? &(AuxDataArray[(2*NpOnZeroLevel - 1)*8]) : &(AuxDataPtr[(2*NpOnZeroLevel - 1)*8]);

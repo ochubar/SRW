@@ -160,7 +160,8 @@ public:
 
 	//static double Integ1D_FuncDefByArray(double* FuncArr, long Np, double Step);
 	//static double Integ1D_FuncDefByArray(float* FuncArr, long Np, double Step);
-	template <class T> static double Integ1D_FuncDefByArray(T* FuncArr, long Np, double Step)
+	//template <class T> static double Integ1D_FuncDefByArray(T* FuncArr, long Np, double Step)
+	template <class T> static double Integ1D_FuncDefByArray(T* FuncArr, long long Np, double Step)
 	{
 		if((FuncArr == 0) || (Np < 2) || (Step == 0)) return 0;
 		if(Np == 2) return (double)(0.5*(FuncArr[0] + FuncArr[1]));
@@ -168,12 +169,14 @@ public:
 		T *tFuncArr = FuncArr + 1;
 		bool NpIsEven = (Np == ((Np >> 1) << 1));
 
-		long NpSim = Np;
+		//long NpSim = Np;
+		long long NpSim = Np;
 		if(NpIsEven) NpSim--;
 
 		//Simpson part
 		double Sum1 = 0, Sum2 = 0;
-		for(long i = 1; i < ((NpSim - 3) >> 1); i++)
+		//for(long i = 1; i < ((NpSim - 3) >> 1); i++)
+		for(long long i = 1; i < ((NpSim - 3) >> 1); i++)
 		{
 			Sum1 += *(tFuncArr++);
 			Sum2 += *(tFuncArr++);
@@ -188,14 +191,16 @@ public:
 		return res;
 	}
 
-	template <class T> static double Integ2D_FuncDefByArray(T* arFlatFunc, long np1, long np2, double step1, double step2)
+	//template <class T> static double Integ2D_FuncDefByArray(T* arFlatFunc, long np1, long np2, double step1, double step2)
+	template <class T> static double Integ2D_FuncDefByArray(T* arFlatFunc, long long np1, long long np2, double step1, double step2)
 	{
 		if((arFlatFunc == 0) || (np1 < 2) || (step1 == 0) || (np2 < 2) || (step2 == 0)) return 0;
 
 		double *arResInt1D = new double[np2];
 		double *t_arResInt1D = arResInt1D;
 		T *p_arFlatFunc = arFlatFunc;
-		for(long i2 = 0; i2 < np2; i2++)
+		//for(long i2 = 0; i2 < np2; i2++)
+		for(long long i2 = 0; i2 < np2; i2++)
 		{
 			*(t_arResInt1D++) = Integ1D_FuncDefByArray(p_arFlatFunc, np1, step1);
 			p_arFlatFunc += np1;
@@ -206,12 +211,15 @@ public:
 		return res;
 	}
 
-	template <class T> static T tabFunc2D(int ix, int iy, int nx, T* pF)
+	//template <class T> static T tabFunc2D(int ix, int iy, int nx, T* pF)
+	template <class T> static T tabFunc2D(long long ix, long long iy, long long nx, T* pF)
 	{//just function value
 		if(pF == 0) return (T)0.;
-		long ofst = iy*nx + ix;
+		//long ofst = iy*nx + ix;
+		long long ofst = iy*nx + ix;
 		return *(pF + ofst);
 	}
+
 	template <class T> static T interpFunc2D(double x, double y, double xStart, double xEnd, int nx, double yStart, double yEnd, int ny, T* pF)
 	{//uses bilinear interpolation
 		if((pF == 0) || (nx <= 0) || (ny <= 0)) return (T)0.;
@@ -241,10 +249,15 @@ public:
 		double xr = x - (xStart + ix1*xStep);
 		double yr = y - (yStart + iy1*yStep);
 
-		long ofst11 = nx*iy1 + ix1;
-		long ofst12 = nx*iy2 + ix1;
-		long ofst21 = nx*iy1 + ix2;
-		long ofst22 = nx*iy2 + ix2;
+		//long ofst11 = nx*iy1 + ix1;
+		//long ofst12 = nx*iy2 + ix1;
+		//long ofst21 = nx*iy1 + ix2;
+		//long ofst22 = nx*iy2 + ix2;
+
+		long long ofst11 = nx*iy1 + ix1;
+		long long ofst12 = nx*iy2 + ix1;
+		long long ofst21 = nx*iy1 + ix2;
+		long long ofst22 = nx*iy2 + ix2;
 
 		if(nx == 1)
 		{
@@ -268,8 +281,10 @@ public:
 		if((pF == 0) || (nx <= 1) || (nz <= 1)) return (T)0.;
 
 		double hx = xStep, hz = zStep;
-		long ofst0 = iz*nx + ix;
-		long ofstX1, ofstX2, ofstZ1, ofstZ2;
+		//long ofst0 = iz*nx + ix;
+		//long ofstX1, ofstX2, ofstZ1, ofstZ2;
+		long long ofst0 = ((long long)iz)*((long long)nx) + ix;
+		long long ofstX1, ofstX2, ofstZ1, ofstZ2;
 		if(ix == 0)
 		{
 			ofstX1 = ofst0; ofstX2 = ofst0 + 1;

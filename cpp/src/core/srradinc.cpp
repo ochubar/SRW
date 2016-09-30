@@ -54,17 +54,22 @@ int srTRadIntConst::ComputeTotalStokesDistr(srTStokesStructAccessData& StokesAcc
 	double zc = ConstTrjDatPtr->EbmDat.dzds0*(DistrInfoDat.yStart - ConstTrjDatPtr->EbmDat.s0) + ConstTrjDatPtr->EbmDat.z0;
 	double xTol = StokesAccessData.xStep*0.01, zTol = StokesAccessData.zStep*0.01; // To steer
 
-	long PerE = 4;
-	long PerX = StokesAccessData.ne*PerE;
-	long PerZ = StokesAccessData.nx*PerX;
+	//long PerE = 4;
+	//long PerX = StokesAccessData.ne*PerE;
+	//long PerZ = StokesAccessData.nx*PerX;
+	long long PerE = 4;
+	long long PerX = StokesAccessData.ne*PerE;
+	long long PerZ = StokesAccessData.nx*PerX;
 
 	EXZ.z = StokesAccessData.zStart;
 
-	long TotalAmOfOutPoints = DistrInfoDat.nz*DistrInfoDat.nx*DistrInfoDat.nLamb;
+	//long TotalAmOfOutPoints = DistrInfoDat.nz*DistrInfoDat.nx*DistrInfoDat.nLamb;
+	long long TotalAmOfOutPoints = ((long long)DistrInfoDat.nz)*((long long)DistrInfoDat.nx)*((long long)DistrInfoDat.nLamb);
 	if(FinalResAreSymOverX) TotalAmOfOutPoints >>= 1;
 	if(FinalResAreSymOverZ) TotalAmOfOutPoints >>= 1;
 
-	long PointCount = 0;
+	//long PointCount = 0;
+	long long PointCount = 0;
 	double UpdateTimeInt_s = 0.5;
 	srTCompProgressIndicator CompProgressInd(TotalAmOfOutPoints, UpdateTimeInt_s);
 
@@ -72,7 +77,8 @@ int srTRadIntConst::ComputeTotalStokesDistr(srTStokesStructAccessData& StokesAcc
 	{
 		if(FinalResAreSymOverZ) { if((EXZ.z - zc) > zTol) break;}
 
-		long izPerZ = iz*PerZ;
+		//long izPerZ = iz*PerZ;
+		long long izPerZ = iz*PerZ;
 		EXZ.x = StokesAccessData.xStart;
 		for(int ix=0; ix<DistrInfoDat.nx; ix++)
 		{
@@ -81,11 +87,12 @@ int srTRadIntConst::ComputeTotalStokesDistr(srTStokesStructAccessData& StokesAcc
 			PobsLocG.x = EXZ.x; PobsLocG.y = 0.; PobsLocG.z = EXZ.z;
 			PobsLocG = TrLab2Loc.TrPoint(PobsLocG);
 			
-			long ixPerX = ix*PerX;
+			//long ixPerX = ix*PerX;
+			long long ixPerX = ix*PerX;
 			EXZ.e = StokesAccessData.eStart;
 			for(int ie=0; ie<DistrInfoDat.nLamb; ie++)
 			{
-				float* pStokes = StokesAccessData.pBaseSto + izPerZ + ixPerX +ie*PerE;
+				float* pStokes = StokesAccessData.pBaseSto + (izPerZ + ixPerX +ie*PerE);
 				if(result = ComputeStokesAtPoint(pStokes)) return result;
 
 				if(result = srYield.Check()) return result;
@@ -183,8 +190,11 @@ void srTRadIntConst::AnalyzeFinalResultsSymmetry(char& FinalResAreSymOverX, char
 
 void srTRadIntConst::FillInSymPartsOfResults(char FinalResAreSymOverX, char FinalResAreSymOverZ, srTStokesStructAccessData& StokesAccessData)
 {
-	long PerX = StokesAccessData.ne << 2;
-	long PerZ = PerX*DistrInfoDat.nx;
+	//long PerX = StokesAccessData.ne << 2;
+	//long PerZ = PerX*DistrInfoDat.nx;
+	long long PerX = StokesAccessData.ne << 2;
+	long long PerZ = PerX*DistrInfoDat.nx;
+
 	char SymWithRespectToXax, SymWithRespectToZax;
 	
 	int HalfNz = StokesAccessData.nz >> 1, Nz_mi_1 = StokesAccessData.nz - 1;
@@ -200,11 +210,12 @@ void srTRadIntConst::FillInSymPartsOfResults(char FinalResAreSymOverX, char Fina
 			SymWithRespectToXax = 0; SymWithRespectToZax = 1;
 			for(iz=0; iz<HalfNz; iz++)
 			{
-				long izPerZ = iz*PerZ;
+				//long izPerZ = iz*PerZ;
+				long long izPerZ = iz*PerZ;
 				for(ix=0; ix<HalfNx; ix++)
 				{
-					float* pOrigData = StokesAccessData.pBaseSto + izPerZ + ix*PerX;
-					float* pSymData = StokesAccessData.pBaseSto + izPerZ + (Nx_mi_1 - ix)*PerX;
+					float* pOrigData = StokesAccessData.pBaseSto + (izPerZ + ix*PerX);
+					float* pSymData = StokesAccessData.pBaseSto + (izPerZ + (Nx_mi_1 - ix)*PerX);
 					CopySymEnergySlice(pOrigData, pSymData, SymWithRespectToXax, SymWithRespectToZax);
 				}
 			}
@@ -212,12 +223,14 @@ void srTRadIntConst::FillInSymPartsOfResults(char FinalResAreSymOverX, char Fina
 		SymWithRespectToXax = 1; SymWithRespectToZax = 0;
 		for(iz=0; iz<HalfNz; iz++)
 		{
-			long izPerZ = iz*PerZ, BufZ = (Nz_mi_1 - iz)*PerZ;
+			//long izPerZ = iz*PerZ, BufZ = (Nz_mi_1 - iz)*PerZ;
+			long long izPerZ = iz*PerZ, BufZ = (Nz_mi_1 - iz)*PerZ;
 			for(ix=0; ix<DistrInfoDat.nx; ix++)
 			{
-				long ixPerX = ix*PerX;
-				float* pOrigData = StokesAccessData.pBaseSto + izPerZ + ixPerX;
-				float* pSymData = StokesAccessData.pBaseSto + BufZ + ixPerX;
+				//long ixPerX = ix*PerX;
+				long long ixPerX = ix*PerX;
+				float* pOrigData = StokesAccessData.pBaseSto + (izPerZ + ixPerX);
+				float* pSymData = StokesAccessData.pBaseSto + (BufZ + ixPerX);
 				CopySymEnergySlice(pOrigData, pSymData, SymWithRespectToXax, SymWithRespectToZax);
 			}
 		}
@@ -227,11 +240,12 @@ void srTRadIntConst::FillInSymPartsOfResults(char FinalResAreSymOverX, char Fina
 		SymWithRespectToXax = 0; SymWithRespectToZax = 1;
 		for(iz=0; iz<DistrInfoDat.nz; iz++)
 		{
-			long izPerZ = iz*PerZ;
+			//long izPerZ = iz*PerZ;
+			long long izPerZ = iz*PerZ;
 			for(ix=0; ix<HalfNx; ix++)
 			{
-				float* pOrigData = StokesAccessData.pBaseSto + izPerZ + ix*PerX;
-				float* pSymData = StokesAccessData.pBaseSto + izPerZ + (Nx_mi_1 - ix)*PerX;
+				float* pOrigData = StokesAccessData.pBaseSto + (izPerZ + ix*PerX);
+				float* pSymData = StokesAccessData.pBaseSto + (izPerZ + (Nx_mi_1 - ix)*PerX);
 				CopySymEnergySlice(pOrigData, pSymData, SymWithRespectToXax, SymWithRespectToZax);
 			}
 		}
@@ -318,7 +332,8 @@ int srTRadIntConst::TreatFiniteElecBeamEmittance(srTStokesStructAccessData& Stok
 	int result;
 	if((StokesAccessData.nx == 1) && (StokesAccessData.nz == 1)) return 0;
 
-	long LenFloatArr = (StokesAccessData.nx*StokesAccessData.nz);
+	//long LenFloatArr = (StokesAccessData.nx*StokesAccessData.nz);
+	long long LenFloatArr = ((long long)StokesAccessData.nx)*((long long)StokesAccessData.nz);
 	float *StokesCmpnArr = new float[LenFloatArr];
 	if(StokesCmpnArr == 0) return MEMORY_ALLOCATION_FAILURE;
 
@@ -350,21 +365,27 @@ int srTRadIntConst::TreatFiniteElecBeamEmittance(srTStokesStructAccessData& Stok
 void srTRadIntConst::ExtractStokesSliceConstE(srTStokesStructAccessData& StokesAccessData, long ie, int StokesNo, float* pOutS)
 {
 	float *pS0 = StokesAccessData.pBaseSto + StokesNo;
-	long PerX = StokesAccessData.ne << 2;
-	long PerZ = PerX*StokesAccessData.nx;
+	//long PerX = StokesAccessData.ne << 2;
+	//long PerZ = PerX*StokesAccessData.nx;
+	long long PerX = StokesAccessData.ne << 2;
+	long long PerZ = PerX*StokesAccessData.nx;
 
-	long izPerZ = 0;
-	long iePerE = ie << 2;
+	//long izPerZ = 0;
+	//long iePerE = ie << 2;
+	long long izPerZ = 0;
+	long long iePerE = ie << 2;
 
 	float *tOutS = pOutS;
 	for(int iz=0; iz<StokesAccessData.nz; iz++)
 	{
 		float *pS_StartForX = pS0 + izPerZ;
-		long ixPerX = 0;
+		//long ixPerX = 0;
+		long long ixPerX = 0;
 
 		for(int ix=0; ix<StokesAccessData.nx; ix++)
 		{
-			long ixPerX_p_iePerE = ixPerX + iePerE;
+			//long ixPerX_p_iePerE = ixPerX + iePerE;
+			long long ixPerX_p_iePerE = ixPerX + iePerE;
 			float *pS = pS_StartForX + ixPerX_p_iePerE;
 			*(tOutS++) = *pS;
 
@@ -380,21 +401,27 @@ void srTRadIntConst::UpdateStokesSliceConstE(float* StokesCmpnArr, long ie, int 
 {
 	float *pS0 = StokesAccessData.pBaseSto + StokesNo;
 
-	long PerX = StokesAccessData.ne << 2;
-	long PerZ = PerX*StokesAccessData.nx;
+	//long PerX = StokesAccessData.ne << 2;
+	//long PerZ = PerX*StokesAccessData.nx;
+	long long PerX = StokesAccessData.ne << 2;
+	long long PerZ = PerX*StokesAccessData.nx;
 
-	long izPerZ = 0;
-	long iePerE = ie << 2;
+	//long izPerZ = 0;
+	//long iePerE = ie << 2;
+	long long izPerZ = 0;
+	long long iePerE = ie << 2;
 
 	float *tCmpn = StokesCmpnArr;
 	for(int iz=0; iz<StokesAccessData.nz; iz++)
 	{
 		float *pS_StartForX = pS0 + izPerZ;
-		long ixPerX = 0;
+		//long ixPerX = 0;
+		long long ixPerX = 0;
 
 		for(int ix=0; ix<StokesAccessData.nx; ix++)
 		{
-			long ixPerX_p_iePerE = ixPerX + iePerE;
+			//long ixPerX_p_iePerE = ixPerX + iePerE;
+			long long ixPerX_p_iePerE = ixPerX + iePerE;
 			float *pS = pS_StartForX + ixPerX_p_iePerE;
 			*pS = *(tCmpn++);
 
@@ -693,30 +720,31 @@ void srTRadIntConst::ConstructDataForConv2D(float* CmpnArr, float* NewData, long
 	long OffsetXp = ixDat + DistrInfoDat.nx;
 	long OffsetZp = izDat + DistrInfoDat.nz;
 
-	long NewPerZ = NewNx << 1;
+	//long NewPerZ = NewNx << 1;
+	long long NewPerZ = NewNx << 1;
 	long ix, iz;
 	float V = *CmpnArr;
 	for(iz=0; iz<izDat; iz++)
 	{
-		float *tNew = NewData + iz*NewPerZ;
+		float *tNew = NewData + (iz*NewPerZ);
 		for(ix=0; ix<ixDat; ix++) { *(tNew++) = V; *(tNew++) = 0;}
 	}
 	V = *(CmpnArr + DistrInfoDat.nx - 1);
 	for(iz=0; iz<izDat; iz++)
 	{
-		float *tNew = NewData + iz*NewPerZ + (OffsetXp << 1);
+		float *tNew = NewData + (iz*NewPerZ + (OffsetXp << 1));
 		for(ix=OffsetXp; ix<NewNx; ix++) { *(tNew++) = V; *(tNew++) = 0;}
 	}
 	V = *(CmpnArr + (DistrInfoDat.nz - 1)*DistrInfoDat.nx);
 	for(iz=OffsetZp; iz<NewNz; iz++)
 	{
-		float *tNew = NewData + iz*NewPerZ;
+		float *tNew = NewData + (iz*NewPerZ);
 		for(ix=0; ix<ixDat; ix++) { *(tNew++) = V; *(tNew++) = 0;}
 	}
 	V = *(CmpnArr + DistrInfoDat.nz*DistrInfoDat.nx - 1);
 	for(iz=OffsetZp; iz<NewNz; iz++)
 	{
-		float *tNew = NewData + iz*NewPerZ + (OffsetXp << 1);
+		float *tNew = NewData + (iz*NewPerZ + (OffsetXp << 1));
 		for(ix=OffsetXp; ix<NewNx; ix++) { *(tNew++) = V; *(tNew++) = 0;}
 	}
 
@@ -725,19 +753,21 @@ void srTRadIntConst::ConstructDataForConv2D(float* CmpnArr, float* NewData, long
 	for(iz=izDat; iz<(izDat + DistrInfoDat.nz); iz++)
 	{
 		V = *tOldL;
-		long izNewPerZ = iz*NewPerZ;
+		//long izNewPerZ = iz*NewPerZ;
+		long long izNewPerZ = iz*NewPerZ;
 		float *tNew = NewData + izNewPerZ;
 		for(ix=0; ix<ixDat; ix++) { *(tNew++) = V; *(tNew++) = 0;}
 		tOldL += DistrInfoDat.nx;
 
 		V = *tOldR;
-		tNew = NewData + izNewPerZ + (OffsetXp << 1);
+		tNew = NewData + (izNewPerZ + (OffsetXp << 1));
 		for(ix=OffsetXp; ix<NewNx; ix++) { *(tNew++) = V; *(tNew++) = 0;}
 		tOldR += DistrInfoDat.nx;
 	}
 
 	float *tOldD = CmpnArr;
-	float *tOldU = CmpnArr + (DistrInfoDat.nz - 1)*DistrInfoDat.nx;
+	//float *tOldU = CmpnArr + (DistrInfoDat.nz - 1)*DistrInfoDat.nx;
+	float *tOldU = CmpnArr + (((long long)(DistrInfoDat.nz - 1))*((long long)DistrInfoDat.nx));
 	for(ix=ixDat; ix<(ixDat + DistrInfoDat.nx); ix++)
 	{
 		V = *(tOldD++);
@@ -745,14 +775,14 @@ void srTRadIntConst::ConstructDataForConv2D(float* CmpnArr, float* NewData, long
 		for(iz=0; iz<izDat; iz++) { *tNew = V; *(tNew+1) = 0; tNew += NewPerZ;}
 
 		V = *(tOldU++);
-		tNew = NewData + OffsetZp*NewPerZ + (ix << 1);
+		tNew = NewData + (OffsetZp*NewPerZ + (ix << 1));
 		for(iz=OffsetZp; iz<NewNz; iz++) { *tNew = V; *(tNew+1) = 0; tNew += NewPerZ;}
 	}
 
 	float *tOld = CmpnArr;
 	for(iz=izDat; iz<(izDat + DistrInfoDat.nz); iz++)
 	{
-		float *tNew = NewData + iz*NewPerZ + (ixDat << 1);
+		float *tNew = NewData + (iz*NewPerZ + (ixDat << 1));
 		for(ix=ixDat; ix<(ixDat + DistrInfoDat.nx); ix++)
 		{
 			*(tNew++) = *(tOld++); *(tNew++) = 0.;
@@ -829,12 +859,14 @@ void srTRadIntConst::ExtractDataAfterConv2D(float* AuxConvData, long NxAux, long
 	long ixDat = (NxAux - DistrInfoDat.nx) >> 1;
 	long izDat = (NzAux - DistrInfoDat.nz) >> 1;
 	long Two_ixDat = ixDat << 1;
-	long AuxPerZ = NxAux << 1;
+	//long AuxPerZ = NxAux << 1;
+	long long AuxPerZ = NxAux << 1;
 
 	float *tCmpn = CmpnArr;
 	for(long iz=0; iz<DistrInfoDat.nz; iz++)
 	{
-		float *tAux = AuxConvData + (izDat + iz)*AuxPerZ + Two_ixDat;
+		//float *tAux = AuxConvData + (izDat + iz)*AuxPerZ + Two_ixDat;
+		float *tAux = AuxConvData + ((izDat + iz)*AuxPerZ + Two_ixDat);
 		for(long ix=0; ix<DistrInfoDat.nx; ix++)
 		{
 			*(tCmpn++) = *tAux; tAux += 2;

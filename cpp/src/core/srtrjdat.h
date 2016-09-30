@@ -64,15 +64,18 @@ class srTTrjDat : public srTGenTrjDat {
 
 	DOUBLE *IntBtxE2Arr, *IntBtzE2Arr;
 
-	int m_estimMinNpForRadInteg; //OC220112
+	//int m_estimMinNpForRadInteg; //OC220112
+	long long m_estimMinNpForRadInteg; //OC220112
 
 public:
 
-	int AuxBxLen, AuxBzLen;
+	//int AuxBxLen, AuxBzLen;
+	long long AuxBxLen, AuxBzLen;
 
 	srTFunDer* BxInData;
 	srTFunDer* BzInData;
-	int LenFieldData;
+	//int LenFieldData;
+	long long LenFieldData;
 	double sStart, sStep, Inv_Step;
 
 	srTWaveAccessDataD1D xTrjInData, zTrjInData; // for computing SR from Trajectory
@@ -147,7 +150,8 @@ public:
 
 	int AllocateMemoryForCfs();
 	int AllocateMemoryForCfs_FromTrj();
-	int AllocateMemoryForCfsFromTrj(int np);
+	//int AllocateMemoryForCfsFromTrj(int np);
+	int AllocateMemoryForCfsFromTrj(long long np);
 
 	int DeallocateMemoryForCfs();
 
@@ -164,14 +168,23 @@ public:
 	inline void CompTrjDataDerivedAtPoint_FromTrj(char x_or_z, double s, double& Bt, double& Crd, double& IntBtE2);
 	inline void CompTrjDataDerivedAtPoint(double sArg, double& Btx, double& Crdx, double& IntBtE2x, double& Btz, double& Crdz, double& IntBtE2z);
 	inline void CompTrjDataDerivedAtPoint_FromTrj(double s, double& Btx, double& Crdx, double& IntBtxE2, double& Btz, double& Crdz, double& IntBtzE2);
-	void CompTotalTrjData(double sSt, double sEn, long Np, double* pBtx, double* pBtz, double* pX, double* pZ, double* pIntBtxE2, double* pIntBtzE2, double* pBx, double* pBz);
-	void CompTotalTrjData_FromTrj(double sSt, double sEn, long Np, double* pBtx, double* pBtz, double* pX, double* pZ, double* pIntBtxE2, double* pIntBtzE2, double* pBx, double* pBz);
-	void CompTotalTrjData(double sSt, double sEn, long Np, double* pBtx, double* pBtz, double* pX, double* pZ, double* pIntBtxE2, double* pIntBtzE2, double* pBx, double* pBz, double* pdBxds, double* pdBzds);
-	void CompTotalTrjData_FromTrj(double sSt, double sEn, long Np, double* pBtx, double* pBtz, double* pX, double* pZ, double* pIntBtxE2, double* pIntBtzE2, double* pBx, double* pBz, double* pdBxds, double* pdBzds);
-	void CompTotalTrjDataTrjDisp(double sSt, double sEn, long Np, double* pBtx, double* pBtz, double* pX, double* pZ, char DistUn);
-	void CompTotalTrjDataTrjDisp_FromTrj(double sSt, double sEn, long Np, double* pBtx, double* pBtz, double* pX, double* pZ, char DistUn);
-	void CompTotalTrjData(double sSt, double sEn, long Np, double* pBtx, double* pBtz, double* pX, double* pZ, double* pBx, double* pBz);
-	void CompTotalTrjData_FromTrj(double sSt, double sEn, long Np, double* pBtx, double* pBtz, double* pX, double* pZ, double* pBx, double* pBz);
+	//void CompTotalTrjData(double sSt, double sEn, long Np, double* pBtx, double* pBtz, double* pX, double* pZ, double* pIntBtxE2, double* pIntBtzE2, double* pBx, double* pBz);
+	//void CompTotalTrjData_FromTrj(double sSt, double sEn, long Np, double* pBtx, double* pBtz, double* pX, double* pZ, double* pIntBtxE2, double* pIntBtzE2, double* pBx, double* pBz);
+	//void CompTotalTrjData(double sSt, double sEn, long Np, double* pBtx, double* pBtz, double* pX, double* pZ, double* pIntBtxE2, double* pIntBtzE2, double* pBx, double* pBz, double* pdBxds, double* pdBzds);
+	//void CompTotalTrjData_FromTrj(double sSt, double sEn, long Np, double* pBtx, double* pBtz, double* pX, double* pZ, double* pIntBtxE2, double* pIntBtzE2, double* pBx, double* pBz, double* pdBxds, double* pdBzds);
+	//void CompTotalTrjDataTrjDisp(double sSt, double sEn, long Np, double* pBtx, double* pBtz, double* pX, double* pZ, char DistUn);
+	//void CompTotalTrjDataTrjDisp_FromTrj(double sSt, double sEn, long Np, double* pBtx, double* pBtz, double* pX, double* pZ, char DistUn);
+	//void CompTotalTrjData(double sSt, double sEn, long Np, double* pBtx, double* pBtz, double* pX, double* pZ, double* pBx, double* pBz);
+	//void CompTotalTrjData_FromTrj(double sSt, double sEn, long Np, double* pBtx, double* pBtz, double* pX, double* pZ, double* pBx, double* pBz);
+	void CompTotalTrjData(double sSt, double sEn, long long Np, double* pBtx, double* pBtz, double* pX, double* pZ, double* pIntBtxE2, double* pIntBtzE2, double* pBx, double* pBz);
+	void CompTotalTrjData_FromTrj(double sSt, double sEn, long long Np, double* pBtx, double* pBtz, double* pX, double* pZ, double* pIntBtxE2, double* pIntBtzE2, double* pBx, double* pBz);
+	void CompTotalTrjData(double sSt, double sEn, long long Np, double* pBtx, double* pBtz, double* pX, double* pZ, double* pIntBtxE2, double* pIntBtzE2, double* pBx, double* pBz, double* pdBxds, double* pdBzds);
+	void CompTotalTrjData_FromTrj(double sSt, double sEn, long long Np, double* pBtx, double* pBtz, double* pX, double* pZ, double* pIntBtxE2, double* pIntBtzE2, double* pBx, double* pBz, double* pdBxds, double* pdBzds);
+	void CompTotalTrjDataTrjDisp(double sSt, double sEn, long long Np, double* pBtx, double* pBtz, double* pX, double* pZ, char DistUn);
+	void CompTotalTrjDataTrjDisp_FromTrj(double sSt, double sEn, long long Np, double* pBtx, double* pBtz, double* pX, double* pZ, char DistUn);
+	void CompTotalTrjData(double sSt, double sEn, long long Np, double* pBtx, double* pBtz, double* pX, double* pZ, double* pBx, double* pBz);
+	void CompTotalTrjData_FromTrj(double sSt, double sEn, long long Np, double* pBtx, double* pBtz, double* pX, double* pZ, double* pBx, double* pBz);
+
 	void CompTotalTrjData(srTFieldBasedArrayKeys& Keys, srTFieldBasedArrays& FieldBasedArrays);
 	void CompTotalTrjData_FromTrj(srTFieldBasedArrayKeys& Keys, srTFieldBasedArrays& FieldBasedArrays);
 
@@ -179,7 +192,8 @@ public:
 	inline double Pol05(double, double*);
 	inline double Pol09(double, double*);
 
-	inline void ComponentArray(int, char, double, double, int, double*);
+	//inline void ComponentArray(int, char, double, double, int, double*);
+	inline void ComponentArray(int, char, double, double, long long, double*);
 
 	void SetupIntegrPlnCfs(char);
 	inline int ComputeInterpolatingStructure();
@@ -212,7 +226,8 @@ public:
 	void AnalizeFieldSymmetry(char& FieldIsSymOverX, char& FieldIsSymOverZ);
 	inline int ShowLimitsAndInitInteg(srTWfrSmp& DistrInfoDat, char LongIntType, double& sIntegStart, double& sIntegFin, int& AmOfPer, bool doInit = true);
 	int InitTrjComp() { return ComputeInterpolatingStructure();}
-	int SetupLimitsByAnalizingField(char LongIntType, double& sStart, double& sStep, long& Ns, int& OutNperTot, int& OutNperLeft);
+	//int SetupLimitsByAnalizingField(char LongIntType, double& sStart, double& sStep, long& Ns, int& OutNperTot, int& OutNperLeft);
+	int SetupLimitsByAnalizingField(char LongIntType, double& sStart, double& sStep, long long& Ns, long long& OutNperTot, long long& OutNperLeft);
 	void CountFieldExtrem(int& AmOfExtrem, double& AbsMax);
 	void FindFieldLimitsBasedOnTolValue(double AbsTolForField, double& sStartLoc, double& sFinLoc);
 	void CheckFromTrjIfFieldCompAreZero(SRWLPrtTrj& trj, short& horFieldIsNotZero, short& verFieldIsNotZero);
@@ -235,8 +250,10 @@ public:
 
 	inline int ComputeQuadPhaseTermsFromTrj();
 	inline void TrjCoordAngField(double s, char x_or_z, double& x, double& dxds, double& B);
-	inline void FindOffestAndRelArg(double Arg, srTWaveAccessDataD1D& TrjInData, long& Offset, double& RelArg);
-	inline void FindOffestAndRelArgFromTrj(double Arg, const SRWLPrtTrj& trj, long& Offset, double& RelArg);
+	//inline void FindOffestAndRelArg(double Arg, srTWaveAccessDataD1D& TrjInData, long& Offset, double& RelArg);
+	inline void FindOffestAndRelArg(double Arg, srTWaveAccessDataD1D& TrjInData, long long& Offset, double& RelArg);
+	//inline void FindOffestAndRelArgFromTrj(double Arg, const SRWLPrtTrj& trj, long& Offset, double& RelArg);
+	inline void FindOffestAndRelArgFromTrj(double Arg, const SRWLPrtTrj& trj, long long& Offset, double& RelArg);
 	inline void InterpFuncAndDerivs(double h, double x, DOUBLE* pf0, double& f, double& dfdx, double& d2fdx2, double& d3fdx3);
 	inline int AllocateQuadPhaseTermsArrFromTrj();
 	inline int AllocateQuadPhaseTermsArrFromTrj(const SRWLPrtTrj& trj);
@@ -245,9 +262,11 @@ public:
 	int FieldComponIsZero_FromTrj(char x_or_z);
 
 	void CountFieldExtremums();
-	void CompTrjDataForDisp(double* pOutBtxData, double* pOutXData, double* pOutBtyData, double* pOutYData, double* pOutBtzData, double* pOutZData, int ns, double sStart, double sStep); //virtual
+	//void CompTrjDataForDisp(double* pOutBtxData, double* pOutXData, double* pOutBtyData, double* pOutYData, double* pOutBtzData, double* pOutZData, int ns, double sStart, double sStep); //virtual
+	void CompTrjDataForDisp(double* pOutBtxData, double* pOutXData, double* pOutBtyData, double* pOutYData, double* pOutBtzData, double* pOutZData, long long ns, double sStart, double sStep); //virtual
 
-	double EstimateIntermedVal(double* pFunc, int Ind, double sStp, double ds)
+	//double EstimateIntermedVal(double* pFunc, int Ind, double sStp, double ds)
+	double EstimateIntermedVal(double* pFunc, long long Ind, double sStp, double ds)
 	{
 		if((pFunc == 0) || (Ind < 0)) return 0;
 		double f1 = pFunc[Ind];
@@ -256,7 +275,8 @@ public:
 		return f1 + (ds*(f2 - f1))/sStp;
 	}
 
-	long EstimMinNpForRadInteg(char typeInt) //virtual 
+	//long EstimMinNpForRadInteg(char typeInt) //virtual 
+	long long EstimMinNpForRadInteg(char typeInt) //virtual 
 	{//typeInt == 1: monochromatic emission in frequency domain
 	 //typeInt == 2: power density (integral over all photon energies)
 		int npMin = 5; //to tune
@@ -329,7 +349,8 @@ inline void srTTrjDat::CompTrjDataDerivedAtPoint(char x_or_z, double s, double& 
 
 	double &dxds0 = EbmDat.dxds0, &x0 = EbmDat.x0, &dzds0 = EbmDat.dzds0, &z0 = EbmDat.z0, &s0 = EbmDat.s0;
 
-	int Indx = int((s - sStart)/sStep); if(Indx >= LenFieldData - 1) Indx = LenFieldData - 2;
+	//int Indx = int((s - sStart)/sStep); if(Indx >= LenFieldData - 1) Indx = LenFieldData - 2;
+	long long Indx = (long long)((s - sStart)/sStep); if(Indx >= LenFieldData - 1) Indx = LenFieldData - 2;
 	double sb = sStart + Indx*sStep;
 	double smsb = s - sb;
 
@@ -377,7 +398,8 @@ inline void srTTrjDat::CompTrjDataDerivedAtPoint(double s, double& Btx, double& 
 
 	double &dxds0 = EbmDat.dxds0, &x0 = EbmDat.x0, &dzds0 = EbmDat.dzds0, &z0 = EbmDat.z0, &s0 = EbmDat.s0;
 
-	int Indx = int((s - sStart)*Inv_Step); if(Indx >= LenFieldData - 1) Indx = LenFieldData - 2;
+	//int Indx = int((s - sStart)*Inv_Step); if(Indx >= LenFieldData - 1) Indx = LenFieldData - 2;
+	long long Indx = (long long)((s - sStart)*Inv_Step); if(Indx >= LenFieldData - 1) Indx = LenFieldData - 2;
 	double sb = sStart + Indx*sStep;
 	double smsb = s - sb;
 	double *Bt_CfP, *C_CfP, *IntBt2_CfP;
@@ -408,11 +430,13 @@ inline void srTTrjDat::CompTrjDataDerivedAtPoint_FromTrj(double s, double& Btx, 
 	double &dxds0 = EbmDat.dxds0, &x0 = EbmDat.x0, &dzds0 = EbmDat.dzds0, &z0 = EbmDat.z0, &s0 = EbmDat.s0;
 
 	double sr, *pBt_Cf, *pCrd_Cf, *pIntBtE2_Cf;
-	int Indx;
+	//int Indx;
+	long long Indx;
 
 	if(VerFieldIsNotZero)
 	{
-		int Indx = int((s - xTrjInData.Start)*xTrjInData.InvStep); 
+		//int Indx = int((s - xTrjInData.Start)*xTrjInData.InvStep); 
+		Indx = (long long)((s - xTrjInData.Start)*xTrjInData.InvStep); 
 		if(Indx >= xTrjInData.np - 1) Indx = xTrjInData.np - 2;
 		if(Indx < 0) Indx = 0;
 		sr = s - (xTrjInData.Start + xTrjInData.Step*Indx);
@@ -429,7 +453,8 @@ inline void srTTrjDat::CompTrjDataDerivedAtPoint_FromTrj(double s, double& Btx, 
 	else { double Buf = dxds0*(s - s0); Btx = dxds0; Crdx = x0 + Buf; IntBtxE2 = dxds0*Buf;}
 	if(HorFieldIsNotZero)
 	{
-		Indx = int((s - zTrjInData.Start)*zTrjInData.InvStep); 
+		//Indx = int((s - zTrjInData.Start)*zTrjInData.InvStep); 
+		Indx = (long long)((s - zTrjInData.Start)*zTrjInData.InvStep); 
 		if(Indx >= zTrjInData.np - 1) Indx = zTrjInData.np - 2;
 		if(Indx < 0) Indx = 0;
 		sr = s - (zTrjInData.Start + zTrjInData.Step*Indx);
@@ -454,7 +479,8 @@ inline void srTTrjDat::CompTrjDataDerivedAtPointPowDens(double s, double& Btx, d
 
 	double &dxds0 = EbmDat.dxds0, &x0 = EbmDat.x0, &dzds0 = EbmDat.dzds0, &z0 = EbmDat.z0, &s0 = EbmDat.s0;
 
-	int Indx = int((s - sStart)*Inv_Step); if(Indx >= LenFieldData - 1) Indx = LenFieldData - 2;
+	//int Indx = int((s - sStart)*Inv_Step); if(Indx >= LenFieldData - 1) Indx = LenFieldData - 2;
+	long long Indx = (long long)((s - sStart)*Inv_Step); if(Indx >= LenFieldData - 1) Indx = LenFieldData - 2;
 	double sb = sStart + Indx*sStep;
 	double smsb = s - sb;
 
@@ -493,7 +519,8 @@ inline void srTTrjDat::CompTrjDataDerivedAtPointPowDens_FromTrj(double s, double
 {
 	double *pB_Cf, *pBt_Cf, *pCrd_Cf;
 
-	int Indx = int((s - xTrjInData.Start)*xTrjInData.InvStep); 
+	//int Indx = int((s - xTrjInData.Start)*xTrjInData.InvStep); 
+	long long Indx = (long long)((s - xTrjInData.Start)*xTrjInData.InvStep); 
 	if(Indx >= xTrjInData.np - 1) Indx = xTrjInData.np - 2;
 	if(Indx < 0) Indx = 0;
 	double sr = s - (xTrjInData.Start + xTrjInData.Step*Indx);
@@ -507,7 +534,8 @@ inline void srTTrjDat::CompTrjDataDerivedAtPointPowDens_FromTrj(double s, double
 	Btx = *pBt_Cf + sr*(*(pBt_Cf+1) + sr*(*(pBt_Cf+2) + sr*(*(pBt_Cf+3) + sr*(*(pBt_Cf+4)))));
 	Bz = *pB_Cf + sr*(*(pB_Cf+1) + sr*(*(pB_Cf+2) + sr*(*(pB_Cf+3))));
 
-	Indx = int((s - zTrjInData.Start)*zTrjInData.InvStep); 
+	//Indx = int((s - zTrjInData.Start)*zTrjInData.InvStep); 
+	Indx = (long long)((s - zTrjInData.Start)*zTrjInData.InvStep); 
 	if(Indx >= zTrjInData.np - 1) Indx = zTrjInData.np - 2;
 	if(Indx < 0) Indx = 0;
 	sr = s - (zTrjInData.Start + zTrjInData.Step*Indx);
@@ -530,7 +558,8 @@ inline void srTTrjDat::CompTrjDataAndFieldWithDerAtPoint(char x_or_z, double s, 
 
 	double &dxds0 = EbmDat.dxds0, &x0 = EbmDat.x0, &dzds0 = EbmDat.dzds0, &z0 = EbmDat.z0, &s0 = EbmDat.s0;
 
-	int Indx = int((s - sStart)/sStep); if(Indx >= LenFieldData - 1) Indx = LenFieldData - 2;
+	//int Indx = int((s - sStart)/sStep); if(Indx >= LenFieldData - 1) Indx = LenFieldData - 2;
+	long long Indx = (long long)((s - sStart)/sStep); if(Indx >= LenFieldData - 1) Indx = LenFieldData - 2;
 	double sb = sStart + Indx*sStep;
 	double smsb = s - sb;
 	double *B_CfP, *Bt_CfP, *C_CfP, *IntBt2_CfP;
@@ -567,11 +596,13 @@ inline void srTTrjDat::CompTrjDataAndFieldWithDerAtPoint(char x_or_z, double s, 
 
 //*************************************************************************
 
-inline void srTTrjDat::ComponentArray(int ComponNo, char x_or_z, double sSt, double sEn, int Ns, double* CompArray)
+//inline void srTTrjDat::ComponentArray(int ComponNo, char x_or_z, double sSt, double sEn, int Ns, double* CompArray)
+inline void srTTrjDat::ComponentArray(int ComponNo, char x_or_z, double sSt, double sEn, long long Ns, double* CompArray)
 {
 	double h = (sEn - sSt)/(Ns - 1);
 	double s = sSt;
-	for(int i=0; i<Ns; i++)
+	//for(int i=0; i<Ns; i++)
+	for(long long i=0; i<Ns; i++)
 	{
 		if(ComponNo==0)
 		{
@@ -615,7 +646,8 @@ inline void srTTrjDat::CompCorrectionsForTrjDataDerived()
 {
 	double &dxds0 = EbmDat.dxds0, &x0 = EbmDat.x0, &dzds0 = EbmDat.dzds0, &z0 = EbmDat.z0, &s0 = EbmDat.s0;
 
-	int Indx = int((s0 - sStart)/sStep); if(Indx >= LenFieldData - 1) Indx = LenFieldData - 2;
+	//int Indx = int((s0 - sStart)/sStep); if(Indx >= LenFieldData - 1) Indx = LenFieldData - 2;
+	long long Indx = (long long)((s0 - sStart)/sStep); if(Indx >= LenFieldData - 1) Indx = LenFieldData - 2;
 	double sb = sStart + Indx*sStep;
 	double smsb = s0 - sb;
 	double *Bt_CfP, *C_CfP, *IntBt2_CfP;
@@ -667,7 +699,8 @@ inline void srTTrjDat::SetupFldPlnCf(srTFunDer* InitialFieldData, double** FldPl
 	double f1 = InitialFieldData[0].f, f2;
 	double fpr1 = InitialFieldData[0].dfds, fpr2;
 
-	for(int is=1; is<LenFieldData; is++)
+	//for(int is=1; is<LenFieldData; is++)
+	for(long long is=1; is<LenFieldData; is++)
 	{
 		f2 = InitialFieldData[is].f;
 		fpr2 = InitialFieldData[is].dfds;
@@ -743,7 +776,8 @@ inline int srTTrjDat::ComputeInterpolatingStructure_FromTrj()
 inline void srTTrjDat::MakeZeroInputFieldDer()
 {
 	srTFunDer *tBxInData = BxInData, *tBzInData = BzInData;
-	for(int k=0; k<LenFieldData; k++)
+	//for(int k=0; k<LenFieldData; k++)
+	for(long long k=0; k<LenFieldData; k++)
 	{
 		(tBxInData++)->dfds = 0.;
 		(tBzInData++)->dfds = 0.;
@@ -774,7 +808,8 @@ inline int srTTrjDat::EvaluateMemAvailBeforeTrjComp()
 
 inline int srTTrjDat::SetUpFieldBasedArraysTotal(srTFieldBasedArrayKeys& Keys, srTFieldBasedArrays& FieldBasedArrays)
 {
-	long Ns = LenFieldData >> 1; // To steer
+	//long Ns = LenFieldData >> 1; // To steer
+	long long Ns = LenFieldData >> 1; // To steer
 	FieldBasedArrays.sStart = sStart;
 	FieldBasedArrays.sStep = sStep;
 	FieldBasedArrays.Ns = Ns;
@@ -805,7 +840,8 @@ inline int srTTrjDat::ShowLimitsAndInitInteg(srTWfrSmp&, char LongIntType, doubl
 inline void srTTrjDat::TrjCoordAngField(double s, char x_or_z, double& x, double& dxds, double& B)
 {// for computing SR from Trajectory
 	srTWaveAccessDataD1D &TrjInData = (x_or_z == 'x')? xTrjInData : zTrjInData; 
-	long StartInd;
+	//long StartInd;
+	long long StartInd;
 	double sr, d2xds2, d3xds3;
 	FindOffestAndRelArg(s, TrjInData, StartInd, sr);
 
@@ -822,7 +858,8 @@ inline void srTTrjDat::CompTrjDataAndFieldWithDerAtPoint_FromTrj(char x_or_z, do
 {// for computing SR from Trajectory
 	srTWaveAccessDataD1D &TrjInData = (x_or_z == 'x')? xTrjInData : zTrjInData; 
 
-	int Indx = int((s - TrjInData.Start)/TrjInData.Step); 
+	//int Indx = int((s - TrjInData.Start)/TrjInData.Step); 
+	long long Indx = (long long)((s - TrjInData.Start)/TrjInData.Step); 
 	if(Indx >= TrjInData.np - 1) Indx = TrjInData.np - 2;
 	if(Indx < 0) Indx = 0;
 
@@ -856,7 +893,8 @@ inline void srTTrjDat::CompTrjDataAndFieldWithDerAtPoint_FromTrjInitial(char x_o
 	srTWaveAccessDataD1D &TrjInData = (x_or_z == 'x')? xTrjInData : zTrjInData; 
 	DOUBLE *pIntBtE2Arr = (x_or_z == 'x')? IntBtxE2Arr : IntBtzE2Arr; 
 
-	long StartInd;
+	//long StartInd;
+	long long StartInd;
 	double sr, d2xds2, d3xds3;
 	FindOffestAndRelArg(s, TrjInData, StartInd, sr);
 
@@ -874,9 +912,11 @@ inline void srTTrjDat::CompTrjDataAndFieldWithDerAtPoint_FromTrjInitial(char x_o
 
 //*************************************************************************
 
-inline void srTTrjDat::FindOffestAndRelArg(double Arg, srTWaveAccessDataD1D& TrjInData, long& Offset, double& RelArg)
+//inline void srTTrjDat::FindOffestAndRelArg(double Arg, srTWaveAccessDataD1D& TrjInData, long& Offset, double& RelArg)
+inline void srTTrjDat::FindOffestAndRelArg(double Arg, srTWaveAccessDataD1D& TrjInData, long long& Offset, double& RelArg)
 {
-	int Indx = int((Arg - TrjInData.Start)/TrjInData.Step); 
+	//int Indx = int((Arg - TrjInData.Start)/TrjInData.Step); 
+	long long Indx = (long long)((Arg - TrjInData.Start)/TrjInData.Step); 
 	if(Indx >= TrjInData.np - 1) Indx = TrjInData.np - 2;
 	if(Indx < 0) Indx = 0;
 
@@ -904,11 +944,13 @@ inline void srTTrjDat::FindOffestAndRelArg(double Arg, srTWaveAccessDataD1D& Trj
 
 //*************************************************************************
 
-inline void srTTrjDat::FindOffestAndRelArgFromTrj(double Arg, const SRWLPrtTrj& trj, long& Offset, double& RelArg)
+//inline void srTTrjDat::FindOffestAndRelArgFromTrj(double Arg, const SRWLPrtTrj& trj, long& Offset, double& RelArg)
+inline void srTTrjDat::FindOffestAndRelArgFromTrj(double Arg, const SRWLPrtTrj& trj, long long& Offset, double& RelArg)
 {//assumes that sStart, sStep were already setup
 	Offset = 0; RelArg = 0;
 
-	int np = trj.np;
+	//int np = trj.np;
+	long long np = trj.np;
 	//sStart = trj.ctStart + trj.partInitCond.z;
 	//sStep = (trj.ctEnd - trj.ctStart)/(np - 1);
 	//if(trj.arZ != 0)
@@ -917,7 +959,8 @@ inline void srTTrjDat::FindOffestAndRelArgFromTrj(double Arg, const SRWLPrtTrj& 
 	//	sStep = (trj.arZ[trj.np - 1] - sStart)/(np - 1);
 	//}
 
-	int Indx = int((Arg - sStart)/sStep); 
+	//int Indx = int((Arg - sStart)/sStep); 
+	long long Indx = (long long)((Arg - sStart)/sStep); 
 	if(Indx >= np - 1) Indx = np - 2;
 	else if(Indx < 0) Indx = 0;
 	RelArg = Arg - (sStart + sStep*Indx);

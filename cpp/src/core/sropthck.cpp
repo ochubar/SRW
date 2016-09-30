@@ -523,7 +523,528 @@ void srTMirror::FindElemExtentsAlongOptAxes(gmTrans& trfMir, TVector3d& vCenNorm
 
 //*************************************************************************
 
-//int srTMirror::WfrInterpolOnOrigGrid(srTSRWRadStructAccessData* pWfr, float* arRayTrCoord, float* arEX, float* arEZ, float xMin, float xMax, float zMin, float zMax)
+//int srTMirror::WfrInterpolOnOrigGrid2(srTSRWRadStructAccessData* pWfr, double* arRayTrCoord, long* arIndRayTrCoord, float* arEX, float* arEZ, double xMin, double xMax, double zMin, double zMax)
+int srTMirror::WfrInterpolOnOrigGrid2(srTSRWRadStructAccessData* pWfr, double* arRayTrCoord, long long* arIndRayTrCoord, float* arEX, float* arEZ, double xMin, double xMax, double zMin, double zMax)
+{//OC18032016
+	if((pWfr == 0) || (arRayTrCoord == 0) || ((arEX == 0) && (arEZ == 0))) return FAILED_INTERPOL_ELEC_FLD;
+	//if((pWfr == 0) || (arRayTrCoord == 0) || (arOptPathDif == 0) || ((arEX == 0) && (arEZ == 0))) return FAILED_INTERPOL_ELEC_FLD;
+
+	bool isCoordRepres = (pWfr->Pres == 0);
+	bool isFreqRepres = (pWfr->PresT == 0);
+	bool waveFrontTermWasTreated = false;
+
+	if(isFreqRepres && isCoordRepres && WaveFrontTermCanBeTreated(*pWfr, false)) //OC300914
+	{
+		float *pPrevBaseRadX = pWfr->pBaseRadX; 
+		float *pPrevBaseRadZ = pWfr->pBaseRadZ;
+		pWfr->pBaseRadX = arEX;
+		pWfr->pBaseRadZ = arEZ;
+		
+		//testoc!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+		//TreatStronglyOscillatingTerm(*pWfr, 'r');
+		//end testoc!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+		
+		//if(!((fabs(pWfr->RobsX + 0.99) < 0.1) && (fabs(pWfr->RobsZ + 0.99) < 0.1)))
+		//{//OCTEST
+		TreatStronglyOscillatingTermIrregMesh(*pWfr, arRayTrCoord, xMin, xMax, zMin, zMax, 'r');
+		//}//OCTEST
+		
+		pWfr->pBaseRadX = pPrevBaseRadX;
+		pWfr->pBaseRadZ = pPrevBaseRadZ;
+		waveFrontTermWasTreated = true;
+	}
+
+	float *t_ExRes = pWfr->pBaseRadX;
+	float *t_EzRes = pWfr->pBaseRadZ;
+
+	//long HalfPerX = (pWfr->ne);
+	//long PerX = HalfPerX << 1;
+	//long HalfPerZ = HalfPerX*(pWfr->nx);
+	//long PerZ = PerX*(pWfr->nx);
+	//long half_nTot = HalfPerZ*(pWfr->nz);
+	//long nTot = PerZ*(pWfr->nz);
+
+	long long HalfPerX = (pWfr->ne);
+	long long PerX = HalfPerX << 1;
+	long long HalfPerZ = HalfPerX*(pWfr->nx);
+	long long PerZ = PerX*(pWfr->nx);
+	long long half_nTot = HalfPerZ*(pWfr->nz);
+	long long nTot = PerZ*(pWfr->nz);
+
+	//OCTEST
+	//if((fabs(pWfr->RobsX + 20.596) < 0.1) && (fabs(pWfr->RobsZ + 18.079) < 0.1))
+	//if(fabs(pWfr->RobsZ + 18.079) < 0.1)
+	//{
+		//float *t_arEX = arEX, *t_arEZ = arEZ;
+		//for(int k=0; k<nTot; k++)
+		//{
+		//	*(t_ExRes++) = *(t_arEX++);
+		//	*(t_EzRes++) = *(t_arEZ++);
+		//}
+		//return 0;
+		//int aha = 1;
+	//}
+	//END OCTEST
+	
+	double arRelCoordXZ[6]; //Coordinates of points to be used for interpolation
+	double arReEx[4], arImEx[4], arReEz[4], arImEz[4], arIx[4], arIz[4]; //Aux. arrays to be used for interpolation
+	double dx, dz, ReE, ImE;
+
+	const int maxSearchRad = 3; //To tune
+	long ixMin = (long)((xMin - (pWfr->xStart))/(pWfr->xStep));
+	long ixMax = (long)((xMax - (pWfr->xStart))/(pWfr->xStep));
+	long izMin = (long)((zMin - (pWfr->zStart))/(pWfr->zStep));
+	long izMax = (long)((zMax - (pWfr->zStart))/(pWfr->zStep));
+
+	double z = pWfr->zStart;
+	for(long iz=0; iz<(pWfr->nz); iz++)
+	{
+		//long izHalfPerZ = iz*HalfPerZ;
+		long long izHalfPerZ = iz*HalfPerZ;
+		double x = pWfr->xStart;
+		for(long ix=0; ix<(pWfr->nx); ix++)
+		{
+			//long izHalfPerZ_p_ixHalfPerX = izHalfPerZ + ix*HalfPerX;
+			long long izHalfPerZ_p_ixHalfPerX = izHalfPerZ + ix*HalfPerX;
+			for(long ie=0; ie<(pWfr->ne); ie++)
+			{
+				*t_ExRes = 0.; *(t_ExRes+1) = 0.;
+				*t_EzRes = 0.; *(t_EzRes+1) = 0.;
+
+				//OCTEST
+				//if(fabs(pWfr->RobsZ + 18.079) < 0.1)
+				//{
+				//	//if((ix == 1124) && (iz == 408))
+				//	//if((ix == 1585) && (iz == 198))
+				//	if((ix == 231) && (iz == 189))
+				//	{
+				//		int aha = 1;
+				//	}
+				//}
+				//END OCTEST
+
+				//long indCloseRayTrCoord = arIndRayTrCoord[izHalfPerZ_p_ixHalfPerX + ie];
+				long long indCloseRayTrCoord = arIndRayTrCoord[izHalfPerZ_p_ixHalfPerX + ie];
+				if((indCloseRayTrCoord < 0) && ((xMin < x) && (x < xMax) && (zMin < z) && (z < zMax)))
+				{//Try to find nearest non-negative value of the index
+
+					bool thereAreDataXL=false, thereAreDataXU=false;
+					bool thereAreDataYL=false, thereAreDataYU=false;
+					//long indFirstFound=-1;
+					long long indFirstFound=-1;
+					for(int ic=1; ic<=maxSearchRad; ic++)
+					{
+						int two_ic = ic << 1;
+						for(int icz=-ic; icz<=ic; icz+=two_ic)
+						{
+							long jz = iz + icz;
+							if((jz < izMin) || (jz > izMax)) continue;
+
+							//long jzHalfPerZ_p_ie = jz*HalfPerZ + ie;
+							long long jzHalfPerZ_p_ie = jz*HalfPerZ + ie;
+
+							for(int icx=-ic; icx<=ic; icx++)
+							{
+								long jx = ix + icx;
+								if((jx < ixMin) || (jx > ixMax)) continue;
+
+								//long testOfst = jzHalfPerZ_p_ie + jx*HalfPerX;
+								long long testOfst = jzHalfPerZ_p_ie + jx*HalfPerX;
+								//long testOfst = jzHalfPerZ_p_ie + ix*HalfPerX;
+								if((testOfst < 0) || (testOfst >= half_nTot)) continue;
+
+								//indCloseRayTrCoord = arIndRayTrCoord[testOfst];
+								//if(indCloseRayTrCoord >= 0) 
+								//long indCur = arIndRayTrCoord[testOfst];
+								long long indCur = arIndRayTrCoord[testOfst];
+								if(indCur >= 0) 
+								{
+									if(indFirstFound < 0) indFirstFound = indCur;
+
+									if(icz < 0) thereAreDataYL = true;
+									else thereAreDataYU = true;
+									break;
+								}
+							}
+							//if(indCloseRayTrCoord >= 0) break;
+						}
+						//if(indCloseRayTrCoord >= 0) break;
+						if((indFirstFound >= 0) && thereAreDataXL && thereAreDataXU && thereAreDataYL && thereAreDataYU)
+						{
+							indCloseRayTrCoord = indFirstFound;
+							break;
+						}
+
+						for(int icx=-ic; icx<=ic; icx+=two_ic)
+						{
+							long jx = ix + icx;
+							if((jx < ixMin) || (jx > ixMax)) continue;
+
+							//long jxHalfPerX_p_ie = jx*HalfPerX + ie;
+							long long jxHalfPerX_p_ie = jx*HalfPerX + ie;
+							for(int icz=-ic+1; icz<=(ic-1); icz++)
+							{
+								long jz = iz + icz;
+								if((jz < izMin) || (jz > izMax)) continue;
+
+								//long testOfst = jxHalfPerX_p_ie + jz*HalfPerZ;
+								long long testOfst = jxHalfPerX_p_ie + jz*HalfPerZ;
+								//long testOfst = jxHalfPerX_p_ie + iz*HalfPerZ;
+								if((testOfst < 0) || (testOfst >= half_nTot)) continue;
+
+								//indCloseRayTrCoord = arIndRayTrCoord[testOfst];
+								//if(indCloseRayTrCoord >= 0) break;
+								//long indCur = arIndRayTrCoord[testOfst];
+								long long indCur = arIndRayTrCoord[testOfst];
+								if(indCur >= 0) 
+								{
+									if(indFirstFound < 0) indFirstFound = indCur;
+								
+									if(icx < 0) thereAreDataXL = true;
+									else thereAreDataXU = true;
+									break;
+								}
+							}
+							//if(indCloseRayTrCoord >= 0) break;
+						}
+						//if(indCloseRayTrCoord >= 0) break;
+						if((indFirstFound >= 0) && thereAreDataXL && thereAreDataXU && thereAreDataYL && thereAreDataYU)
+						{
+							indCloseRayTrCoord = indFirstFound;
+							break;
+						}
+					}
+				}
+
+				if(indCloseRayTrCoord >= 0) 
+				{
+					double *pRayTrCoord = arRayTrCoord + indCloseRayTrCoord;
+					double xCloseRayTr = *pRayTrCoord;
+					double zCloseRayTr = *(pRayTrCoord + 1);
+
+					long iz0 = (long)(indCloseRayTrCoord/PerZ);
+					long ix0 = (long)((indCloseRayTrCoord - iz0*PerZ)/PerX);
+					long ie0 = (long)((indCloseRayTrCoord - iz0*PerZ - ix0*PerX) >> 1);
+					long ie0PerE = ie0 << 1;
+
+					//Determine 3 other 2D points "surrounding" the point (x, y)
+
+					long izm1 = iz0 - 1, izp1 = iz0 + 1;
+					if(izm1 < 0) 
+					{
+						izm1 = 0; iz0 = 1; izp1 = 2;
+					}
+					else if(izp1 >= (pWfr->nz))
+					{
+						izm1 = (pWfr->nz) - 3; iz0 = izm1 + 1; izp1 = iz0 + 1;
+					}
+			
+					long ixm1 = ix0 - 1, ixp1 = ix0 + 1;
+					if(ixm1 < 0) 
+					{
+						ixm1 = 0; ix0 = 1; ixp1 = 2;
+					}
+					else if(ixp1 >= (pWfr->nx))
+					{
+						ixm1 = (pWfr->nx) - 3; ix0 = ixm1 + 1; ixp1 = ix0 + 1;
+					}
+
+					//long ixm1PerX_p_ie0PerE = ixm1*PerX + ie0PerE;
+					//long izm1PerZ = izm1*PerZ;
+					//long ofst_ixm1_izm1 = izm1PerZ + ixm1PerX_p_ie0PerE;
+					long long ixm1PerX_p_ie0PerE = ixm1*PerX + ie0PerE;
+					long long izm1PerZ = izm1*PerZ;
+					long long ofst_ixm1_izm1 = izm1PerZ + ixm1PerX_p_ie0PerE;
+					double xCoord_ixm1_izm1 = arRayTrCoord[ofst_ixm1_izm1];
+					double zCoord_ixm1_izm1 = arRayTrCoord[ofst_ixm1_izm1 + 1];
+
+					//long iz0PerZ = iz0*PerZ;
+					//long ofst_ixm1_iz0 = iz0PerZ + ixm1PerX_p_ie0PerE;
+					long long iz0PerZ = iz0*PerZ;
+					long long ofst_ixm1_iz0 = iz0PerZ + ixm1PerX_p_ie0PerE;
+					double xCoord_ixm1_iz0 = arRayTrCoord[ofst_ixm1_iz0];
+					double zCoord_ixm1_iz0 = arRayTrCoord[ofst_ixm1_iz0 + 1];
+
+					//long izp1PerZ = izp1*PerZ;
+					//long ofst_ixm1_izp1 = izp1PerZ + ixm1PerX_p_ie0PerE;
+					long long izp1PerZ = izp1*PerZ;
+					long long ofst_ixm1_izp1 = izp1PerZ + ixm1PerX_p_ie0PerE;
+					double xCoord_ixm1_izp1 = arRayTrCoord[ofst_ixm1_izp1];
+					double zCoord_ixm1_izp1 = arRayTrCoord[ofst_ixm1_izp1 + 1];
+
+					//long ix0PerX_p_ie0PerE = ix0*PerX + ie0PerE;
+					//long ofst_ix0_izm1 = izm1PerZ + ix0PerX_p_ie0PerE;
+					long long ix0PerX_p_ie0PerE = ix0*PerX + ie0PerE;
+					long long ofst_ix0_izm1 = izm1PerZ + ix0PerX_p_ie0PerE;
+					double xCoord_ix0_izm1 = arRayTrCoord[ofst_ix0_izm1];
+					double zCoord_ix0_izm1 = arRayTrCoord[ofst_ix0_izm1 + 1];
+
+					//long ofst_ix0_iz0 = iz0PerZ + ix0PerX_p_ie0PerE;
+					long long ofst_ix0_iz0 = iz0PerZ + ix0PerX_p_ie0PerE;
+					double xCoord_ix0_iz0 = arRayTrCoord[ofst_ix0_iz0];
+					double zCoord_ix0_iz0 = arRayTrCoord[ofst_ix0_iz0 + 1];
+
+					//long ofst_ix0_izp1 = izp1PerZ + ix0PerX_p_ie0PerE;
+					long long ofst_ix0_izp1 = izp1PerZ + ix0PerX_p_ie0PerE;
+					double xCoord_ix0_izp1 = arRayTrCoord[ofst_ix0_izp1];
+					double zCoord_ix0_izp1 = arRayTrCoord[ofst_ix0_izp1 + 1];
+
+					//long ixp1PerX_p_ie0PerE = ixp1*PerX + ie0PerE;
+					//long ofst_ixp1_izm1 = izm1PerZ + ixp1PerX_p_ie0PerE;
+					long long ixp1PerX_p_ie0PerE = ixp1*PerX + ie0PerE;
+					long long ofst_ixp1_izm1 = izm1PerZ + ixp1PerX_p_ie0PerE;
+					double xCoord_ixp1_izm1 = arRayTrCoord[ofst_ixp1_izm1];
+					double zCoord_ixp1_izm1 = arRayTrCoord[ofst_ixp1_izm1 + 1];
+
+					//long ofst_ixp1_iz0 = iz0PerZ + ixp1PerX_p_ie0PerE;
+					long long ofst_ixp1_iz0 = iz0PerZ + ixp1PerX_p_ie0PerE;
+					double xCoord_ixp1_iz0 = arRayTrCoord[ofst_ixp1_iz0];
+					double zCoord_ixp1_iz0 = arRayTrCoord[ofst_ixp1_iz0 + 1];
+
+					//long ofst_ixp1_izp1 = izp1PerZ + ixp1PerX_p_ie0PerE;
+					long long ofst_ixp1_izp1 = izp1PerZ + ixp1PerX_p_ie0PerE;
+					double xCoord_ixp1_izp1 = arRayTrCoord[ofst_ixp1_izp1];
+					double zCoord_ixp1_izp1 = arRayTrCoord[ofst_ixp1_izp1 + 1];
+
+					//Aux. coordinates of centers of quadrants to be used for choosing the most appropriate quadrant for teh interpolation
+					double xq00 = 0.25*(xCoord_ixm1_izm1 + xCoord_ix0_izm1 + xCoord_ixm1_iz0 + xCoord_ix0_iz0);
+					double zq00 = 0.25*(zCoord_ixm1_izm1 + zCoord_ix0_izm1 + zCoord_ixm1_iz0 + zCoord_ix0_iz0);
+					dx = x - xq00; dz = z - zq00;
+					double r00 = sqrt(dx*dx + dz*dz);
+					double rMin = r00;
+					char qID = 0;
+						
+					double xq10 = 0.25*(xCoord_ix0_izm1 + xCoord_ixp1_izm1 + xCoord_ix0_iz0 + xCoord_ixp1_iz0);
+					double zq10 = 0.25*(zCoord_ix0_izm1 + zCoord_ixp1_izm1 + zCoord_ix0_iz0 + zCoord_ixp1_iz0);
+					dx = x - xq10; dz = z - zq10;
+					double r10 = sqrt(dx*dx + dz*dz);
+					if(rMin > r10) { rMin = r10; qID = 1;}
+						
+					double xq01 = 0.25*(xCoord_ixm1_iz0 + xCoord_ix0_iz0 + xCoord_ixm1_izp1 + xCoord_ix0_izp1);
+					double zq01 = 0.25*(zCoord_ixm1_iz0 + zCoord_ix0_iz0 + zCoord_ixm1_izp1 + zCoord_ix0_izp1);
+					dx = x - xq01; dz = z - zq01;
+					double r01 = sqrt(dx*dx + dz*dz);
+					if(rMin > r01) { rMin = r01; qID = 2;}
+
+					double xq11 = 0.25*(xCoord_ix0_iz0 + xCoord_ixp1_iz0 + xCoord_ix0_izp1 + xCoord_ixp1_izp1);
+					double zq11 = 0.25*(zCoord_ix0_iz0 + zCoord_ixp1_iz0 + zCoord_ix0_izp1 + zCoord_ixp1_izp1);
+					dx = x - xq11; dz = z - zq11;
+					double r11 = sqrt(dx*dx + dz*dz);
+					if(rMin > r11) { rMin = r11; qID = 3;}
+
+					//Use Bi-Linear interpolation on Irregular mesh
+					double relX=0, relZ=0;
+					if(qID == 0)
+					{
+						arRelCoordXZ[0] = xCoord_ix0_izm1 - xCoord_ixm1_izm1;
+						arRelCoordXZ[1] = zCoord_ix0_izm1 - zCoord_ixm1_izm1;
+						arRelCoordXZ[2] = xCoord_ixm1_iz0 - xCoord_ixm1_izm1;
+						arRelCoordXZ[3] = zCoord_ixm1_iz0 - zCoord_ixm1_izm1;
+						arRelCoordXZ[4] = xCoord_ix0_iz0 - xCoord_ixm1_izm1;
+						arRelCoordXZ[5] = zCoord_ix0_iz0 - zCoord_ixm1_izm1;
+						relX = x - xCoord_ixm1_izm1;
+						relZ = z - zCoord_ixm1_izm1;
+						if(arEX != 0)
+						{
+							arReEx[0] = arEX[ofst_ixm1_izm1];
+							arImEx[0] = arEX[ofst_ixm1_izm1 + 1];
+							arReEx[1] = arEX[ofst_ix0_izm1];
+							arImEx[1] = arEX[ofst_ix0_izm1 + 1];
+							arReEx[2] = arEX[ofst_ixm1_iz0];
+							arImEx[2] = arEX[ofst_ixm1_iz0 + 1];
+							arReEx[3] = arEX[ofst_ix0_iz0];
+							arImEx[3] = arEX[ofst_ix0_iz0 + 1];
+						}
+						if(arEZ != 0)
+						{
+							arReEz[0] = arEZ[ofst_ixm1_izm1];
+							arImEz[0] = arEZ[ofst_ixm1_izm1 + 1];
+							arReEz[1] = arEZ[ofst_ix0_izm1];
+							arImEz[1] = arEZ[ofst_ix0_izm1 + 1];
+							arReEz[2] = arEZ[ofst_ixm1_iz0];
+							arImEz[2] = arEZ[ofst_ixm1_iz0 + 1];
+							arReEz[3] = arEZ[ofst_ix0_iz0];
+							arImEz[3] = arEZ[ofst_ix0_iz0 + 1];
+						}
+					}
+					else if(qID == 1)
+					{
+						arRelCoordXZ[0] = xCoord_ixp1_izm1 - xCoord_ix0_izm1;
+						arRelCoordXZ[1] = zCoord_ixp1_izm1 - zCoord_ix0_izm1;
+						arRelCoordXZ[2] = xCoord_ix0_iz0 - xCoord_ix0_izm1;
+						arRelCoordXZ[3] = zCoord_ix0_iz0 - zCoord_ix0_izm1;
+						arRelCoordXZ[4] = xCoord_ixp1_iz0 - xCoord_ix0_izm1;
+						arRelCoordXZ[5] = zCoord_ixp1_iz0 - zCoord_ix0_izm1;
+						relX = x - xCoord_ix0_izm1;
+						relZ = z - zCoord_ix0_izm1;
+						if(arEX != 0)
+						{
+							arReEx[0] = arEX[ofst_ix0_izm1];
+							arImEx[0] = arEX[ofst_ix0_izm1 + 1];
+							arReEx[1] = arEX[ofst_ixp1_izm1];
+							arImEx[1] = arEX[ofst_ixp1_izm1 + 1];
+							arReEx[2] = arEX[ofst_ix0_iz0];
+							arImEx[2] = arEX[ofst_ix0_iz0 + 1];
+							arReEx[3] = arEX[ofst_ixp1_iz0];
+							arImEx[3] = arEX[ofst_ixp1_iz0 + 1];
+						}
+						if(arEZ != 0)
+						{
+							arReEz[0] = arEZ[ofst_ix0_izm1];
+							arImEz[0] = arEZ[ofst_ix0_izm1 + 1];
+							arReEz[1] = arEZ[ofst_ixp1_izm1];
+							arImEz[1] = arEZ[ofst_ixp1_izm1 + 1];
+							arReEz[2] = arEZ[ofst_ix0_iz0];
+							arImEz[2] = arEZ[ofst_ix0_iz0 + 1];
+							arReEz[3] = arEZ[ofst_ixp1_iz0];
+							arImEz[3] = arEZ[ofst_ixp1_iz0 + 1];
+						}
+					}
+					else if(qID == 2)
+					{
+						arRelCoordXZ[0] = xCoord_ix0_iz0 - xCoord_ixm1_iz0;
+						arRelCoordXZ[1] = zCoord_ix0_iz0 - zCoord_ixm1_iz0;
+						arRelCoordXZ[2] = xCoord_ixm1_izp1 - xCoord_ixm1_iz0;
+						arRelCoordXZ[3] = zCoord_ixm1_izp1 - zCoord_ixm1_iz0;
+						arRelCoordXZ[4] = xCoord_ix0_izp1 - xCoord_ixm1_iz0;
+						arRelCoordXZ[5] = zCoord_ix0_izp1 - zCoord_ixm1_iz0;
+						relX = x - xCoord_ixm1_iz0;
+						relZ = z - zCoord_ixm1_iz0;
+						if(arEX != 0)
+						{
+							arReEx[0] = arEX[ofst_ixm1_iz0];
+							arImEx[0] = arEX[ofst_ixm1_iz0 + 1];
+							arReEx[1] = arEX[ofst_ix0_iz0];
+							arImEx[1] = arEX[ofst_ix0_iz0 + 1];
+							arReEx[2] = arEX[ofst_ixm1_izp1];
+							arImEx[2] = arEX[ofst_ixm1_izp1 + 1];
+							arReEx[3] = arEX[ofst_ix0_izp1];
+							arImEx[3] = arEX[ofst_ix0_izp1 + 1];
+						}
+						if(arEZ != 0)
+						{
+							arReEz[0] = arEZ[ofst_ixm1_iz0];
+							arImEz[0] = arEZ[ofst_ixm1_iz0 + 1];
+							arReEz[1] = arEZ[ofst_ix0_iz0];
+							arImEz[1] = arEZ[ofst_ix0_iz0 + 1];
+							arReEz[2] = arEZ[ofst_ixm1_izp1];
+							arImEz[2] = arEZ[ofst_ixm1_izp1 + 1];
+							arReEz[3] = arEZ[ofst_ix0_izp1];
+							arImEz[3] = arEZ[ofst_ix0_izp1 + 1];
+						}
+					}
+					else if(qID == 3)
+					{
+						arRelCoordXZ[0] = xCoord_ixp1_iz0 - xCoord_ix0_iz0;
+						arRelCoordXZ[1] = zCoord_ixp1_iz0 - zCoord_ix0_iz0;
+						arRelCoordXZ[2] = xCoord_ix0_izp1 - xCoord_ix0_iz0;
+						arRelCoordXZ[3] = zCoord_ix0_izp1 - zCoord_ix0_iz0;
+						arRelCoordXZ[4] = xCoord_ixp1_izp1 - xCoord_ix0_iz0;
+						arRelCoordXZ[5] = zCoord_ixp1_izp1 - zCoord_ix0_iz0;
+						relX = x - xCoord_ix0_iz0;
+						relZ = z - zCoord_ix0_iz0;
+						if(arEX != 0)
+						{
+							arReEx[0] = arEX[ofst_ix0_iz0];
+							arImEx[0] = arEX[ofst_ix0_iz0 + 1];
+							arReEx[1] = arEX[ofst_ixp1_iz0];
+							arImEx[1] = arEX[ofst_ixp1_iz0 + 1];
+							arReEx[2] = arEX[ofst_ix0_izp1];
+							arImEx[2] = arEX[ofst_ix0_izp1 + 1];
+							arReEx[3] = arEX[ofst_ixp1_izp1];
+							arImEx[3] = arEX[ofst_ixp1_izp1 + 1];
+						}
+						if(arEZ != 0)
+						{
+							arReEz[0] = arEZ[ofst_ix0_iz0];
+							arImEz[0] = arEZ[ofst_ix0_iz0 + 1];
+							arReEz[1] = arEZ[ofst_ixp1_iz0];
+							arImEz[1] = arEZ[ofst_ixp1_iz0 + 1];
+							arReEz[2] = arEZ[ofst_ix0_izp1];
+							arImEz[2] = arEZ[ofst_ix0_izp1 + 1];
+							arReEz[3] = arEZ[ofst_ixp1_izp1];
+							arImEz[3] = arEZ[ofst_ixp1_izp1 + 1];
+						}
+					}
+
+					double resReEx=0, resImEx=0, resReEz=0, resImEz=0;
+					if(arEX != 0)
+					{
+						//static double Interp2dBiLinVar(double x, double y, double* arXY, double* arF)
+						//bilinear interpolation on irregular mesh, for relative arguments, first point is x = 0, y = 0
+						//arXY is flat array of coordinates of 3 other points {x10, y10, x01, y01, x11, y11}
+						//resReEx = CGenMathInterp::Interp2dBiLinVar(x, z, arRelCoordXZ, arReEx);
+						///resImEx = CGenMathInterp::Interp2dBiLinVar(x, z, arRelCoordXZ, arImEx);
+						resReEx = CGenMathInterp::Interp2dBiLinVar(relX, relZ, arRelCoordXZ, arReEx);
+						resImEx = CGenMathInterp::Interp2dBiLinVar(relX, relZ, arRelCoordXZ, arImEx);
+
+						//Correction of Electric FIeld values, using Intensity ones
+						double appIx = resReEx*resReEx + resImEx*resImEx;
+						if(appIx > 0.)
+						{
+							for(int i=0; i<4; i++) { ReE = arReEx[i]; ImE = arImEx[i]; arIx[i] = ReE*ReE + ImE*ImE;}
+							//double resIx = CGenMathInterp::Interp2dBiLinVar(x, z, arRelCoordXZ, arIx);
+							double resIx = CGenMathInterp::Interp2dBiLinVar(relX, relZ, arRelCoordXZ, arIx);
+							if(resIx <= 0)
+							{
+								resReEx = 0.; resImEx *= 0.;
+							}
+							else 
+							{
+								double fact = sqrt(resIx/appIx);
+								resReEx *= fact; resImEx *= fact;
+							}
+						}
+					}
+					if(arEZ != 0)
+					{
+						//resReEz = CGenMathInterp::Interp2dBiLinVar(x, z, arRelCoordXZ, arReEz);
+						//resImEz = CGenMathInterp::Interp2dBiLinVar(x, z, arRelCoordXZ, arImEz);
+						resReEz = CGenMathInterp::Interp2dBiLinVar(relX, relZ, arRelCoordXZ, arReEz);
+						resImEz = CGenMathInterp::Interp2dBiLinVar(relX, relZ, arRelCoordXZ, arImEz);
+
+						//Correction of Electric FIeld values, using Intensity ones
+						double appIz = resReEz*resReEz + resImEz*resImEz;
+						if(appIz > 0.)
+						{
+							for(int i=0; i<4; i++) { ReE = arReEz[i]; ImE = arImEz[i]; arIz[i] = ReE*ReE + ImE*ImE;}
+							//double resIz = CGenMathInterp::Interp2dBiLinVar(x, z, arRelCoordXZ, arIz);
+							double resIz = CGenMathInterp::Interp2dBiLinVar(relX, relZ, arRelCoordXZ, arIz);
+							if(resIz <= 0)
+							{
+								resReEz = 0.; resImEz *= 0.;
+							}
+							else
+							{
+								double fact = sqrt(resIz/appIz);
+								resReEz *= fact; resImEz *= fact;
+							}
+						}
+					}
+
+					*t_ExRes = (float)resReEx; *(t_ExRes+1) = (float)resImEx;
+					*t_EzRes = (float)resReEz; *(t_EzRes+1) = (float)resImEz;
+				}
+				t_ExRes += 2;
+				t_EzRes += 2;
+			}
+			x += pWfr->xStep;
+		}
+		z += pWfr->zStep;
+	}
+	
+	//OCTEST (commented-out)
+	//if(fabs(pWfr->RobsZ + 18.079) > 0.1)
+	//{//OCTEST
+
+	if(waveFrontTermWasTreated) TreatStronglyOscillatingTerm(*pWfr, 'a');
+
+	//}//OCTEST
+	return 0;
+}
+
+//*************************************************************************
+
 int srTMirror::WfrInterpolOnOrigGrid(srTSRWRadStructAccessData* pWfr, double* arRayTrCoord, float* arEX, float* arEZ, double xMin, double xMax, double zMin, double zMax)
 {
 	if((pWfr == 0) || (arRayTrCoord == 0) || ((arEX == 0) && (arEZ == 0))) return FAILED_INTERPOL_ELEC_FLD;
@@ -547,9 +1068,7 @@ int srTMirror::WfrInterpolOnOrigGrid(srTSRWRadStructAccessData* pWfr, double* ar
 		
 		//if(!((fabs(pWfr->RobsX + 0.99) < 0.1) && (fabs(pWfr->RobsZ + 0.99) < 0.1)))
 		//{//OCTEST
-
 		TreatStronglyOscillatingTermIrregMesh(*pWfr, arRayTrCoord, xMin, xMax, zMin, zMax, 'r');
-
 		//}//OCTEST
 		
 		pWfr->pBaseRadX = pPrevBaseRadX;
@@ -560,24 +1079,34 @@ int srTMirror::WfrInterpolOnOrigGrid(srTSRWRadStructAccessData* pWfr, double* ar
 	float *t_ExRes = pWfr->pBaseRadX;
 	float *t_EzRes = pWfr->pBaseRadZ;
 
-	long PerX = (pWfr->ne) << 1;
-	long PerZ = PerX*(pWfr->nx);
-	long nTot = PerZ*(pWfr->nz);
-	long nTot_mi_1 = nTot - 1;
+	//long PerX = (pWfr->ne) << 1;
+	//long PerZ = PerX*(pWfr->nx);
+	//long nTot = PerZ*(pWfr->nz);
+	//long nTot_mi_1 = nTot - 1;
+	//long nx_mi_1 = pWfr->nx - 1;
+	//long nz_mi_1 = pWfr->nz - 1;
+
+	long long PerX = (pWfr->ne) << 1;
+	long long PerZ = PerX*(pWfr->nx);
+	long long nTot = PerZ*(pWfr->nz);
+	long long nTot_mi_1 = nTot - 1;
 	long nx_mi_1 = pWfr->nx - 1;
 	long nz_mi_1 = pWfr->nz - 1;
+
+
 	double f0m1, fm10, f00, f10, f01, f11, a10, a01, a11, a20, a02;
 
 	//OCTEST
-	//if((fabs(pWfr->RobsX + 0.99) < 0.1) && (fabs(pWfr->RobsZ + 0.99) < 0.1))
+	//if((fabs(pWfr->RobsX + 20.596) < 0.1) && (fabs(pWfr->RobsZ + 18.079) < 0.1))
+	//if(fabs(pWfr->RobsZ + 18.079) < 0.1)
 	//{
-	//float *t_arEX = arEX, *t_arEZ = arEZ;
-	//for(int k=0; k<nTot; k++)
-	//{
-	//	*(t_ExRes++) = *(t_arEX++);
-	//	*(t_EzRes++) = *(t_arEZ++);
-	//}
-	//return 0;
+	//	float *t_arEX = arEX, *t_arEZ = arEZ;
+	//	for(int k=0; k<nTot; k++)
+	//	{
+	//		*(t_ExRes++) = *(t_arEX++);
+	//		*(t_EzRes++) = *(t_arEZ++);
+	//	}
+	//	return 0;
 	//	//int aha = 1;
 	//}
 	//END OCTEST
@@ -598,7 +1127,7 @@ int srTMirror::WfrInterpolOnOrigGrid(srTSRWRadStructAccessData* pWfr, double* ar
 			phEn = pWfr->eStart;
 			for(long ie=0; ie<pWfr->ne; ie++)
 			{
-				long two_ie = 2*ie;
+				long two_ie = ie << 1;
 
 				if(pointIsInsideNonZeroSquare)
 				{//perform interpolation on irregular mesh (bilinear or based on 12 points)
@@ -627,10 +1156,12 @@ int srTMirror::WfrInterpolOnOrigGrid(srTSRWRadStructAccessData* pWfr, double* ar
 					{//This while loop is required for a "tilted/rotated" mesh  (to check how ir works!)
 						ix0pr = ix0; iz0pr = iz0;
 
-						long iz0_PerZ_p_2_ie = iz0*PerZ + two_ie;
+						//long iz0_PerZ_p_2_ie = iz0*PerZ + two_ie;
+						long long iz0_PerZ_p_2_ie = iz0*PerZ + two_ie;
 
 						dTestPrev = 1.E+23;
-						long ofst = ix0*PerX + iz0_PerZ_p_2_ie;
+						//long ofst = ix0*PerX + iz0_PerZ_p_2_ie;
+						long long ofst = ix0*PerX + iz0_PerZ_p_2_ie;
 						if (ofst < nTot_mi_1)
 						{
 							dx = x - arRayTrCoord[ofst];
@@ -708,7 +1239,8 @@ int srTMirror::WfrInterpolOnOrigGrid(srTSRWRadStructAccessData* pWfr, double* ar
 							}
 						}
 
-						long ix0_PerX_p_2_ie = ix0*PerX + two_ie;
+						//long ix0_PerX_p_2_ie = ix0*PerX + two_ie;
+						long long ix0_PerX_p_2_ie = ix0*PerX + two_ie;
 
 						dTestPrev = 1.E+23;
 						ofst = iz0*PerZ + ix0_PerX_p_2_ie;
@@ -818,11 +1350,16 @@ int srTMirror::WfrInterpolOnOrigGrid(srTSRWRadStructAccessData* pWfr, double* ar
 					if(iz0 < 0) iz0 = 0;
 					else if(iz0 >= nz_mi_1) iz0 = nz_mi_1 - 1;
 
-					long ofst_00 = ix0*PerX + iz0*PerZ + two_ie;
-					long ofst_m10 = ofst_00 - PerX;
-					long ofst_10 = ofst_00 + PerX;
-					long ofst_0m1 = ofst_00 - PerZ;
-					long ofst_01 = ofst_00 + PerZ;
+					//long ofst_00 = ix0*PerX + iz0*PerZ + two_ie;
+					//long ofst_m10 = ofst_00 - PerX;
+					//long ofst_10 = ofst_00 + PerX;
+					//long ofst_0m1 = ofst_00 - PerZ;
+					//long ofst_01 = ofst_00 + PerZ;
+					long long ofst_00 = ix0*PerX + iz0*PerZ + two_ie;
+					long long ofst_m10 = ofst_00 - PerX;
+					long long ofst_10 = ofst_00 + PerX;
+					long long ofst_0m1 = ofst_00 - PerZ;
+					long long ofst_01 = ofst_00 + PerZ;
 
 					if(ix0 == 0) ofst_m10 = ofst_00;
 					if(ix0 == nx_mi_1) ofst_10 = ofst_00;
@@ -834,11 +1371,16 @@ int srTMirror::WfrInterpolOnOrigGrid(srTSRWRadStructAccessData* pWfr, double* ar
 					//if((iz0 == 0) || isLeftBordZ) ofst_0m1 = ofst_00;
 					//if((iz0 == nz_mi_1) || isRightBordZ) ofst_10 = ofst_00;
 
-					long ofst_00_p_1 = ofst_00 + 1;
-					long ofst_m10_p_1 = ofst_m10 + 1;
-					long ofst_10_p_1 = ofst_10 + 1;
-					long ofst_0m1_p_1 = ofst_0m1 + 1;
-					long ofst_01_p_1 = ofst_01 + 1;
+					//long ofst_00_p_1 = ofst_00 + 1;
+					//long ofst_m10_p_1 = ofst_m10 + 1;
+					//long ofst_10_p_1 = ofst_10 + 1;
+					//long ofst_0m1_p_1 = ofst_0m1 + 1;
+					//long ofst_01_p_1 = ofst_01 + 1;
+					long long ofst_00_p_1 = ofst_00 + 1;
+					long long ofst_m10_p_1 = ofst_m10 + 1;
+					long long ofst_10_p_1 = ofst_10 + 1;
+					long long ofst_0m1_p_1 = ofst_0m1 + 1;
+					long long ofst_01_p_1 = ofst_01 + 1;
 
 					double x_00 = arRayTrCoord[ofst_00], z_00 = arRayTrCoord[ofst_00_p_1];
 					double x_m10 = arRayTrCoord[ofst_m10], z_m10 = arRayTrCoord[ofst_m10_p_1];
@@ -961,16 +1503,24 @@ int srTMirror::WfrInterpolOnOrigGrid(srTSRWRadStructAccessData* pWfr, double* ar
 							if(iz0 > 0) { iz0--; initPointMoved = true;}
 						}
 
-						long ofst0 = initPointMoved? (ix0*PerX + iz0*PerZ + two_ie) : ofst_00;
+						//long ofst0 = initPointMoved? (ix0*PerX + iz0*PerZ + two_ie) : ofst_00;
+						long long ofst0 = initPointMoved? (ix0*PerX + iz0*PerZ + two_ie) : ofst_00;
 
-						long ofst0_p_PerX = ofst0 + PerX;
-						long ofst0_p_PerZ = ofst0 + PerZ;
-						long ofst0_p_PerX_p_PerZ = ofst0_p_PerZ + PerX;
+						//long ofst0_p_PerX = ofst0 + PerX;
+						//long ofst0_p_PerZ = ofst0 + PerZ;
+						//long ofst0_p_PerX_p_PerZ = ofst0_p_PerZ + PerX;
+						long long ofst0_p_PerX = ofst0 + PerX;
+						long long ofst0_p_PerZ = ofst0 + PerZ;
+						long long ofst0_p_PerX_p_PerZ = ofst0_p_PerZ + PerX;
 						double x00 = arRayTrCoord[ofst0], x10 = arRayTrCoord[ofst0_p_PerX], x01 = arRayTrCoord[ofst0_p_PerZ], x11 = arRayTrCoord[ofst0_p_PerX_p_PerZ];
-						long ofst0_p_1 = ofst0 + 1;
-						long ofst0_p_PerX_p_1 = ofst0_p_PerX + 1;
-						long ofst0_p_PerZ_p_1 = ofst0_p_PerZ + 1;
-						long ofst0_p_PerX_p_PerZ_p_1 = ofst0_p_PerX_p_PerZ + 1;
+						//long ofst0_p_1 = ofst0 + 1;
+						//long ofst0_p_PerX_p_1 = ofst0_p_PerX + 1;
+						//long ofst0_p_PerZ_p_1 = ofst0_p_PerZ + 1;
+						//long ofst0_p_PerX_p_PerZ_p_1 = ofst0_p_PerX_p_PerZ + 1;
+						long long ofst0_p_1 = ofst0 + 1;
+						long long ofst0_p_PerX_p_1 = ofst0_p_PerX + 1;
+						long long ofst0_p_PerZ_p_1 = ofst0_p_PerZ + 1;
+						long long ofst0_p_PerX_p_PerZ_p_1 = ofst0_p_PerX_p_PerZ + 1;
 						double z00 = arRayTrCoord[ofst0_p_1], z10 = arRayTrCoord[ofst0_p_PerX_p_1], z01 = arRayTrCoord[ofst0_p_PerZ_p_1], z11 = arRayTrCoord[ofst0_p_PerX_p_PerZ_p_1];
 
 						double rX = x - x00, rZ = z - z00;
@@ -1336,14 +1886,30 @@ int srTMirror::PropagateRadiationSimple_LocRayTracing(srTSRWRadStructAccessData*
 	float *pEZ0 = pRadAccessData->pBaseRadZ;
 	double ePh = pRadAccessData->eStart, x, y;
 
-	long PerX = pRadAccessData->ne << 1;
-	long PerY = PerX*pRadAccessData->nx;
+	//long HalfPerX =  pRadAccessData->ne; //OC18032016
+	//long PerX = HalfPerX << 1;
+	//long HalfPerY = HalfPerX*pRadAccessData->nx; //OC18032016
+	//long PerY = PerX*pRadAccessData->nx;
+	//long nTot = PerY*pRadAccessData->nz;
+	long long HalfPerX =  pRadAccessData->ne; //OC18032016
+	long long PerX = HalfPerX << 1;
+	long long HalfPerY = HalfPerX*pRadAccessData->nx; //OC18032016
+	long long PerY = PerX*pRadAccessData->nx;
+	long long nTot = PerY*pRadAccessData->nz;
 
-	long nTot = PerY*pRadAccessData->nz;
 	//float *arAuxRayTrCoord = new float[nTot];
 	double *arAuxRayTrCoord = new double[nTot];
-
 	if(arAuxRayTrCoord == 0) return NOT_ENOUGH_MEMORY_FOR_SR_COMP;
+
+	//long half_nTot = nTot >> 1;
+	//long *arAuxIndRayTrCoord = new long[half_nTot]; //OC18032016
+	long long half_nTot = nTot >> 1;
+	long long *arAuxIndRayTrCoord = new long long[half_nTot]; //OC18032016
+	if(arAuxIndRayTrCoord == 0) return NOT_ENOUGH_MEMORY_FOR_SR_COMP;
+	//long *t_arAuxIndRayTrCoord = arAuxIndRayTrCoord;
+	//for(long j=0; j<half_nTot; j++) *(t_arAuxIndRayTrCoord++) = -1; //OC18032016
+	long long *t_arAuxIndRayTrCoord = arAuxIndRayTrCoord;
+	for(long long j=0; j<half_nTot; j++) *(t_arAuxIndRayTrCoord++) = -1; //OC18032016
 
 	float *arAuxEX=0, *arAuxEY=0;
 	if(pEX0 != 0) 
@@ -1367,10 +1933,6 @@ int srTMirror::PropagateRadiationSimple_LocRayTracing(srTSRWRadStructAccessData*
 	double EsigRe, EsigIm, EpiRe, EpiIm;
 	double grMult;
 
-	//OCTEST
-	//double auxPathAfter;
-	//END OCTEST
-
 	for(long ie=0; ie<pRadAccessData->ne; ie++)
 	{
 		double TwoPi_d_LambdaM = ePh*5.067730652e+06;
@@ -1379,10 +1941,12 @@ int srTMirror::PropagateRadiationSimple_LocRayTracing(srTSRWRadStructAccessData*
 		if(m_isGrating) grMult = m_grM/(806554.3835*ePh);
 	
 		y = pRadAccessData->zStart;
-
 		for(long iy=0; iy<pRadAccessData->nz; iy++)
 		{
-			long iyPerY = iy*PerY;
+			//long iyPerY = iy*PerY;
+			//long iyHalfPerY_p_ie = iy*HalfPerY + ie; //OC18032016
+			long long iyPerY = iy*PerY;
+			long long iyHalfPerY_p_ie = iy*HalfPerY + ie; //OC18032016
 			float *pEX_StartForX = pEX0 + iyPerY;
 			float *pEZ_StartForX = pEZ0 + iyPerY;
 
@@ -1392,10 +1956,13 @@ int srTMirror::PropagateRadiationSimple_LocRayTracing(srTSRWRadStructAccessData*
 			//float *pAuxRayTrCoord = arAuxRayTrCoord + iyPerY;
 			double *pAuxRayTrCoord = arAuxRayTrCoord + iyPerY;
 
+			//bool firstHitForThisY = true; //OC19032016
+
 			x = pRadAccessData->xStart;
 			for(long ix=0; ix<pRadAccessData->nx; ix++)
 			{
-				long ixPerX_p_Two_ie = ix*PerX + Two_ie;
+				//long ixPerX_p_Two_ie = ix*PerX + Two_ie;
+				long long ixPerX_p_Two_ie = ix*PerX + Two_ie;
 				float *pExRe = pEX_StartForX + ixPerX_p_Two_ie;
 				float *pExIm = pExRe + 1;
 				float *pEzRe = pEZ_StartForX + ixPerX_p_Two_ie;
@@ -1412,6 +1979,19 @@ int srTMirror::PropagateRadiationSimple_LocRayTracing(srTSRWRadStructAccessData*
 
 				//*pAuxRayTrCoordX = (float)(-1.E+23); *pAuxRayTrCoordY = (float)(-1.E+23);
 				*pAuxRayTrCoordX = -1.E+23; *pAuxRayTrCoordY = -1.E+23;
+
+								//OCTEST
+								if(fabs(pRadAccessData->RobsZ + 18.079) < 0.1)
+								{
+									//if((ix == 1124) && (iz == 408))
+									//{
+									int aha = 1;
+									//}
+								}
+								//END OCTEST
+
+				//long *pAuxIndRayTrCoord = arAuxIndRayTrCoord + iyHalfPerY_p_ie + ix*HalfPerX;
+				//*pAuxIndRayTrCoord = -1;
 
 				bool ExIsNotZero = false, EzIsNotZero = false;
 				if(pEX0 != 0)
@@ -1558,8 +2138,10 @@ int srTMirror::PropagateRadiationSimple_LocRayTracing(srTSRWRadStructAccessData*
 							{//from local frame to input beam frame
 								vTrAux = pTrans->TrBiPoint(vTrAux);
 							}
-							float xRelOut = (float)(vTrAux*m_vHorOutIn);
-							float yRelOut = (float)(vTrAux*m_vVerOutIn);
+							//float xRelOut = (float)(vTrAux*m_vHorOutIn);
+							//float yRelOut = (float)(vTrAux*m_vVerOutIn);
+							double xRelOut = vTrAux*m_vHorOutIn; //OC18032016
+							double yRelOut = vTrAux*m_vVerOutIn;
 							//test!!!!!!!!!!!!!!!!!!!!!
 							//float yRelOut = -(float)(vTrAux*m_vVerOutIn);
 							//end test!!!!!!!!!!!!!!!!!!!!!
@@ -1584,45 +2166,69 @@ int srTMirror::PropagateRadiationSimple_LocRayTracing(srTSRWRadStructAccessData*
 								yRelOutMax = yRelOut; iyMax = iy;
 							}
 
-							//double angE2 = tgAngX*tgAngX + tgAngY*tgAngY;
-							//double angFact = 1. + angE2*(0.5 + angE2*((5./24.) + (61./720.)*angE2));
-							//////double angFact = 1. + angE2*0.5;
-							////double optPathDif = optPath - (m_extAlongOptAxIn + m_extAlongOptAxOut)*angFact; //L/cos(alpha)
-							//////double optPathDif = optPath - (m_extAlongOptAxIn + m_extAlongOptAxOut); //L/cos(alpha)
-							//double optPathDif = optPath;
+							long ixRelOut = (long)((xRelOut - (pRadAccessData->xStart))/(pRadAccessData->xStep)); //OC18032016
+							//if(ixRelOut < 0) ixRelOut = 0;
+							long iyRelOut = (long)((yRelOut - (pRadAccessData->zStart))/(pRadAccessData->zStep)); //OC18032016
+							//if(iyRelOut < 0) iyRelOut = 0;
 
-							//last commented:
-							//double phShift = TwoPi_d_LambdaM*optPathDif; //to check sign!
-							//double phShift = TwoPi_d_LambdaM*optPath; //to check sign!
-							
-							double phShift = TwoPi_d_LambdaM*optPath + phShiftGr;
-
-							//CosAndSin(phShift, cosPh, sinPh);
-							cosPh = cos(phShift); sinPh = sin(phShift); //OC260114
-
-							if(m_reflData.pData == 0) //no reflectivity defined
-							//if(true) //no reflectivity defined
+							if((ixRelOut >= 0) && (ixRelOut < pRadAccessData->nx) && (iyRelOut >= 0) && (iyRelOut < pRadAccessData->nz)) //OC24032016
 							{
-								if(pEX0 != 0)
-								{
-									//float NewExRe = (float)(ampFact*((*pExRe)*cosPh - (*pExIm)*sinPh));
-									//float NewExIm = (float)(ampFact*((*pExRe)*sinPh + (*pExIm)*cosPh));
-									double NewExRe = ampFact*((*pExRe)*cosPh - (*pExIm)*sinPh); //OC260114
-									double NewExIm = ampFact*((*pExRe)*sinPh + (*pExIm)*cosPh);
+								//long ofstTrfCoord = iyRelOut*HalfPerY + ixRelOut*HalfPerX + ie; //OC18032016 (to facilitate search of transformed coordinates)
+								//long ofstToSet = iyPerY + ix*PerX + Two_ie;
+								long long ofstTrfCoord = iyRelOut*HalfPerY + ixRelOut*HalfPerX + ie; //OC18032016 (to facilitate search of transformed coordinates)
+								long long ofstToSet = iyPerY + ix*PerX + Two_ie;
 
-									//*pExReRes = NewExRe; *pExImRes = NewExIm;
-									*pExReRes = (float)NewExRe; *pExImRes = (float)NewExIm;
-								}
-								if(pEZ0 != 0)
-								{
-									//float NewEzRe = (float)(ampFact*((*pEzRe)*cosPh - (*pEzIm)*sinPh));
-									//float NewEzIm = (float)(ampFact*((*pEzRe)*sinPh + (*pEzIm)*cosPh));
-									double NewEzRe = ampFact*((*pEzRe)*cosPh - (*pEzIm)*sinPh); //OC260114
-									double NewEzIm = ampFact*((*pEzRe)*sinPh + (*pEzIm)*cosPh);
+								arAuxIndRayTrCoord[ofstTrfCoord] = ofstToSet;
 
-									//*pEyReRes = NewEzRe; *pEyImRes = NewEzIm;
-									*pEyReRes = (float)NewEzRe; *pEyImRes = (float)NewEzIm;
-								}
+								//OCTEST
+								//if(fabs(pRadAccessData->RobsZ + 18.079) < 0.1)
+								//{
+									//if((ix == 1124) && (iz == 408))
+									//{
+									//int aha = 1;
+									//}
+								//}
+								//END OCTEST
+
+								//double angE2 = tgAngX*tgAngX + tgAngY*tgAngY;
+								//double angFact = 1. + angE2*(0.5 + angE2*((5./24.) + (61./720.)*angE2));
+								//////double angFact = 1. + angE2*0.5;
+								////double optPathDif = optPath - (m_extAlongOptAxIn + m_extAlongOptAxOut)*angFact; //L/cos(alpha)
+								//////double optPathDif = optPath - (m_extAlongOptAxIn + m_extAlongOptAxOut); //L/cos(alpha)
+								//double optPathDif = optPath;
+
+								//last commented:
+								//double phShift = TwoPi_d_LambdaM*optPathDif; //to check sign!
+								//double phShift = TwoPi_d_LambdaM*optPath; //to check sign!
+
+								double phShift = TwoPi_d_LambdaM*optPath + phShiftGr;
+
+								//CosAndSin(phShift, cosPh, sinPh);
+								cosPh = cos(phShift); sinPh = sin(phShift); //OC260114
+
+								if(m_reflData.pData == 0) //no reflectivity defined
+								//if(true) //no reflectivity defined
+								{
+									if(pEX0 != 0)
+									{
+										//float NewExRe = (float)(ampFact*((*pExRe)*cosPh - (*pExIm)*sinPh));
+										//float NewExIm = (float)(ampFact*((*pExRe)*sinPh + (*pExIm)*cosPh));
+										double NewExRe = ampFact*((*pExRe)*cosPh - (*pExIm)*sinPh); //OC260114
+										double NewExIm = ampFact*((*pExRe)*sinPh + (*pExIm)*cosPh);
+
+										//*pExReRes = NewExRe; *pExImRes = NewExIm;
+										*pExReRes = (float)NewExRe; *pExImRes = (float)NewExIm;
+									}
+									if(pEZ0 != 0)
+									{
+										//float NewEzRe = (float)(ampFact*((*pEzRe)*cosPh - (*pEzIm)*sinPh));
+										//float NewEzIm = (float)(ampFact*((*pEzRe)*sinPh + (*pEzIm)*cosPh));
+										double NewEzRe = ampFact*((*pEzRe)*cosPh - (*pEzIm)*sinPh); //OC260114
+										double NewEzIm = ampFact*((*pEzRe)*sinPh + (*pEzIm)*cosPh);
+
+										//*pEyReRes = NewEzRe; *pEyImRes = NewEzIm;
+										*pEyReRes = (float)NewEzRe; *pEyImRes = (float)NewEzIm;
+									}
 
 									//test!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 									//double Pi_d_Lambda_m = ePh*2.533840802E+06;
@@ -1640,90 +2246,104 @@ int srTMirror::PropagateRadiationSimple_LocRayTracing(srTSRWRadStructAccessData*
 
 									//*pExRe = phShift; *pExIm = 0; 
 									//*pEzRe = phShift; *pEzIm = 0; 
-							}
-							else
-							//if(m_reflData.pData != 0)
-							{//Calculate change of the electric field due to reflectivity...
-								vRayIn.Normalize();
-								vSig = (-1)*(vRayIn^vSurfNormLocFr); //sigma unit vector in Local frame; check sign
-								double grazAng = 1.5707963268;
-								if(vSig.isZero())
-								{//In the frame of incident beam
-									vSig.x = 1.; vSig.y = 0.; vSig.z = 0.;
-									vPi.x = 0.; vPi.y = 1.; vPi.z = 0.;
 								}
 								else
-								{
-									//grazAng = asin(-(vRayIn*vSurfNormLocFr));
-									grazAng = acos(vRayIn*vSurfNormLocFr) - 1.5707963267948966;
-
-									vSig.Normalize();
-									vPi = vRayIn^vSig;
-									if(pTrans != 0)
-									{//to the frame of incident beam
-										vSig = pTrans->TrBiPoint(vSig); 
-										vPi = pTrans->TrBiPoint(vPi); 
+								//if(m_reflData.pData != 0)
+								{//Calculate change of the electric field due to reflectivity...
+									vRayIn.Normalize();
+									vSig = (-1)*(vRayIn^vSurfNormLocFr); //sigma unit vector in Local frame; check sign
+									double grazAng = 1.5707963268;
+									if(vSig.isZero())
+									{//In the frame of incident beam
+										vSig.x = 1.; vSig.y = 0.; vSig.z = 0.;
+										vPi.x = 0.; vPi.y = 1.; vPi.z = 0.;
 									}
-								}
+									else
+									{
+										//grazAng = asin(-(vRayIn*vSurfNormLocFr));
+										grazAng = acos(vRayIn*vSurfNormLocFr) - 1.5707963267948966;
 
-								EsigRe = EsigIm = EpiRe = EpiIm = 0.;
-								if(pEX0 != 0)
-								{
-									EsigRe = (*pExRe)*vSig.x;
-									EsigIm = (*pExIm)*vSig.x;
-									EpiRe = (*pExRe)*vPi.x;
-									EpiIm = (*pExIm)*vPi.x;
-								}
-								if(pEZ0 != 0)
-								{
-									EsigRe += (*pEzRe)*vSig.y;
-									EsigIm += (*pEzIm)*vSig.y;
-									EpiRe += (*pEzRe)*vPi.y;
-									EpiIm += (*pEzIm)*vPi.y;
-								}
-								//double EsigRe = (*pExRe)*vSig.x + (*pEzRe)*vSig.y;
-								//double EsigIm = (*pExIm)*vSig.x + (*pEzIm)*vSig.y;
-								//double EpiRe = (*pExRe)*vPi.x + (*pEzRe)*vPi.y;
-								//double EpiIm = (*pExIm)*vPi.x + (*pEzIm)*vPi.y;
+										vSig.Normalize();
+										vPi = vRayIn^vSig;
+										if(pTrans != 0)
+										{//to the frame of incident beam
+											vSig = pTrans->TrBiPoint(vSig);
+											vPi = pTrans->TrBiPoint(vPi);
+										}
+									}
 
-								double RsigRe = 1, RsigIm = 0, RpiRe = 1, RpiIm = 0;
-								GetComplexReflectCoefFromTable(ePh, grazAng, RsigRe, RsigIm, RpiRe, RpiIm);
+									EsigRe = EsigIm = EpiRe = EpiIm = 0.;
+									if(pEX0 != 0)
+									{
+										EsigRe = (*pExRe)*vSig.x;
+										EsigIm = (*pExIm)*vSig.x;
+										EpiRe = (*pExRe)*vPi.x;
+										EpiIm = (*pExIm)*vPi.x;
+									}
+									if(pEZ0 != 0)
+									{
+										EsigRe += (*pEzRe)*vSig.y;
+										EsigIm += (*pEzIm)*vSig.y;
+										EpiRe += (*pEzRe)*vPi.y;
+										EpiIm += (*pEzIm)*vPi.y;
+									}
+									//double EsigRe = (*pExRe)*vSig.x + (*pEzRe)*vSig.y;
+									//double EsigIm = (*pExIm)*vSig.x + (*pEzIm)*vSig.y;
+									//double EpiRe = (*pExRe)*vPi.x + (*pEzRe)*vPi.y;
+									//double EpiIm = (*pExIm)*vPi.x + (*pEzIm)*vPi.y;
 
-								double newEsigRe = -cosPh*(EsigIm*RsigIm - EsigRe*RsigRe) - sinPh*(EsigRe*RsigIm + EsigIm*RsigRe);
-								double newEsigIm = cosPh*(EsigRe*RsigIm + EsigIm*RsigRe) - sinPh*(EsigIm*RsigIm - EsigRe*RsigRe);
-								double newEpiRe = -cosPh*(EpiIm*RpiIm - EpiRe*RpiRe) - sinPh*(EpiRe*RpiIm + EpiIm*RpiRe);
-								double newEpiIm = cosPh*(EpiRe*RpiIm + EpiIm*RpiRe) - sinPh*(EpiIm*RpiIm - EpiRe*RpiRe);
-								//double newEsigRe = -(EsigIm*RsigIm - EsigRe*RsigRe);
-								//double newEsigIm = EsigRe*RsigIm + EsigIm*RsigRe;
-								//double newEpiRe = -(EpiIm*RpiIm - EpiRe*RpiRe);
-								//double newEpiIm = EpiRe*RpiIm + EpiIm*RpiRe;
+									double RsigRe = 1, RsigIm = 0, RpiRe = 1, RpiIm = 0;
+									GetComplexReflectCoefFromTable(ePh, grazAng, RsigRe, RsigIm, RpiRe, RpiIm);
 
-								//In the frame of incident beam:
-								double vErX = newEsigRe*vSig.x + newEpiRe*vPi.x;
-								double vErY = newEsigRe*vSig.y + newEpiRe*vPi.y;
-								double vEiX = newEsigIm*vSig.x + newEpiIm*vPi.x;
-								double vEiY = newEsigIm*vSig.y + newEpiIm*vPi.y;
+									double newEsigRe = -cosPh*(EsigIm*RsigIm - EsigRe*RsigRe) - sinPh*(EsigRe*RsigIm + EsigIm*RsigRe);
+									double newEsigIm = cosPh*(EsigRe*RsigIm + EsigIm*RsigRe) - sinPh*(EsigIm*RsigIm - EsigRe*RsigRe);
+									double newEpiRe = -cosPh*(EpiIm*RpiIm - EpiRe*RpiRe) - sinPh*(EpiRe*RpiIm + EpiIm*RpiRe);
+									double newEpiIm = cosPh*(EpiRe*RpiIm + EpiIm*RpiRe) - sinPh*(EpiIm*RpiIm - EpiRe*RpiRe);
+									//double newEsigRe = -(EsigIm*RsigIm - EsigRe*RsigRe);
+									//double newEsigIm = EsigRe*RsigIm + EsigIm*RsigRe;
+									//double newEpiRe = -(EpiIm*RpiIm - EpiRe*RpiRe);
+									//double newEpiIm = EpiRe*RpiIm + EpiIm*RpiRe;
 
-								//In the frame of output beam:
-								if(pEX0 != 0)
-								{
-									//*pExRe = (float)(vErX*m_vHorOutIn.x + vErY*m_vHorOutIn.y);
-									//*pExIm = (float)(vEiX*m_vHorOutIn.x + vEiY*m_vHorOutIn.y);
-									*pExReRes = (float)(ampFact*(vErX*m_vHorOutIn.x + vErY*m_vHorOutIn.y)); 
-									*pExImRes = (float)(ampFact*(vEiX*m_vHorOutIn.x + vEiY*m_vHorOutIn.y));
-								}
-								if(pEZ0 != 0)
-								{
-									//*pEzRe = (float)(vErX*m_vVerOutIn.x + vErY*m_vVerOutIn.y);
-									//*pEzIm = (float)(vEiX*m_vVerOutIn.x + vEiY*m_vVerOutIn.y);
-									*pEyReRes = (float)(ampFact*(vErX*m_vVerOutIn.x + vErY*m_vVerOutIn.y)); 
-									*pEyImRes = (float)(ampFact*(vEiX*m_vVerOutIn.x + vEiY*m_vVerOutIn.y));
-								}
+									//In the frame of incident beam:
+									double vErX = newEsigRe*vSig.x + newEpiRe*vPi.x;
+									double vErY = newEsigRe*vSig.y + newEpiRe*vPi.y;
+									double vEiX = newEsigIm*vSig.x + newEpiIm*vPi.x;
+									double vEiY = newEsigIm*vSig.y + newEpiIm*vPi.y;
+
+									//In the frame of output beam:
+									if(pEX0 != 0)
+									{
+										//*pExRe = (float)(vErX*m_vHorOutIn.x + vErY*m_vHorOutIn.y);
+										//*pExIm = (float)(vEiX*m_vHorOutIn.x + vEiY*m_vHorOutIn.y);
+										*pExReRes = (float)(ampFact*(vErX*m_vHorOutIn.x + vErY*m_vHorOutIn.y));
+										*pExImRes = (float)(ampFact*(vEiX*m_vHorOutIn.x + vEiY*m_vHorOutIn.y));
+									}
+									if(pEZ0 != 0)
+									{
+										//*pEzRe = (float)(vErX*m_vVerOutIn.x + vErY*m_vVerOutIn.y);
+										//*pEzIm = (float)(vEiX*m_vVerOutIn.x + vEiY*m_vVerOutIn.y);
+										*pEyReRes = (float)(ampFact*(vErX*m_vVerOutIn.x + vErY*m_vVerOutIn.y));
+										*pEyImRes = (float)(ampFact*(vEiX*m_vVerOutIn.x + vEiY*m_vVerOutIn.y));
+									}
+
 									//OCTEST!!!!!!!!!!!!!!!!!!!!!
-									//*pExReRes = phShift; *pExImRes = 0.;
-									//*pEyReRes = phShift; *pEyImRes = 0.;
+									//if(fabs(pRadAccessData->RobsZ + 18.079) < 0.1)
+									//{
+										//*pExReRes = *pExRe; *pExImRes = *pExIm;
+										//*pEyReRes = *pEzRe; *pEyImRes = *pEzIm;
+										//*pExReRes = EsigRe; *pExImRes = EsigIm;
+										//*pEyReRes = EpiRe; *pEyImRes = EpiIm;
+										//*pExReRes = newEsigRe; *pExImRes = newEsigIm;
+										//*pEyReRes = newEpiRe; *pEyImRes = newEpiIm;
+										//*pExReRes = phShift; *pExImRes = 0.;
+										//*pEyReRes = phShift; *pEyImRes = 0.;
+										//*pExReRes = xRelOut; *pExImRes = yRelOut;
+										//*pEyReRes = xRelOut; *pEyImRes = yRelOut;
+									//}
 									//end OCTEST!!!!!!!!!!!!!!!!!!!!!
+								}
 							}
+							//firstHitForThisY = false; //OC19032016
 						}
 					}
 				}
@@ -1735,7 +2355,27 @@ int srTMirror::PropagateRadiationSimple_LocRayTracing(srTSRWRadStructAccessData*
 	}
 
 	//Re-interpolate the output wavefront (at fixed photon energy) on the initial equidistant grid:
-	if(res = WfrInterpolOnOrigGrid(pRadAccessData, arAuxRayTrCoord, arAuxEX, arAuxEY, xRelOutMin, xRelOutMax, yRelOutMin, yRelOutMax)) return res;
+	//if(res = WfrInterpolOnOrigGrid(pRadAccessData, arAuxRayTrCoord, arAuxEX, arAuxEY, xRelOutMin, xRelOutMax, yRelOutMin, yRelOutMax)) return res;
+	//OCTEST
+	//if(fabs(pRadAccessData->RobsZ + 18.079) > 0.1)
+	//{//OCTEST
+
+	if(res = WfrInterpolOnOrigGrid2(pRadAccessData, arAuxRayTrCoord, arAuxIndRayTrCoord, arAuxEX, arAuxEY, xRelOutMin, xRelOutMax, yRelOutMin, yRelOutMax)) return res;
+
+	//}
+	//else
+	//{
+	//OCTEST
+	//float *t_ExRes = pRadAccessData->pBaseRadX;
+	//float *t_EyRes = pRadAccessData->pBaseRadZ;
+	//float *t_arEX = arAuxEX, *t_arEY = arAuxEY;
+	//for(long k=0; k<nTot; k++)
+	//{
+	//	*(t_ExRes++) = *(t_arEX++);
+	//	*(t_EyRes++) = *(t_arEY++);
+	//}
+	//END OCTEST
+	//}
 
 	if((m_treatInOut == 2) && (m_extAlongOptAxOut != 0.))
 	{//Propagate wavefront back (by -m_extAlongOptAxOut) to the center of the optical element using Wavefront Propagation through a Drift
@@ -1748,6 +2388,7 @@ int srTMirror::PropagateRadiationSimple_LocRayTracing(srTSRWRadStructAccessData*
 	if(arAuxEX != 0) delete[] arAuxEX;
 	if(arAuxEY != 0) delete[] arAuxEY;
 	if(arAuxRayTrCoord != 0) delete[] arAuxRayTrCoord;
+	if(arAuxIndRayTrCoord != 0) delete[] arAuxIndRayTrCoord; //OC18032016
 	//if(arOptPathDif != 0) delete[] arOptPathDif;
 
 	return 0;
@@ -1911,7 +2552,8 @@ void srTMirror::RadPointModifier_FourierByParts(srTEXZ& EXZ, srTEFieldPtrs& EPtr
 
 	const long perSigPi = 2;
 	const long perPhotEn = perSigPi << 1;
-	long perAng = perPhotEn*ne;
+	//long perAng = perPhotEn*ne;
+	long long perAng = perPhotEn*ne;
 
 	int ie = (int)((EXZ.e - eStart)/eStep + 0.00001);
 	if((EXZ.e - (eStart + ie*eStep)) > 0.5*eStep) ie++;
@@ -1926,7 +2568,8 @@ void srTMirror::RadPointModifier_FourierByParts(srTEXZ& EXZ, srTEFieldPtrs& EPtr
 	if(iAng < 0) iAng = 0;
 	if(iAng >= nAng) iAng = nAng - 1;
 
-	long ofstSig = perPhotEn*ie + perAng*iAng;
+	//long ofstSig = perPhotEn*ie + perAng*iAng;
+	long long ofstSig = perPhotEn*ie + perAng*iAng;
 	//long ofstPi = ofstSig + perSigPi;
 	double RsigRe=1, RsigIm=0, RpiRe=1, RpiIm=0;
 

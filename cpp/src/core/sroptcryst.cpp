@@ -24,10 +24,13 @@ int srTOptCryst::WfrInterpolOnRegGrid(srTSRWRadStructAccessData* pWfr, srTOptCry
 	bool isCoordRepres = (pWfr->Pres == 0);
 	bool isFreqRepres = (pWfr->PresT == 0);
 
-	long PerE = 2;
-	long PerX = PerE << 1;
-	long PerZ = PerX*(pWfr->nx);
+	//long PerE = 2;
+	//long PerX = PerE << 1;
+	//long PerZ = PerX*(pWfr->nx);
 
+	long long PerE = 2;
+	long long PerX = PerE << 1;
+	long long PerZ = PerX*(pWfr->nx);
 
 	//float *t_ExRes = pWfr->pBaseRadX;
 	//float *t_EzRes = pWfr->pBaseRadZ;

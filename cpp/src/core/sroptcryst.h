@@ -52,6 +52,8 @@ class srTOptCryst : public srTGenOptElem {
 	//TVector3d m_nv; // horizontal, vertical and longitudinal coordinates of outward normal to crystal surface in the frame of incident beam
 	TVector3d m_tv; // horizontal, vertical and longitudinal coordinates of central tangential vector [m] in the frame of incident beam
 	TVector3d m_sv; // horizontal, vertical and longitudinal coordinates of central saggital vector [m] in the frame of incident beam
+	
+	char m_uc; // crystal use case: 1- Bragg Reflection, 2- Bragg Transmission (Laue cases to be added)
 
 	// TRANSFORMATION MATRIX
 	double m_RXtLab[3][3]; // RXtLab: 3x3 orthogonal matrix that converts components of a 3x1 vector in crystal coordinates to components in lab coordinates. 
@@ -64,15 +66,14 @@ class srTOptCryst : public srTGenOptElem {
 	//double m_KLabRef[2][3]; // matrix to transform Kin to Kout
 
 	double m_PolTrn[2][2]; // 2x2 transformation matrix of the polarizations from (e1X,e2X) to (sg0X,pi0X).
+	double m_InvPolTrn[2][2]; //OC06092016
 	double m_HXAi[3]; // Reciprocal lattice vector coordinates
 
 	double m_sg0X[3];
-
 	double m_cos2t; //cos(2.*thBrd); 
 
 	srTOptCrystMeshTrf *m_pMeshTrf;
 	double m_eStartAux, m_eStepAux, m_ne;
-
 	//bool m_xStartIsConstInSlicesE, m_zStartIsConstInSlicesE;
 
 public:
@@ -100,22 +101,18 @@ public:
 		m_thicum = srwlCr.tc*1e+06; //assuming srwlCr.tc in [m]
 		double alphrd = srwlCr.angAs; //asymmetry angle [rad]
 
-		// Input #7: Whether to calculate the transmitted beam as well as the diffracted 
-		// beam. itrans = 0 for NO, itrans = 1 for YES. 
-		m_itrans = 0; //OC: make it input variable
-
 		// From Input #5: reciprocal lattice vector coordinates 
 		m_HXAi[0] = 0.;
 		m_HXAi[1] = cos(alphrd) / m_dA;
 		m_HXAi[2] = -sin(alphrd) / m_dA;
 
-		if(srwlCr.nvz == 0) { throw IMPROPER_OPTICAL_COMPONENT_ORIENT; }
+		if(srwlCr.nvz == 0) throw IMPROPER_OPTICAL_COMPONENT_ORIENT;
 		
 		TVector3d v_nv(srwlCr.nvx, srwlCr.nvy, srwlCr.nvz); /* horizontal, vertical and longitudinal coordinates of outward normal to crystal surface in the frame of incident beam */
 		v_nv.Normalize();
 		double nv[] = { v_nv.x, v_nv.y, v_nv.z };
 
-		if((srwlCr.tvx == 0) && (srwlCr.tvy == 0)) { throw IMPROPER_OPTICAL_COMPONENT_ORIENT; }
+		if((srwlCr.tvx == 0) && (srwlCr.tvy == 0)) throw IMPROPER_OPTICAL_COMPONENT_ORIENT;
 
 		//TVector3d v_tv(srwlCr.tvx, srwlCr.tvy, 0); /* horizontal, vertical  and vertical coordinates of central tangential vector [m] in the frame of incident beam */
 		//v_tv.z = (-v_nv.x*v_tv.x - v_nv.y*v_tv.y) / v_nv.z;
@@ -131,6 +128,14 @@ public:
 		//sv[2] = nv[0] * tv[1] - nv[1] * tv[0];
 		double sv[] = { nv[1] * tv[2] - nv[2] * tv[1], nv[2] * tv[0] - nv[0] * tv[2], nv[0] * tv[1] - nv[1] * tv[0] };
 		m_sv.x = sv[0]; m_sv.y = sv[1]; m_sv.z = sv[2]; 
+
+		m_uc = srwlCr.uc; //OC05092016
+		if((m_uc < 1) || (m_uc > 2)) throw IMPROPER_OPTICAL_COMPONENT_MIRROR_USE_CASE;
+
+		// Input #7: Whether to calculate the transmitted beam as well as the diffracted 
+		// beam. itrans = 0 for NO, itrans = 1 for YES. 
+		m_itrans = 0; //OC: make it input variable
+		if(m_uc == 2) m_itrans = 1; //OC05092016
 
 		// RXtLab: 3x3 orthogonal matrix that converts components of a 3x1 vector 
 		// in crystal coordinates to components in lab coordinates. 
@@ -197,6 +202,10 @@ public:
 		m_PolTrn[0][1] = e2X[0] * m_sg0X[0] + e2X[1] * m_sg0X[1] + e2X[2] * m_sg0X[2];
 		m_PolTrn[1][0] = e1X[0] * pi0X[0] + e1X[1] * pi0X[1] + e1X[2] * pi0X[2];
 		m_PolTrn[1][1] = e2X[0] * pi0X[0] + e2X[1] * pi0X[1] + e2X[2] * pi0X[2];
+
+		double invDetPolTrn = 1./(m_PolTrn[0][0]*m_PolTrn[1][1] - m_PolTrn[1][0]*m_PolTrn[0][1]); //OC06092016
+		m_InvPolTrn[0][0] = invDetPolTrn*m_PolTrn[1][1]; m_InvPolTrn[0][1] = -invDetPolTrn*m_PolTrn[0][1];
+		m_InvPolTrn[1][0] = -invDetPolTrn*m_PolTrn[1][0]; m_InvPolTrn[1][1] = invDetPolTrn*m_PolTrn[0][0];
 
 		// Calculate polarization vectors in the crystal frame for the diffracted 
 		// beam, ignoring the dependence on (kx,ky):
@@ -1031,20 +1040,49 @@ public:
 		}
 
 		// Calculate diffracted amplitudes in the diffracted beam frame
-		complex<double> Ehx = sgH[0]*EHSPCs + piH[0]*EHSPCp;
-		complex<double> Ehy = sgH[1]*EHSPCs + piH[1]*EHSPCp;
-		complex<double> Ehz = sgH[2]*EHSPCs + piH[2]*EHSPCp; //Longitudinal component not used (?)
+		//complex<double> Ehx = sgH[0]*EHSPCs + piH[0]*EHSPCp;
+		//complex<double> Ehy = sgH[1]*EHSPCs + piH[1]*EHSPCp;
+		//complex<double> Ehz = sgH[2]*EHSPCs + piH[2]*EHSPCp; //Longitudinal component not used (?)
 
 		// Transverse components of the output electric field in the frame of the output beam:
-		*(EPtrs.pExRe) = (float)(asymFact*Ehx.real());
-		*(EPtrs.pExIm) = (float)(asymFact*Ehx.imag());
-		*(EPtrs.pEzRe) = (float)(asymFact*Ehy.real());
-		*(EPtrs.pEzIm) = (float)(asymFact*Ehy.imag());
+		//*(EPtrs.pExRe) = (float)(asymFact*Ehx.real());
+		//*(EPtrs.pExIm) = (float)(asymFact*Ehx.imag());
+		//*(EPtrs.pEzRe) = (float)(asymFact*Ehy.real());
+		//*(EPtrs.pEzIm) = (float)(asymFact*Ehy.imag());
+
+		//OC05092016
+		if(m_uc == 1) //Bragg Reflection
+		{
+			complex<double> Ehx = sgH[0]*EHSPCs + piH[0]*EHSPCp;
+			complex<double> Ehy = sgH[1]*EHSPCs + piH[1]*EHSPCp;
+			complex<double> Ehz = sgH[2]*EHSPCs + piH[2]*EHSPCp; //Longitudinal component not used (?)
+		
+			//Transverse components of the output electric field in the frame of the output beam:
+			*(EPtrs.pExRe) = (float)(asymFact*Ehx.real());
+			*(EPtrs.pExIm) = (float)(asymFact*Ehx.imag());
+			*(EPtrs.pEzRe) = (float)(asymFact*Ehy.real());
+			*(EPtrs.pEzIm) = (float)(asymFact*Ehy.imag());
+		}
+		else if(m_uc == 2) //Bragg Transmission (i.e. Forward Bragg Diffraction (FBD))
+		{
+			//DEBUG
+			//complex<double> DHsgC_p_D0trsC = DHsgC + D0trsC;
+			//complex<double> DHsgCae2_p_D0trsCae2 = DHsgC.real()*DHsgC.real() + DHsgC.imag()*DHsgC.imag() + D0trsC.real()*D0trsC.real() + D0trsC.imag()*D0trsC.imag();
+			//END DEBUG
+
+			complex<double> Etx = m_InvPolTrn[0][0]*E0tSPs + m_InvPolTrn[0][1]*E0tSPp;
+			complex<double> Ety = m_InvPolTrn[1][0]*E0tSPs + m_InvPolTrn[1][1]*E0tSPp;
+		
+			//Transverse components of the output electric field in the frame of the output beam:
+			*(EPtrs.pExRe) = (float)(Etx.real());
+			*(EPtrs.pExIm) = (float)(Etx.imag());
+			*(EPtrs.pEzRe) = (float)(Ety.real());
+			*(EPtrs.pEzIm) = (float)(Ety.imag());
+		}
 
 		//OCTEST111014
 		//double testI1 = (*(EPtrs.pExRe))*(*(EPtrs.pExRe)) + (*(EPtrs.pExIm))*(*(EPtrs.pExIm)) + 
 		//				(*(EPtrs.pEzRe))*(*(EPtrs.pEzRe)) + (*(EPtrs.pEzIm))*(*(EPtrs.pEzIm));
-		//int Aha = 1;
 
 		//complex<double> Etx, Ety, Etz;
 		//if(m_itrans == 1)

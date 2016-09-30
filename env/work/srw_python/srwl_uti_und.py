@@ -237,7 +237,7 @@ def srwl_und_cut_fld(_mag3d, _res_rz, _zc=None, _dupl=False):
     :param _res_rz: range vs longitudinal position to produce [m]
     :param _zc: center position for the kick set (~center of indulator) [m]
     :param _dupl: duplicate the magnetic field object or not
-    :returns: undated magnetic 3d field structure
+    :returns: updated 3d magnetic field structure
     """
 
     if(_mag3d.nz <= 1): return _mag3d
@@ -246,7 +246,8 @@ def srwl_und_cut_fld(_mag3d, _res_rz, _zc=None, _dupl=False):
     ny = _mag3d.ny
     nz = _mag3d.nz
     zStep = _mag3d.rz/(nz - 1)
-    zRange = zStep*(nz - 1)
+    #zRange = zStep*(nz - 1)
+    zRange = _mag3d.rz
 
     if((_res_rz <= 0) or (_res_rz >= zRange)):
         if(_dupl == False): return _mag3d
@@ -317,7 +318,7 @@ def srwl_und_cut_fld(_mag3d, _res_rz, _zc=None, _dupl=False):
                 if(wasBreak): break
             if(wasBreak): break
 
-        print('izStart=', izStart, 'izEnd=', izEnd)
+        #print('izStart=', izStart, 'izEnd=', izEnd)
 
         zStart = zBegOrig + izStart*zStep
         zEnd = zBegOrig + izEnd*zStep
@@ -329,6 +330,8 @@ def srwl_und_cut_fld(_mag3d, _res_rz, _zc=None, _dupl=False):
     zEndRes = _zc + halfResRangeZ
     if(zEndRes > zEndOrig): zEndRes = zEndOrig
 
+    #print('zc=', zc, 'zStartRes=', zStartRes, 'zEndRes=', zEndRes)
+
     zRangeRes = zEndRes - zStartRes
 
     izStartRes = int(round((zStartRes - zBegOrig)/zStep))
@@ -339,6 +342,8 @@ def srwl_und_cut_fld(_mag3d, _res_rz, _zc=None, _dupl=False):
 
     if(izEndRes < izStartRes): izEndRes = izStartRes
 
+    zRangeRes = (izEndRes - izStartRes)*zStep #OC04082016
+    
     nzRes = izEndRes - izStartRes + 1
     nTot = perZ*nzRes
     auxList = [0]*nTot
@@ -359,7 +364,7 @@ def srwl_und_cut_fld(_mag3d, _res_rz, _zc=None, _dupl=False):
                 if(arBxOrig != None): arBxRes[i0] = arBxOrig[i]
                 if(arByOrig != None): arByRes[i0] = arByOrig[i]
                 if(arBzOrig != None): arBzRes[i0] = arBzOrig[i]
-                
+
     if(_dupl==True):
         return SRWLMagFld3D(_arBx=arBxRes, _arBy=arByRes, _arBz=arBzRes, _nx=nx, _ny=ny, _nz=nzRes,
                             _rx=_mag3d.rx, _ry=_mag3d.ry, _rz=zRangeRes, _nRep=_mag3d.nRep, _interp=_mag3d.interp)
@@ -369,24 +374,157 @@ def srwl_und_cut_fld(_mag3d, _res_rz, _zc=None, _dupl=False):
     return _mag3d
 
 #****************************************************************************
-##def srwl_und_max_flux_spec(_e_beam, _mesh, _per, _len, _bx_vs_par, _by_vs_par, [_par1_start, _par1_step], [_par1_start, _par1_step], _par1_to_use, _par2_step_to_use, _min_pol_rate):
-##    """
-##    Calculate Stokes Parameters of Emitted (and Propagated, if beamline is defined) Partially-Coherent SR
-##    :param _e_beam: Finite-Emittance e-beam (SRWLPartBeam type)
-##    :param _mesh: mesh vs photon energy, horizontal and vertical positions (SRWLRadMesh type) on which initial SR should be calculated
-##    :param _per: undulator period
-##    :param _len: undulator length
-##    :param _n_part_tot: total number of "macro-electrons" to be used in the calculation
-##    :param _n_part_avg_proc: number of "macro-electrons" to be used in calculation at each "slave" before sending Stokes data to "master" (effective if the calculation is run via MPI)
-##    :param _n_save_per: periodicity of saving intermediate average Stokes data to file by master process
-##    :param _file_path: path to file for saving intermediate average Stokes data by master process
-##    :param _sr_samp_fact: oversampling factor for calculating of initial wavefront for subsequent propagation (effective if >0)
-##    :param _opt_bl: optical beamline (container) to propagate the radiation through (SRWLOptC type)
-##    :param _pres_ang: switch specifying presentation of the resulting Stokes parameters: coordinate (0) or angular (1)
-##    :param _char: radiation characteristic to calculate: 0- Intensity (s0); 1- Four Stokes components; 2- Mutual Intensity Cut vs X; 3- Mutual Intensity Cut vs Y; 4- Mutual Intensity Cut vs X & Y
-##    :param _x0: horizontal center position for mutual intensity calculation
-##    :param _y0: vertical center position for mutual intensity calculation
-##    """
+def srwl_und_find_cen_len(_mag3d, relThrB=0.8):
+    """
+    Finds longitudinal center position and length of undulator (dominating field component) by analyzing its tabulated field.
+    :param _mag3d: tabulated 3D magnetic field of undulator (object of SRWLMagFld3D type)
+    :param relThrB: relative threshold to be used with respect to peak field for determining the center
+    """
+
+    if((_mag3d == None) or ((_mag3d.arBx == None) and (_mag3d.arBy == None))):
+        raise Exception("Incorrect definition of the input tabulated undulator magnetic field")
+
+    if((relThrB <= 0.) or (relThrB >= 1.)):
+        raise Exception("relative threshold to be used with respect to peak field should be larger than 0 and less than 1")
+    
+    nx = _mag3d.nx
+    ny = _mag3d.ny
+    nz = _mag3d.nz
+    if(nz <= 1): raise Exception("1D magnetic field with more than one grid point vs longitudinal position is expected")
+    if((nx > 1) or (ny > 1)): raise Exception("1D magnetic field with more than one grid point vs longitudinal position and one point vs horizontal and vertical position is expected")
+
+    BxIsDefined = False
+    if(_mag3d.arBx != None):
+        if(len(_mag3d.arBx) == nz): BxIsDefined = True
+
+    ByIsDefined = False
+    if(_mag3d.arBy != None):
+        if(len(_mag3d.arBy) == nz): ByIsDefined = True
+
+    if((BxIsDefined == False) and (ByIsDefined == False)):
+        raise Exception("1D magnetic field data (vertical or horizontal component) are not defined")
+
+    absBxMax = 0.
+    absByMax = 0.
+    for iz in range(nz):
+        if(BxIsDefined):
+            curAbsB = abs(_mag3d.arBx[iz])
+            if(absBxMax < curAbsB): absBxMax = curAbsB
+        if(ByIsDefined):
+            curAbsB = abs(_mag3d.arBy[iz])
+            if(absByMax < curAbsB): absByMax = curAbsB
+
+    if((absBxMax <= 0.) and (absByMax <= 0.)):
+        raise Exception("Non-zero 1D magnetic field data (vertical or horizontal component) are not defined")
+
+    arB = None
+    absBmax = 0.
+    if(absByMax >= absBxMax):
+        arB = _mag3d.arBy
+        absBmax = absByMax
+    else:
+        arB = _mag3d.arBx
+        absBmax = absBxMax
+
+    absThreshB = relThrB*absBmax
+    zHalfRange = 0.5*_mag3d.rz
+    zThreshLeft = -zHalfRange
+    zThreshRight = zHalfRange
+    zStep = _mag3d.rz/(nz - 1)
+
+    z = zThreshLeft
+    for iz in range(nz):
+        curAbsB = abs(arB[iz])
+        if(curAbsB >= absThreshB):
+            zThreshLeft = z
+            break
+        z += zStep
+
+    nz_mi_1 = nz - 1
+    z = zThreshRight
+    for iz in range(nz):
+        curAbsB = abs(arB[nz_mi_1 - iz])
+        if(curAbsB >= absThreshB):
+            zThreshRight = z
+            break
+        z -= zStep
+
+    #print(zThreshLeft, zThreshRight)
+    if(zThreshRight <= zThreshLeft):
+        return 0., _mag3d.rz
+    else:
+        return 0.5*(zThreshRight + zThreshLeft), zThreshRight - zThreshLeft
+
+#****************************************************************************
+def srwl_und_fld_1d_mis(_mag3d, _per, _dg_by_len, _c1, _c2=0, _g0=0, _a=0, _y0=0, _dydz=0, _z0=None, _dupl=False):
+    """
+    Simulates effects of gap taper and electron "mis-steering" on magnetic field "seen" by the electron, using the formula:
+
+    B(z) = B0(z)*exp(-(dg/(len*per))*(c1 - 2*c2*g0/per)*(z-z0) + c2*(dg/(len*per))^2*(z-z0)^2)*cosh((2*pi*a/per)*(y0+dydz*(z-z0)))
+    
+    :param _mag3d: tabulated 3D magnetic field of undulator (object of SRWLMagFld3D type)
+    :param _per: undulator period [m]
+    :param _dg_by_len: ratio of gap variation betweein undulator exit and entrance to the undulator length (i.e. dg/len)
+    :param _c1: coefficient before linear term in the argument of exponent describing the gap dependence (i.e. c1 in b0*exp(-c1*gap/per + c2*(gap/per)^2))
+    :param _c2: coefficient before quadratic term in the argument of exponent describing the gap dependence (i.e. c2 in b0*exp(-c1*gap/per + c2*(gap/per)^2))
+    :param _g0: approximate undulator gap [m]
+    :param _a: coefficient in the argument of cosh defining dependence of the magnetic field on the vertical position (i.e. a in cosh(2*pi*a*y/per))
+    :param _y0: initial vertical position of electron (i.e. at z0 or in the center of the mag3d range) [m]
+    :param _dydz:  vertical angle of electron [rad]
+    :param _z0: longitudinal position where y0 is defined (if z0 == None, then the center of the mag3d range is assumed) [m]
+    :param _dupl: switch specifying whether the magnetic field object has to be duplicated or modified in place
+    :returns: updated 3d magnetic field structure
+    """
+
+    if((_mag3d == None) or ((_mag3d.arBx == None) and (_mag3d.arBy == None)) or (_per <= 0.)):
+        raise Exception("Incorrect definition of the input tabulated undulator magnetic field")
+    
+    resMag3D = deepcopy(_mag3d) if(_dupl == True) else _mag3d
+
+    nx = resMag3D.nx
+    ny = resMag3D.ny
+    nz = resMag3D.nz
+
+    if(nz <= 1): raise Exception("1D magnetic field with more than one grid point vs longitudinal position is expected")
+    if((nx > 1) or (ny > 1)): raise Exception("1D magnetic field with more than one grid point vs longitudinal position and one point vs horizontal and vertical position is expected")
+
+    arB = resMag3D.arBy
+    BorigIsDefined = True
+    if(arB == None):
+        BorigIsDefined = False
+    elif(len(arB) < nz):
+        BorigIsDefined = False
+
+    if(BorigIsDefined == False):
+        arB = resMag3D.arBx
+        if(arB != None):
+            if(len(arB) == nz): BorigIsDefined = True
+
+    if(BorigIsDefined == False): raise Exception("1D magnetic field data (vertical or horizontal component) is not defined")
+
+    zStep = resMag3D.rz/(nz - 1)
+    zRange = resMag3D.rz
+    if(zRange <= 0): return resMag3D
+
+    #z0 = _z0 if(_z0 != None) else 0.
+    z0 = _z0 if(_z0 != None) else srwl_und_find_cen_len(resMag3D)[0]
+    #print(z0)
+    
+    z = -0.5*zRange
+    for iz in range(nz):
+        dz = z - z0
+        #print(dz)
+       
+        dz_dg_d_len_per = dz*_dg_by_len/_per
+        argExp = -dz_dg_d_len_per*(_c1 + _c2*(dz_dg_d_len_per - 2*_g0/_per))
+        argCosh = (6.283185307*_a/_per)*(_y0 + _dydz*dz)
+        mult = exp(argExp)*cosh(argCosh)
+        #print(mult)
+
+        arB[iz] *= mult
+        z += zStep
+
+    return resMag3D
 
 #*********************************Entry point (for command-prompt calls)
 if __name__=="__main__":
@@ -394,12 +532,17 @@ if __name__=="__main__":
     p = optparse.OptionParser()
     p.add_option('--cor', dest='do_cor_fld_int', action='store_true', default=False, help="correct 1st and 2nd field integrals of tabulated undulator magnetic field")
     p.add_option('--conv', dest='do_conv_fld', action='store_true', default=False, help="convert magnetic measurement data file to SRW ASCII format")
+    #p.add_option('--trun', dest='do_trunc_fld', action='store_true', default=False, help="truncate magnetic field (i.e. reduce range) vs longitudinal position")
+    
     p.add_option('--ifn', dest='ifn', type='string', default='', help="input field file name")
     p.add_option('--ofn', dest='ofn', type='string', default='', help="output field file name")
     p.add_option('--otfn', dest='otfn', type='string', default='', help="output trajectory file name")
     p.add_option('--dbwk', dest='dbwk', type="float", default=2.8, metavar="NUMBER", help="distance between correcting kicks [m]")
     p.add_option('--rmsk', dest='rmsk', type="float", default=0.05, metavar="NUMBER", help="RMS length of the correcting kicks [m]")
-    p.add_option('--zk', dest='zk', type="float", default=0., metavar="NUMBER", help="longitudinal position of the correcting kicks [m]")
+
+    p.add_option('--rz', dest='rz', type="float", default=0., metavar="NUMBER", help="new longitudinal range of magnetic field after truncation [m] (effective if > 0; the center field will be taken from zk)")
+
+    p.add_option('--zk', dest='zk', type="float", default=1.e+23, metavar="NUMBER", help="longitudinal position of the correcting kicks [m]")
     p.add_option('--z0t', dest='z0t', type="float", default=1.e+23, metavar="NUMBER", help="initial longitudinal position for trajectory calculation [m]")
     p.add_option('--x0t', dest='x0t', type="float", default=0., metavar="NUMBER", help="initial horizontal position for trajectory calculation [m]")
     p.add_option('--y0t', dest='y0t', type="float", default=0., metavar="NUMBER", help="initial vertical position for trajectory calculation [m]")
@@ -419,25 +562,64 @@ if __name__=="__main__":
     
     if(opt.do_conv_fld): #Convertion from magnetic measurements data format
         fldDataCols = srwl_uti_read_data_cols(opt.ifn, '\t')
-        arZ = fldDataCols[0]
-        zNp = len(arZ)
-        zSt = arZ[0]*0.001
-        zFi = arZ[zNp - 1]*0.001
-        fldCnt = SRWLMagFldC(SRWLMagFld3D(array('d', fldDataCols[1]), array('d', fldDataCols[2]), array('d', fldDataCols[3]), 1, 1, zNp, 0., 0., zFi - zSt), 0., 0., 0.5*(zSt + zFi))
+        
+        arZ = array('d', fldDataCols[0])
+        for i in range(len(arZ)):
+            arZ[i] *= 0.001
+        
+        arBX = array('d', fldDataCols[1])
+        arBY = array('d', fldDataCols[2])
+        arBZ = array('d', fldDataCols[3])
 
+        zNp = len(arZ)
+        zSt = arZ[0] #*0.001
+        zFi = arZ[zNp - 1] #*0.001
+
+        #Field tabulated on Irregular Mesh:
+        #fldCntIrreg = SRWLMagFldC(SRWLMagFld3D(arBX, arBY, arBZ, 1, 1, zNp, 0., 0., zFi - zSt, _interp=2, _arX=None, _arY=None, _arZ=arZ), 0., 0., 0.5*(zSt + zFi))
+        fldCntIrreg = SRWLMagFldC(SRWLMagFld3D(arBX, arBY, arBZ, 1, 1, zNp, 0., 0., zFi - zSt, _interp=2, _arX=None, _arY=None, _arZ=arZ), 0., 0., 0.)
+
+        #Re-calculating the Field on Regular Mesh:
+        fldCnt = SRWLMagFldC(SRWLMagFld3D(arBX, arBY, arBZ, 1, 1, zNp, 0., 0., zFi - zSt), 0., 0., 0.5*(zSt + zFi))
+        #fldCnt = SRWLMagFldC(SRWLMagFld3D(arBX, arBY, arBZ, 1, 1, zNp, 0., 0., zFi - zSt), 0., 0., 0.)
+        srwl.CalcMagnField(fldCnt, fldCntIrreg, [0])
+        
+        #fldCnt = SRWLMagFldC(SRWLMagFld3D(array('d', fldDataCols[1]), array('d', fldDataCols[2]), array('d', fldDataCols[3]), 1, 1, zNp, 0., 0., zFi - zSt), 0., 0., 0.5*(zSt + zFi))
+        #print(1)
+        
     if(fldCnt == None): fldCnt = srwl_uti_read_mag_fld_3d(opt.ifn)
+    
     fld3d = fldCnt.arMagFld[0]
     zc = fldCnt.arZc[0]
 
     if((opt.dbx != 0.) or (opt.dby != 0.) or (opt.dbz != 0.)):
         srwl_und_fld_add_const(fld3d, fldCnt.arZc[0], opt.dzc, opt.dzr, opt.dbx, opt.dby, opt.dbz)
+        #print(2)
 
+    zk = opt.zk
+    
     if(opt.do_cor_fld_int):
         zc = fldCnt.arZc[0]
-        srwl_und_cor_fld_int(fld3d, opt.dbwk, opt.rmsk, opt.zk, zc)
+        if(zk >= 1.e+22):
+            zk, auxUndLen = srwl_und_find_cen_len(fld3d)
+            #print('zk=', zk)
+            
+        srwl_und_cor_fld_int(fld3d, opt.dbwk, opt.rmsk, zk, zc)
+        #print(3)
+
+    if(opt.rz > 0.): #Cutting the field
+        if(zk >= 1.e+22):
+            zk, auxUndLen = srwl_und_find_cen_len(fld3d)
+            
+        srwl_und_cut_fld(fld3d, opt.rz, zk)
+        zc += zk #Because after the cutting zk becomes 0!
+        #print(4)
 
     if(len(opt.ofn) > 0):
+        
         fld3d.save_ascii(opt.ofn, 0., 0., zc)
+        #print('zc=', zc)
+        #print(5)
 
     if(len(opt.otfn) > 0):
         z0 = opt.z0t if(opt.z0t != 1.e+23) else fldCnt.arZc[0] - 0.5*fld3d.rz
@@ -446,3 +628,4 @@ if __name__=="__main__":
         #print(fld3d.arBy)
         srwl.CalcPartTraj(traj, fldCnt, [1])
         traj.save_ascii(opt.otfn)
+        #print(6)

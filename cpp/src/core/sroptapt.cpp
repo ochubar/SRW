@@ -19,13 +19,16 @@ int srTAperture::TraverseRadZXE_TracingZeroField(srTSRWRadStructAccessData* pRad
 {
 	float *pEx0 = pRadAccessData->pBaseRadX;
 	float *pEz0 = pRadAccessData->pBaseRadZ;
-	long PerX = pRadAccessData->ne << 1;
-	long PerZ = PerX*pRadAccessData->nx;
+	//long PerX = pRadAccessData->ne << 1;
+	//long PerZ = PerX*pRadAccessData->nx;
+	long long PerX = pRadAccessData->ne << 1;
+	long long PerZ = PerX*pRadAccessData->nx;
 
 	srTEFieldPtrs EFieldPtrs;
 	srTEXZ EXZ;
 	EXZ.z = pRadAccessData->zStart;
-	long izPerZ = 0;
+	//long izPerZ = 0;
+	long long izPerZ = 0;
 
 	int ixStartNonZeroOld = pRadAccessData->nx + 1, izStartNonZeroOld = -1;
 	int ixStartZeroAgainOld = -1, izStartZeroAgainOld = -1;
@@ -39,7 +42,8 @@ int srTAperture::TraverseRadZXE_TracingZeroField(srTSRWRadStructAccessData* pRad
 		float *pEx_StartForX = pEx0 + izPerZ;
 		float *pEz_StartForX = pEz0 + izPerZ;
 		EXZ.x = pRadAccessData->xStart;
-		long ixPerX = 0;
+		//long ixPerX = 0;
+		long long ixPerX = 0;
 
 		char xPrevOldWasZero = 1, xPrevNewWasZero = 1;
 		int ixStartNonZeroOldLoc = -1, ixStartZeroAgainOldLoc = -1;
@@ -50,7 +54,8 @@ int srTAperture::TraverseRadZXE_TracingZeroField(srTSRWRadStructAccessData* pRad
 			float *pEx_StartForE = pEx_StartForX + ixPerX;
 			float *pEz_StartForE = pEz_StartForX + ixPerX;
 			EXZ.e = pRadAccessData->eStart;
-			long iePerE = 0;
+			//long iePerE = 0;
+			long long iePerE = 0;
 
 			char EFieldOldWasNonZero = 0, EFieldNewIsNonZero = 0;
 			for(int ie=0; ie<pRadAccessData->ne; ie++)

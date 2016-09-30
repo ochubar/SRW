@@ -18,7 +18,8 @@
 
 //*************************************************************************
 
-srTPartAutoRadInt::srTPartAutoRadInt(srTTrjDat* InTrjDatPtr, srTWfrSmp* InDistrInfoDatPtr, srLambXYZ* InObsCoorPtr, double In_sStart, double In_sFin, double In_sRelPrec, int InNpOnZeroLevel) 
+//srTPartAutoRadInt::srTPartAutoRadInt(srTTrjDat* InTrjDatPtr, srTWfrSmp* InDistrInfoDatPtr, srLambXYZ* InObsCoorPtr, double In_sStart, double In_sFin, double In_sRelPrec, int InNpOnZeroLevel) 
+srTPartAutoRadInt::srTPartAutoRadInt(srTTrjDat* InTrjDatPtr, srTWfrSmp* InDistrInfoDatPtr, srLambXYZ* InObsCoorPtr, double In_sStart, double In_sFin, double In_sRelPrec, long long InNpOnZeroLevel) 
 {
 	TrjDatPtr = InTrjDatPtr; DistrInfoDatPtr = InDistrInfoDatPtr; ObsCoorPtr = InObsCoorPtr;
 	sIntegStart = In_sStart; sIntegFin = In_sFin; sIntegRelPrec = In_sRelPrec;
@@ -27,7 +28,8 @@ srTPartAutoRadInt::srTPartAutoRadInt(srTTrjDat* InTrjDatPtr, srTWfrSmp* InDistrI
 	AuxDataPtr = 0;
 	SomethingIsWrong = 0;
 
-	int TwoNpOnZeroLevel_mi_1 = 2*NpOnZeroLevel - 1;
+	//int TwoNpOnZeroLevel_mi_1 = 2*NpOnZeroLevel - 1;
+	long long TwoNpOnZeroLevel_mi_1 = 2*NpOnZeroLevel - 1;
 	double *BufStPtr, *BufPtr;
 	if(TwoNpOnZeroLevel_mi_1*16 < 1000) BufStPtr = AuxDataArray;
 	else
@@ -49,12 +51,14 @@ srTPartAutoRadInt::srTPartAutoRadInt(srTTrjDat* InTrjDatPtr, srTWfrSmp* InDistrI
 
 	TrjDatPtr->CompTotalTrjData(sIntegStart, sIntegFin, TwoNpOnZeroLevel_mi_1, BufBtxArrP, BufBtzArrP, BufXArrP, BufZArrP, BufIntBtxE2ArrP, BufIntBtzE2ArrP, BufBxArrP, BufBzArrP);
 
-	int NpOnZeroLevel_mi_1 = NpOnZeroLevel - 1;
+	//int NpOnZeroLevel_mi_1 = NpOnZeroLevel - 1;
+	long long NpOnZeroLevel_mi_1 = NpOnZeroLevel - 1;
 	double *TrTotDat = BufStPtr + TwoNpOnZeroLevel_mi_1*8;
 	for(int k=0; k<8; k++) 
 	{
 		double *TrLev0 = BufStPtr + NpOnZeroLevel*k, *TrLev1 = BufStPtr + NpOnZeroLevel*8 + NpOnZeroLevel_mi_1*k;
-		for(int i=0; i<NpOnZeroLevel_mi_1; i++)
+		//for(int i=0; i<NpOnZeroLevel_mi_1; i++)
+		for(long long i=0; i<NpOnZeroLevel_mi_1; i++)
 		{
 			*(TrLev0++) = *(TrTotDat++);
 			*(TrLev1++) = *(TrTotDat++);
@@ -119,7 +123,8 @@ int srTPartAutoRadInt::Integrate(double& OutIntXRe, double& OutIntXIm, double& O
 		EdgeFunDerNotComputed = 0;
 	}
 
-	int NpOnLevel = NpOnZeroLevel - 1;
+	//int NpOnLevel = NpOnZeroLevel - 1;
+	long long NpOnLevel = NpOnZeroLevel - 1;
 
 	double sStep = (sIntegFin - sIntegStart)/NpOnLevel;
 	double Ax, Az, Ph, CosPh, SinPh, PhPrev, PhInit;
@@ -179,10 +184,12 @@ int srTPartAutoRadInt::Integrate(double& OutIntXRe, double& OutIntXIm, double& O
 		wFxRe = *EdgeFunDer; wFxIm = EdgeFunDer[1]; wFzRe = EdgeFunDer[2]; wFzIm = EdgeFunDer[3];
 	}
 
-	int AmOfLoops = (NpOnZeroLevel - 3) >> 1;
+	//int AmOfLoops = (NpOnZeroLevel - 3) >> 1;
+	long long AmOfLoops = (NpOnZeroLevel - 3) >> 1;
 	double s = sIntegStart + sStep;
 
-	for(int i=0; i<AmOfLoops; i++)
+	//for(int i=0; i<AmOfLoops; i++)
+	for(long long i=0; i<AmOfLoops; i++)
 	{
 		if(NearField)
 		{
@@ -296,7 +303,8 @@ int srTPartAutoRadInt::Integrate(double& OutIntXRe, double& OutIntXIm, double& O
 		s = sIntegStart + HalfStep;
 		if(NumberOfLevelsFilled <= LevelNo) if(result = FillNextLevel(LevelNo, s, sIntegFin - HalfStep, NpOnLevel)) return result;
 		pBtx = BtxArrP[LevelNo], pBtz = BtzArrP[LevelNo], pX = XArrP[LevelNo], pZ = ZArrP[LevelNo], pIntBtxE2 = IntBtxE2ArrP[LevelNo], pIntBtzE2 = IntBtzE2ArrP[LevelNo];
-		for(int i=0; i<NpOnLevel; i++)
+		//for(int i=0; i<NpOnLevel; i++)
+		for(long long i=0; i<NpOnLevel; i++)
 		{
 			if(NearField)
 			{

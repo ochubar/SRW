@@ -30,14 +30,17 @@ public:
 	void CompTrjDataDerivedAtPointPowDens(double s, double& Btx, double& Btz, double& X, double& Z, double& Bx, double& Bz);
 
 	void CompTotalTrjData(srTFieldBasedArrayKeys& Keys, srTFieldBasedArrays& FieldBasedArrays);
-	void CompTotalTrjData(double sSt, double sEn, long Np, double* pBtx, double* pBtz, double* pX, double* pZ, double* pBx, double* pBz);
-	void CompTotalTrjData(double sSt, double sEn, long Np, double* pBtx, double* pBtz, double* pX, double* pZ, double* pIntBtxE2, double* pIntBtzE2, double* pBx, double* pBz, double* pdBxds, double* pdBzds);
+	//void CompTotalTrjData(double sSt, double sEn, long Np, double* pBtx, double* pBtz, double* pX, double* pZ, double* pBx, double* pBz);
+	void CompTotalTrjData(double sSt, double sEn, long long Np, double* pBtx, double* pBtz, double* pX, double* pZ, double* pBx, double* pBz);
+	//void CompTotalTrjData(double sSt, double sEn, long Np, double* pBtx, double* pBtz, double* pX, double* pZ, double* pIntBtxE2, double* pIntBtzE2, double* pBx, double* pBz, double* pdBxds, double* pdBzds);
+	void CompTotalTrjData(double sSt, double sEn, long long Np, double* pBtx, double* pBtz, double* pX, double* pZ, double* pIntBtxE2, double* pIntBtzE2, double* pBx, double* pBz, double* pdBxds, double* pdBzds);
 
 	int SetUpFieldBasedArraysAtOnePeriod(srTFieldBasedArrayKeys&, srTFieldBasedArrays&);
 	int SetUpFieldBasedArraysTotal(srTFieldBasedArrayKeys&, srTFieldBasedArrays&);
 
 	int ConvertToArbTrjDat(char, srTWfrSmp&, srTGenTrjHndl&);
-	int SetupLimitsByAnalizingField(char LongIntType, double& sStart, double& sStep, long& Ns, int& NperTot, int& NperLeft);
+	//int SetupLimitsByAnalizingField(char LongIntType, double& sStart, double& sStep, long& Ns, int& NperTot, int& NperLeft);
+	int SetupLimitsByAnalizingField(char LongIntType, double& sStart, double& sStep, long long& Ns, int& NperTot, int& NperLeft);
 
 	int MagFieldPeriodicity() { return 2;} // Periodic
 	char MagFieldIsConstant() { return 0;}
@@ -115,7 +118,8 @@ public:
 		else AmOfExtremInBz = 0;
 	}
 
-	long EstimMinNpForRadInteg(char typeInt) //	virtual 
+	//long EstimMinNpForRadInteg(char typeInt) //	virtual 
+	long long EstimMinNpForRadInteg(char typeInt) //	virtual 
 	{//treat eventually monochromatic case (typeInt == 1)
 		const int nPtPerPeriod = 4; //5;
 

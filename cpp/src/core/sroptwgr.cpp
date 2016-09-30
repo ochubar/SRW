@@ -60,7 +60,8 @@ int srTWaveguideRect::PrepareWavefrontForPropagation(srTSRWRadStructAccessData* 
 	pOutWfr->pBaseRadX = 0;
 	pOutWfr->pBaseRadZ = 0;
 
-	long TotData = (pRadAccessData->ne)*NewNx*(NewNz<<1);
+	//long TotData = (pRadAccessData->ne)*NewNx*(NewNz<<1);
+	long long TotData = (pRadAccessData->ne)*NewNx*(NewNz<<1);
 	if(pRadAccessData->pBaseRadX != 0)
 	{
 		pOutWfr->pBaseRadX = new float[TotData];
@@ -135,8 +136,10 @@ int srTWaveguideRect::PrepareWavefrontForPropagation(srTSRWRadStructAccessData* 
 
 int srTWaveguideRect::FillInSymmetricalPartsOutsideWaveguide(srTSRWRadStructAccessData& Wfr)
 {
-	long PerX = Wfr.ne << 1;
-	long PerZ = PerX*Wfr.nx;
+	//long PerX = Wfr.ne << 1;
+	//long PerZ = PerX*Wfr.nx;
+	long long PerX = Wfr.ne << 1;
+	long long PerZ = PerX*Wfr.nx;
 
 	long QuarterNz = Wfr.nz >> 2;
 	long QuarterNx = Wfr.nx >> 2;
@@ -145,7 +148,8 @@ int srTWaveguideRect::FillInSymmetricalPartsOutsideWaveguide(srTSRWRadStructAcce
 	long ThreeQuarterNz = 3*QuarterNz;
 	long ThreeQuarterNx = 3*QuarterNx;
 
-	long iz, ix, OffsetAux;
+	long iz, ix;//, OffsetAux;
+	long long OffsetAux;
 
 	float *pEx0 = Wfr.pBaseRadX;
 	float *pEz0 = Wfr.pBaseRadZ;
@@ -157,9 +161,12 @@ int srTWaveguideRect::FillInSymmetricalPartsOutsideWaveguide(srTSRWRadStructAcce
 
 		for(iz=0; iz<=QuarterNz; iz++)
 		{
-			long izPerZ = iz*PerZ;
-			long izOrigPerZ = (HalfNz - iz)*PerZ;
-			long izPerZ_p_Two_ie = izPerZ + Two_ie;
+			//long izPerZ = iz*PerZ;
+			//long izOrigPerZ = (HalfNz - iz)*PerZ;
+			//long izPerZ_p_Two_ie = izPerZ + Two_ie;
+			long long izPerZ = iz*PerZ;
+			long long izOrigPerZ = (HalfNz - iz)*PerZ;
+			long long izPerZ_p_Two_ie = izPerZ + Two_ie;
 
 			pEx = pEx0 + izPerZ_p_Two_ie;
 			pEz = pEz0 + izPerZ_p_Two_ie;
@@ -222,8 +229,10 @@ int srTWaveguideRect::FillInSymmetricalPartsOutsideWaveguide(srTSRWRadStructAcce
 
 		for(iz=(QuarterNz + 1); iz<=ThreeQuarterNz; iz++)
 		{
-			long izPerZ = iz*PerZ;
-			long izPerZ_p_Two_ie = izPerZ + Two_ie;
+			//long izPerZ = iz*PerZ;
+			//long izPerZ_p_Two_ie = izPerZ + Two_ie;
+			long long izPerZ = iz*PerZ;
+			long long izPerZ_p_Two_ie = izPerZ + Two_ie;
 
 			pEx = pEx0 + izPerZ_p_Two_ie;
 			pEz = pEz0 + izPerZ_p_Two_ie;
@@ -272,9 +281,12 @@ int srTWaveguideRect::FillInSymmetricalPartsOutsideWaveguide(srTSRWRadStructAcce
 
 		for(iz=(ThreeQuarterNz + 1); iz<Wfr.nz; iz++)
 		{
-			long izPerZ = iz*PerZ;
-			long izOrigPerZ = ((ThreeQuarterNz << 1) - iz)*PerZ;
-			long izPerZ_p_Two_ie = izPerZ + Two_ie;
+			//long izPerZ = iz*PerZ;
+			//long izOrigPerZ = ((ThreeQuarterNz << 1) - iz)*PerZ;
+			//long izPerZ_p_Two_ie = izPerZ + Two_ie;
+			long long izPerZ = iz*PerZ;
+			long long izOrigPerZ = ((ThreeQuarterNz << 1) - iz)*PerZ;
+			long long izPerZ_p_Two_ie = izPerZ + Two_ie;
 
 			pEx = pEx0 + izPerZ_p_Two_ie;
 			pEz = pEz0 + izPerZ_p_Two_ie;
@@ -346,7 +358,8 @@ int srTWaveguideRect::CopyElecFieldDataForOut(srTSRWRadStructAccessData& WfrIn, 
 
 	float *tx = WfrOut.pBaseRadX, *tz = WfrOut.pBaseRadZ;
 	float *t1x = WfrIn.pBaseRadX, *t1z = WfrIn.pBaseRadZ;
-	for(long j=0; j<((WfrOut.nx*WfrOut.nz) << 1); j++)
+	//for(long j=0; j<((WfrOut.nx*WfrOut.nz) << 1); j++)
+	for(long long j=0; j<((WfrOut.nx*WfrOut.nz) << 1); j++)
 	{
 		*(tx++) = *(t1x++); *(tz++) = *(t1z++); 
 	}
@@ -355,7 +368,6 @@ int srTWaveguideRect::CopyElecFieldDataForOut(srTSRWRadStructAccessData& WfrIn, 
 }
 
 //*************************************************************************
-
 /*
 int srTDriftSpace::AuxPropagateRadMoments(srTSRWRadStructAccessData* pRadAccessData, float** ax, float** az, srTMomentsRatios* MomRatArray)
 {// There is a general function like this

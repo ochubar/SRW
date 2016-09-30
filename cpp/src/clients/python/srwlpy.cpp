@@ -185,10 +185,13 @@ char* GetPyArrayBuf(PyObject* obj, vector<Py_buffer>* pvBuf, Py_ssize_t* pSizeBu
  * Supports both Py lists and arrays
  * If obj is neither List nor Array - returns without thowing error
  ***************************************************************************/
-template<class T> void CopyPyListElemsToNumArray(PyObject* obj, char arType, T*& ar, int& nElem) //throw(...)
+//template<class T> void CopyPyListElemsToNumArray(PyObject* obj, char arType, T*& ar, int& nElem) //throw(...)
+template<class T> char CopyPyListElemsToNumArray(PyObject* obj, char arType, T*& ar, int& nElem) //OC03092016
 {
-	if(obj == 0) return;
-	if(!((arType == 'i') || (arType == 'l') || (arType == 'f') || (arType == 'd'))) return;
+	//if(obj == 0) return;
+	//if(!((arType == 'i') || (arType == 'l') || (arType == 'f') || (arType == 'd'))) return;
+	if(obj == 0) return 0; //OC03092016
+	if(!((arType == 'i') || (arType == 'l') || (arType == 'f') || (arType == 'd'))) return 0; //OC03092016
 	//if(!PyList_Check(obj)) throw strEr_BadList;
 	bool isList = PyList_Check(obj);
 	bool isArray = false;
@@ -196,7 +199,8 @@ template<class T> void CopyPyListElemsToNumArray(PyObject* obj, char arType, T*&
 
 #if PY_MAJOR_VERSION >= 3
 	//if(!(isList || isArray)) throw strEr_BadListArray;
-	if(!(isList || isArray)) return;
+	//if(!(isList || isArray)) return;
+	if(!(isList || isArray)) return 0; //OC03092016
 #endif
 
 	Py_buffer pb;
@@ -235,7 +239,8 @@ template<class T> void CopyPyListElemsToNumArray(PyObject* obj, char arType, T*&
 			else
 			{
 				PyErr_Clear();
-				return;
+				//return;
+				return 0; //?
 			}
 			//}
 			//else return; //obj is neither List nor Array
@@ -303,6 +308,8 @@ template<class T> void CopyPyListElemsToNumArray(PyObject* obj, char arType, T*&
 		t_ar++;
 	}
 	if(pOldBuf != 0) Py_DECREF(pOldBuf);
+
+	return isList? 'l' : 'a'; //OC03092016
 }
 
 /************************************************************************//**
@@ -670,7 +677,8 @@ void ParseSructSRWLKickM(SRWLKickM* pKickM, PyObject* oKickM, vector<Py_buffer>*
 	pKickM->nz = PyLong_AsLong(o_tmp);
 	Py_DECREF(o_tmp);
 
-	long npTot = long(pKickM->nx)*long(pKickM->ny);
+	//long npTot = long(pKickM->nx)*long(pKickM->ny);
+	long long npTot = ((long long)(pKickM->nx))*((long long)(pKickM->ny));
 
 	o_tmp = PyObject_GetAttrString(oKickM, "rx");
 	if(o_tmp == 0) throw strEr_BadMag3D;
@@ -784,7 +792,8 @@ void ParseSructSRWLMagFld3D(SRWLMagFld3D* pMag, PyObject* oMag, vector<Py_buffer
 	pMag->nz = PyLong_AsLong(o_tmp);
 	Py_DECREF(o_tmp);
 
-	long npTot = long(pMag->nx)*long(pMag->ny)*long(pMag->nz);
+	//long npTot = long(pMag->nx)*long(pMag->ny)*long(pMag->nz);
+	long long npTot = ((long long)(pMag->nx))*((long long)(pMag->ny))*((long long)(pMag->nz));
 
 	o_tmp = PyObject_GetAttrString(oMag, "rx");
 	if(o_tmp == 0) throw strEr_BadMag3D;
@@ -2269,6 +2278,12 @@ void ParseSructSRWLOptCryst(SRWLOptCryst* pOpt, PyObject* oOpt)
 	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptCryst;
 	pOpt->tvy = PyFloat_AsDouble(o_tmp);
 	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "uc");
+	if(o_tmp == 0) throw strEr_BadOptCryst;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptCryst;
+	pOpt->uc = (char)PyLong_AsLong(o_tmp);
+	Py_DECREF(o_tmp);
 }
 
 /************************************************************************//**
@@ -2844,7 +2859,8 @@ void ParseSructSRWLStokes(SRWLStokes* pStokes, PyObject* oStokes, vector<Py_buff
 	ParseSructSRWLRadMesh(&(pStokes->mesh), o_tmp, pvBuf);
 	Py_DECREF(o_tmp);
 
-	long npTotS0 = (pStokes->mesh.ne)*(pStokes->mesh.nx)*(pStokes->mesh.ny);
+	//long npTotS0 = (pStokes->mesh.ne)*(pStokes->mesh.nx)*(pStokes->mesh.ny);
+	long long npTotS0 = ((long long)(pStokes->mesh.ne))*((long long)(pStokes->mesh.nx))*((long long)(pStokes->mesh.ny));
 	pStokes->arS1 = (char*)(((float*)(pStokes->arS0)) + npTotS0);
 	pStokes->arS2 = (char*)(((float*)(pStokes->arS1)) + npTotS0);
 	pStokes->arS3 = (char*)(((float*)(pStokes->arS2)) + npTotS0);
@@ -2882,6 +2898,39 @@ void ParseSructSRWLStokes(SRWLStokes* pStokes, PyObject* oStokes, vector<Py_buff
 	if(!PyNumber_Check(o_tmp)) throw strEr_BadStokes;
 	pStokes->unitStokes = (char)PyLong_AsLong(o_tmp);
 	Py_DECREF(o_tmp);
+}
+
+/************************************************************************//**
+ * Updates Py List by numbers
+ ***************************************************************************/
+template<class T> void UpdatePyListNum(PyObject* oList, const T* ar, int n) //OC03092016
+{
+	if((ar == 0) || (n <= 0)) return;
+
+	if(!PyList_Check(oList)) throw strEr_BadList;
+	int nElem = (int)PyList_Size(oList);
+
+	int nExist = n;
+	if(nExist > nElem) nExist = nElem;
+
+	for(int i=0; i<nExist; i++)
+	{
+		PyObject *oElemOld = PyList_GetItem(oList, (Py_ssize_t)i);
+		if(oElemOld == 0) throw strEr_BadNum;
+		if(PyNumber_Check(oElemOld) != 1) throw strEr_BadNum;
+
+		char arNumType[2];
+		arNumType[1] = '\0';
+		if(PyLong_Check(oElemOld)) arNumType[0] = 'i';
+		else if(PyFloat_Check(oElemOld))  arNumType[0] = 'd';
+
+		if(PyList_SetItem(oList, (Py_ssize_t)i, Py_BuildValue(arNumType, ar[i])) != 0) throw strEr_BadNum;
+	}
+
+	for(int j=nExist; j<n; j++)
+	{
+		if(PyList_Append(oList, Py_BuildValue("d", ar[j])) != 0) throw strEr_BadNum; //consider analyzing T ?
+	}
 }
 
 /************************************************************************//**
@@ -3429,11 +3478,11 @@ static PyObject* srwlpy_CalcMagnField(PyObject *self, PyObject *args)
 	try
 	{
 		try
-		{//OC190115 //For backbards compatibility
+		{//OC190115 //For backwards compatibility
 			if(!PyArg_ParseTuple(args, "OOO:CalcMagnField", &oDispMagCnt, &oMagFldCnt, &oPrecPar)) throw strEr_BadArg_CalcMagnField;
 		}
 		catch(...)
-		{//OC190115 //For backbards compatibility
+		{//OC190115 //For backwards compatibility
 			if(!PyArg_ParseTuple(args, "OO:CalcMagnField", &oDispMagCnt, &oMagFldCnt)) throw strEr_BadArg_CalcMagnField;
 		}
 
@@ -3993,8 +4042,10 @@ static PyObject* srwlpy_UtiFFT(PyObject *self, PyObject *args)
 
 		double arMesh[6];
 		double *pMesh = arMesh;
-		int nMesh=0;
-		CopyPyListElemsToNumArray(oMesh, 'd', pMesh, nMesh);
+		//int nMesh=0;
+		int nMesh=6; //OC03092016 (should match arMesh[6] !)
+		//CopyPyListElemsToNumArray(oMesh, 'd', pMesh, nMesh);
+		char meshArType = CopyPyListElemsToNumArray(oMesh, 'd', pMesh, nMesh); //OC03092016
 		if(nMesh < 3) throw strEr_BadArg_UtiFFT;
 
 		char typeData = 'f';
@@ -4016,6 +4067,8 @@ static PyObject* srwlpy_UtiFFT(PyObject *self, PyObject *args)
 		int dir = (int)PyLong_AsLong(oDir);
 
 		ProcRes(srwlUtiFFT(pcData, typeData, arMesh, nMesh, dir));
+
+		if(meshArType == 'l') UpdatePyListNum(oMesh, arMesh, nMesh); //04092016
 	}
 	catch(const char* erText) 
 	{

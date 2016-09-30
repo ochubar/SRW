@@ -181,8 +181,9 @@ public:
 
 	void RotateDataAfter2DFFT(FFTW_COMPLEX* pAfterFFT)
 	{// Assumes Nx, Ny even !
-		long HalfNyNx = HalfNy*Nx;
-		FFTW_COMPLEX *t1 = pAfterFFT, *t2 = pAfterFFT + HalfNyNx + HalfNx;
+		//long HalfNyNx = HalfNy*Nx;
+		long long HalfNyNx = ((long long)HalfNy)*((long long)Nx);
+		FFTW_COMPLEX *t1 = pAfterFFT, *t2 = pAfterFFT + (HalfNyNx + HalfNx);
 	    FFTW_COMPLEX *t3 = pAfterFFT + HalfNx, *t4 = pAfterFFT + HalfNyNx;
 		FFTW_COMPLEX Buf;
 		for(long jj=0; jj<HalfNy; jj++)
@@ -213,9 +214,11 @@ public:
 
 	void NormalizeDataAfter2DFFT(FFTW_COMPLEX* pAfterFFT, double Mult)
 	{// Assumes Nx, Ny even !
-		long NxNy = Nx*Ny;
+		//long NxNy = Nx*Ny;
+		long long NxNy = ((long long)Nx)*((long long)Ny);
 		FFTW_COMPLEX *t = pAfterFFT;
-		for(long i=0; i<NxNy; i++)
+		//for(long i=0; i<NxNy; i++)
+		for(long long i=0; i<NxNy; i++)
 		{
 			t->re *= (FFTW_REAL)Mult; (t++)->im *= (FFTW_REAL)Mult;
 		}

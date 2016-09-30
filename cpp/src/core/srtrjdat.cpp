@@ -19,7 +19,8 @@
 
 //*************************************************************************
 
-int srTFieldBasedArrays::AllocateArrays(long InNs, srTFieldBasedArrayKeys& Keys)
+//int srTFieldBasedArrays::AllocateArrays(long InNs, srTFieldBasedArrayKeys& Keys)
+int srTFieldBasedArrays::AllocateArrays(long long InNs, srTFieldBasedArrayKeys& Keys)
 {
 	if(InNs <= 0) return 0;
 	DisposeArrays();
@@ -76,7 +77,8 @@ int srTTrjDat::AllocateMemoryForCfs()
 {
 	DeallocateMemoryForCfs();
 
-	int LenFieldData_m_1 = LenFieldData - 1;
+	//int LenFieldData_m_1 = LenFieldData - 1;
+	long long LenFieldData_m_1 = LenFieldData - 1;
 
 	BxPlnCf = new double*[LenFieldData_m_1];
 	if(BxPlnCf == 0) return MEMORY_ALLOCATION_FAILURE;
@@ -106,7 +108,8 @@ int srTTrjDat::AllocateMemoryForCfs()
 	if(AllCf == 0) { delete[] BxPlnCf; delete[] BzPlnCf; delete[] BtxPlnCf; delete[] BtzPlnCf; delete[] xPlnCf; delete[] zPlnCf; delete[] IntBtx2PlnCf; delete[] IntBtz2PlnCf; return MEMORY_ALLOCATION_FAILURE;}
 
 	double* tAllCf = AllCf;
-	for(int i=0; i<LenFieldData_m_1; i++)
+	//for(int i=0; i<LenFieldData_m_1; i++)
+	for(long long i=0; i<LenFieldData_m_1; i++)
 	{
 		BxPlnCf[i] = tAllCf; tAllCf += 4;
 		BzPlnCf[i] = tAllCf; tAllCf += 4;
@@ -132,8 +135,10 @@ int srTTrjDat::AllocateMemoryForCfs_FromTrj()
 
 	DeallocateMemoryForCfs();
 
-	int xLenFieldData_m_1 = xTrjInData.np - 1;
-	int zLenFieldData_m_1 = zTrjInData.np - 1;
+	//int xLenFieldData_m_1 = xTrjInData.np - 1;
+	//int zLenFieldData_m_1 = zTrjInData.np - 1;
+	long long xLenFieldData_m_1 = xTrjInData.np - 1;
+	long long zLenFieldData_m_1 = zTrjInData.np - 1;
 
 	BxPlnCf = new double*[zLenFieldData_m_1];
 	if(BxPlnCf == 0) return MEMORY_ALLOCATION_FAILURE;
@@ -163,14 +168,16 @@ int srTTrjDat::AllocateMemoryForCfs_FromTrj()
 	if(AllCf == 0) { delete[] BxPlnCf; delete[] BzPlnCf; delete[] BtxPlnCf; delete[] BtzPlnCf; delete[] xPlnCf; delete[] zPlnCf; delete[] IntBtx2PlnCf; delete[] IntBtz2PlnCf; return MEMORY_ALLOCATION_FAILURE;}
 
 	double* tAllCf = AllCf;
-	for(long ix=0; ix<xLenFieldData_m_1; ix++)
+	//for(long ix=0; ix<xLenFieldData_m_1; ix++)
+	for(long long ix=0; ix<xLenFieldData_m_1; ix++)
 	{
 		BzPlnCf[ix] = tAllCf; tAllCf += 4;
 		BtxPlnCf[ix] = tAllCf; tAllCf += 5;
 		xPlnCf[ix] = tAllCf; tAllCf += 6;
 		IntBtx2PlnCf[ix] = tAllCf; tAllCf += 6;
 	}
-	for(long iz=0; iz<zLenFieldData_m_1; iz++)
+	//for(long iz=0; iz<zLenFieldData_m_1; iz++)
+	for(long long iz=0; iz<zLenFieldData_m_1; iz++)
 	{
 		BxPlnCf[iz] = tAllCf; tAllCf += 4;
 		BtzPlnCf[iz] = tAllCf; tAllCf += 5;
@@ -183,12 +190,15 @@ int srTTrjDat::AllocateMemoryForCfs_FromTrj()
 
 //*************************************************************************
 
-int srTTrjDat::AllocateMemoryForCfsFromTrj(int npLoc)
+//int srTTrjDat::AllocateMemoryForCfsFromTrj(int npLoc)
+int srTTrjDat::AllocateMemoryForCfsFromTrj(long long npLoc)
 {
 	DeallocateMemoryForCfs();
 
-	int xLenFieldData_m_1 = npLoc - 1;
-	int zLenFieldData_m_1 = npLoc - 1;
+	//int xLenFieldData_m_1 = npLoc - 1;
+	//int zLenFieldData_m_1 = npLoc - 1;
+	long long xLenFieldData_m_1 = npLoc - 1;
+	long long zLenFieldData_m_1 = npLoc - 1;
 
 	BxPlnCf = new double*[zLenFieldData_m_1];
 	if(BxPlnCf == 0) return MEMORY_ALLOCATION_FAILURE;
@@ -218,14 +228,16 @@ int srTTrjDat::AllocateMemoryForCfsFromTrj(int npLoc)
 	if(AllCf == 0) { delete[] BxPlnCf; delete[] BzPlnCf; delete[] BtxPlnCf; delete[] BtzPlnCf; delete[] xPlnCf; delete[] zPlnCf; delete[] IntBtx2PlnCf; delete[] IntBtz2PlnCf; return MEMORY_ALLOCATION_FAILURE;}
 
 	double* tAllCf = AllCf;
-	for(long ix=0; ix<xLenFieldData_m_1; ix++)
+	//for(long ix=0; ix<xLenFieldData_m_1; ix++)
+	for(long long ix=0; ix<xLenFieldData_m_1; ix++)
 	{
 		BzPlnCf[ix] = tAllCf; tAllCf += 4;
 		BtxPlnCf[ix] = tAllCf; tAllCf += 5;
 		xPlnCf[ix] = tAllCf; tAllCf += 6;
 		IntBtx2PlnCf[ix] = tAllCf; tAllCf += 6;
 	}
-	for(long iz=0; iz<zLenFieldData_m_1; iz++)
+	//for(long iz=0; iz<zLenFieldData_m_1; iz++)
+	for(long long iz=0; iz<zLenFieldData_m_1; iz++)
 	{
 		BxPlnCf[iz] = tAllCf; tAllCf += 4;
 		BtzPlnCf[iz] = tAllCf; tAllCf += 5;
@@ -297,10 +309,13 @@ int srTTrjDat::CompDerivForFieldData(srTFunDer* InitialFieldData)
 	InitialFieldData[1].dfds = Derivative(SubArray, sStep, 1);
 	InitialFieldData[2].dfds = Derivative(SubArray, sStep, 2);
 
-	int LenFieldData_m_2 = LenFieldData - 2;
-	for(int i=3; i<LenFieldData_m_2; i++)
+	//int LenFieldData_m_2 = LenFieldData - 2;
+	long long LenFieldData_m_2 = LenFieldData - 2;
+	//for(int i=3; i<LenFieldData_m_2; i++)
+	for(long long i=3; i<LenFieldData_m_2; i++)
 	{
-		int i_m_2 = i - 2;
+		//int i_m_2 = i - 2;
+		long long i_m_2 = i - 2;
 		for(int k=0; k<5; k++) 
 		{
 			double& fR = InitialFieldData[i_m_2 + k].f;
@@ -319,14 +334,16 @@ int srTTrjDat::CompDerivForFieldData(srTFunDer* InitialFieldData)
 
 void srTTrjDat::SetupIntegrPlnCfs(char XorZ)
 {
-	int i, j;
+	//int i, j;
+	int j;
 	double *B_CfP, *Bt_CfP, *C_CfP, *IntBt2_CfP;
 	double BtPr = 0., C_Pr = 0., IntBt2Pr = 0.;
 
 	int angZeroCount = 0; //OC220112
 	double BtPrPr = 0.;
 
-	for(i=0; i<LenFieldData-1; i++)
+	//for(i=0; i<LenFieldData-1; i++)
+	for(long long i=0; i<LenFieldData-1; i++)
 	{
 		if(XorZ=='x') // Vertical field is responsible for horizontal dynamics
 		{
@@ -484,9 +501,11 @@ void srTTrjDat::CompTotalTrjData(srTFieldBasedArrayKeys& Keys, srTFieldBasedArra
 	double HalfStp = 0.5*sStp;
 
 	double BufCrd;
-	for(int i=0; i<FieldBasedArrays.Ns; i++)
+	//for(int i=0; i<FieldBasedArrays.Ns; i++)
+	for(long long i=0; i<FieldBasedArrays.Ns; i++)
 	{
-		int Indx = int((s - sStart)/sStep); if(Indx >= LenFieldData - 1) Indx = LenFieldData - 2;
+		//int Indx = int((s - sStart)/sStep); if(Indx >= LenFieldData - 1) Indx = LenFieldData - 2;
+		long long Indx = (long long)((s - sStart)/sStep); if(Indx >= LenFieldData - 1) Indx = LenFieldData - 2;
 		double sb = sStart + Indx*sStep;
 		double smsb = s - sb;
 		double s_mi_s0 = s - s0;
@@ -853,7 +872,8 @@ void srTTrjDat::CompTotalTrjData(srTFieldBasedArrayKeys& Keys, srTFieldBasedArra
 
 	if(Keys.CheckIfCalcCorrIntIsNecessary())
 	{
-		int IndS0;
+		//int IndS0;
+		long long IndS0;
 		double dS0;
 		double dIndS0 = (s0 - FieldBasedArrays.sStart)/sStp;
 		if(dIndS0 <= 0) { IndS0 = 0; dS0 = 0;}
@@ -889,7 +909,8 @@ void srTTrjDat::CompTotalTrjData(srTFieldBasedArrayKeys& Keys, srTFieldBasedArra
         pIntZ01 = FieldBasedArrays.IntZ01Arr; pIntZ02 = FieldBasedArrays.IntZ02Arr;
         pIntZ11 = FieldBasedArrays.IntZ11Arr; pIntZ12 = FieldBasedArrays.IntZ12Arr; pIntZ22 = FieldBasedArrays.IntZ22Arr;
 
-		for(int k=0; k<FieldBasedArrays.Ns; k++)
+		//for(int k=0; k<FieldBasedArrays.Ns; k++)
+		for(long long k=0; k<FieldBasedArrays.Ns; k++)
 		{
 			if(CorrIntX01_IsNecessary) *(pIntX01++) -= FieldBasedArrays.IntX01toS0;
 			if(CorrIntX02_IsNecessary) *(pIntX02++) -= FieldBasedArrays.IntX02toS0;
@@ -918,12 +939,15 @@ void srTTrjDat::CompTotalTrjData_FromTrj(srTFieldBasedArrayKeys& Keys, srTFieldB
 	double *pIntBtxE2 = FieldBasedArrays.IntBtxE2Arr, *pIntBtzE2 = FieldBasedArrays.IntBtzE2Arr;
 	double *pdBxds = FieldBasedArrays.dBxdsArr, *pdBzds = FieldBasedArrays.dBzdsArr;
 
-	int Indx;
+	//int Indx;
+	long long Indx;
 	double sr;
 	double *pB_Cf, *pBt_Cf, *pCrd_Cf, *pIntBtE2_Cf;
-	for(int i=0; i<FieldBasedArrays.Ns; i++)
+	//for(int i=0; i<FieldBasedArrays.Ns; i++)
+	for(long long i=0; i<FieldBasedArrays.Ns; i++)
 	{
-		Indx = int((s - xTrjInData.Start)/xTrjInData.Step);
+		//Indx = int((s - xTrjInData.Start)/xTrjInData.Step);
+		Indx = (long long)((s - xTrjInData.Start)/xTrjInData.Step);
 		if(Indx >= xTrjInData.np - 1) Indx = xTrjInData.np - 2;
 		if(Indx < 0) Indx = 0;
 		sr = s - (xTrjInData.Start + xTrjInData.Step*Indx);
@@ -939,7 +963,8 @@ void srTTrjDat::CompTotalTrjData_FromTrj(srTFieldBasedArrayKeys& Keys, srTFieldB
 		if(Keys.X_) *(pX++) = *pCrd_Cf + sr*(*(pCrd_Cf+1) + sr*(*(pCrd_Cf+2) + sr*(*(pCrd_Cf+3) + sr*(*(pCrd_Cf+4) + sr*(*(pCrd_Cf+5))))));
 		if(Keys.IntBtxE2_) *(pIntBtxE2++) = *pIntBtE2_Cf + sr*(*(pIntBtE2_Cf+1) + sr*(*(pIntBtE2_Cf+2) + sr*(*(pIntBtE2_Cf+3) + sr*(*(pIntBtE2_Cf+4) + sr*(*(pIntBtE2_Cf+5))))));
 
-		Indx = int((s - zTrjInData.Start)/zTrjInData.Step);
+		//Indx = int((s - zTrjInData.Start)/zTrjInData.Step);
+		Indx = (long long)((s - zTrjInData.Start)/zTrjInData.Step);
 		if(Indx >= zTrjInData.np - 1) Indx = zTrjInData.np - 2;
 		if(Indx < 0) Indx = 0;
 		sr = s - (zTrjInData.Start + zTrjInData.Step*Indx);
@@ -961,7 +986,8 @@ void srTTrjDat::CompTotalTrjData_FromTrj(srTFieldBasedArrayKeys& Keys, srTFieldB
 
 //*************************************************************************
 
-void srTTrjDat::CompTotalTrjData(double sSt, double sEn, long Np, double* pBtx, double* pBtz, double* pX, double* pZ, double* pBx, double* pBz)
+//void srTTrjDat::CompTotalTrjData(double sSt, double sEn, long Np, double* pBtx, double* pBtz, double* pX, double* pZ, double* pBx, double* pBz)
+void srTTrjDat::CompTotalTrjData(double sSt, double sEn, long long Np, double* pBtx, double* pBtz, double* pX, double* pZ, double* pBx, double* pBz)
 {// Attention: length units are m at the input/output here !
 	if(CompFromTrj) { CompTotalTrjData_FromTrj(sSt, sEn, Np, pBtx, pBtz, pX, pZ, pBx, pBz); return;}
 	
@@ -971,9 +997,11 @@ void srTTrjDat::CompTotalTrjData(double sSt, double sEn, long Np, double* pBtx, 
 	//double dzds0E2 = dzds0*dzds0;
 	double s = sSt, sStp = (Np>1)? (sEn - sSt)/(Np - 1) : 0.;
 
-	for(long i=0; i<Np; i++)
+	//for(long i=0; i<Np; i++)
+	for(long long i=0; i<Np; i++)
 	{
-		int Indx = int((s - sStart)/sStep); if(Indx >= LenFieldData - 1) Indx = LenFieldData - 2;
+		//int Indx = int((s - sStart)/sStep); if(Indx >= LenFieldData - 1) Indx = LenFieldData - 2;
+		long long Indx = (long long)((s - sStart)/sStep); if(Indx >= LenFieldData - 1) Indx = LenFieldData - 2;
 		double sb = sStart + Indx*sStep;
 		double smsb = s - sb;
 
@@ -1016,15 +1044,19 @@ void srTTrjDat::CompTotalTrjData(double sSt, double sEn, long Np, double* pBtx, 
 
 //*************************************************************************
 
-void srTTrjDat::CompTotalTrjData_FromTrj(double sSt, double sEn, long Np, double* pBtx, double* pBtz, double* pX, double* pZ, double* pBx, double* pBz)
+//void srTTrjDat::CompTotalTrjData_FromTrj(double sSt, double sEn, long Np, double* pBtx, double* pBtz, double* pX, double* pZ, double* pBx, double* pBz)
+void srTTrjDat::CompTotalTrjData_FromTrj(double sSt, double sEn, long long Np, double* pBtx, double* pBtz, double* pX, double* pZ, double* pBx, double* pBz)
 {
 	double s = sSt, sStp = (Np>1)? (sEn - sSt)/(Np - 1) : 0.;
-	int Indx;
+	//int Indx;
+	long long Indx;
 	double sr;
 	double *pB_Cf, *pBt_Cf, *pCrd_Cf;
-	for(long i=0; i<Np; i++)
+	//for(long i=0; i<Np; i++)
+	for(long long i=0; i<Np; i++)
 	{
-		Indx = int((s - xTrjInData.Start)/xTrjInData.Step);
+		//Indx = int((s - xTrjInData.Start)/xTrjInData.Step);
+		Indx = (long long)((s - xTrjInData.Start)/xTrjInData.Step);
 		if(Indx >= xTrjInData.np - 1) Indx = xTrjInData.np - 2;
 		if(Indx < 0) Indx = 0;
 		sr = s - (xTrjInData.Start + xTrjInData.Step*Indx);
@@ -1038,7 +1070,8 @@ void srTTrjDat::CompTotalTrjData_FromTrj(double sSt, double sEn, long Np, double
 		*(pBtx++) = *pBt_Cf + sr*(*(pBt_Cf+1) + sr*(*(pBt_Cf+2) + sr*(*(pBt_Cf+3) + sr*(*(pBt_Cf+4)))));
 		*(pBz++) = *pB_Cf + sr*(*(pB_Cf+1) + sr*(*(pB_Cf+2) + sr*(*(pB_Cf+3))));
 
-		Indx = int((s - zTrjInData.Start)/zTrjInData.Step);
+		//Indx = int((s - zTrjInData.Start)/zTrjInData.Step);
+		Indx = (long long)((s - zTrjInData.Start)/zTrjInData.Step);
 		if(Indx >= zTrjInData.np - 1) Indx = zTrjInData.np - 2;
 		if(Indx < 0) Indx = 0;
 		sr = s - (zTrjInData.Start + zTrjInData.Step*Indx);
@@ -1058,7 +1091,8 @@ void srTTrjDat::CompTotalTrjData_FromTrj(double sSt, double sEn, long Np, double
 
 //*************************************************************************
 
-void srTTrjDat::CompTotalTrjData(double sSt, double sEn, long Np, double* pBtx, double* pBtz, double* pX, double* pZ, double* pIntBtxE2, double* pIntBtzE2, double* pBx, double* pBz)
+//void srTTrjDat::CompTotalTrjData(double sSt, double sEn, long Np, double* pBtx, double* pBtz, double* pX, double* pZ, double* pIntBtxE2, double* pIntBtzE2, double* pBx, double* pBz)
+void srTTrjDat::CompTotalTrjData(double sSt, double sEn, long long Np, double* pBtx, double* pBtz, double* pX, double* pZ, double* pIntBtxE2, double* pIntBtzE2, double* pBx, double* pBz)
 {
 	if(CompFromTrj) { CompTotalTrjData_FromTrj(sSt, sEn, Np, pBtx, pBtz, pX, pZ, pIntBtxE2, pIntBtzE2, pBx, pBz); return;}
 
@@ -1066,9 +1100,11 @@ void srTTrjDat::CompTotalTrjData(double sSt, double sEn, long Np, double* pBtx, 
 	double dxds0E2 = dxds0*dxds0, dzds0E2 = dzds0*dzds0;
 
 	double s = sSt, sStp = (Np>1)? (sEn - sSt)/(Np - 1) : 0.;
-	for(long i=0; i<Np; i++)
+	//for(long i=0; i<Np; i++)
+	for(long long i=0; i<Np; i++)
 	{
-		int Indx = int((s - sStart)/sStep); if(Indx >= LenFieldData - 1) Indx = LenFieldData - 2;
+		//int Indx = int((s - sStart)/sStep); if(Indx >= LenFieldData - 1) Indx = LenFieldData - 2;
+		long long Indx = (long long)((s - sStart)/sStep); if(Indx >= LenFieldData - 1) Indx = LenFieldData - 2;
 		double sb = sStart + Indx*sStep;
 		double smsb = s - sb;
 
@@ -1111,20 +1147,24 @@ void srTTrjDat::CompTotalTrjData(double sSt, double sEn, long Np, double* pBtx, 
 
 //*************************************************************************
 
-void srTTrjDat::CompTotalTrjData_FromTrj(double sSt, double sEn, long Np, double* pBtx, double* pBtz, double* pX, double* pZ, double* pIntBtxE2, double* pIntBtzE2, double* pBx, double* pBz)
+//void srTTrjDat::CompTotalTrjData_FromTrj(double sSt, double sEn, long Np, double* pBtx, double* pBtz, double* pX, double* pZ, double* pIntBtxE2, double* pIntBtzE2, double* pBx, double* pBz)
+void srTTrjDat::CompTotalTrjData_FromTrj(double sSt, double sEn, long long Np, double* pBtx, double* pBtz, double* pX, double* pZ, double* pIntBtxE2, double* pIntBtzE2, double* pBx, double* pBz)
 {
 	double &dxds0 = EbmDat.dxds0, &x0 = EbmDat.x0, &dzds0 = EbmDat.dzds0, &z0 = EbmDat.z0, &s0 = EbmDat.s0;
 	double dxds0E2 = dxds0*dxds0, dzds0E2 = dzds0*dzds0;
 
 	double s = sSt, sStp = (Np>1)? (sEn - sSt)/(Np - 1) : 0.;
-	int Indx;
+	//int Indx;
+	long long Indx;
 	double sr;
 	double *pB_Cf, *pBt_Cf, *pCrd_Cf, *pIntBtE2_Cf;
-	for(long i=0; i<Np; i++)
+	//for(long i=0; i<Np; i++)
+	for(long long i=0; i<Np; i++)
 	{
 		if(VerFieldIsNotZero)
 		{
-			Indx = int((s - xTrjInData.Start)/xTrjInData.Step);
+			//Indx = int((s - xTrjInData.Start)/xTrjInData.Step);
+			Indx = (long long)((s - xTrjInData.Start)/xTrjInData.Step);
 			if(Indx >= xTrjInData.np - 1) Indx = xTrjInData.np - 2;
 			if(Indx < 0) Indx = 0;
 			sr = s - (xTrjInData.Start + xTrjInData.Step*Indx);
@@ -1147,7 +1187,8 @@ void srTTrjDat::CompTotalTrjData_FromTrj(double sSt, double sEn, long Np, double
 		}
 		if(HorFieldIsNotZero)
 		{
-			Indx = int((s - zTrjInData.Start)/zTrjInData.Step);
+			//Indx = int((s - zTrjInData.Start)/zTrjInData.Step);
+			Indx = (long long)((s - zTrjInData.Start)/zTrjInData.Step);
 			if(Indx >= zTrjInData.np - 1) Indx = zTrjInData.np - 2;
 			if(Indx < 0) Indx = 0;
 			sr = s - (zTrjInData.Start + zTrjInData.Step*Indx);
@@ -1174,7 +1215,8 @@ void srTTrjDat::CompTotalTrjData_FromTrj(double sSt, double sEn, long Np, double
 
 //*************************************************************************
 
-void srTTrjDat::CompTotalTrjData(double sSt, double sEn, long Np, double* pBtx, double* pBtz, double* pX, double* pZ, double* pIntBtxE2, double* pIntBtzE2, double* pBx, double* pBz, double* pdBxds, double* pdBzds)
+//void srTTrjDat::CompTotalTrjData(double sSt, double sEn, long Np, double* pBtx, double* pBtz, double* pX, double* pZ, double* pIntBtxE2, double* pIntBtzE2, double* pBx, double* pBz, double* pdBxds, double* pdBzds)
+void srTTrjDat::CompTotalTrjData(double sSt, double sEn, long long Np, double* pBtx, double* pBtz, double* pX, double* pZ, double* pIntBtxE2, double* pIntBtzE2, double* pBx, double* pBz, double* pdBxds, double* pdBzds)
 {
 	if(CompFromTrj) { CompTotalTrjData_FromTrj(sSt, sEn, Np, pBtx, pBtz, pX, pZ, pIntBtxE2, pIntBtzE2, pBx, pBz, pdBxds, pdBzds); return;}
 
@@ -1184,9 +1226,11 @@ void srTTrjDat::CompTotalTrjData(double sSt, double sEn, long Np, double* pBtx, 
 	double dzds0E2 = dzds0*dzds0;
 
 	double s = sSt, sStp = (Np > 1)? (sEn - sSt)/(Np - 1) : 0.;
-	for(long i=0; i<Np; i++)
+	//for(long i=0; i<Np; i++)
+	for(long long i=0; i<Np; i++)
 	{
-		int Indx = int((s - sStart)/sStep); if(Indx >= LenFieldData - 1) Indx = LenFieldData - 2;
+		//int Indx = int((s - sStart)/sStep); if(Indx >= LenFieldData - 1) Indx = LenFieldData - 2;
+		long long Indx = (long long)((s - sStart)/sStep); if(Indx >= LenFieldData - 1) Indx = LenFieldData - 2;
 		double sb = sStart + Indx*sStep;
 		double smsb = s - sb;
 
@@ -1232,15 +1276,19 @@ void srTTrjDat::CompTotalTrjData(double sSt, double sEn, long Np, double* pBtx, 
 
 //*************************************************************************
 
-void srTTrjDat::CompTotalTrjData_FromTrj(double sSt, double sEn, long Np, double* pBtx, double* pBtz, double* pX, double* pZ, double* pIntBtxE2, double* pIntBtzE2, double* pBx, double* pBz, double* pdBxds, double* pdBzds)
+//void srTTrjDat::CompTotalTrjData_FromTrj(double sSt, double sEn, long Np, double* pBtx, double* pBtz, double* pX, double* pZ, double* pIntBtxE2, double* pIntBtzE2, double* pBx, double* pBz, double* pdBxds, double* pdBzds)
+void srTTrjDat::CompTotalTrjData_FromTrj(double sSt, double sEn, long long Np, double* pBtx, double* pBtz, double* pX, double* pZ, double* pIntBtxE2, double* pIntBtzE2, double* pBx, double* pBz, double* pdBxds, double* pdBzds)
 {
 	double s = sSt, sStp = (Np>1)? (sEn - sSt)/(Np - 1) : 0.;
-	int Indx;
+	//int Indx;
+	long long Indx;
 	double sr;
 	double *pB_Cf, *pBt_Cf, *pCrd_Cf, *pIntBtE2_Cf;
-	for(long i=0; i<Np; i++)
+	//for(long i=0; i<Np; i++)
+	for(long long i=0; i<Np; i++)
 	{
-		Indx = int((s - xTrjInData.Start)/xTrjInData.Step);
+		//Indx = int((s - xTrjInData.Start)/xTrjInData.Step);
+		Indx = (long long)((s - xTrjInData.Start)/xTrjInData.Step);
 		if(Indx >= xTrjInData.np - 1) Indx = xTrjInData.np - 2;
 		if(Indx < 0) Indx = 0;
 		sr = s - (xTrjInData.Start + xTrjInData.Step*Indx);
@@ -1256,7 +1304,8 @@ void srTTrjDat::CompTotalTrjData_FromTrj(double sSt, double sEn, long Np, double
 		*(pBz++) = *pB_Cf + sr*(*(pB_Cf+1) + sr*(*(pB_Cf+2) + sr*(*(pB_Cf+3))));
 		*(pdBzds++) = *(pB_Cf+1) + sr*(*(pB_Cf+2)*2 + sr*(*(pB_Cf+3)*3));
 
-		Indx = int((s - zTrjInData.Start)/zTrjInData.Step);
+		//Indx = int((s - zTrjInData.Start)/zTrjInData.Step);
+		Indx = (long long)((s - zTrjInData.Start)/zTrjInData.Step);
 		if(Indx >= zTrjInData.np - 1) Indx = zTrjInData.np - 2;
 		if(Indx < 0) Indx = 0;
 		sr = s - (zTrjInData.Start + zTrjInData.Step*Indx);
@@ -1278,16 +1327,19 @@ void srTTrjDat::CompTotalTrjData_FromTrj(double sSt, double sEn, long Np, double
 
 //*************************************************************************
 
-void srTTrjDat::CompTotalTrjDataTrjDisp(double sSt, double sEn, long Np, double* pBtx, double* pBtz, double* pX, double* pZ, char DistUn)
+//void srTTrjDat::CompTotalTrjDataTrjDisp(double sSt, double sEn, long Np, double* pBtx, double* pBtz, double* pX, double* pZ, char DistUn)
+void srTTrjDat::CompTotalTrjDataTrjDisp(double sSt, double sEn, long long Np, double* pBtx, double* pBtz, double* pX, double* pZ, char DistUn)
 {
 	if(CompFromTrj) { CompTotalTrjDataTrjDisp_FromTrj(sSt, sEn, Np, pBtx, pBtz, pX, pZ, DistUn); return;}
 
 	double &dxds0 = EbmDat.dxds0, &x0 = EbmDat.x0, &dzds0 = EbmDat.dzds0, &z0 = EbmDat.z0, &s0 = EbmDat.s0;
 
 	double s = sSt, sStp = (Np>1)? (sEn - sSt)/(Np - 1) : 0.;
-	for(long i=0; i<Np; i++)
+	//for(long i=0; i<Np; i++)
+	for(long long i=0; i<Np; i++)
 	{
-		int Indx = int((s - sStart)/sStep); if(Indx >= LenFieldData - 1) Indx = LenFieldData - 2;
+		//int Indx = int((s - sStart)/sStep); if(Indx >= LenFieldData - 1) Indx = LenFieldData - 2;
+		long long Indx = (long long)((s - sStart)/sStep); if(Indx >= LenFieldData - 1) Indx = LenFieldData - 2;
 		double sb = sStart + Indx*sStep;
 		double smsb = s - sb;
 
@@ -1326,15 +1378,19 @@ void srTTrjDat::CompTotalTrjDataTrjDisp(double sSt, double sEn, long Np, double*
 
 //*************************************************************************
 
-void srTTrjDat::CompTotalTrjDataTrjDisp_FromTrj(double sSt, double sEn, long Np, double* pBtx, double* pBtz, double* pX, double* pZ, char DistUn)
+//void srTTrjDat::CompTotalTrjDataTrjDisp_FromTrj(double sSt, double sEn, long Np, double* pBtx, double* pBtz, double* pX, double* pZ, char DistUn)
+void srTTrjDat::CompTotalTrjDataTrjDisp_FromTrj(double sSt, double sEn, long long Np, double* pBtx, double* pBtz, double* pX, double* pZ, char DistUn)
 {
 	double s = sSt, sStp = (Np>1)? (sEn - sSt)/(Np - 1) : 0.;
-	int Indx;
+	//int Indx;
+	long long Indx;
 	double sr;
 	double *pBt_Cf, *pCrd_Cf;
-	for(long i=0; i<Np; i++)
+	//for(long i=0; i<Np; i++)
+	for(long long i=0; i<Np; i++)
 	{
-		Indx = int((s - xTrjInData.Start)/xTrjInData.Step);
+		//Indx = int((s - xTrjInData.Start)/xTrjInData.Step);
+		Indx = (long long)((s - xTrjInData.Start)/xTrjInData.Step);
 		if(Indx >= xTrjInData.np - 1) Indx = xTrjInData.np - 2;
 		if(Indx < 0) Indx = 0;
 		sr = s - (xTrjInData.Start + xTrjInData.Step*Indx);
@@ -1347,7 +1403,8 @@ void srTTrjDat::CompTotalTrjDataTrjDisp_FromTrj(double sSt, double sEn, long Np,
 		*(pX++) = *pCrd_Cf + sr*(*(pCrd_Cf+1) + sr*(*(pCrd_Cf+2) + sr*(*(pCrd_Cf+3) + sr*(*(pCrd_Cf+4) + sr*(*(pCrd_Cf+5))))));
 		*(pBtx++) = *pBt_Cf + sr*(*(pBt_Cf+1) + sr*(*(pBt_Cf+2) + sr*(*(pBt_Cf+3) + sr*(*(pBt_Cf+4)))));
 
-		Indx = int((s - zTrjInData.Start)/zTrjInData.Step);
+		//Indx = int((s - zTrjInData.Start)/zTrjInData.Step);
+		Indx = (long long)((s - zTrjInData.Start)/zTrjInData.Step);
 		if(Indx >= zTrjInData.np - 1) Indx = zTrjInData.np - 2;
 		if(Indx < 0) Indx = 0;
 		sr = s - (zTrjInData.Start + zTrjInData.Step*Indx);
@@ -1366,7 +1423,8 @@ void srTTrjDat::CompTotalTrjDataTrjDisp_FromTrj(double sSt, double sEn, long Np,
 
 //*************************************************************************
 
-void srTTrjDat::CompTrjDataForDisp(double* pOutBtxData, double* pOutXData, double* pOutBtyData, double* pOutYData, double* pOutBtzData, double* pOutZData, int ns, double sStart, double sStep)
+//void srTTrjDat::CompTrjDataForDisp(double* pOutBtxData, double* pOutXData, double* pOutBtyData, double* pOutYData, double* pOutBtzData, double* pOutZData, int ns, double sStart, double sStep)
+void srTTrjDat::CompTrjDataForDisp(double* pOutBtxData, double* pOutXData, double* pOutBtyData, double* pOutYData, double* pOutBtzData, double* pOutZData, long long ns, double sStart, double sStep)
 {
 	if((pOutBtxData == 0) && (pOutXData == 0) && (pOutBtzData == 0) && (pOutZData == 0)) return;
 
@@ -1383,7 +1441,8 @@ void srTTrjDat::CompTrjDataForDisp(double* pOutBtxData, double* pOutXData, doubl
 
 //*************************************************************************
 
-int srTTrjDat::SetupLimitsByAnalizingField(char LongIntType, double& sStartFld, double& sStepFld, long& Ns, int& OutNperTot, int& OutNperLeft)
+//int srTTrjDat::SetupLimitsByAnalizingField(char LongIntType, double& sStartFld, double& sStepFld, long& Ns, int& OutNperTot, int& OutNperLeft)
+int srTTrjDat::SetupLimitsByAnalizingField(char LongIntType, double& sStartFld, double& sStepFld, long long& Ns, long long& OutNperTot, long long& OutNperLeft)
 {
 	const double RelTolForField = 1.E-07; // To steer
 	const double MinStepSteerCoef = 0.5; // To steer
@@ -1400,7 +1459,8 @@ int srTTrjDat::SetupLimitsByAnalizingField(char LongIntType, double& sStartFld, 
 	double Rmin = 3.3*EbmDat.Energy/AbsMax;
 	double dsMin = MinStepSteerCoef*Rmin/EbmDat.Gamma;
 	double sRange = sFinLoc - sStartLoc;
-	Ns = long(sRange/dsMin);
+	//Ns = long(sRange/dsMin);
+	Ns = (long long)(sRange/dsMin);
 	if(Ns < NsMin) Ns = NsMin;
 	if(((Ns >> 1) << 1) == Ns) Ns++; // Ensure odd
 
@@ -1438,7 +1498,8 @@ void srTTrjDat::CountFieldExtrem(int& AmOfExtrem, double& AbsMax)
 		tBzInData++;
 	}
 
-	for(long i=1; i<LenFieldData; i++)
+	//for(long i=1; i<LenFieldData; i++)
+	for(long long i=1; i<LenFieldData; i++)
 	{
 		if(HorFieldIsNotZero) 
 		{
@@ -1466,12 +1527,15 @@ void srTTrjDat::CountFieldExtrem(int& AmOfExtrem, double& AbsMax)
 
 void srTTrjDat::FindFieldLimitsBasedOnTolValue(double AbsTolForField, double& sStartLoc, double& sFinLoc)
 {
-	long LenFieldData_mi_1 = LenFieldData - 1;
+	//long LenFieldData_mi_1 = LenFieldData - 1;
+	long long LenFieldData_mi_1 = LenFieldData - 1;
 	srTFunDer *tBxInData = BxInData, *trBxInData = BxInData + LenFieldData_mi_1;
 	srTFunDer *tBzInData = BzInData, *trBzInData = BzInData + LenFieldData_mi_1;
 
-	long iSt = -1, iFi = -1;
-	for(long i=0; i<LenFieldData; i++)
+	//long iSt = -1, iFi = -1;
+	long long iSt = -1, iFi = -1;
+	//for(long i=0; i<LenFieldData; i++)
+	for(long long i=0; i<LenFieldData; i++)
 	{
 		if(HorFieldIsNotZero) 
 		{
@@ -1545,7 +1609,8 @@ int srTTrjDat::CheckAndSetupTrajectoryLimits()
 
 		sEnd = (zTrjEnd <= xTrjEnd)? zTrjEnd : xTrjEnd;
 	}
-	LenFieldData = long((sEnd - sStart)/sStep + 1.e-04) + 1;
+	//LenFieldData = long((sEnd - sStart)/sStep + 1.e-04) + 1;
+	LenFieldData = (long long)((sEnd - sStart)/sStep + 1.e-04) + 1;
 	Inv_Step = 1./sStep;
 
 	return 0;
@@ -1591,7 +1656,8 @@ int srTTrjDat::ComputeOneQuadPhaseTermFromTrj(char x_or_z)
 	double CurVal = 0.;
 	double sMid = TrjInData.Start + sStepSmall;
 	double sLast = TrjInData.Start + TrjInData.Step;
-	for(long i=1; i<TrjInData.np; i++)
+	//for(long i=1; i<TrjInData.np; i++)
+	for(long long i=1; i<TrjInData.np; i++)
 	{
 		TrjCoordAngField(sMid, x_or_z, Crd, Ang, B);
 		f1 = Ang*Ang;
@@ -1608,7 +1674,8 @@ int srTTrjDat::ComputeOneQuadPhaseTermFromTrj(char x_or_z)
 	CompTrjDataAndFieldWithDerAtPoint_FromTrjInitial(x_or_z, EbmDat.s0, dBdsDummy, BDummy, BtDummy, CrdDummy, IntBtE2);
 	double AddCorr = -IntBtE2;
 	tIntBtE2Arr = pIntBtE2Arr;
-	for(long j=0; j<TrjInData.np; j++) 
+	//for(long j=0; j<TrjInData.np; j++) 
+	for(long long j=0; j<TrjInData.np; j++) 
 	{
 		*tIntBtE2Arr += AddCorr;
 		tIntBtE2Arr++;
@@ -1624,12 +1691,15 @@ int srTTrjDat::ComputeQuadPhaseTermsFromTrj(const SRWLPrtTrj& trj)
 	bool yIsDefined = (trj.arYp != 0) && (trj.np > 0);
 	if(!(xIsDefined || yIsDefined)) return SRWL_INCORRECT_PARAM_FOR_SR_COMP;
 
-	long startInd = 0;
+	//long startInd = 0;
+	long long startInd = 0;
 	double sRel = 0;
 	FindOffestAndRelArgFromTrj(EbmDat.s0, trj, startInd, sRel);
 
-	int np_mi_1 = trj.np - 1;
-	int np_mi_2 = np_mi_1 - 1;
+	//int np_mi_1 = trj.np - 1;
+	//int np_mi_2 = np_mi_1 - 1;
+	long long np_mi_1 = trj.np - 1;
+	long long np_mi_2 = np_mi_1 - 1;
 	double sStep = (np_mi_1 > 0)? (trj.ctEnd - trj.ctStart)/np_mi_1 : 0;
 	double sStepSmall = 0.5*sStep;
 	double stepMult = 0.333333333333*sStepSmall;
@@ -1645,7 +1715,8 @@ int srTTrjDat::ComputeQuadPhaseTermsFromTrj(const SRWLPrtTrj& trj)
 		double *t = p + 1;
 		int iMidCase = -1;
 		f0 = 0.; curVal = 0.;
-		for(long i=1; i<=np_mi_1; i++)
+		//for(long i=1; i<=np_mi_1; i++)
+		for(long long i=1; i<=np_mi_1; i++)
 		{
 			ang = CGenMathInterp::InterpCubHalfStep(p, iMidCase);
 			f1 = ang*ang;
@@ -1661,7 +1732,8 @@ int srTTrjDat::ComputeQuadPhaseTermsFromTrj(const SRWLPrtTrj& trj)
 
 		InterpFuncAndDerivs(sStep, sRel, IntBtxE2Arr + startInd, IntBtE2, dummyDer1, dummyDer2, dummyDer3);
 		tIntBtE2 = IntBtxE2Arr;
-		for(int j=0; j<=np_mi_1; j++) *(tIntBtE2++) -= IntBtE2;
+		//for(int j=0; j<=np_mi_1; j++) *(tIntBtE2++) -= IntBtE2;
+		for(long long j=0; j<=np_mi_1; j++) *(tIntBtE2++) -= IntBtE2;
 	}
 	if(yIsDefined)
 	{
@@ -1671,7 +1743,8 @@ int srTTrjDat::ComputeQuadPhaseTermsFromTrj(const SRWLPrtTrj& trj)
 		double *t = p + 1;
 		int iMidCase = -1;
 		f0 = 0.; curVal = 0.;
-		for(long i=1; i<=np_mi_1; i++)
+		//for(long i=1; i<=np_mi_1; i++)
+		for(long long i=1; i<=np_mi_1; i++)
 		{
 			ang = CGenMathInterp::InterpCubHalfStep(p, iMidCase);
 			f1 = ang*ang;
@@ -1687,7 +1760,8 @@ int srTTrjDat::ComputeQuadPhaseTermsFromTrj(const SRWLPrtTrj& trj)
 
 		InterpFuncAndDerivs(sStep, sRel, IntBtzE2Arr + startInd, IntBtE2, dummyDer1, dummyDer2, dummyDer3);
 		tIntBtE2 = IntBtzE2Arr;
-		for(int j=0; j<=np_mi_1; j++) *(tIntBtE2++) -= IntBtE2;
+		//for(int j=0; j<=np_mi_1; j++) *(tIntBtE2++) -= IntBtE2;
+		for(long long j=0; j<=np_mi_1; j++) *(tIntBtE2++) -= IntBtE2;
 	}
 	return 0;
 }
@@ -1707,7 +1781,8 @@ int srTTrjDat::ComputeInterpolatingStructure_FromTrj1D(char x_or_z)
 	double *tAuxCrd = TrjInData.pData, varCrd = (*(TrjInData.pData + 1)) - (*(TrjInData.pData));
 
 	double *pB_Cf, *pBt_Cf, *pCrd_Cf, *pIntBtE2_Cf;
-	for(long i=0; i<(TrjInData.np - 1); i++) 
+	//for(long i=0; i<(TrjInData.np - 1); i++) 
+	for(long long i=0; i<(TrjInData.np - 1); i++) 
 	{
 		if(x_or_z == 'x')
 		{
@@ -1718,7 +1793,8 @@ int srTTrjDat::ComputeInterpolatingStructure_FromTrj1D(char x_or_z)
 			pB_Cf = *(BxPlnCf+i); pBt_Cf = *(BtzPlnCf+i); pCrd_Cf = *(zPlnCf+i); pIntBtE2_Cf = *(IntBtz2PlnCf+i);
 		}
 		
-		long Offset;
+		//long Offset;
+		long long Offset;
 		if(i < 2) Offset = 0;
 		else if(i < TrjInData.np - 3) Offset = i - 2;
 		else if(i < TrjInData.np - 2) Offset = i - 3;
@@ -1764,7 +1840,8 @@ int srTTrjDat::ComputeInterpolatingStructureFromTrj1D(char x_or_z, const SRWLPrt
 	double *tAuxCrd = pCrd, varCrd = (*(pCrd + 1)) - (*pCrd);
 
 	double *pB_Cf, *pBt_Cf, *pCrd_Cf, *pIntBtE2_Cf;
-	for(long i=0; i<(trj.np - 1); i++) 
+	//for(long i=0; i<(trj.np - 1); i++) 
+	for(long long i=0; i<(trj.np - 1); i++) 
 	{
 		if(x_or_z == 'x')
 		{
@@ -1775,7 +1852,8 @@ int srTTrjDat::ComputeInterpolatingStructureFromTrj1D(char x_or_z, const SRWLPrt
 			pB_Cf = *(BxPlnCf+i); pBt_Cf = *(BtzPlnCf+i); pCrd_Cf = *(zPlnCf+i); pIntBtE2_Cf = *(IntBtz2PlnCf+i);
 		}
 
-		long Offset;
+		//long Offset;
+		long long Offset;
 		if(i < 2) Offset = 0;
 		else if(i < trj.np - 3) Offset = i - 2;
 		else if(i < trj.np - 2) Offset = i - 3;
@@ -1814,7 +1892,8 @@ int srTTrjDat::FieldComponIsZero_FromTrj(char x_or_z)
 	srTWaveAccessDataD1D &TrjInData = (x_or_z == 'x')? xTrjInData : zTrjInData;
 	if(TrjInData.pData == 0) return TRJ_CMPN_WERE_NOT_SETUP;
 
-	long iBuf = TrjInData.np - 2;
+	//long iBuf = TrjInData.np - 2;
+	long long iBuf = TrjInData.np - 2;
 	double f1 = *(TrjInData.pData + 1), f2 = *(TrjInData.pData + iBuf);
 	double s1 = TrjInData.Start + TrjInData.Step, s2 = TrjInData.Start + TrjInData.Step*iBuf;
 	double Inv_ds = 1./(s1 - s2);
@@ -1823,7 +1902,8 @@ int srTTrjDat::FieldComponIsZero_FromTrj(char x_or_z)
 	char FieldIsNotZero = 0;
 	DOUBLE *tData = TrjInData.pData;
 	double s = TrjInData.Start;
-	for(long i=0; i<TrjInData.np; i++)
+	//for(long i=0; i<TrjInData.np; i++)
+	for(long long i=0; i<TrjInData.np; i++)
 	{
 		double fPredict = s*a + b;
 		if(::fabs(fPredict - *tData) > AbsTrjZeroTol) { FieldIsNotZero = 1; break;}
@@ -1840,9 +1920,11 @@ void srTTrjDat::CountFieldExtremums()
 {// Fills long AmOfMaxInBx, AmOfMaxInBz; //Auxiliary information on magn. field
 	if(HorFieldIsNotZero)
 	{
-		long ExtremCount = 0;
+		//long ExtremCount = 0;
+		long long ExtremCount = 0;
 		srTFunDer* tBxInData = BxInData + 1;
-		for(int i=1; i<LenFieldData; i++)
+		//for(int i=1; i<LenFieldData; i++)
+		for(long long i=1; i<LenFieldData; i++)
 		{
 			if(((tBxInData-1)->dfds)*(tBxInData->dfds) < 0) ExtremCount++;
 			tBxInData++;
@@ -1852,9 +1934,11 @@ void srTTrjDat::CountFieldExtremums()
 	else AmOfExtremInBx = 0;
 	if(VerFieldIsNotZero)
 	{
-		long ExtremCount = 0;
+		//long ExtremCount = 0;
+		long long ExtremCount = 0;
 		srTFunDer* tBzInData = BzInData + 1;
-		for(int i=1; i<LenFieldData; i++)
+		//for(int i=1; i<LenFieldData; i++)
+		for(long long i=1; i<LenFieldData; i++)
 		{
 			if(((tBzInData-1)->dfds)*(tBzInData->dfds) < 0) ExtremCount++;
 			tBzInData++;
@@ -1923,7 +2007,8 @@ void srTTrjDat::CheckFromTrjIfFieldCompAreZero(SRWLPrtTrj& trj, short& horFieldI
 	horFieldIsNotZero = 0; verFieldIsNotZero = 0;
 
 	double *t_arX = trj.arX, *t_arXp = trj.arXp, *t_arY = trj.arY, *t_arYp = trj.arYp;
-	for(int i=0; i<trj.np; i++)
+	//for(int i=0; i<trj.np; i++)
+	for(long long i=0; i<trj.np; i++)
 	{
 		//if((*(t_arX++) != 0.) || (*(t_arXp++) != 0.)) horFieldIsNotZero = 1;
 		//if((*(t_arY++) != 0.) || (*(t_arYp++) != 0.)) verFieldIsNotZero = 1;

@@ -127,7 +127,8 @@ int srTZonePlateSpec::ComputeOptPath(srTSRWRadStructAccessData& Rad, char TreatE
 
 	double BufR = 0.5/(::fabs(yDist));
 
-	long xPer = Rad.ne << 1;
+	//long xPer = Rad.ne << 1;
+	long long xPer = Rad.ne << 1;
 	double zz = Rad.zStart;
 	for(long iz=0; iz<Rad.nz; iz++)
 	{

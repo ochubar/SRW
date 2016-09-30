@@ -33,14 +33,16 @@ class srTCompProgressIndicator {
 #endif
 
 	char ProgressIndicatorIsUsed, CallsAreCountedInside;
-	long TotalAmOfOutPoints, PrevAmOfPoints, PrevAmOfPointsShown, CallsCount;
+	//long TotalAmOfOutPoints, PrevAmOfPoints, PrevAmOfPointsShown, CallsCount;
+	long long TotalAmOfOutPoints, PrevAmOfPoints, PrevAmOfPointsShown, CallsCount;
 	clock_t UpdateTimeInt, PrevUpdateClock, StartCompClock;
 
 public:
 
 	char ErrorCode;
 
-	srTCompProgressIndicator(long InTotalAmOfOutPoints, double UpdateTimeInt_s, char CountCallsInside=0)
+	//srTCompProgressIndicator(long InTotalAmOfOutPoints, double UpdateTimeInt_s, char CountCallsInside=0)
+	srTCompProgressIndicator(long long InTotalAmOfOutPoints, double UpdateTimeInt_s, char CountCallsInside=0)
 	{
 		ProgressIndicatorIsUsed = 0; ErrorCode = 0;
 		if(InTotalAmOfOutPoints <= 0) return;
@@ -56,9 +58,11 @@ public:
 		DestroyIndicator();
 	}
 
-	int InitializeIndicator(long InTotalAmOfOutPoints, double UpdateTimeInt_s, char CountCallsInside=0);
+	//int InitializeIndicator(long InTotalAmOfOutPoints, double UpdateTimeInt_s, char CountCallsInside=0);
+	int InitializeIndicator(long long InTotalAmOfOutPoints, double UpdateTimeInt_s, char CountCallsInside=0);
 
-	int UpdateIndicator(long CurPoint=0)
+	//int UpdateIndicator(long CurPoint=0)
+	int UpdateIndicator(long long CurPoint=0)
 	{
 		int result = 0;
 		if((!ProgressIndicatorIsUsed) || (ErrorCode != 0)) return 0;
@@ -117,7 +121,8 @@ public:
 #endif
 	}
 
-	long EstimateCurrentPosition(clock_t CurrentClock, long CurPoint)
+	//long EstimateCurrentPosition(clock_t CurrentClock, long CurPoint)
+	long long EstimateCurrentPosition(clock_t CurrentClock, long long CurPoint)
 	{
 		clock_t TimePassed = CurrentClock - StartCompClock;
 
@@ -126,7 +131,8 @@ public:
 
 		clock_t EstTimeLeft = (clock_t)(InvSpeed*double(TotalAmOfOutPoints - CurPoint));
 
-		long EstCurPoint = long(TotalAmOfOutPoints*double(TimePassed)/double(EstTimeLeft + TimePassed));
+		//long EstCurPoint = long(TotalAmOfOutPoints*double(TimePassed)/double(EstTimeLeft + TimePassed));
+		long long EstCurPoint = (long long)(TotalAmOfOutPoints*double(TimePassed)/double(EstTimeLeft + TimePassed));
 		
 		PrevAmOfPoints = CurPoint;
 		PrevUpdateClock = CurrentClock;

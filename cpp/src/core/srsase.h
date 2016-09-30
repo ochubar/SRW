@@ -173,23 +173,29 @@ public:
 		if((x - double(ix)) > 0.5) ix++;
 		return ix;
 	}
-	void ZeroArr(double *arr, long n)
+	//void ZeroArr(double *arr, long n)
+	void ZeroArr(double *arr, long long n)
 	{
 		if((arr == 0) || (n <= 0)) return;
 		double *t_arr = arr;
-		for(long i=0; i<n; i++) *(t_arr++) = 0;
+		//for(long i=0; i<n; i++) *(t_arr++) = 0;
+		for(long long i=0; i<n; i++) *(t_arr++) = 0;
 	}
-	void ZeroArr(f2c_integer *arr, long n)
+	//void ZeroArr(f2c_integer *arr, long n)
+	void ZeroArr(f2c_integer *arr, long long n)
 	{
 		if((arr == 0) || (n <= 0)) return;
 		f2c_integer *t_arr = arr;
-		for(long i=0; i<n; i++) *(t_arr++) = 0;
+		//for(long i=0; i<n; i++) *(t_arr++) = 0;
+		for(long long i=0; i<n; i++) *(t_arr++) = 0;
 	}
-	void ZeroArr(f2c_doublecomplex *arr, long n)
+	//void ZeroArr(f2c_doublecomplex *arr, long n)
+	void ZeroArr(f2c_doublecomplex *arr, long long n)
 	{
 		if((arr == 0) || (n <= 0)) return;
 		f2c_doublecomplex *t_arr = arr;
-		for(long i=0; i<n; i++) 
+		//for(long i=0; i<n; i++) 
+		for(long long i=0; i<n; i++) 
 		{
 			t_arr->r = 0; (t_arr++)->i = 0;
 		}
