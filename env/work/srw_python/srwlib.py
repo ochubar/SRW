@@ -3243,7 +3243,7 @@ def srwl_opt_setup_surf_height_2d(_height_prof_data, _dim, _ang, _ang_r=0, _amp_
     #To test all options!
 
     input_parms = { #MR26022016: Options will be used for 2D mirror profiles in Sirepo in the future:
-        "type": "mirror",
+        "type": "mirror2d",
         "heightProfileFile": "",
         "orientation": _dim,
         "grazingAngle": _ang,
