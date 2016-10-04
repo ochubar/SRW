@@ -9,19 +9,20 @@ of intensity distribution after diffraction on a circular aperture with an analy
 The example requires SciPy library to perform comparison.
 """
 from __future__ import print_function  # Python 2.7 compatibility
-
 import uti_plot
-from matplotlib import pyplot as plt
-from scipy.special import jv
 from srwlib import *
 
 print('SRWLIB Python Example # 16:')
 print('Comparison of intensity distribution after diffraction on a circular aperture with an analytical distribution')
 
-# --------------------------------------------------------------------------- #
+#************************************* Create examples directory if it does not exist
+example_folder = 'data_example_16'  # example data sub-folder name
+if not os.path.isdir(example_folder):
+    os.mkdir(example_folder)
+strIntOutFileName1 = 'ex16_res_int1.dat' # file name for output SR intensity data
+strIntOutFileName2 = 'ex16_res_int2.dat' # file name for output SR intensity data
 
-print('1. Perform SRW calculations')
-
+#************************************* Perform SRW calculations
 # Gaussian beam definition:
 GsnBm = SRWLGsnBm()
 GsnBm.x = 0  # Transverse Coordinates of Gaussian Beam Center at Waist [m]
@@ -79,6 +80,10 @@ srwl.CalcIntFromElecField(arIinY, wfrIn, 0, 0, 2, wfrIn.mesh.eStart, 0, 0)  # ex
 # Plotting initial wavefront:
 plotMeshInX = [1000 * wfrIn.mesh.xStart, 1000 * wfrIn.mesh.xFin, wfrIn.mesh.nx]
 plotMeshInY = [1000 * wfrIn.mesh.yStart, 1000 * wfrIn.mesh.yFin, wfrIn.mesh.ny]
+srwl_uti_save_intens_ascii(arIin, wfrIn.mesh,
+                           '{}/{}'.format(example_folder, strIntOutFileName1),
+                           0, ['Photon Energy', 'Horizontal Position', 'Vertical Position', ''],
+                           _arUnits=['eV', 'm', 'm', 'ph/s/.1%bw/mm^2'])
 uti_plot.uti_plot2d(arIin, plotMeshInX, plotMeshInY,
                     ['Horizontal Position [mm]', 'Vertical Position [mm]', 'Intensity Before Propagation [a.u.]'])
 uti_plot.uti_plot1d(arIinY, plotMeshInY, ['Vertical Position [mm]', 'Intensity [a.u.]',
@@ -125,8 +130,12 @@ for i in range(len(arIinY)):
 plotNum = 1000
 plotMeshx = [plotNum * wfr.mesh.xStart, plotNum * wfr.mesh.xFin, wfr.mesh.nx]
 plotMeshy = [plotNum * wfr.mesh.yStart, plotNum * wfr.mesh.yFin, wfr.mesh.ny]
+srwl_uti_save_intens_ascii(arII, wfr.mesh,
+                           '{}/{}'.format(example_folder, strIntOutFileName2),
+                           0, ['Photon Energy', 'Horizontal Position', 'Vertical Position', ''],
+                           _arUnits=['eV', 'm', 'm', 'ph/s/.1%bw/mm^2'])
 uti_plot.uti_plot2d(arII, plotMeshx, plotMeshy,
-                    ['Horizontal Position [mm]', 'Vertical Position [mm]', 'Intenisty, [a.u.]'])
+                    ['Horizontal Position [mm]', 'Vertical Position [mm]', 'Intenisty After Propagation [a.u.]'])
 uti_plot.uti_plot1d(arI1y, plotMeshy, ['Vertical Position [mm]', 'Intensity [a.u.]',
                                        'Intensity After Propagation\n(cut vs vertical position at x=0)'])
 
@@ -146,19 +155,13 @@ parameters = [
 for i in range(len(parameters)):
     print('{}{}: [{}, {}]'.format('    ', parameters[i][0], parameters[i][1], parameters[i][2]))
 
-# --------------------------------------------------------------------------- #
-
-print('2. Defining parameters for analytic calculation')
-
+#************************************* 2. Defining parameters for analytic calculation
 lam = 2.4796e-6  # 1.2398/0.5 eV
 numPointsIn = len(arIinY)
 numPointsOut = len(arI1y)
 meshSize = float(wfr.mesh.xFin)
 
-# --------------------------------------------------------------------------- #
-
-print('3. Computing intensity distribution as per Born & Wolf, Principles of Optics')
-
+#************************************* 3. Computing intensity distribution as per Born & Wolf, Principles of Optics
 th = []
 sIn = []
 sOut = []
@@ -167,27 +170,33 @@ for i in range(numPointsOut):
     thx = 2.0 * (i - numPointsOut / 2.0 + 0.5) * meshSize / numPointsOut / driftLength
     th.append(thx)
     sOut.append(thx * driftLength * 1000)
-    x = 3.1415 * apertureSize * sin(thx) / lam
-    analyticalIntens.append((2 * jv(1, x) / x) ** 2)
-
+try:
+    from scipy.special import jv
+    for i in range(numPointsOut):
+        x = 3.1415 * apertureSize * sin(th[i]) / lam
+        analyticalIntens.append((2 * jv(1, x) / x) ** 2)
+except:
+    pass
 for i in range(numPointsIn):
     sIn.append(2000.0 * (i - numPointsIn / 2.0) * float(wfrIn.mesh.xFin) / numPointsIn)
 
-# --------------------------------------------------------------------------- #
-
-print('4. Plotting')
-
-fig = plt.figure()
-ax = fig.add_subplot(111)
-ax.plot(sOut, analyticalIntens, '-b.', label='Analytical estimation')
-ax.plot(sIn, arIinY, '--g.', label='SRW (before aperture)')
-ax.plot(sOut, arI1y, '-r.', label='SRW (after aperture)')
-ax.legend()
-ax.set_xlabel('Vertical Position [mm]')
-ax.set_ylabel('Normalized Intensity, [a.u.]')
-ax.set_title('Intensity After Propagation\n(cut vs vertical position at x=0)')
-ax.grid()
-
-plt.show()
+#************************************* 4. Plotting
+try:
+    from matplotlib import pyplot as plt
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    ax.plot(sIn, arIinY, '--g.', label='SRW (before aperture)')
+    ax.plot(sOut, arI1y, '-r.', label='SRW (after aperture)')
+    if analyticalIntens:
+        ax.plot(sOut, analyticalIntens, '-b.', label='Analytical estimation')
+    ax.legend()
+    ax.set_xlabel('Vertical Position [mm]')
+    ax.set_ylabel('Normalized Intensity, [a.u.]')
+    ax.set_title('Intensity After Propagation\n(cut vs vertical position at x=0)')
+    ax.grid()
+    plt.savefig('{}/compare.png'.format(example_folder))
+    plt.show()
+except:
+    pass
 
 print('done')
