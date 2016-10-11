@@ -83,8 +83,8 @@ test:
 	fi;
 
 clean:
-	rm -f $(ext_dir)/libfftw.a $(gcc_dir)/libsrw.a $(gcc_dir)/srwlpy.so; \
+	rm -f $(ext_dir)/libfftw.a $(gcc_dir)/libsrw.a $(gcc_dir)/srwlpy*.so; \
 	rm -rf $(ext_dir)/$(fftw_dir)/ py/build/;
-	if [ -d $(root_dir)/.git ]; then git checkout $(examples_dir)/srwlpy.so; fi;
+	if [ -d $(root_dir)/.git ]; then rm -f $(examples_dir)/srwlpy*.so && git checkout $(examples_dir)/srwlpy.so; fi;
 
 .PHONY: all clean core fftw nofftw pylib test
