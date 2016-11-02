@@ -3797,7 +3797,7 @@ def srwl_uti_write_data_cols(_file_path, _cols, _str_sep, _str_head=None, _i_col
 def srwl_uti_save_stat_wfr_emit_prop_multi_e(  # #MR20160908
         particle_number=0,
         total_num_of_particles=0,
-        filename='srw_mpi',
+        filename='srw_status',
         cores=None,
         particles_per_iteration=None
 ):
@@ -4272,6 +4272,19 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
         #iAvgProc += 1 #OC190414 (commented-out)
         #iSave += 1
 
+    #MR01112016: Initialize prarameters for the SRW status files and generate the files:
+    log_dir = os.getcwd() if _file_path is None else os.path.dirname(os.path.abspath(_file_path))
+    timestamp = '{:%Y-%m-%d_%H-%M-%S}'.format(datetime.datetime.now())
+    log_file = 'srw_status_{}'.format(timestamp)
+    log_path = os.path.join(log_dir, log_file)
+    if nProc <= 1:
+        total_num_of_particles = nPartPerProc
+    else:
+        total_num_of_particles = nSentPerProc * (nProc - 1) * _n_part_avg_proc
+    if rank == 0:
+        srwl_uti_save_stat_wfr_emit_prop_multi_e(0, total_num_of_particles, filename=log_path,
+                                                 cores=nProc, particles_per_iteration=_n_part_avg_proc)
+
     #slaves = [] #an he
     #print('DEBUG MESSAGE: rank=', rank)
     if((rank > 0) or (nProc == 1)):
@@ -4547,6 +4560,9 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
                     #srwl_uti_save_intens_ascii(resStokes.arS, meshRes, _file_path, 1, _mutual = doMutual)
                     srwl_uti_save_intens_ascii(resStokes.arS, meshRes, _file_path, 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual) #OC26042016
 
+                    #MR01112016: write the status of the simulation:
+                    srwl_uti_save_stat_wfr_emit_prop_multi_e(i + 1, total_num_of_particles, filename=log_path)
+
                     #print('completed (lasted', round(time.time() - t0, 6), 's)') #DEBUG
                     
                     #sys.exit(0)
@@ -4569,12 +4585,6 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
         if(workStokes == None):
             workStokes = SRWLStokes(1, 'f', meshRes.eStart, meshRes.eFin, meshRes.ne, meshRes.xStart, meshRes.xFin, meshRes.nx, meshRes.yStart, meshRes.yFin, meshRes.ny, doMutual)
 
-        #MR29092016 #Erase the contents of .log file:
-        #OC: Consider implementing this 
-        total_num_of_particles = nRecv * _n_part_avg_proc
-        #srwl_save_status(0, total_num_of_particles, cores=nProc, particles_per_iteration=_n_part_avg_proc)
-        srwl_uti_save_stat_wfr_emit_prop_multi_e(0, total_num_of_particles, cores=nProc, particles_per_iteration=_n_part_avg_proc)
-
         for i in range(nRecv): #loop over messages from workers
 
             #DEBUG
@@ -4585,8 +4595,7 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
 
             #MR20160907 #Save .log and .json files:
             particle_number = (i + 1) * _n_part_avg_proc
-            #srwl_save_status(particle_number, total_num_of_particles)
-            srwl_uti_save_stat_wfr_emit_prop_multi_e(particle_number, total_num_of_particles)
+            srwl_uti_save_stat_wfr_emit_prop_multi_e(particle_number, total_num_of_particles, filename=log_path)
 
             #DEBUG
             #srwl_uti_save_text("Received intensity # " + str(i), _file_path + ".er.dbg")
