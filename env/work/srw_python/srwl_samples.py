@@ -6,14 +6,11 @@
 #############################################################################
 
 import math
-
-import numpy as np
 import srwlib
-from PIL import Image
 
-
-def srwl_opt_setup_sample(image_data, limit_value, nx, ny, resolution, thickness, delta, atten_len, xc=0, yc=0,
-                          e_start=0, e_fin=0):
+#********************** Create transmission element from the data from an image file:
+def srwl_opt_setup_transmission_from_image(image_data, limit_value, nx, ny, resolution, thickness, delta, atten_len,
+                                           xc=0, yc=0, e_start=0, e_fin=0):
     """Setup Sample element.
 
     :param image_data: data from the provided TIFF file.
@@ -66,51 +63,3 @@ def srwl_opt_setup_sample(image_data, limit_value, nx, ny, resolution, thickness
     opT.input_parms = input_parms
 
     return opT
-
-
-def read_image(tiff_path, bottom_limit=None, show_images=False):
-    """Read TIFF image.
-
-    :param tiff_path: full path to the image.
-    :param bottom_limit: the bottom limit separating the image and the legend (black block).
-    :return: dictionary with the read data and the maximum possible value.
-    """
-    # Read the image:
-    orig_image = Image.open(tiff_path)
-
-    # Convert it to NumPy array:
-    imarray = np.array(orig_image, )
-
-    # Get bits per point:
-    mode_to_bpp = {'1': 1, 'L': 8, 'P': 8, 'I;16': 16, 'RGB': 24, 'RGBA': 32, 'CMYK': 32, 'YCbCr': 24, 'I': 32, 'F': 32}
-    bpp = mode_to_bpp[orig_image.mode]
-    limit_value = float(2 ** bpp - 1)
-
-    # Get the bottom limit if it's not provided:
-    if not bottom_limit:
-        bottom_limit = np.where(imarray[:, 0] == 0)[0][0]
-
-    # Remove the bottom black area:
-    truncated_imarray = np.copy(imarray[:bottom_limit, :])
-    data = np.transpose(truncated_imarray)
-
-    # Remove background noise:
-    idxs_less = np.where(data < limit_value * 0.5)
-    data[idxs_less] = np.uint16(0)
-    # idxs_more = np.where(data >= limit_value * 0.5)
-    # data[idxs_more] = np.uint16(255)
-
-    # Generate new image object to track the changes:
-    new_image = Image.fromarray(np.transpose(data))
-
-    if show_images:
-        orig_image.show()
-        new_image.show()
-
-    return {
-        'data': data,
-        'limit_value': limit_value,
-        'bottom_limit': bottom_limit,
-        'orig_image': orig_image,
-        'new_image': new_image,
-    }

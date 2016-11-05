@@ -3797,7 +3797,7 @@ def srwl_uti_write_data_cols(_file_path, _cols, _str_sep, _str_head=None, _i_col
 def srwl_uti_save_stat_wfr_emit_prop_multi_e(  # #MR20160908
         particle_number=0,
         total_num_of_particles=0,
-        filename='srw_status',
+        filename='srwl_stat_wfr_emit_prop_multi_e',
         cores=None,
         particles_per_iteration=None
 ):
@@ -4273,9 +4273,12 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
         #iSave += 1
 
     #MR01112016: Initialize prarameters for the SRW status files and generate the files:
-    log_dir = os.getcwd() if _file_path is None else os.path.dirname(os.path.abspath(_file_path))
+    # log_dir = os.getcwd() if _file_path is None else os.path.dirname(os.path.abspath(_file_path))
+    log_dir = os.path.abspath('__srwl_logs__')  #MR04112016
+    if not os.path.isdir(log_dir):
+        os.mkdir(log_dir)
     timestamp = '{:%Y-%m-%d_%H-%M-%S}'.format(datetime.datetime.now())
-    log_file = 'srw_status_{}'.format(timestamp)
+    log_file = 'srwl_stat_wfr_emit_prop_multi_e_{}'.format(timestamp)
     log_path = os.path.join(log_dir, log_file)
     if nProc <= 1:
         total_num_of_particles = nPartPerProc

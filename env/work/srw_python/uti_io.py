@@ -105,3 +105,57 @@ def write_ascii_data_cols(_file_path, _cols, _str_sep, _str_head=None, _i_col_st
         
     f.write(strTot)
     f.close()
+
+#********************** Auxiliary function to read data from image file (TIFF):
+def read_image(image_path, bottom_limit=None, show_images=False, cutoff_background=0.5):
+    """Read an image and convert the data to NumPy array.
+
+    :param image_path: full path to the image.
+    :param bottom_limit: the bottom limit separating the image and the legend (black block).
+    :param show_images: a flag to show the initial and processed images.
+    :param cutoff_background: the ratio for cutoff the background noise.
+    :return: dictionary with the read data and the maximum possible value.
+    """
+    try:
+        import numpy as np
+        from PIL import Image
+    except:
+        raise ValueError('Cannot import NumPy or PIL. Make sure the libraries are installed.')
+
+    # Read the image:
+    orig_image = Image.open(image_path)
+
+    # Convert it to NumPy array:
+    imarray = np.array(orig_image, )
+
+    # Get bits per point:
+    mode_to_bpp = {'1': 1, 'L': 8, 'P': 8, 'I;16': 16, 'RGB': 24, 'RGBA': 32, 'CMYK': 32, 'YCbCr': 24, 'I': 32, 'F': 32}
+    bpp = mode_to_bpp[orig_image.mode]
+    limit_value = float(2 ** bpp - 1)
+
+    # Get the bottom limit if it's not provided:
+    if not bottom_limit:
+        bottom_limit = np.where(imarray[:, 0] == 0)[0][0]
+
+    # Remove the bottom black area:
+    truncated_imarray = np.copy(imarray[:bottom_limit, :])
+    data = np.transpose(truncated_imarray)
+
+    # Remove background noise:
+    idxs_less = np.where(data < limit_value * cutoff_background)
+    data[idxs_less] = np.uint16(0)
+
+    # Generate new image object to track the changes:
+    new_image = Image.fromarray(np.transpose(data))
+
+    if show_images:
+        orig_image.show()
+        new_image.show()
+
+    return {
+        'data': data,
+        'limit_value': limit_value,
+        'bottom_limit': bottom_limit,
+        'orig_image': orig_image,
+        'new_image': new_image,
+    }
