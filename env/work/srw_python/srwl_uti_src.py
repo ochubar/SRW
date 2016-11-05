@@ -7,13 +7,7 @@
 from srwlib import *
 
 #****************************************************************************
-def srwl_uti_src_e_beam(_nm, _Iavg=None, _e=None, _sig_e=None, _emit_x=None, _beta_x=None, _alpha_x=None, _eta_x=None, _eta_x_pr=None, _emit_y=None, _beta_y=None, _alpha_y=None):
-#def srwl_uti_src_e_beam(_nm):
-    """Instantiates electron beam structures describing different existing sources
-    :param _name: string identifying a source
-    :return: SRWLPartBeam object
-    """
-
+def srwl_uti_src_predefined_e_beams():
     #E-Beam params in the order: _Iavg, _e, _sig_e, _emit_x, _beta_x, _alpha_x, _eta_x, _eta_x_pr, _emit_y, _beta_y, _alpha_y
     allBeams = [
         #['NSLS-II Low Beta Day 1',  [0.5,    3,  0.89e-03,   0.9e-09,   2.02,     0,     0,      0,     8e-12,   1.06,      0]],
@@ -41,7 +35,16 @@ def srwl_uti_src_e_beam(_nm, _Iavg=None, _e=None, _sig_e=None, _emit_x=None, _be
         ['APS',                     [0.1,    7,  0.96e-03,  2.79e-09,   22.7,     0, 0.206,      0,   8.4e-12,    3.1,      0]],
         ['SPring8 High Beta',       [0.1,    8,   1.1e-03,   3.4e-09,   22.6,     0, 0.107,      0,   6.8e-12,    5.6,      0]]
     ]#add more beams
+    return allBeams
 
+#****************************************************************************
+def srwl_uti_src_e_beam(_nm, _Iavg=None, _e=None, _sig_e=None, _emit_x=None, _beta_x=None, _alpha_x=None, _eta_x=None, _eta_x_pr=None, _emit_y=None, _beta_y=None, _alpha_y=None):
+#def srwl_uti_src_e_beam(_nm):
+    """Instantiates electron beam structures describing different existing sources
+    :param _name: string identifying a source
+    :return: SRWLPartBeam object
+    """
+    allBeams = srwl_uti_src_predefined_e_beams()
     sTest = _nm.replace(' ', '')
     sTest = sTest.replace('-', '')
     sTest = sTest.capitalize()
