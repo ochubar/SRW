@@ -3,6 +3,8 @@
 # v 0.01
 #############################################################################
 
+import os
+
 #**********************Auxiliary function to write auxiliary/debugging information to an ASCII file:
 def write_text(_text, _file_path):
     f = open(_file_path, 'w')
@@ -121,6 +123,9 @@ def read_image(image_path, bottom_limit=None, show_images=False, cutoff_backgrou
         from PIL import Image
     except:
         raise ValueError('Cannot import NumPy or PIL. Make sure the libraries are installed.')
+
+    if not os.path.isfile(image_path):
+        raise ValueError('Provided image file "{}" does not exist.'.format(image_path))
 
     # Read the image:
     orig_image = Image.open(image_path)
