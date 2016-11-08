@@ -158,4 +158,6 @@ def read_image(image_path, bottom_limit=None, show_images=False, cutoff_backgrou
         'bottom_limit': bottom_limit,
         'orig_image': orig_image,
         'new_image': new_image,
+        'nx': data.shape[0],
+        'ny': data.shape[1],
     }
