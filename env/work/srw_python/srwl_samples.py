@@ -5,13 +5,15 @@
 # October 26, 2016
 #############################################################################
 
-import os
 import math
-import srwlib
+import os
+
 import numpy as np
+import srwlib
 from PIL import Image
 
-#********************** The class for Samples:
+
+# ********************** The class for Samples:
 class SRWLSamples:
     """The class for Samples from image file (.tif), NumPy array (.npy), etc.
 
@@ -23,10 +25,12 @@ class SRWLSamples:
     :param is_save_images: a flag to save the initial and processed images.
     :param raw_image_name: the name of the raw file in case if it's saved.
     :param processed_image_name: the name of the processed file in case if it's saved.
+    :param prefix: the prefix to add to the names of the saved image files.
     """
+
     def __init__(self, file_path, input_type,
                  bottom_limit=None, cutoff_background=0.5, is_show_images=False, is_save_images=False,
-                 raw_image_name='raw_image.tif', processed_image_name='processed_image.tif'):
+                 raw_image_name='raw.tif', processed_image_name='processed.tif', prefix=''):
         # Input parameters:
         self.file_path = file_path
         self.input_type = input_type
@@ -34,8 +38,8 @@ class SRWLSamples:
         self.cutoff_background = cutoff_background
         self.is_show_images = is_show_images
         self.is_save_images = is_save_images
-        self.raw_image_name = raw_image_name
-        self.processed_image_name = processed_image_name
+        self.raw_image_name = self._add_prefix(prefix, raw_image_name)
+        self.processed_image_name = self._add_prefix(prefix, processed_image_name)
 
         # Output parameters:
         self.data = None
@@ -67,7 +71,8 @@ class SRWLSamples:
         data = np.array(self.raw_image)
 
         # Get bits per point:
-        mode_to_bpp = {'1': 1, 'L': 8, 'P': 8, 'I;16': 16, 'RGB': 24, 'RGBA': 32, 'CMYK': 32, 'YCbCr': 24, 'I': 32, 'F': 32}
+        mode_to_bpp = {'1': 1, 'L': 8, 'P': 8, 'I;16': 16, 'RGB': 24, 'RGBA': 32, 'CMYK': 32, 'YCbCr': 24, 'I': 32,
+                       'F': 32}
         bpp = mode_to_bpp[self.raw_image.mode]
         self.limit_value = float(2 ** bpp - 1)
 
@@ -106,7 +111,8 @@ class SRWLSamples:
         elif self.input_type == 'txt':
             raise NotImplementedError('Import of "txt" transmission objects is not implemented yet.')
         else:
-            raise ValueError('Incorrect input type: {}. Possible values: {}.'.format(self.input_type, ', '.join(possible_values)))
+            raise ValueError(
+                'Incorrect input type: {}. Possible values: {}.'.format(self.input_type, ', '.join(possible_values)))
 
         self.nx = self.data.shape[0]
         self.ny = self.data.shape[1]
@@ -119,14 +125,18 @@ class SRWLSamples:
         self.raw_image.show()
         self.processed_image.show()
 
+    def _add_prefix(self, prefix, name):
+        return '{}_{}'.format(prefix, name) if prefix else name
+
     def _check_files(self):
         if not os.path.isfile(self.file_path):
             raise ValueError('Provided file "{}" does not exist.'.format(self.file_path))
 
 
-#********************** Create transmission element from the data from an image file:
-def srwl_opt_setup_transmission_from_image(file_path, resolution, thickness, delta, atten_len,
-                                           xc=0, yc=0, e_start=0, e_fin=0, input_type='image'):
+# ********************** Create transmission element from the data from an image file:
+def srwl_opt_setup_transmission_from_file(file_path, resolution, thickness, delta, atten_len,
+                                          xc=0, yc=0, e_start=0, e_fin=0,
+                                          input_type='image', is_save_images=True, prefix=''):
     """Setup Sample element.
 
     :param file_path: path to the input file (.tif or .npy).
@@ -142,6 +152,8 @@ def srwl_opt_setup_transmission_from_image(file_path, resolution, thickness, del
     :param e_start: initial photon energy [eV].
     :param e_fin: final photon energy [eV].
     :param input_type: the type of the input ('image', 'npy' or 'txt').
+    :param is_save_images: a flag to save the initial and processed images.
+    :param prefix: the prefix to add to the names of the saved image files.
     :return: transmission (SRWLOptT) type optical element which simulates the Sample.
     """
 
@@ -157,7 +169,13 @@ def srwl_opt_setup_transmission_from_image(file_path, resolution, thickness, del
         "finalPhotonPnergy": e_fin,
     }
 
-    s = SRWLSamples(file_path, input_type=input_type, is_show_images=False, is_save_images=True)
+    s = SRWLSamples(
+        file_path=file_path,
+        input_type=input_type,
+        is_show_images=False,
+        is_save_images=is_save_images,
+        prefix=prefix,
+    )
 
     # Input parameters to SRWLOptT:
     nx = s.nx
