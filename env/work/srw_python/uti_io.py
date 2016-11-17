@@ -105,3 +105,58 @@ def write_ascii_data_cols(_file_path, _cols, _str_sep, _str_head=None, _i_col_st
         
     f.write(strTot)
     f.close()
+
+#********************** Read data from a TIFF file:
+def read_image(image_path, bottom_limit=None, cutoff_background=0.5): #MR17112016
+    """Read data from a TIFF file.
+
+    :param image_path: full path to the image.
+    :param bottom_limit: the bottom limit separating the image and the legend (black block).
+    :param cutoff_background: the ratio for cutoff the background noise.
+    :return: dict with the processed data.
+    """
+
+    msg = '{0} library is not installed. Use "pip install {0}" to install it.'
+    try:
+        import numpy as np
+    except:
+        raise ValueError(msg.format('numpy'))
+    try:
+        from PIL import Image
+    except:
+        raise ValueError(msg.format('pillow'))
+
+    # Read the image:
+    raw_image = Image.open(image_path)
+
+    # Convert it to NumPy array:
+    data = np.array(raw_image)
+
+    # Get bits per point:
+    mode_to_bpp = {'1': 1, 'L': 8, 'P': 8, 'I;16': 16, 'RGB': 24, 'RGBA': 32, 'CMYK': 32, 'YCbCr': 24, 'I': 32, 'F': 32}
+    bpp = mode_to_bpp[raw_image.mode]
+    limit_value = float(2 ** bpp - 1)
+
+    # Get the bottom limit if it's not provided:
+    if not bottom_limit:
+        bottom_limit = np.where(data[:, 0] == 0)[0][0]
+
+    # Remove the bottom black area:
+    if data[:, 0].max() > 0:  # do not remove if the background is already black
+        data = np.copy(data[:bottom_limit, :])
+    data = np.transpose(data)
+
+    # Remove background noise:
+    idxs_less = np.where(data < limit_value * cutoff_background)
+    data[idxs_less] = np.uint16(0)
+
+    # Generate new image object to track the changes:
+    processed_image = Image.fromarray(np.transpose(data))
+
+    return {
+        'data': data,
+        'raw_image': raw_image,
+        'processed_image': processed_image,
+        'bottom_limit': bottom_limit,
+        'limit_value': limit_value,
+    }

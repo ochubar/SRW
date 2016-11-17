@@ -10,6 +10,7 @@ import os
 
 import numpy as np
 import srwlib
+import uti_io
 from PIL import Image
 
 
@@ -64,33 +65,16 @@ class SRWLSamples:
             self.save_images()
 
     def get_data_from_image(self):
-        # Read the image:
-        self.raw_image = Image.open(self.file_path)
-
-        # Convert it to NumPy array:
-        data = np.array(self.raw_image)
-
-        # Get bits per point:
-        mode_to_bpp = {'1': 1, 'L': 8, 'P': 8, 'I;16': 16, 'RGB': 24, 'RGBA': 32, 'CMYK': 32, 'YCbCr': 24, 'I': 32,
-                       'F': 32}
-        bpp = mode_to_bpp[self.raw_image.mode]
-        self.limit_value = float(2 ** bpp - 1)
-
-        # Get the bottom limit if it's not provided:
-        if not self.bottom_limit:
-            self.bottom_limit = np.where(data[:, 0] == 0)[0][0]
-
-        # Remove the bottom black area:
-        if data[:, 0].max() > 0:  # do not remove if the background is already black
-            data = np.copy(data[:self.bottom_limit, :])
-        self.data = np.transpose(data)
-
-        # Remove background noise:
-        idxs_less = np.where(self.data < self.limit_value * self.cutoff_background)
-        self.data[idxs_less] = np.uint16(0)
-
-        # Generate new image object to track the changes:
-        self.processed_image = Image.fromarray(np.transpose(self.data))
+        d = uti_io.read_image(
+            image_path=self.file_path,
+            bottom_limit=self.bottom_limit,
+            cutoff_background=self.cutoff_background,
+        )
+        self.data = d['data']
+        self.raw_image = d['raw_image']
+        self.processed_image = d['processed_image']
+        self.bottom_limit = d['bottom_limit']
+        self.limit_value = d['limit_value']
 
     def get_image_from_data(self):
         data = self.read_data_from_npy()
