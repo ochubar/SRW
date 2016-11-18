@@ -9,9 +9,10 @@ import math
 import os
 
 import numpy as np
+from PIL import Image
+
 import srwlib
 import uti_io
-from PIL import Image
 
 
 # ********************** The class for Samples:
@@ -19,7 +20,6 @@ class SRWLSamples:
     """The class for Samples from image file (.tif), NumPy array (.npy), etc.
 
     :param file_path: full path to the image or the saved NumPy array.
-    :param input_type: the type of the input ('image', 'npy' or 'txt').
     :param bottom_limit: the bottom limit separating the image and the legend (black block).
     :param cutoff_background: the ratio for cutoff the background noise.
     :param is_show_images: a flag to show the initial and processed images.
@@ -29,12 +29,10 @@ class SRWLSamples:
     :param prefix: the prefix to add to the names of the saved image files.
     """
 
-    def __init__(self, file_path, input_type,
-                 bottom_limit=None, cutoff_background=0.5, is_show_images=False, is_save_images=False,
+    def __init__(self, file_path, bottom_limit=None, cutoff_background=0.5, is_show_images=False, is_save_images=False,
                  raw_image_name='raw.tif', processed_image_name='processed.tif', prefix=''):
         # Input parameters:
         self.file_path = file_path
-        self.input_type = input_type
         self.bottom_limit = bottom_limit
         self.cutoff_background = cutoff_background
         self.is_show_images = is_show_images
@@ -49,6 +47,12 @@ class SRWLSamples:
         self.nx = None
         self.ny = None
         self.limit_value = None
+
+        # Check input type automatically:
+        self.input_type = self._check_input_type(file_path)
+
+        # Set the dir where to save the files:
+        self.save_dir = os.path.abspath(os.path.dirname(file_path))
 
         # Check the input file(s):
         self._check_files()
@@ -87,23 +91,19 @@ class SRWLSamples:
         return np.load(self.file_path)
 
     def read_sample(self):
-        possible_values = ('image', 'npy', 'txt')
         if self.input_type == 'image':
             self.get_data_from_image()
         elif self.input_type == 'npy':
             self.get_image_from_data()
-        elif self.input_type == 'txt':
-            raise NotImplementedError('Import of "txt" transmission objects is not implemented yet.')
         else:
-            raise ValueError(
-                'Incorrect input type: {}. Possible values: {}.'.format(self.input_type, ', '.join(possible_values)))
-
+            raise NotImplementedError(
+                'Processing of the "{}" input type is not implemented yet.'.format(self.input_type))
         self.nx = self.data.shape[0]
         self.ny = self.data.shape[1]
 
     def save_images(self):
-        self.raw_image.save(self.raw_image_name)
-        self.processed_image.save(self.processed_image_name)
+        # self.raw_image.save(os.path.join(self.save_dir, self.raw_image_name))
+        self.processed_image.save(os.path.join(self.save_dir, self.processed_image_name))
 
     def show_images(self):
         self.raw_image.show()
@@ -116,11 +116,25 @@ class SRWLSamples:
         if not os.path.isfile(self.file_path):
             raise ValueError('Provided file "{}" does not exist.'.format(self.file_path))
 
+    def _check_input_type(self, file_path):
+        self.possible_extensions = {
+            'image': ['tif', 'tiff'],
+            'npy': ['npy'],
+        }
+        extension = os.path.splitext(file_path)[1][1:].lower()
+        for k in self.possible_extensions.keys():
+            for e in self.possible_extensions[k]:
+                if extension == e:
+                    return k
+        all_extensions = [x for x_list in self.possible_extensions.values() for x in x_list]
+        all_extensions += [x.upper() for x in all_extensions]
+        raise ValueError('Incorrect extension: {}. Possible values: {}.'.format(extension, ', '.join(all_extensions)))
+
 
 # ********************** Create transmission element from the data from an image file:
 def srwl_opt_setup_transmission_from_file(file_path, resolution, thickness, delta, atten_len,
                                           xc=0, yc=0, e_start=0, e_fin=0,
-                                          input_type='image', is_save_images=True, prefix=''):
+                                          is_save_images=True, prefix=''):
     """Setup Sample element.
 
     :param file_path: path to the input file (.tif or .npy).
@@ -135,7 +149,6 @@ def srwl_opt_setup_transmission_from_file(file_path, resolution, thickness, delt
     :param yc: vertical coordinate of center [m].
     :param e_start: initial photon energy [eV].
     :param e_fin: final photon energy [eV].
-    :param input_type: the type of the input ('image', 'npy' or 'txt').
     :param is_save_images: a flag to save the initial and processed images.
     :param prefix: the prefix to add to the names of the saved image files.
     :return: transmission (SRWLOptT) type optical element which simulates the Sample.
@@ -155,7 +168,6 @@ def srwl_opt_setup_transmission_from_file(file_path, resolution, thickness, delt
 
     s = SRWLSamples(
         file_path=file_path,
-        input_type=input_type,
         is_show_images=False,
         is_save_images=is_save_images,
         prefix=prefix,
