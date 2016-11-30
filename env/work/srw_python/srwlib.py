@@ -3847,7 +3847,7 @@ def srwl_uti_save_stat_wfr_emit_prop_multi_e(  # #MR20160908
         'status': status,
     }
     status_json_file = '{}.json'.format(filename)
-    tmp_file = tempfile.NamedTemporaryFile(bufsize=0)
+    tmp_file = tempfile.NamedTemporaryFile(bufsize=0, delete=False)
     json.dump(status, tmp_file, indent=4, separators=(',', ': '), sort_keys=True)
     os.rename(tmp_file.name, status_json_file)
 
