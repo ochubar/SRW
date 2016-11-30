@@ -16,6 +16,8 @@ import os
 import traceback
 import uti_math
 import math
+import errno
+import tempfile
 
 from srwl_uti_cryst import * 
 #try:
@@ -3845,8 +3847,9 @@ def srwl_uti_save_stat_wfr_emit_prop_multi_e(  # #MR20160908
         'status': status,
     }
     status_json_file = '{}.json'.format(filename)
-    with open(status_json_file, 'w') as f:
-        json.dump(status, f, indent=4, separators=(',', ': '), sort_keys=True)
+    tmp_file = tempfile.NamedTemporaryFile(bufsize=0)
+    json.dump(status, tmp_file, indent=4, separators=(',', ': '), sort_keys=True)
+    os.rename(tmp_file.name, status_json_file)
 
 #**********************Auxiliary function to read tabulated 3D Magnetic Field data from ASCII file:
 def srwl_uti_read_mag_fld_3d(_fpath, _scom='#'):
@@ -4275,12 +4278,8 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
     #MR01112016: Initialize prarameters for the SRW status files and generate the files:
     # log_dir = os.getcwd() if _file_path is None else os.path.dirname(os.path.abspath(_file_path))
     log_dir = os.path.abspath('__srwl_logs__')  #MR04112016
-    if rank == 0 and not os.path.isdir(log_dir):  #MR30112016
-        try:
-            os.mkdir(log_dir)
-        except:
-            raise IOError('Cannot create directory: {}'.format(log_dir))
-
+    if not os.path.isdir(log_dir):  #MR30112016
+        log_dir = os.getcwd()
     timestamp = '{:%Y-%m-%d_%H-%M-%S}'.format(datetime.datetime.now())
     log_file = 'srwl_stat_wfr_emit_prop_multi_e_{}'.format(timestamp)
     log_path = os.path.join(log_dir, log_file)
