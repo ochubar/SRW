@@ -18,6 +18,7 @@ import uti_math
 import math
 import errno
 import tempfile
+import shutil
 
 from srwl_uti_cryst import * 
 #try:
@@ -3847,9 +3848,10 @@ def srwl_uti_save_stat_wfr_emit_prop_multi_e(  # #MR20160908
         'status': status,
     }
     status_json_file = '{}.json'.format(filename)
-    tmp_file = tempfile.NamedTemporaryFile(bufsize=0, delete=False)
+    tmp_file = tempfile.NamedTemporaryFile(delete=False, mode='w')
     json.dump(status, tmp_file, indent=4, separators=(',', ': '), sort_keys=True)
-    os.rename(tmp_file.name, status_json_file)
+    tmp_file.close()
+    shutil.move(tmp_file.name, status_json_file)
 
 #**********************Auxiliary function to read tabulated 3D Magnetic Field data from ASCII file:
 def srwl_uti_read_mag_fld_3d(_fpath, _scom='#'):
