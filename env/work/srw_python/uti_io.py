@@ -139,7 +139,10 @@ def read_image(image_path, bottom_limit=None, cutoff_background=0.5): #MR1711201
 
     # Get the bottom limit if it's not provided:
     if not bottom_limit:
-        bottom_limit = np.where(data[:, 0] == 0)[0][0]
+        try:
+            bottom_limit = np.where(data[:, 0] == 0)[0][0]
+        except IndexError:
+            bottom_limit = data.shape[0]
 
     # Remove the bottom black area:
     if data[:, 0].max() > 0:  # do not remove if the background is already black
