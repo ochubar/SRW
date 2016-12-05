@@ -3848,7 +3848,12 @@ def srwl_uti_save_stat_wfr_emit_prop_multi_e(  # #MR20160908
         'status': status,
     }
     status_json_file = '{}.json'.format(filename)
-    tmp_file = tempfile.NamedTemporaryFile(delete=False, mode='w')
+    #MR05122016: A temp file is created on the same filesystem as the status file to ensure the atomic rename operation:
+    # See the following discussions:
+    # - https://github.com/radiasoft/sirepo/issues/555
+    # - https://github.com/radiasoft/SRW-light/commit/987547f4da3079626bef92aad2f9ca3bade84ada
+    # - http://stackoverflow.com/a/3716361/4143531
+    tmp_file = tempfile.NamedTemporaryFile(delete=False, mode='w', dir=os.path.dirname(status_json_file))
     json.dump(status, tmp_file, indent=4, separators=(',', ': '), sort_keys=True)
     tmp_file.close()
     shutil.move(tmp_file.name, status_json_file)
