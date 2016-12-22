@@ -148,7 +148,8 @@ def uti_plot2d1d(ar2d, x_range, y_range, x=0, y=0, labels=('Horizontal Position'
     _backend.uti_plot2d1d(ar2d, x_range, y_range, x, y, labels, graphs_joined)
     
 #def uti_data_file_plot(_fname, _read_labels=1, _e=0, _x=0, _y=0, _graphs_joined=True):
-def uti_data_file_plot(_fname, _read_labels=1, _e=0, _x=0, _y=0, _graphs_joined=True, _traj_report=False, _traj_axis='x'): #MR29072016
+def uti_data_file_plot(_fname, _read_labels=1, _e=0, _x=0, _y=0, _graphs_joined=True, _traj_report=False, _traj_axis='x',
+                       log_scale=None, width_pixels=None): #MR29072016
     """Generate plot from configuration in _fname
 
     :param str _fname: config loaded from here
@@ -160,7 +161,8 @@ def uti_data_file_plot(_fname, _read_labels=1, _e=0, _x=0, _y=0, _graphs_joined=
     """
     #if '_backend' not in locals(): uti_plot_init() #?
     #_backend.uti_data_file_plot(_fname, _read_labels, _e, _x, _y, _graphs_joined)
-    _backend.uti_data_file_plot(_fname, _read_labels, _e, _x, _y, _graphs_joined, _traj_report, _traj_axis) #MR29072016
+    _backend.uti_data_file_plot(_fname, _read_labels, _e, _x, _y, _graphs_joined, _traj_report, _traj_axis,
+                                log_scale, width_pixels) #MR29072016
 
 class _BackendBase(object):
     def __getattr__(self, attr):

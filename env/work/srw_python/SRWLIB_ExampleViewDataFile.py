@@ -19,6 +19,8 @@ if __name__=='__main__':
     p.add_option('-j', '--joined', dest='joined', metavar='NUMBER', type='int', nargs=0, default=0, help='place different graphs jointly into one figure (1) or into separate figures (0)')
     p.add_option('-t', '--traj-report', dest='traj_report', metavar='NUMBER', action='store_true', default=0, help='plot trajectory report') #MR29072016
     p.add_option('-a', '--traj-axis', dest='traj_axis', metavar='STR', default='x', help='trajectory coordinate ("x" or "y")') #MR29072016
+    p.add_option('-g', '--log-scale', dest='log_scale', metavar='LOG_SCALE', action='store_true', default=0, help='logarithmic scale') #MR22122016
+    p.add_option('-w', '--width-pixels', dest='width_pixels', metavar='WIDTH', default=None, help='desired width pixels') #MR22122016
 
     opt, args = p.parse_args()
 
@@ -32,5 +34,6 @@ if __name__=='__main__':
     #print(opt.joined)
     uti_plot_init('TkAgg')
     #uti_data_file_plot(opt.infile, opt.readlab, opt.e, opt.x, opt.y, opt.joined)
-    uti_data_file_plot(opt.infile, opt.readlab, opt.e, opt.x, opt.y, opt.joined, opt.traj_report, opt.traj_axis) #MR29072016
+    uti_data_file_plot(opt.infile, opt.readlab, opt.e, opt.x, opt.y, opt.joined, opt.traj_report, opt.traj_axis,
+                       opt.log_scale, opt.width_pixels) #MR29072016
     uti_plot_show()

@@ -104,10 +104,30 @@ class Backend(object):
         return self._maybe_savefig(fig)
 
     #def srw_ascii_plot(fname):
-    def uti_data_file_plot(self, _fname, _read_labels=1, _e=0, _x=0, _y=0, _graphs_joined=1, _traj_report=False, _traj_axis='x'):
+    def uti_data_file_plot(self, _fname, _read_labels=1, _e=0, _x=0, _y=0, _graphs_joined=1, _traj_report=False, _traj_axis='x',
+                           log_scale=None, width_pixels=None):
         #data, mode, allrange = srw_ascii_load(fname)
         #data, mode, allrange, arLabels, arUnits = _file_load(_fname, _read_labels)
         data, mode, allrange, arLabels, arUnits = uti_plot_com.file_load(_fname, _read_labels, _traj_report, _traj_axis)
+
+        if log_scale:
+            data = np.log10(data)
+        if width_pixels:
+            try:
+                from scipy.ndimage import zoom
+                data = np.reshape(data, (allrange[5], allrange[8]), order='f')
+                resize_factor = float(width_pixels) / float(allrange[5])
+                print('Size before: {}  Dimensions: {}'.format(data.size, data.shape))
+                data = zoom(data, resize_factor)
+                print('Size after : {}  Dimensions: {}'.format(data.size, data.shape))
+                allrange = list(allrange)
+                allrange[5] = data.shape[0]
+                allrange[8] = data.shape[1]
+                allrange = tuple(allrange)
+                data = np.reshape(data, (data.shape[0] * data.shape[1]), order='f')
+            except:
+                print('Cannot resize the image - scipy.ndimage.zoom() cannot be imported.')
+                pass
 
         #print(allrange)
         m = self._enum('T','V','H','E','HV','EV','EH','EHV')
