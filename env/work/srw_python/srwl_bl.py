@@ -390,7 +390,7 @@ class SRWLBeamline(object):
                 arPhases.append(curPhase)
                 phasePrev = curPhase
                 
-                curFileName = curLineParts[3]
+                curFileName = curLineParts[3].strip()
                 #print(curFileName)
                 
                 if(len(curFileName) > 0):
@@ -450,7 +450,7 @@ class SRWLBeamline(object):
         :param _zc: center position[m]
         :param _interp_ord: order of interpolation: 1- (bi-)linear, 2- (bi-)quadratic, 3- (bi-)cubic
         """
-
+        _fpath = _fpath.strip()
         if(os.path.exists(_fpath) == False):
             raise Exception('No magnetic field data are supplied')
 
@@ -975,7 +975,7 @@ class SRWLBeamline(object):
                 arPhases.append(curPhase)
                 phasePrev = curPhase
 
-                curFileName = curLineParts[3]
+                curFileName = curLineParts[3].strip()
                 print('Magnetic Field Data File:', curFileName)
 
                 curFldCnt = None
