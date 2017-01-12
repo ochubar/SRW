@@ -16,7 +16,7 @@ import uti_io
 
 
 # ********************** The class for Samples:
-class SRWLSamples:
+class SRWLOptSmp:
     """The class for Samples from image file (.tif), NumPy array (.npy), etc.
 
     :param file_path: full path to the image or the saved NumPy array.
@@ -166,7 +166,7 @@ def srwl_opt_setup_transmission_from_file(file_path, resolution, thickness, delt
         "finalPhotonPnergy": e_fin,
     }
 
-    s = SRWLSamples(
+    s = SRWLOptSmp(
         file_path=file_path,
         is_show_images=False,
         is_save_images=is_save_images,
