@@ -150,14 +150,19 @@ for k, driftLength in enumerate([0.0, defaultDriftLength]):
     srwl.CalcIntFromElecField(arRe, wfr, polarization, 5, 2, wfr.mesh.eStart, 0, 0)
     srwl.CalcIntFromElecField(arIm, wfr, polarization, 6, 2, wfr.mesh.eStart, 0, 0)
 
-def calc_fwhm(intensities, wavefront, shift=0.5):
-    y = []
+def calc_fwhm(intensities, wavefront, shift=0.5, mesh=True, factor=1e3):
+    if mesh:
+        y = []
+        for i in range(wfrIn.mesh.ny):
+            y.append((i - wavefront.mesh.ny / 2.0) / wavefront.mesh.ny * (wavefront.mesh.yFin - wavefront.mesh.yStart))
+    else:
+        y = wavefront
+
     renormed_intensities = []
     max_intensity = max(intensities)
-    for i in range(wfrIn.mesh.ny):
-        y.append((i - wavefront.mesh.ny / 2.0) / wavefront.mesh.ny * (wavefront.mesh.yFin - wavefront.mesh.yStart))
-        renormed_intensities.append(float(intensities[i] / max_intensity - shift))
-    return fwhm(y, renormed_intensities) * 1e3  # [mm]
+    for i in intensities:
+        renormed_intensities.append(float(i / max_intensity - shift))
+    return fwhm(y, renormed_intensities) * factor  # in [mm] by default
 
 parameters = [
     ['Maximum intensity before and after propagation', arIinymax[0], arI1ymax],
@@ -191,6 +196,7 @@ if scipy_imported:
     for i in range(numPointsOut):
         x = 3.1415 * apertureSize * sin(th[i]) / lam
         analyticalIntens.append((2 * jv(1, x) / x) ** 2)
+    print('{}Analytical FWHM [mm]: {}'.format('    ', calc_fwhm(analyticalIntens, sOut, mesh=False, factor=1.0)))
 for i in range(numPointsIn):
     sIn.append(2000.0 * (i - numPointsIn / 2.0) * float(wfrIn.mesh.xFin) / numPointsIn)
 
