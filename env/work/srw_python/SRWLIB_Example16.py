@@ -11,16 +11,24 @@ The example requires SciPy library to perform comparison.
 from __future__ import print_function  # Python 2.7 compatibility
 import uti_plot
 from srwlib import *
+from uti_math import fwhm
 
 print('SRWLIB Python Example # 16:')
-print('Comparison of intensity distribution after diffraction on a circular aperture with an analytical distribution')
+print('Intensity distribution after diffraction on a circular aperture.')
+try:
+    from scipy.special import jv
+    scipy_imported = True
+    print('Comparison with an analytical distribution...')
+except:
+    scipy_imported = False
+    print('Cannot import scipy for comparison of the intensity distribution with an analytical distribution.')
 
 #************************************* Create examples directory if it does not exist
 example_folder = 'data_example_16'  # example data sub-folder name
 if not os.path.isdir(example_folder):
     os.mkdir(example_folder)
-strIntOutFileName1 = 'ex16_res_int1.dat' # file name for output SR intensity data
-strIntOutFileName2 = 'ex16_res_int2.dat' # file name for output SR intensity data
+strIntOutFileName = 'ex16_res_int.dat'  # file name for output SR intensity data before propagation
+strIntOutFileNameProp = 'ex16_res_int_prop_{}m.dat'  # file name for output SR intensity data after propagation
 
 #************************************* Perform SRW calculations
 # Gaussian beam definition:
@@ -81,79 +89,88 @@ srwl.CalcIntFromElecField(arIinY, wfrIn, 0, 0, 2, wfrIn.mesh.eStart, 0, 0)  # ex
 plotMeshInX = [1000 * wfrIn.mesh.xStart, 1000 * wfrIn.mesh.xFin, wfrIn.mesh.nx]
 plotMeshInY = [1000 * wfrIn.mesh.yStart, 1000 * wfrIn.mesh.yFin, wfrIn.mesh.ny]
 srwl_uti_save_intens_ascii(arIin, wfrIn.mesh,
-                           '{}/{}'.format(example_folder, strIntOutFileName1),
+                           '{}/{}'.format(example_folder, strIntOutFileName),
                            0, ['Photon Energy', 'Horizontal Position', 'Vertical Position', ''],
                            _arUnits=['eV', 'm', 'm', 'ph/s/.1%bw/mm^2'])
-uti_plot.uti_plot2d(arIin, plotMeshInX, plotMeshInY,
-                    ['Horizontal Position [mm]', 'Vertical Position [mm]', 'Intensity Before Propagation [a.u.]'])
-uti_plot.uti_plot1d(arIinY, plotMeshInY, ['Vertical Position [mm]', 'Intensity [a.u.]',
-                                          'Intensity Before Propagation\n(cut vs vertical position at x=0)'])
+uti_plot.uti_plot2d1d(arIin, plotMeshInX, plotMeshInY,
+                      labels=['Horizontal Position [mm]', 'Vertical Position [mm]', 'Intensity Before Propagation [a.u.]'])
 
 # Element definition:
 apertureSize = 0.00075  # Aperture radius, m
-driftLength = 1.0  # Drift length, m
+defaultDriftLength = 1.0  # Drift length, m
 OpElement = []
 ppOpElement = []
 
 OpElement.append(SRWLOptA('c', 'a', apertureSize, apertureSize))
 ppOpElement.append([0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 0, 0, 0])
-OpElement.append(SRWLOptD(driftLength))  # Drift space
-ppOpElement.append([1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0, 0, 0])
+arIinymax = []
+for k, driftLength in enumerate([0.0, defaultDriftLength]):
+    ppOpElement.append([1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0, 0, 0])
+    if driftLength:
+        OpElement.append(SRWLOptD(driftLength))  # Drift space
+    ppOpElement.append([1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0, 0, 0])
 
-opBL = SRWLOptC(OpElement, ppOpElement)
-srwl.PropagElecField(wfr, opBL)  # Propagate Electric Field
+    opBL = SRWLOptC(OpElement, ppOpElement)
+    srwl.PropagElecField(wfr, opBL)  # Propagate Electric Field
 
-polarization = 6  # 0- Linear Horizontal /  1- Linear Vertical 2- Linear 45 degrees / 3- Linear 135 degrees / 4- Circular Right /  5- Circular /  6- Total
-intensity = 0  # 0=Single-e I/1=Multi-e I/2=Single-e F/3=Multi-e F/4=Single-e RadPhase/5=Re single-e Efield/6=Im single-e Efield
-dependArg = 3  # 0 - vs e, 1 - vs x, 2 - vs y, 3- vs x&y, 4-vs x&e, 5-vs y&e, 6-vs x&y&e
+    polarization = 6  # 0- Linear Horizontal /  1- Linear Vertical 2- Linear 45 degrees / 3- Linear 135 degrees / 4- Circular Right /  5- Circular /  6- Total
+    intensity = 0  # 0=Single-e I/1=Multi-e I/2=Single-e F/3=Multi-e F/4=Single-e RadPhase/5=Re single-e Efield/6=Im single-e Efield
+    dependArg = 3  # 0 - vs e, 1 - vs x, 2 - vs y, 3- vs x&y, 4-vs x&e, 5-vs y&e, 6-vs x&y&e
 
-# Calculating output wavefront:
-arIout = array('f', [0] * wfr.mesh.nx * wfr.mesh.ny)  # "flat" array to take 2D intensity data
-arII = arIout
-arIE = array('f', [0] * wfr.mesh.nx * wfr.mesh.ny)
-srwl.CalcIntFromElecField(arII, wfr, polarization, intensity, dependArg, wfr.mesh.eStart, 0, 0)
+    # Calculating output wavefront:
+    arIout = array('f', [0] * wfr.mesh.nx * wfr.mesh.ny)  # "flat" array to take 2D intensity data
+    arII = arIout
+    arIE = array('f', [0] * wfr.mesh.nx * wfr.mesh.ny)
+    srwl.CalcIntFromElecField(arII, wfr, polarization, intensity, dependArg, wfr.mesh.eStart, 0, 0)
 
-arI1y = array('f', [0] * wfr.mesh.ny)
-arRe = array('f', [0] * wfr.mesh.ny)
-arIm = array('f', [0] * wfr.mesh.ny)
-srwl.CalcIntFromElecField(arI1y, wfr, polarization, intensity, 2, wfr.mesh.eStart, 0, 0)  # extracts intensity
+    arI1y = array('f', [0] * wfr.mesh.ny)
+    arRe = array('f', [0] * wfr.mesh.ny)
+    arIm = array('f', [0] * wfr.mesh.ny)
+    srwl.CalcIntFromElecField(arI1y, wfr, polarization, intensity, 2, wfr.mesh.eStart, 0, 0)  # extracts intensity
 
-# Normalize intensities:
-arI1ymax = max(arI1y)
-arIinymax = max(arIinY)
-for i in range(len(arI1y)):
-    arI1y[i] /= arI1ymax
-for i in range(len(arIinY)):
-    arIinY[i] /= arIinymax
+    # Normalize intensities:
+    arI1ymax = max(arI1y)
+    arIinymax.append(max(arIinY))
+    for i in range(len(arI1y)):
+        arI1y[i] /= arI1ymax
+    for i in range(len(arIinY)):
+        arIinY[i] /= arIinymax[-1]
 
-# Plotting output wavefront:
-plotNum = 1000
-plotMeshx = [plotNum * wfr.mesh.xStart, plotNum * wfr.mesh.xFin, wfr.mesh.nx]
-plotMeshy = [plotNum * wfr.mesh.yStart, plotNum * wfr.mesh.yFin, wfr.mesh.ny]
-srwl_uti_save_intens_ascii(arII, wfr.mesh,
-                           '{}/{}'.format(example_folder, strIntOutFileName2),
-                           0, ['Photon Energy', 'Horizontal Position', 'Vertical Position', ''],
-                           _arUnits=['eV', 'm', 'm', 'ph/s/.1%bw/mm^2'])
-uti_plot.uti_plot2d(arII, plotMeshx, plotMeshy,
-                    ['Horizontal Position [mm]', 'Vertical Position [mm]', 'Intenisty After Propagation [a.u.]'])
-uti_plot.uti_plot1d(arI1y, plotMeshy, ['Vertical Position [mm]', 'Intensity [a.u.]',
-                                       'Intensity After Propagation\n(cut vs vertical position at x=0)'])
+    # Plotting output wavefront:
+    plotNum = 1000
+    plotMeshx = [plotNum * wfr.mesh.xStart, plotNum * wfr.mesh.xFin, wfr.mesh.nx]
+    plotMeshy = [plotNum * wfr.mesh.yStart, plotNum * wfr.mesh.yFin, wfr.mesh.ny]
+    srwl_uti_save_intens_ascii(arII, wfr.mesh,
+                               '{}/{}'.format(example_folder, strIntOutFileNameProp.format(driftLength)),
+                               0, ['Photon Energy', 'Horizontal Position', 'Vertical Position', ''],
+                               _arUnits=['eV', 'm', 'm', 'ph/s/.1%bw/mm^2'])
+    uti_plot.uti_plot2d1d(arII, plotMeshx, plotMeshy,
+                          labels=['Horizontal Position [mm]', 'Vertical Position [mm]', 'Intenisty at {}m After Aperture  [a.u.]'.format(driftLength)])
 
-srwl.CalcIntFromElecField(arRe, wfr, polarization, 5, 2, wfr.mesh.eStart, 0, 0)
-srwl.CalcIntFromElecField(arIm, wfr, polarization, 6, 2, wfr.mesh.eStart, 0, 0)
+    srwl.CalcIntFromElecField(arRe, wfr, polarization, 5, 2, wfr.mesh.eStart, 0, 0)
+    srwl.CalcIntFromElecField(arIm, wfr, polarization, 6, 2, wfr.mesh.eStart, 0, 0)
+
+def calc_fwhm(intensities, wavefront, shift=0.5):
+    y = []
+    renormed_intensities = []
+    max_intensity = max(intensities)
+    for i in range(wfrIn.mesh.ny):
+        y.append((i - wavefront.mesh.ny / 2.0) / wavefront.mesh.ny * (wavefront.mesh.yFin - wavefront.mesh.yStart))
+        renormed_intensities.append(float(intensities[i] / max_intensity - shift))
+    return fwhm(y, renormed_intensities) * 1e3  # [mm]
 
 parameters = [
-    ['Max Inten B and A propagation', arIinymax, arI1ymax],
-    ['Num of y mesh pts B and A propagation', len(arIinY), len(arI1y)],
-    ['Num of x mesh pts B and A propagation', wfrIn.mesh.nx, wfr.mesh.nx],
-    ['Num of y mesh pts B and A propagation', wfrIn.mesh.ny, wfr.mesh.ny],
-    ['Wfr xS size [mm] B and A propagation', wfrIn.mesh.xStart, wfr.mesh.xStart],
-    ['Wfr xE size [mm] B and A propagation', wfrIn.mesh.xFin, wfr.mesh.xFin],
-    ['Wfr yS size [mm] B and A propagation', wfrIn.mesh.yStart, wfr.mesh.yStart],
-    ['Wfr yE size [mm] B and A propagation', wfrIn.mesh.yFin, wfr.mesh.yFin],
+    ['Maximum intensity before and after propagation', arIinymax[0], arI1ymax],
+    ['Number of horizontal mesh points before and after propagation', wfrIn.mesh.nx, wfr.mesh.nx],
+    ['Number of vertical mesh points before and after propagation', wfrIn.mesh.ny, wfr.mesh.ny],
+    ['Wavefront horizontal start coordinates [mm] before and after propagation', wfrIn.mesh.xStart, wfr.mesh.xStart],
+    ['Wavefront horizontal end coordinates [mm] before and after propagation', wfrIn.mesh.xFin, wfr.mesh.xFin],
+    ['Wavefront vertical start coordinates [mm] before and after propagation', wfrIn.mesh.yStart, wfr.mesh.yStart],
+    ['Wavefront vertical end coordinates [mm] before and after propagation', wfrIn.mesh.yFin, wfr.mesh.yFin],
+    ['Vertical FWHM [mm] before and after propagation', calc_fwhm(arIinY, wfrIn), calc_fwhm(arI1y, wfr)],
 ]
 for i in range(len(parameters)):
-    print('{}{}: [{}, {}]'.format('    ', parameters[i][0], parameters[i][1], parameters[i][2]))
+    print('{}{}: [{}, {}]'.format('    ', *parameters[i]))
 
 #************************************* 2. Defining parameters for analytic calculation
 lam = 2.4796e-6  # 1.2398/0.5 eV
@@ -170,29 +187,26 @@ for i in range(numPointsOut):
     thx = 2.0 * (i - numPointsOut / 2.0 + 0.5) * meshSize / numPointsOut / driftLength
     th.append(thx)
     sOut.append(thx * driftLength * 1000)
-try:
-    from scipy.special import jv
+if scipy_imported:
     for i in range(numPointsOut):
         x = 3.1415 * apertureSize * sin(th[i]) / lam
         analyticalIntens.append((2 * jv(1, x) / x) ** 2)
-except:
-    pass
 for i in range(numPointsIn):
     sIn.append(2000.0 * (i - numPointsIn / 2.0) * float(wfrIn.mesh.xFin) / numPointsIn)
 
 #************************************* 4. Plotting
 try:
     from matplotlib import pyplot as plt
-    fig = plt.figure()
+    fig = plt.figure(figsize=(10, 7))
     ax = fig.add_subplot(111)
     ax.plot(sIn, arIinY, '--g.', label='SRW (before aperture)')
-    ax.plot(sOut, arI1y, '-r.', label='SRW (after aperture)')
+    ax.plot(sOut, arI1y, '-r.', label='SRW ({}m after aperture)'.format(driftLength))
     if analyticalIntens:
         ax.plot(sOut, analyticalIntens, '-b.', label='Analytical estimation')
     ax.legend()
     ax.set_xlabel('Vertical Position [mm]')
     ax.set_ylabel('Normalized Intensity, [a.u.]')
-    ax.set_title('Intensity After Propagation\n(cut vs vertical position at x=0)')
+    ax.set_title('Intensity Before and After Propagation\n(cut vs vertical position at x=0)')
     ax.grid()
     plt.savefig('{}/compare.png'.format(example_folder))
     plt.show()
