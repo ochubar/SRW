@@ -127,7 +127,7 @@ class SRWLOptSmp(SRWLOpt):
 
     def _check_input_type(self, file_path):
         self.possible_extensions = {
-            'image': ['tif', 'tiff', 'png', 'bmp', 'gif'],
+            'image': ['tif', 'tiff', 'png', 'bmp', 'gif', 'jpg', 'jpeg'],
             'npy': ['npy'],
         }
         extension = os.path.splitext(file_path)[1][1:].lower()

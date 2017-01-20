@@ -128,10 +128,13 @@ def read_image(image_path, bottom_limit=None, cutoff_background=0.5): #MR1711201
 
     # Read the image:
     raw_image = Image.open(image_path)
+    image_format = raw_image.format
+    if image_format == 'JPEG':  # http://stackoverflow.com/a/37675266/4143531
+        raw_image = raw_image.convert('L')
 
     # Convert it to NumPy array:
     data = np.array(raw_image)
-    if raw_image.format not in ('TIFF', 'PNG', 'BMP', 'GIF'):
+    if image_format not in ('TIFF', 'PNG', 'BMP', 'GIF', 'JPEG'):
         raise ValueError('"{}" format is not supported at the moment.'.format(raw_image.format))
 
     # Get bits per point:
