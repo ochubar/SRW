@@ -15,7 +15,6 @@ import sys
 import os
 import traceback
 import uti_math
-import math
 import errno
 import tempfile
 import shutil
@@ -3038,14 +3037,14 @@ def srwl_opt_setup_mask(_delta, _atten_len, _thick,
             # Hartmann hole in a rectangular shape.
             elif _grid_sh == 1:
                 # Calculate the equations for edges of rectangle.
-                xCross1 = - _grid_dx / (2 ** 0.5) * math.cos(_grid_angle)
-                yCross1 = - _grid_dx / (2 ** 0.5) * math.sin(_grid_angle)
-                xCross2 = + _grid_dx / (2 ** 0.5) * math.cos(_grid_angle)
-                yCross2 = + _grid_dx / (2 ** 0.5) * math.sin(_grid_angle)
-                k1 = math.tan(math.pi / 4 + _grid_angle)
-                k2 = -math.tan(math.pi / 4 - _grid_angle)
-                k4 = math.tan(math.pi / 4 + _grid_angle)
-                k3 = -math.tan(math.pi / 4 - _grid_angle)
+                xCross1 = - _grid_dx / (2 ** 0.5) * cos(_grid_angle)
+                yCross1 = - _grid_dx / (2 ** 0.5) * sin(_grid_angle)
+                xCross2 = + _grid_dx / (2 ** 0.5) * cos(_grid_angle)
+                yCross2 = + _grid_dx / (2 ** 0.5) * sin(_grid_angle)
+                k1 = tan(pi / 4 + _grid_angle)
+                k2 = -tan(pi / 4 - _grid_angle)
+                k4 = tan(pi / 4 + _grid_angle)
+                k3 = -tan(pi / 4 - _grid_angle)
 
                 if (k2 * x_rel + (yCross2 - k2 * xCross2)) > y_rel > (k3 * x_rel + (yCross1 - k3 * xCross1)) \
                         and (k1 * x_rel + (yCross1 - k1 * xCross1)) > y_rel > (k4 * x_rel + (yCross2 - k4 * xCross2)) \
