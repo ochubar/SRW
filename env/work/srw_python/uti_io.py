@@ -106,7 +106,7 @@ def write_ascii_data_cols(_file_path, _cols, _str_sep, _str_head=None, _i_col_st
     f.write(strTot)
     f.close()
 
-#********************** Read data from a TIFF file:
+#********************** Read data from an image file:
 def read_image(image_path, bottom_limit=None, cutoff_background=0.5): #MR17112016
     """Read data from an image file.
 
