@@ -3857,6 +3857,36 @@ def srwl_uti_save_stat_wfr_emit_prop_multi_e(  # #MR20160908
     tmp_file.close()
     shutil.move(tmp_file.name, status_json_file)
 
+def srwl_uti_save_stat_wfr_emit_prop_multi_e_init(rank, num_of_proc, num_part_per_proc, num_sent_per_proc, num_part_avg_proc): #MR20012017
+    """Initialize parameters for the SRW status files and generate the files.
+
+    :param rank: rank of the process.
+    :param num_of_proc: total number of processes.
+    :param num_part_per_proc: number of electrons treated by each worker process.
+    :param num_sent_per_proc: number of sending acts made by each worker process.
+    :param num_part_avg_proc: number of macro-electrons to be used in calculation by each worker.
+    """
+    log_dir = os.path.abspath('__srwl_logs__')
+    if rank == 0:
+        try:
+            os.mkdir(log_dir)
+        except OSError as exc:
+            if exc.errno == errno.EEXIST and os.path.isdir(log_dir):
+                pass
+            else:
+                raise
+    timestamp = '{:%Y-%m-%d_%H-%M-%S}'.format(datetime.datetime.now())
+    log_file = 'srwl_stat_wfr_emit_prop_multi_e_{}'.format(timestamp)
+    log_path = os.path.join(log_dir, log_file)
+    if num_of_proc <= 1:
+        total_num_of_particles = num_part_per_proc
+    else:
+        total_num_of_particles = num_sent_per_proc * (num_of_proc - 1) * num_part_avg_proc
+    if rank == 0:
+        srwl_uti_save_stat_wfr_emit_prop_multi_e(0, total_num_of_particles, filename=log_path,
+                                                 cores=num_of_proc, particles_per_iteration=num_part_avg_proc)
+    return log_path, total_num_of_particles
+
 #**********************Auxiliary function to read tabulated 3D Magnetic Field data from ASCII file:
 def srwl_uti_read_mag_fld_3d(_fpath, _scom='#'):
     f = open(_fpath, 'r')
@@ -4177,6 +4207,8 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
 
     #print('DEBUG MESSAGE: rank:', rank,': nPartPerProc=', nPartPerProc, 'nSentPerProc=', nSentPerProc, '_n_part_avg_proc=', _n_part_avg_proc)
 
+    log_path, total_num_of_particles = srwl_uti_save_stat_wfr_emit_prop_multi_e_init(rank, nProc, nPartPerProc, nSentPerProc, _n_part_avg_proc) #MR20012017
+
     useGsnBmSrc = False
     if(isinstance(_mag, SRWLGsnBm)):
         useGsnBmSrc = True
@@ -4280,28 +4312,6 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
 
         #iAvgProc += 1 #OC190414 (commented-out)
         #iSave += 1
-
-    #MR01112016: Initialize prarameters for the SRW status files and generate the files:
-    # log_dir = os.getcwd() if _file_path is None else os.path.dirname(os.path.abspath(_file_path))
-    log_dir = os.path.abspath('__srwl_logs__')  #MR04112016
-    if rank == 0:  #MR02122016
-        try:
-            os.mkdir(log_dir)
-        except OSError as exc:
-            if exc.errno == errno.EEXIST and os.path.isdir(log_dir):
-                pass
-            else:
-                raise
-    timestamp = '{:%Y-%m-%d_%H-%M-%S}'.format(datetime.datetime.now())
-    log_file = 'srwl_stat_wfr_emit_prop_multi_e_{}'.format(timestamp)
-    log_path = os.path.join(log_dir, log_file)
-    if nProc <= 1:
-        total_num_of_particles = nPartPerProc
-    else:
-        total_num_of_particles = nSentPerProc * (nProc - 1) * _n_part_avg_proc
-    if rank == 0:
-        srwl_uti_save_stat_wfr_emit_prop_multi_e(0, total_num_of_particles, filename=log_path,
-                                                 cores=nProc, particles_per_iteration=_n_part_avg_proc)
 
     #slaves = [] #an he
     #print('DEBUG MESSAGE: rank=', rank)
