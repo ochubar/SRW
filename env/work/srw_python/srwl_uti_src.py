@@ -44,7 +44,7 @@ def srwl_uti_src_e_beam(_nm, _Iavg=None, _e=None, _sig_e=None, _emit_x=None, _be
     :param _name: string identifying a source
     :return: SRWLPartBeam object
     """
-    allBeams = srwl_uti_src_predefined_e_beams()
+    allBeams = srwl_uti_src_e_beams_predef()
     sTest = _nm.replace(' ', '')
     sTest = sTest.replace('-', '')
     sTest = sTest.capitalize()
