@@ -149,7 +149,7 @@ def uti_plot2d1d(ar2d, x_range, y_range, x=0, y=0, labels=('Horizontal Position'
     
 #def uti_data_file_plot(_fname, _read_labels=1, _e=0, _x=0, _y=0, _graphs_joined=True):
 def uti_data_file_plot(_fname, _read_labels=1, _e=0, _x=0, _y=0, _graphs_joined=True, _traj_report=False, _traj_axis='x',
-                       log_scale=None, width_pixels=None): #MR29072016
+                       _scale='linear', _width_pixels=None): #MR20012017
     """Generate plot from configuration in _fname
 
     :param str _fname: config loaded from here
@@ -158,11 +158,16 @@ def uti_data_file_plot(_fname, _read_labels=1, _e=0, _x=0, _y=0, _graphs_joined=
     :param float _x: horizonal position adjustment
     :param float _y: vertical position adjustment
     :param bool _graphs_joined: if true, all plots in a single figure
+    :param bool _traj_report: if true, plot trajectory report data
+    :param str _traj_axis: the axis to plot vs. z-axis
+    :param str _scale: the scale to use for plotting data (linear by default, but could use log, log2, log10)
+    :param int _width_pixels: the width of the final plot in pixels
+
     """
     #if '_backend' not in locals(): uti_plot_init() #?
     #_backend.uti_data_file_plot(_fname, _read_labels, _e, _x, _y, _graphs_joined)
     _backend.uti_data_file_plot(_fname, _read_labels, _e, _x, _y, _graphs_joined, _traj_report, _traj_axis,
-                                log_scale, width_pixels) #MR29072016
+                                _scale, _width_pixels) #MR20012017
 
 class _BackendBase(object):
     def __getattr__(self, attr):

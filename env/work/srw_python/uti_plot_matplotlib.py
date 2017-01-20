@@ -105,20 +105,26 @@ class Backend(object):
 
     #def srw_ascii_plot(fname):
     def uti_data_file_plot(self, _fname, _read_labels=1, _e=0, _x=0, _y=0, _graphs_joined=1, _traj_report=False, _traj_axis='x',
-                           log_scale=None, width_pixels=None):
+                           _scale='linear', _width_pixels=None):
         #data, mode, allrange = srw_ascii_load(fname)
         #data, mode, allrange, arLabels, arUnits = _file_load(_fname, _read_labels)
         data, mode, allrange, arLabels, arUnits = uti_plot_com.file_load(_fname, _read_labels, _traj_report, _traj_axis)
-
-        if log_scale:
-            data = np.log10(data)
-        if width_pixels:
+        data = np.array(data)
+        if _scale != 'linear':
+            available_scales = ['log', 'log2', 'log10']
+            if _scale not in available_scales:
+                raise ValueError('Scale "{}" is not supported. Available scales: {}.'.format(_scale, ', '.join(available_scales)))
+            data[np.where(data <= 0.)] = 1.e-23
+            data = getattr(np, _scale)(data)
+        if _width_pixels:
             try:
                 from scipy.ndimage import zoom
                 data = np.reshape(data, (allrange[5], allrange[8]), order='f')
-                resize_factor = float(width_pixels) / float(allrange[5])
+                resize_factor = float(_width_pixels) / float(allrange[5])
                 print('Size before: {}  Dimensions: {}'.format(data.size, data.shape))
                 data = zoom(data, resize_factor)
+                if _scale == 'linear':
+                    data[np.where(data < 0.)] = 0.0
                 print('Size after : {}  Dimensions: {}'.format(data.size, data.shape))
                 allrange = list(allrange)
                 allrange[5] = data.shape[0]
