@@ -108,7 +108,7 @@ def write_ascii_data_cols(_file_path, _cols, _str_sep, _str_head=None, _i_col_st
 
 #********************** Read data from a TIFF file:
 def read_image(image_path, bottom_limit=None, cutoff_background=0.5): #MR17112016
-    """Read data from a TIFF file.
+    """Read data from an image file.
 
     :param image_path: full path to the image.
     :param bottom_limit: the bottom limit separating the image and the legend (black block).
@@ -131,6 +131,8 @@ def read_image(image_path, bottom_limit=None, cutoff_background=0.5): #MR1711201
 
     # Convert it to NumPy array:
     data = np.array(raw_image)
+    if raw_image.format not in ('TIFF', 'PNG', 'BMP', 'GIF'):
+        raise ValueError('"{}" format is not supported at the moment.'.format(raw_image.format))
 
     # Get bits per point:
     mode_to_bpp = {'1': 1, 'L': 8, 'P': 8, 'I;16': 16, 'RGB': 24, 'RGBA': 32, 'CMYK': 32, 'YCbCr': 24, 'I': 32, 'F': 32}

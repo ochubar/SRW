@@ -8,15 +8,13 @@
 import math
 import os
 
-import numpy as np
-from PIL import Image
-
 import srwlib
 import uti_io
+from srwlib import SRWLOpt
 
 
 # ********************** The class for Samples:
-class SRWLOptSmp:
+class SRWLOptSmp(SRWLOpt):
     """The class for Samples from image file (.tif), NumPy array (.npy), etc.
 
     :param file_path: full path to the image or the saved NumPy array.
@@ -30,15 +28,19 @@ class SRWLOptSmp:
     """
 
     def __init__(self, file_path, bottom_limit=None, cutoff_background=0.5, is_show_images=False, is_save_images=False,
-                 raw_image_name='raw.tif', processed_image_name='processed.tif', prefix=''):
+                 raw_image_name='raw', processed_image_name='processed', prefix='', output_image_format='tif'):
         # Input parameters:
+        super(self.__class__, self).__init__()
         self.file_path = file_path
         self.bottom_limit = bottom_limit
         self.cutoff_background = cutoff_background
         self.is_show_images = is_show_images
         self.is_save_images = is_save_images
-        self.raw_image_name = self._add_prefix(prefix, raw_image_name)
-        self.processed_image_name = self._add_prefix(prefix, processed_image_name)
+        self.raw_image_name = self._add_prefix(prefix, raw_image_name, output_image_format)
+        self.processed_image_name = self._add_prefix(prefix, processed_image_name, output_image_format)
+
+        # Aux variables:
+        self._import_error_msg = '"{0}" library is not installed. Use "pip install {0}" to install it if you want to use this functionality.'
 
         # Output parameters:
         self.data = None
@@ -81,14 +83,20 @@ class SRWLOptSmp:
         self.limit_value = d['limit_value']
 
     def get_image_from_data(self):
-        data = self.read_data_from_npy()
+        try:
+            import numpy as np
+        except:
+            raise ImportError('The specified npy file cannot be read since {}'.format(self._import_error_msg.format('numpy')))
+        data = np.load(self.file_path)
         self.limit_value = 255
         self.data = (data - data.min()) / (data.max() - data.min()) * self.limit_value
-        self.raw_image = Image.fromarray(self.data.astype(np.uint8))
-        self.processed_image = self.raw_image
-
-    def read_data_from_npy(self):
-        return np.load(self.file_path)
+        try:
+            from PIL import Image
+            self.raw_image = Image.fromarray(self.data.astype(np.uint8))
+            self.processed_image = self.raw_image
+        except:
+            print('The processed image will not be saved since {}'.format(self._import_error_msg.format('pillow')))
+            self.is_save_images = False
 
     def read_sample(self):
         if self.input_type == 'image':
@@ -109,8 +117,9 @@ class SRWLOptSmp:
         self.raw_image.show()
         self.processed_image.show()
 
-    def _add_prefix(self, prefix, name):
-        return '{}_{}'.format(prefix, name) if prefix else name
+    def _add_prefix(self, prefix, name, image_format):
+        output_name = '{}_{}'.format(prefix, name) if prefix else name
+        return '{}.{}'.format(output_name, image_format)
 
     def _check_files(self):
         if not os.path.isfile(self.file_path):
@@ -118,7 +127,7 @@ class SRWLOptSmp:
 
     def _check_input_type(self, file_path):
         self.possible_extensions = {
-            'image': ['tif', 'tiff'],
+            'image': ['tif', 'tiff', 'png', 'bmp', 'gif'],
             'npy': ['npy'],
         }
         extension = os.path.splitext(file_path)[1][1:].lower()
