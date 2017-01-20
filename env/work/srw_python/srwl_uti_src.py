@@ -7,7 +7,7 @@
 from srwlib import *
 
 #****************************************************************************
-def srwl_uti_src_predefined_e_beams():
+def srwl_uti_src_e_beams_predef():
     #E-Beam params in the order: _Iavg, _e, _sig_e, _emit_x, _beta_x, _alpha_x, _eta_x, _eta_x_pr, _emit_y, _beta_y, _alpha_y
     allBeams = [
         #['NSLS-II Low Beta Day 1',  [0.5,    3,  0.89e-03,   0.9e-09,   2.02,     0,     0,      0,     8e-12,   1.06,      0]],
