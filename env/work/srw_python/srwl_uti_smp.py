@@ -10,12 +10,11 @@ import os
 
 import srwlib
 import uti_io
-from srwlib import SRWLOpt
 
 
 # ********************** The class for Samples:
-class SRWLOptSmp(SRWLOpt):
-    """The class for Samples from image file (.tif), NumPy array (.npy), etc.
+class SRWLUtiSmp:
+    """The class for Samples from image file (e.g., .tif), NumPy array (.npy), etc.
 
     :param file_path: full path to the image or the saved NumPy array.
     :param bottom_limit: the bottom limit separating the image and the legend (black block).
@@ -30,7 +29,6 @@ class SRWLOptSmp(SRWLOpt):
     def __init__(self, file_path, bottom_limit=None, cutoff_background=0.5, is_show_images=False, is_save_images=False,
                  raw_image_name='raw', processed_image_name='processed', prefix='', output_image_format='tif'):
         # Input parameters:
-        super(self.__class__, self).__init__()
         self.file_path = file_path
         self.bottom_limit = bottom_limit
         self.cutoff_background = cutoff_background
@@ -141,12 +139,12 @@ class SRWLOptSmp(SRWLOpt):
 
 
 # ********************** Create transmission element from the data from an image file:
-def srwl_opt_setup_transmission_from_file(file_path, resolution, thickness, delta, atten_len,
-                                          xc=0, yc=0, e_start=0, e_fin=0,
-                                          is_save_images=True, prefix=''):
+def srwl_opt_setup_transm_from_file(file_path, resolution, thickness, delta, atten_len,
+                                    xc=0, yc=0, e_start=0, e_fin=0,
+                                    is_save_images=True, prefix=''):
     """Setup Sample element.
 
-    :param file_path: path to the input file (.tif or .npy).
+    :param file_path: path to the input file (image or .npy).
     :param limit_value: maximum possible value (from bits per point).
     :param nx: number of horizontal points.
     :param ny: number of vertical points.
@@ -175,7 +173,7 @@ def srwl_opt_setup_transmission_from_file(file_path, resolution, thickness, delt
         "finalPhotonPnergy": e_fin,
     }
 
-    s = SRWLOptSmp(
+    s = SRWLUtiSmp(
         file_path=file_path,
         is_show_images=False,
         is_save_images=is_save_images,
