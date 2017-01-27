@@ -40,7 +40,7 @@ fftw:
 	cd $(fftw_dir); \
 	./configure --enable-float --with-pic; \
 	sed 's/^CFLAGS = /CFLAGS = -fPIC /' -i Makefile; \
-	make && cp fftw/.libs/libfftw.a $(ext_dir); \
+	make -j8 && cp fftw/.libs/libfftw.a $(ext_dir); \
 	cd $(root_dir); \
 	rm -rf $(ext_dir)/$(fftw_dir);
 
@@ -89,6 +89,6 @@ test:
 clean:
 	rm -f $(ext_dir)/libfftw.a $(gcc_dir)/libsrw.a $(gcc_dir)/srwlpy*.so; \
 	rm -rf $(ext_dir)/$(fftw_dir)/ py/build/;
-	if [ -d $(root_dir)/.git ]; then rm -f $(examples_dir)/srwlpy*.so && git checkout $(examples_dir)/srwlpy.so; fi;
+	if [ -d $(root_dir)/.git ]; then rm -f $(examples_dir)/srwlpy*.so && (git checkout $(examples_dir)/srwlpy*.so 2>/dev/null || :); fi;
 
 .PHONY: all clean core fftw nofftw pylib test
