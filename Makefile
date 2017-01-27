@@ -59,9 +59,8 @@ test:
 	cd $(examples_dir); \
 	timeout 20 python SRWLIB_Example10.py; \
 	code=$$?; \
-	RED='\033[0;31m'; \
-	GREEN='\033[0;32m'; \
-	NC='\033[0m'; \
+	RED=1; \
+	GREEN=2; \
 	if [ $$code -eq 0 ]; then \
 	    status='PASSED'; \
 	    color=$${GREEN}; \
@@ -75,7 +74,12 @@ test:
 	    color=$${RED}; \
 	    message=''; \
 	fi; \
-	echo -e "\n\tTest $${color}$${status}$${NC}. Code=$${code}$${message}\n"; \
+	echo -e -n "\n\tTest "; \
+	tput setaf $${color}; \
+	tput bold; \
+	echo -e -n "$${status}"; \
+	tput sgr0; \
+	echo -e ". Code=$${code}$${message}\n"; \
 	rm -f $(example10_data_dir)/{ex10_res_int_se.dat,ex10_res_int_prop_se.dat,ex10_res_int_prop_me.dat}; \
 	if [ $$remove_tmp_dir -eq 1 ]; then \
 	    cd $(root_dir); \
