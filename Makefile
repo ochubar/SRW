@@ -57,7 +57,7 @@ test:
 	    remove_tmp_dir=1; \
 	fi; \
 	cd $(examples_dir); \
-	timeout 20 python SRWLIB_Example10.py; \
+	sh -c '(sleep 20; kill "$$$$" > /dev/null 2>&1) & exec python SRWLIB_Example10.py'; \
 	code=$$?; \
 	RED=1; \
 	GREEN=2; \
@@ -65,7 +65,7 @@ test:
 	    status='PASSED'; \
 	    color=$${GREEN}; \
 	    message=''; \
-	elif [ $$code -eq 124 ]; then \
+	elif [ $$code -eq 143 ]; then \
 	    status='PASSED'; \
 	    color=$${GREEN}; \
 	    message=' (timeouted, expected)'; \
