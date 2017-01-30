@@ -74,12 +74,12 @@ test:
 	    color=$${RED}; \
 	    message=''; \
 	fi; \
-	echo -e -n "\n\tTest "; \
+	printf '\n\n\t%s' 'Test '; \
 	tput setaf $${color}; \
 	tput bold; \
-	echo -e -n "$${status}"; \
+	printf '%s' "$${status}"; \
 	tput sgr0; \
-	echo -e ". Code=$${code}$${message}\n"; \
+	printf '%s\n\n' ". Code=$${code}$${message}"; \
 	rm -f $(example10_data_dir)/{ex10_res_int_se.dat,ex10_res_int_prop_se.dat,ex10_res_int_prop_me.dat}; \
 	if [ $$remove_tmp_dir -eq 1 ]; then \
 	    cd $(root_dir); \
