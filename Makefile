@@ -20,6 +20,7 @@ fftw_file = $(fftw_version).tar.gz
 log_fftw = /dev/null
 examples_dir = $(env_dir)/work/srw_python
 example10_data_dir = $(examples_dir)/data_example_10
+test_timeout = 20
 
 nofftw: core pylib
 
@@ -57,7 +58,7 @@ test:
 	    remove_tmp_dir=1; \
 	fi; \
 	cd $(examples_dir); \
-	sh -c '(sleep 20; kill "$$$$" > /dev/null 2>&1) & exec python SRWLIB_Example10.py'; \
+	sh -c '(sleep $(test_timeout); kill "$$$$" > /dev/null 2>&1) & exec python SRWLIB_Example10.py'; \
 	code=$$?; \
 	RED=1; \
 	GREEN=2; \
