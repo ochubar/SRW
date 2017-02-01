@@ -51,7 +51,7 @@ pylib:
 	cd $(py_dir); make python
 
 test:
-	bash $(examples_dir)/basic-test.sh
+	timeout_s=120 bash $(examples_dir)/basic-test.sh
 
 clean:
 	rm -f $(ext_dir)/libfftw.a $(gcc_dir)/libsrw.a $(gcc_dir)/srwlpy*.so; \
