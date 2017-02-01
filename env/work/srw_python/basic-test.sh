@@ -41,7 +41,7 @@ if [[ ! -d $data_d ]]; then
 fi
 
 # Run example with timeout
-python "$example_py" >& "$out" &
+python -u "$example_py" >& "$out" &
 pid=$!
 status='PASS'
 msg=' (timeout)'
