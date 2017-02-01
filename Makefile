@@ -20,7 +20,6 @@ fftw_file = $(fftw_version).tar.gz
 log_fftw = /dev/null
 examples_dir = $(env_dir)/work/srw_python
 example10_data_dir = $(examples_dir)/data_example_10
-test_timeout = 20
 
 nofftw: core pylib
 
@@ -52,42 +51,8 @@ pylib:
 	cd $(py_dir); make python
 
 test:
-	remove_tmp_dir=0; \
-	if [ ! -d "$(example10_data_dir)" ]; then \
-	    mkdir $(example10_data_dir); \
-	    remove_tmp_dir=1; \
-	fi; \
-	cd $(examples_dir); \
-	sh -c '(sleep $(test_timeout); kill "$$$$" > /dev/null 2>&1) & exec python SRWLIB_Example10.py'; \
-	code=$$?; \
-	if test -t 1; then \
-	    ncolors=$$(tput colors); \
-	    if test -n "$$ncolors" && test $$ncolors -ge 8; then \
-	        bold="$$(tput bold)"; \
-	        normal="$$(tput sgr0)"; \
-	        red="$$(tput setaf 1)"; \
-	        green="$$(tput setaf 2)"; \
-	    fi; \
-	fi; \
-	status='PASSED'; \
-	color=$${green}; \
-	message=''; \
-	if [ $$code -ne 0 ]; then \
-	    if [ $$code -eq 143 ]; then \
-	        message=' (timeouted, expected)'; \
-	    else \
-	        status='FAILED'; \
-	        color=$${red}; \
-	    fi; \
-	fi; \
-	echo ""; \
-	echo "        Test $${color}$${bold}$${status}$${normal}. Code=$${code}$${message}"; \
-	echo ""; \
-	rm -f $(example10_data_dir)/{ex10_res_int_se.dat,ex10_res_int_prop_se.dat,ex10_res_int_prop_me.dat}; \
-	if [ $$remove_tmp_dir -eq 1 ]; then \
-	    cd $(root_dir); \
-	    rm -rf $(example10_data_dir); \
-	fi;
+	bash $(examples_dir)/basic-test.sh
+
 
 clean:
 	rm -f $(ext_dir)/libfftw.a $(gcc_dir)/libsrw.a $(gcc_dir)/srwlpy*.so; \
