@@ -53,6 +53,7 @@ pylib:
 test:
 	bash $(examples_dir)/basic-test.sh
 
+
 clean:
 	rm -f $(ext_dir)/libfftw.a $(gcc_dir)/libsrw.a $(gcc_dir)/srwlpy*.so; \
 	rm -rf $(ext_dir)/$(fftw_dir)/ py/build/;
