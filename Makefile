@@ -60,27 +60,29 @@ test:
 	cd $(examples_dir); \
 	sh -c '(sleep $(test_timeout); kill "$$$$" > /dev/null 2>&1) & exec python SRWLIB_Example10.py'; \
 	code=$$?; \
-	RED=1; \
-	GREEN=2; \
-	if [ $$code -eq 0 ]; then \
-	    status='PASSED'; \
-	    color=$${GREEN}; \
-	    message=''; \
-	elif [ $$code -eq 143 ]; then \
-	    status='PASSED'; \
-	    color=$${GREEN}; \
-	    message=' (timeouted, expected)'; \
-	else \
-	    status='FAILED'; \
-	    color=$${RED}; \
-	    message=''; \
+	if test -t 1; then \
+	    ncolors=$$(tput colors); \
+	    if test -n "$$ncolors" && test $$ncolors -ge 8; then \
+	        bold="$$(tput bold)"; \
+	        normal="$$(tput sgr0)"; \
+	        red="$$(tput setaf 1)"; \
+	        green="$$(tput setaf 2)"; \
+	    fi; \
 	fi; \
-	printf '\n\n\t%s' 'Test '; \
-	tput setaf $${color}; \
-	tput bold; \
-	printf '%s' "$${status}"; \
-	tput sgr0; \
-	printf '%s\n\n' ". Code=$${code}$${message}"; \
+	status='PASSED'; \
+	color=$${green}; \
+	message=''; \
+	if [ $$code -ne 0 ]; then \
+	    if [ $$code -eq 143 ]; then \
+	        message=' (timeouted, expected)'; \
+	    else \
+	        status='FAILED'; \
+	        color=$${red}; \
+	    fi; \
+	fi; \
+	echo ""; \
+	echo "        Test $${color}$${bold}$${status}$${normal}. Code=$${code}$${message}"; \
+	echo ""; \
 	rm -f $(example10_data_dir)/{ex10_res_int_se.dat,ex10_res_int_prop_se.dat,ex10_res_int_prop_me.dat}; \
 	if [ $$remove_tmp_dir -eq 1 ]; then \
 	    cd $(root_dir); \
