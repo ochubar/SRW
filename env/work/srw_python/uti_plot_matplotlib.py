@@ -119,7 +119,7 @@ class Backend(object):
         if _width_pixels:
             try:
                 from scipy.ndimage import zoom
-                data = np.reshape(data, (allrange[5], allrange[8]), order='f')
+                data = np.reshape(data, (allrange[5], allrange[8]), order='C')
                 resize_factor = float(_width_pixels) / float(allrange[5])
                 print('Size before: {}  Dimensions: {}'.format(data.size, data.shape))
                 data = zoom(data, resize_factor)
@@ -130,7 +130,7 @@ class Backend(object):
                 allrange[5] = data.shape[0]
                 allrange[8] = data.shape[1]
                 allrange = tuple(allrange)
-                data = np.reshape(data, (data.shape[0] * data.shape[1]), order='f')
+                data = np.reshape(data, (data.shape[0] * data.shape[1]), order='C')
             except:
                 print('Cannot resize the image - scipy.ndimage.zoom() cannot be imported.')
                 pass
