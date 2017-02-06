@@ -107,7 +107,7 @@ def write_ascii_data_cols(_file_path, _cols, _str_sep, _str_head=None, _i_col_st
     f.close()
 
 #********************** Read data from an image file:
-def read_image(image_path, bottom_limit=None, cutoff_background=0.5): #MR17112016
+def read_image(image_path, bottom_limit=None, cutoff_background=0.5, ignore_bottom_limit=False): #MR17112016
     """Read data from an image file.
 
     :param image_path: full path to the image.
@@ -144,9 +144,12 @@ def read_image(image_path, bottom_limit=None, cutoff_background=0.5): #MR1711201
 
     # Get the bottom limit if it's not provided:
     if not bottom_limit:
-        try:
-            bottom_limit = np.where(data[:, 0] == 0)[0][0]
-        except IndexError:
+        if not ignore_bottom_limit:
+            try:
+                bottom_limit = np.where(data[:, 0] == 0)[0][0]
+            except IndexError:
+                bottom_limit = data.shape[0]
+        else:
             bottom_limit = data.shape[0]
 
     # Remove the bottom black area:
