@@ -3926,6 +3926,12 @@ def srwl_uti_read_mag_fld_3d(_fpath, _scom='#'):
 #**********************Auxiliary function to allocate array
 #(to walk-around the problem that simple allocation "array(type, [0]*n)" at large n is usually very time-consuming)
 def srwl_uti_array_alloc(_type, _n):
+    try:
+        import numpy
+        return numpy.zeros((_n,), dtype='float64')
+    except ImportError:
+        pass
+
     nPartMax = 10000000 #to tune
     if(_n <= nPartMax): return array(_type, [0]*_n)
         #resAr = array(_type, [0]*_n)
