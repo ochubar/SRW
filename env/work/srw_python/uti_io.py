@@ -129,8 +129,7 @@ def read_image(image_path, bottom_limit=None, cutoff_background=0.5, ignore_bott
     # Read the image:
     raw_image = Image.open(image_path)
     image_format = raw_image.format
-    if image_format == 'JPEG':  # http://stackoverflow.com/a/37675266/4143531
-        raw_image = raw_image.convert('L')
+    raw_image = raw_image.convert('L')
 
     # Convert it to NumPy array:
     data = np.array(raw_image)
