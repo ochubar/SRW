@@ -154,17 +154,18 @@ def read_image(image_path, bottom_limit=None, cutoff_background=0.5, ignore_bott
     # Remove the bottom black area:
     if data[:, 0].max() > 0:  # do not remove if the background is already black
         data = np.copy(data[:bottom_limit, :])
-    data = np.transpose(data)
 
     # Remove background noise:
     idxs_less = np.where(data < limit_value * cutoff_background)
     data[idxs_less] = np.uint16(0)
 
     # Generate new image object to track the changes:
-    processed_image = Image.fromarray(np.transpose(data))
+    processed_image = Image.fromarray(data)
 
     return {
-        'data': data,
+        # data is represented as [Y, X] with counting from top to bottom, so change the counting from bottom to top and
+        # transpose the data to be represented as [X, Y].
+        'data': np.transpose(data[::-1, :]),
         'raw_image': raw_image,
         'processed_image': processed_image,
         'bottom_limit': bottom_limit,
