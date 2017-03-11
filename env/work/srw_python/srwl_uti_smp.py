@@ -140,20 +140,23 @@ class SRWLUtiSmp:
 
 # ********************** Create transmission element from the data from an image file:
 def srwl_opt_setup_transm_from_file(file_path, resolution, thickness, delta, atten_len,
-                                    xc=0, yc=0, e_start=0, e_fin=0,
+                                    arTr=None, extTr=0, fx=1e+23, fy=1e+23,
+                                    xc=0, yc=0, ne=1, e_start=0, e_fin=0,
                                     is_save_images=True, prefix=''):
     """Setup Sample element.
 
     :param file_path: path to the input file (image or .npy).
-    :param limit_value: maximum possible value (from bits per point).
-    :param nx: number of horizontal points.
-    :param ny: number of vertical points.
     :param resolution: resolution of the image [m/pixel].
     :param thickness: thickness of the sample [m].
     :param delta: refractive index decrement.
     :param atten_len: attenuation length [m].
+    :param arTr: complex C-aligned data array (of 2*ne*nx*ny length) storing amplitude transmission and optical path difference as function of transverse coordinates.
+    :param extTr: transmission outside the grid/mesh is zero (0), or it is same as on boundary (1).
+    :param fx: estimated focal length in the horizontal plane [m].
+    :param fy: estimated focal length in the vertical plane [m].
     :param xc: horizontal coordinate of center [m].
     :param yc: vertical coordinate of center [m].
+    :param ne: number of transmission data points vs photon energy.
     :param e_start: initial photon energy [eV].
     :param e_fin: final photon energy [eV].
     :param is_save_images: a flag to save the initial and processed images.
@@ -185,11 +188,10 @@ def srwl_opt_setup_transm_from_file(file_path, resolution, thickness, delta, att
     ny = s.ny
     rx = nx * resolution
     ry = ny * resolution
-    fx = 1e+23
-    fy = 1e+23
-    ne = 1
 
-    opT = srwlib.SRWLOptT(nx, ny, rx, ry, None, 1, fx, fy, xc, yc, ne, e_start, e_fin)
+    opT = srwlib.SRWLOptT(_nx=nx, _ny=ny, _rx=rx, _ry=ry,
+                          _arTr=arTr, _extTr=extTr, _Fx=fx, _Fy=fy,
+                          _x=xc, _y=yc, _ne=ne, _eStart=e_start, _eFin=e_fin)
 
     # Same data alignment as for wavefront: outmost loop vs y, inmost loop vs e
     offset = 0
