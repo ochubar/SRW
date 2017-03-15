@@ -3928,7 +3928,7 @@ def srwl_uti_read_mag_fld_3d(_fpath, _scom='#'):
 def srwl_uti_array_alloc(_type, _n):
     try:
         import numpy
-        return numpy.zeros((_n,), dtype='float64')
+        return numpy.zeros((_n,), dtype='float32')  #MR14032017: fix error with float64
     except ImportError:
         pass
 
