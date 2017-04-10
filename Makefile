@@ -20,10 +20,11 @@ fftw_file = $(fftw_version).tar.gz
 log_fftw = /dev/null
 examples_dir = $(env_dir)/work/srw_python
 example10_data_dir = $(examples_dir)/data_example_10
+timeout=20
 
 nofftw: core pylib
 
-all: clean fftw core pylib
+all: clean fftw core pylib test
 
 fftw:
 	if [ ! -d "$(ext_dir)" ]; then \
@@ -51,7 +52,7 @@ pylib:
 	cd $(py_dir); make python
 
 test:
-	timeout_s=120 bash $(examples_dir)/basic-test.sh
+	timeout_s=$(timeout) bash $(examples_dir)/basic-test.sh
 
 clean:
 	rm -f $(ext_dir)/libfftw.a $(gcc_dir)/libsrw.a $(gcc_dir)/srwlpy*.so; \
