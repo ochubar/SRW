@@ -111,7 +111,10 @@ class Backend(object):
         data, mode, allrange, arLabels, arUnits = uti_plot_com.file_load(_fname, _read_labels, _traj_report, _traj_axis)
         data = np.array(data)
         if mode == 3:
-            fwhm_dict = uti_math.fwhm(np.linspace(allrange[0], allrange[1], allrange[2]), data, return_as_dict=True)
+            try:
+                fwhm_dict = uti_math.fwhm(np.linspace(allrange[0], allrange[1], allrange[2]), data, return_as_dict=True)
+            except:
+                fwhm_dict = {'fwhm': -1}
             print('FWHM: {:.5f} [{}]'.format(fwhm_dict['fwhm'], arUnits[0]))
         if _scale != 'linear':
             available_scales = ['log', 'log2', 'log10']
