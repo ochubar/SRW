@@ -38,19 +38,19 @@ class SRWLBeamline(object):
         :param _op: optics sequence (SRWLOptC instance)
         """
 
-        if _e_beam != None:
+        if _e_beam is not None:
             if(isinstance(_e_beam, SRWLPartBeam) == False):
                 raise Exception("Incorrect Electron Beam structure")
-        if _mag_approx != None:
+        if _mag_approx is not None:
             if(isinstance(_mag_approx, SRWLMagFldC) == False):
                 raise Exception("Incorrect Magnetic Field Container structure")
-        if _mag != None:
+        if _mag is not None:
             if(isinstance(_mag, SRWLMagFldC) == False):
                 raise Exception("Incorrect Magnetic Field Container structure")
-        if _gsn_beam != None:
+        if _gsn_beam is not None:
             if(isinstance(_gsn_beam, SRWLGsnBm) == False):
                 raise Exception("Incorrect Gaussian Beam structure") 
-        if _op != None:
+        if _op is not None:
             if(isinstance(_op, SRWLOptC) == False):
                 raise Exception("Incorrect Ptical Container structure") 
 
@@ -87,12 +87,12 @@ class SRWLBeamline(object):
 ##        sIncInpElecBeam = 'Incorrect input for setting up Electron Beam structure'
 ##        if(len(_e_beam_name) > 0):
 ##            self.eBeam = srwl_uti_src_e_beam(_e_beam_name, _sig_e=_sig_e, _emit_x=_emit_x, _emit_y=_emit_y)
-##            if(self.eBeam == None):
-##                if((_e_beam == None) or (isinstance(_e_beam, SRWLPartBeam) == False)):
+##            if(self.eBeam is None):
+##                if((_e_beam is None) or (isinstance(_e_beam, SRWLPartBeam) == False)):
 ##                    raise Exception(sIncInpElecBeam)
 ##                else: self.eBeam = _e_beam
 ##        else:
-##            if((_e_beam == None) or (isinstance(_e_beam, SRWLPartBeam) == False)):
+##            if((_e_beam is None) or (isinstance(_e_beam, SRWLPartBeam) == False)):
 ##                raise Exception(sIncInpElecBeam)
 ##            else: self.eBeam = _e_beam
 ##
@@ -270,10 +270,10 @@ class SRWLBeamline(object):
         """
 
         if(_add == 0):
-            if(self.mag_approx != None):
+            if(self.mag_approx is not None):
                 del self.mag_approx
 
-        if(self.mag_approx == None): self.mag_approx = SRWLMagFldC()
+        if(self.mag_approx is None): self.mag_approx = SRWLMagFldC()
 
         und = SRWLMagFldU()
         und.set_sin(_per, _len, _bx, _by, _phx, _phy, _sx, _sy)
@@ -300,10 +300,10 @@ class SRWLBeamline(object):
         """
         
         if(_add == 0):
-            if(self.mag_approx != None):
+            if(self.mag_approx is not None):
                 del self.mag_approx
 
-        if(self.mag_approx == None): self.mag_approx = SRWLMagFldC()
+        if(self.mag_approx is None): self.mag_approx = SRWLMagFldC()
 
         if(_bx != 0):
             dipBx = SRWLMagFldM(_G=_bx, _m=1, _n_or_s='s', _Leff=_len, _Ledge=_led, _R=_r) #?
@@ -386,7 +386,7 @@ class SRWLBeamline(object):
                 arGaps.append(float(curLineParts[0]))
 
                 curPhase = float(curLineParts[2])
-                if((phasePrev != None) and (curPhase != phasePrev)): phaseIsVar = True
+                if((phasePrev is not None) and (curPhase != phasePrev)): phaseIsVar = True
                 arPhases.append(curPhase)
                 phasePrev = curPhase
                 
@@ -433,7 +433,7 @@ class SRWLBeamline(object):
         """
 
         sErMes = 'Magnetic Field is not defined'
-        if(self.mag == None): Exception(sErMes)
+        if(self.mag is None): Exception(sErMes)
         if(isinstance(self.mag, SRWLMagFldC) == False): raise Exception(sErMes)
 
         arHarm = []
@@ -480,7 +480,7 @@ class SRWLBeamline(object):
         :param _presFT: treat _sigT as pulse duration in [s] in time domain/representation (_presFT="t") or as bandwidth in [eV] in frequency domain/representation (_presFT="f")
         """
 
-        if(self.gsnBeam != None): del self.gsnBeam
+        if(self.gsnBeam is not None): del self.gsnBeam
 
         sigX = _sigX
         sigY = _sigY
@@ -503,9 +503,9 @@ class SRWLBeamline(object):
         :param _op: optical element container (SRWLOptC instance)
         """
 
-        if((_op == None) or (isinstance(_op, SRWLOptC) == False)):
+        if((_op is None) or (isinstance(_op, SRWLOptC) == False)):
             raise Exception('Incorrect optics container (SRWLOptC) structure')
-        if(self.optics != None): del self.optics
+        if(self.optics is not None): del self.optics
         self.optics = _op
 
     #------------------------------------------------------------------------
@@ -521,12 +521,12 @@ class SRWLBeamline(object):
         :return: trajectory structure
         """
 
-        if(self.eBeam == None): Exception('Electron Beam structure is not defined')
+        if(self.eBeam is None): Exception('Electron Beam structure is not defined')
 
         if(_mag_type == 1):
-            if(self.mag_approx == None): Exception('Approximate Magnetic Field is not defined')
+            if(self.mag_approx is None): Exception('Approximate Magnetic Field is not defined')
         elif(_mag_type == 2):
-            if(self.mag == None): Exception('Magnetic Field is not defined')
+            if(self.mag is None): Exception('Magnetic Field is not defined')
         else: Exception('Incorrect Magnetic Field type identificator')
 
         magToUse = self.mag_approx
@@ -592,7 +592,7 @@ class SRWLBeamline(object):
         :return: 1D array with (C-aligned) resulting intensity data
         """
 
-        if((_mesh == None) or (isinstance(_mesh, SRWLRadMesh) == False)):
+        if((_mesh is None) or (isinstance(_mesh, SRWLRadMesh) == False)):
             raise Exception('Incorrect SRWLRadMesh structure')
 
         depType = -1
@@ -605,12 +605,12 @@ class SRWLBeamline(object):
         elif((_mesh.ne > 1) and (_mesh.nx > 1) and (_mesh.ny > 1)): depType = 6
         if(depType < 0): Exception('Incorrect numbers of points in the mesh structure')
 
-        if(self.eBeam == None): Exception('Electron Beam structure is not defined')
+        if(self.eBeam is None): Exception('Electron Beam structure is not defined')
 
         if(_mag_type == 1):
-            if(self.mag_approx == None): Exception('Approximate Magnetic Field is not defined')
+            if(self.mag_approx is None): Exception('Approximate Magnetic Field is not defined')
         elif(_mag_type == 2):
-            if(self.mag == None): Exception('Magnetic Field is not defined')
+            if(self.mag is None): Exception('Magnetic Field is not defined')
         else: Exception('Incorrect Magnetic Field type identificator')
 
         magToUse = self.mag_approx
@@ -679,7 +679,7 @@ class SRWLBeamline(object):
         :return: 1D array with (C-aligned) resulting intensity data
         """
 
-        if((_mesh == None) or (isinstance(_mesh, SRWLRadMesh) == False)):
+        if((_mesh is None) or (isinstance(_mesh, SRWLRadMesh) == False)):
             raise Exception('Incorrect SRWLRadMesh structure')
 
         depType = -1
@@ -748,7 +748,7 @@ class SRWLBeamline(object):
         :return: 1D array with (C-aligned) resulting intensity data
         """
 
-        if((_mesh == None) or (isinstance(_mesh, SRWLRadMesh) == False)):
+        if((_mesh is None) or (isinstance(_mesh, SRWLRadMesh) == False)):
             raise Exception('Incorrect SRWLRadMesh structure')
 
         depType = -1
@@ -761,8 +761,8 @@ class SRWLBeamline(object):
         elif((_mesh.ne > 1) and (_mesh.nx > 1) and (_mesh.ny > 1)): depType = 6
         if(depType < 0): Exception('Incorrect numbers of points in the mesh structure')
 
-        if(self.eBeam == None): Exception('Electron Beam structure is not defined')
-        if(self.mag_approx == None): Exception('Approximate Magnetic Field is not defined')
+        if(self.eBeam is None): Exception('Electron Beam structure is not defined')
+        if(self.mag_approx is None): Exception('Approximate Magnetic Field is not defined')
 
         stk = SRWLStokes()
         stk.allocate(_mesh.ne, _mesh.nx, _mesh.ny) #numbers of points vs photon energy, horizontal and vertical positions
@@ -822,17 +822,17 @@ class SRWLBeamline(object):
         :return: 1D array with (C-aligned) resulting intensity data
         """
 
-        if((_mesh == None) or (isinstance(_mesh, SRWLRadMesh) == False)):
+        if((_mesh is None) or (isinstance(_mesh, SRWLRadMesh) == False)):
             raise Exception('Incorrect SRWLRadMesh structure')
 
-        if(self.eBeam == None): Exception('Electron Beam structure is not defined')
+        if(self.eBeam is None): Exception('Electron Beam structure is not defined')
 
         mag2use = self.mag
         if(_mag == 1):
-            if(self.mag_approx == None): Exception('Approximate Magnetic Field is not defined')
+            if(self.mag_approx is None): Exception('Approximate Magnetic Field is not defined')
             mag2use = self.mag_approx
         else:
-            if(self.mag == None): Exception('Accurate Magnetic Field is not defined')
+            if(self.mag is None): Exception('Accurate Magnetic Field is not defined')
 
         charMultiE = 0 #Calculate intensity (flux per unit surface by default)
         if(_type == 1): charMultiE = 10 #Calculate flux
@@ -845,7 +845,7 @@ class SRWLBeamline(object):
             _file_path = _fname, _char = charMultiE)
 
         arI = None
-        if(stk != None):
+        if(stk is not None):
             arI = stk.to_int(_pol)
             if(len(_fname) > 0):
                 sValName = 'Flux'
@@ -871,15 +871,15 @@ class SRWLBeamline(object):
         :return: 1D array with (C-aligned) resulting power density data
         """
 
-        if((_mesh == None) or (isinstance(_mesh, SRWLRadMesh) == False)):
+        if((_mesh is None) or (isinstance(_mesh, SRWLRadMesh) == False)):
             raise Exception('Incorrect SRWLRadMesh structure')
 
-        if(self.eBeam == None): Exception('Electron Beam structure is not defined')
+        if(self.eBeam is None): Exception('Electron Beam structure is not defined')
 
         if(_mag_type == 1):
-            if(self.mag_approx == None): Exception('Approximate Magnetic Field is not defined')
+            if(self.mag_approx is None): Exception('Approximate Magnetic Field is not defined')
         elif(_mag_type == 2):
-            if(self.mag == None): Exception('Magnetic Field is not defined')
+            if(self.mag is None): Exception('Magnetic Field is not defined')
         else: Exception('Incorrect Magnetic Field type identificator')
 
         magToUse = self.mag_approx
@@ -908,12 +908,12 @@ class SRWLBeamline(object):
 
         #print('Calculating undulator operation table')
 
-        if((_mesh == None) or (isinstance(_mesh, SRWLRadMesh) == False)):
+        if((_mesh is None) or (isinstance(_mesh, SRWLRadMesh) == False)):
             raise Exception('Incorrect SRWLRadMesh structure')
 
         #print('_mesh.xStart=', _mesh.xStart, '_mesh.xFin=', _mesh.xFin)
 
-        if(self.eBeam == None): Exception('Electron Beam structure is not defined')
+        if(self.eBeam is None): Exception('Electron Beam structure is not defined')
 
         fPathSum = ''
         if(_meas_or_calc == 'm'):
@@ -971,7 +971,7 @@ class SRWLBeamline(object):
                 print('Gap:', curGap, 'mm')
 
                 curPhase = float(curLineParts[2])
-                if((phasePrev != None) and (curPhase != phasePrev)): phaseIsVar = True
+                if((phasePrev is not None) and (curPhase != phasePrev)): phaseIsVar = True
                 arPhases.append(curPhase)
                 phasePrev = curPhase
 
@@ -998,7 +998,7 @@ class SRWLBeamline(object):
                     curCoefBx = float(curLineParts[4])
                     curCoefBy = float(curLineParts[5])
 
-                    if(((curCoefBx != 1.) or (curCoefBy != 1.)) and (curFldCnt != None)):
+                    if(((curCoefBx != 1.) or (curCoefBy != 1.)) and (curFldCnt is not None)):
                         curFld3D = curFldCnt.arMagFld[0]
                         iif = 0
                         for iz in range(curFld3D.nz):
@@ -1008,7 +1008,7 @@ class SRWLBeamline(object):
                                     curFld3D.arBy[iif] *= curCoefBy
                                     iif += 1
 
-                if(curFldCnt != None):
+                if(curFldCnt is not None):
                     
                     #Convert field to periodic
                     arHarm = []
@@ -1240,7 +1240,7 @@ class SRWLBeamline(object):
         :return: 1D array with (C-aligned) resulting intensity data
         """
 
-        if((_mesh == None) or (isinstance(_mesh, SRWLRadMesh) == False)):
+        if((_mesh is None) or (isinstance(_mesh, SRWLRadMesh) == False)):
             raise Exception('Incorrect SRWLRadMesh structure')
 
         if((hasattr(self, 'eBeam') == False) or (isinstance(self.eBeam, SRWLPartBeam) == False)):
@@ -1250,9 +1250,9 @@ class SRWLBeamline(object):
             raise Exception('Incorrect optics container (SRWLOptC) structure')
 
         if(_mag_type == 1):
-            if(self.mag_approx == None): Exception('Approximate Magnetic Field is not defined')
+            if(self.mag_approx is None): Exception('Approximate Magnetic Field is not defined')
         elif(_mag_type == 2):
-            if(self.mag == None): Exception('Magnetic Field is not defined')
+            if(self.mag is None): Exception('Magnetic Field is not defined')
         else: Exception('Incorrect Magnetic Field type identificator')
 
         magToUse = self.mag_approx
@@ -1502,7 +1502,7 @@ class SRWLBeamline(object):
                 _v.ss_y, _v.ss_y, 1,
                 _v.op_r)
             
-            srCanBeCalc = (self.eBeam != None) and ((self.mag_approx != None) or (self.mag != None))
+            srCanBeCalc = (self.eBeam is not None) and ((self.mag_approx is not None) or (self.mag is not None))
             #print("                    _v.ss=", _v.ss)
             #print("                    _v.gs=", _v.gs)
             
@@ -1517,7 +1517,7 @@ class SRWLBeamline(object):
                     _int_type = 0,
                     _mag_type = _v.ss_mag,
                     _fname = os.path.join(_v.fdir, _v.ss_fn) if(len(_v.ss_fn) > 0) else '')
-            if((_v.gs == True) or ((self.gsnBeam != None) and (srCanBeCalc == False))):
+            if((_v.gs == True) or ((self.gsnBeam is not None) and (srCanBeCalc == False))):
                 wfr_ss, int_ss = self.calc_rad_gsn(
                     _mesh = mesh_ss,
                     _pol = _v.ss_pol,
@@ -1610,8 +1610,8 @@ class SRWLBeamline(object):
         #---calculate single-e electric field and intensity (before wavefront propagation through a beamline)
             if(_v.si or _v.ws or _v.gi or _v.wg):
 
-                srCanBeCalc = (self.eBeam != None) and ((self.mag_approx != None) or (self.mag != None))
-                gsnBeamCanBeCalc = self.gsnBeam != None
+                srCanBeCalc = (self.eBeam is not None) and ((self.mag_approx is not None) or (self.mag is not None))
+                gsnBeamCanBeCalc = self.gsnBeam is not None
 
                 #print(self.gsnBeam)
 

@@ -401,7 +401,7 @@ class SRWLMagFldC(SRWLMagFld):
         """
         #self.arMagFld = [] if _arMagFld is None else _arMagFld
 
-        if(_arMagFld == None):
+        if(_arMagFld is None):
             self.arMagFld = []
             self.arXc = array('d') if _arXc is None else _arXc
             self.arYc = array('d') if _arYc is None else _arYc
@@ -419,7 +419,7 @@ class SRWLMagFldC(SRWLMagFld):
                 self.arMagFld = _arMagFld
                 nElem = len(_arMagFld)
 
-            if(_arXc == None):
+            if(_arXc is None):
                 self.arXc = array('d', [0]*nElem)
             elif(isinstance(_arXc, array)):
                 self.arXc = _arXc
@@ -429,7 +429,7 @@ class SRWLMagFldC(SRWLMagFld):
                 self.arXc = array('d', [0])
                 self.arXc[0] = _arXc
 
-            if(_arYc == None):
+            if(_arYc is None):
                 self.arYc = array('d', [0]*nElem)
             #elif(isinstance(_arYc, list) or isinstance(_arYc, array) or isinstance(_arYc, tuple)):
             #    self.arYc = _arYc
@@ -441,7 +441,7 @@ class SRWLMagFldC(SRWLMagFld):
                 self.arYc = array('d', [0])
                 self.arYc[0] = _arYc
 
-            if(_arZc == None):
+            if(_arZc is None):
                 self.arZc = array('d', [0]*nElem)
             #elif(isinstance(_arZc, list) or isinstance(_arZc, array) or isinstance(_arZc, tuple)):
             #    self.arZc = _arZc
@@ -454,7 +454,7 @@ class SRWLMagFldC(SRWLMagFld):
                 self.arZc[0] = _arZc
 
             arVxWasSubm = False
-            if(_arVx == None):
+            if(_arVx is None):
                 self.arVx = array('d', [0]*nElem)
             elif(isinstance(_arVx, array)):
                 self.arVx = _arVx
@@ -467,7 +467,7 @@ class SRWLMagFldC(SRWLMagFld):
                 self.arVx[0] = _arVx
 
             arVyWasSubm = False
-            if(_arVy == None):
+            if(_arVy is None):
                 self.arVy = array('d', [0]*nElem)
             elif(isinstance(_arVy, array)):
                 self.arVy = _arVy
@@ -479,7 +479,7 @@ class SRWLMagFldC(SRWLMagFld):
                 self.arVy = array('d', [0])
                 self.arVy[0] = _arVy
                 
-            if(_arVz == None):
+            if(_arVz is None):
                 self.arVz = array('d', [1]*nElem)
                 if(arVxWasSubm and arVyWasSubm):
                     lenArVx = len(_arVx)
@@ -495,7 +495,7 @@ class SRWLMagFldC(SRWLMagFld):
                 self.arVz = array('d', [1])
                 self.arVz[0] = _arVz
 
-            if(_arAng == None):
+            if(_arAng is None):
                 self.arAng = array('d', [0]*nElem)
             elif(isinstance(_arAng, array)):
                 self.arAng = _arAng
@@ -526,12 +526,12 @@ class SRWLMagFldC(SRWLMagFld):
         :param _vz: longitudinal components of axis vector of magnetic field element to be added [rad]
         :param _ang: rotation angle about axis [rad]
         """
-        if(_mag == None):
+        if(_mag is None):
             raise Exception("No magnetic field elements were supplied for adding to container") 
         if(isinstance(_mag, list) or isinstance(_mag, array)):
             lenMag = len(_mag)
-            if((_xc == None) and (_yc == None) and (_zc == None) and
-               (_vx == None) and (_vy == None) and (_vz == None) and (_ang == None)):
+            if((_xc is None) and (_yc is None) and (_zc is None) and
+               (_vx is None) and (_vy is None) and (_vz is None) and (_ang is None)):
                 for i in range(lenMag): self.add(_mag[i])
             elif((isinstance(_xc, list) or isinstance(_xc, array)) and
                  (isinstance(_yc, list) or isinstance(_yc, array)) and
@@ -553,16 +553,16 @@ class SRWLMagFldC(SRWLMagFld):
                 else: raise Exception("Inconsistent magnetic element positions data") 
         else:
             self.arMagFld.append(_mag)
-            if(_xc == None): _xc = 0
-            if(_yc == None): _yc = 0
-            if(_zc == None): _zc = 0
-            if(_vx == None): _vx = 0
-            if(_vy == None): _vy = 0
-            if(_vz == None):
+            if(_xc is None): _xc = 0
+            if(_yc is None): _yc = 0
+            if(_zc is None): _zc = 0
+            if(_vx is None): _vx = 0
+            if(_vy is None): _vy = 0
+            if(_vz is None):
                 _vz = 1.
-                if((_vx != None) and (_vy != None)):
+                if((_vx is not None) and (_vy is not None)):
                     _vz = sqrt(1. - _vx*_vx - _vy*_vy)
-            if(_ang == None): _ang = 0
+            if(_ang is None): _ang = 0
             self.arXc.append(_xc)
             self.arYc.append(_yc)
             self.arZc.append(_zc)
@@ -607,9 +607,9 @@ class SRWLPrtTrj(object):
             self.arYp = array('d') if _arYp is None else _arYp
             self.arZp = array('d') if _arZp is None else _arZp
             
-        if _arBx != None: self.arBx = _arBx #by default, arBx, _arBy, arBz are not created
-        if _arBy != None: self.arBy = _arBy
-        if _arBz != None: self.arBz = _arBz
+        if _arBx is not None: self.arBx = _arBx #by default, arBx, _arBy, arBz are not created
+        if _arBy is not None: self.arBy = _arBy
+        if _arBz is not None: self.arBz = _arBz
             
         self.np = _np
         self.ctStart = _ctStart
@@ -778,7 +778,7 @@ class SRWLRadMesh(object):
         self.nvx = _mesh.nvx; self.nvy = _mesh.nvy; self.nvz = _mesh.nvz
         self.hvx = _mesh.hvx; self.hvy = _mesh.hvy; self.hvz = _mesh.hvz
         del self.arSurf; self.arSurf = None
-        if(_mesh.arSurf != None):
+        if(_mesh.arSurf is not None):
             try:
                 lenArSurf = len(_mesh.arSurf)
                 if(lenArSurf > 0):
@@ -1530,19 +1530,19 @@ class SRWLWfr(object):
         """
         if _treatEX:
             if((_type == 0) or (_type == 1)):
-                if(self.arEx != None):
+                if(self.arEx is not None):
                     del self.arEx; self.arEx = None
             if((_type == 0) or (_type == 2)):
                 if(hasattr(self, 'arExAux')):
-                    if(self.arExAux != None):
+                    if(self.arExAux is not None):  #MR20072017: https://docs.scipy.org/doc/numpy/release.html#futurewarning-to-changed-behavior
                         del self.arExAux; self.arExAux = None
         if _treatEY:
             if((_type == 0) or (_type == 1)):
-                if(self.arEy != None):
+                if(self.arEy is not None):
                     del self.arEy; self.arEy = None
             if((_type == 0) or (_type == 2)):
                 if(hasattr(self, 'arEyAux')):
-                    if(self.arEyAux != None):
+                    if(self.arEyAux is not None):
                         del self.arEyAux; self.arEyAux = None
 
     def addE(self, _wfr, _meth=0):
@@ -1590,7 +1590,7 @@ class SRWLWfr(object):
             nTotSt = nTot*4
             nTot2 = nTot*2
             nTot3 = nTot*3
-            if(_stokes.arS != None):
+            if(_stokes.arS is not None):
                 if(len(_stokes.arS) < nTotSt):
                     _stokes.arS = array('f', [0]*nTotSt)
             else:
@@ -1976,7 +1976,7 @@ class SRWLOptT(SRWLOpt):
         """
         
         self.arTr = _arTr #complex C-aligned data array (of 2*ne*nx*ny length) storing amplitude transmission and optical path difference as function of transverse position
-        if((_arTr == None) or ((len(_arTr) != _ne*_nx*_ny*2) and (_ne*_nx*_ny > 0))):
+        if((_arTr is None) or ((len(_arTr) != _ne*_nx*_ny*2) and (_ne*_nx*_ny > 0))):
             self.allocate(_ne, _nx, _ny)
 
         #self.ne = _ne #number of transmission data points vs photon energy
@@ -2668,10 +2668,10 @@ class SRWLOptC(SRWLOpt):
             [16]: Optional: Orientation of the Horizontal Base vector of the Output Frame in the Incident Beam Frame: Vertical Coordinate
         """
         self.arOpt = _arOpt #optical element structures array
-        if(_arOpt == None):
+        if(_arOpt is None):
             self.arOpt = []
         self.arProp = _arProp #list of lists of propagation parameters to be used for individual optical elements
-        if(_arProp == None):
+        if(_arProp is None):
             self.arProp = []
             
     def allocate(self, _nElem):
@@ -2828,7 +2828,7 @@ def srwl_opt_setup_CRL(_foc_plane, _delta, _atten_len, _shape, _apert_h, _apert_
         for ix in range(nx):
             pathInBody = _n*ray_path_in_one_CRL(x, y, _foc_plane, _shape, halfApert, _r_min, _wall_thick)
     
-            if(_void_cen_rad != None): #eventually subtract path in voids
+            if(_void_cen_rad is not None): #eventually subtract path in voids
                 pathInBody -= ray_path_in_spheres(x, y, _void_cen_rad)
 
             for ie in range(ne):
@@ -3135,7 +3135,7 @@ def srwl_opt_setup_surf_height_1d(_height_prof_data, _dim, _ang, _ang_r=0, _amp_
     sinAng = sin(_ang)
     sinAngR = sin(_ang_r)
 
-    if _ar_arg_long == None:
+    if _ar_arg_long is None:
         argHeightProfData = _height_prof_data[0]
         valHeightProfData = _height_prof_data[1]
     else:
@@ -3265,7 +3265,7 @@ def srwl_opt_setup_surf_height_2d(_height_prof_data, _dim, _ang, _ang_r=0, _amp_
     sinAngR = sin(_ang_r)
     
     #argHeightProfData = _ar_arg_long
-    if _ar_arg_long == None:
+    if _ar_arg_long is None:
         npData = len(_height_prof_data[0]) - 1
         sizeLong = _height_prof_data[0][npData - 1] - _height_prof_data[0][1]
     else:
@@ -3274,7 +3274,7 @@ def srwl_opt_setup_surf_height_2d(_height_prof_data, _dim, _ang, _ang_r=0, _amp_
         
     sizeLongProj = sizeLong*sinAngR
 
-    if _ar_arg_tr == None:
+    if _ar_arg_tr is None:
         npDataTr = len(_height_prof_data) - 1
         sizeTr = _height_prof_data[npDataTr - 1][0] - _height_prof_data[1][0]
     else:
@@ -3328,13 +3328,13 @@ def srwl_opt_setup_surf_height_2d(_height_prof_data, _dim, _ang, _ang_r=0, _amp_
         if('y' in _dim):
             ipStartTr = 1
             #y1 = argHeightProfData[ipStart]*sinAngR
-            if _ar_arg_long == None: y1 = _height_prof_data[0][ipStart]*sinAngR
+            if _ar_arg_long is None: y1 = _height_prof_data[0][ipStart]*sinAngR
             else: y1 = _ar_arg_long[ipStart - 1]*sinAngR
             
             for i in range(ipStart + 1, npData + 1):
             #for i in range(ipStart + 1, npData):
                 #y2 = argHeightProfData[i]*sinAngR
-                if _ar_arg_long == None: y2 = _height_prof_data[0][i]*sinAngR
+                if _ar_arg_long is None: y2 = _height_prof_data[0][i]*sinAngR
                 else: y2 = _ar_arg_long[i - 1]*sinAngR
                 
                 if((y1 <= y) and (y < y2)):
@@ -3344,12 +3344,12 @@ def srwl_opt_setup_surf_height_2d(_height_prof_data, _dim, _ang, _ang_r=0, _amp_
 
         elif('x' in _dim):
             ipStart = 1
-            if _ar_arg_tr == None: y1 = _height_prof_data[ipStartTr][0]
+            if _ar_arg_tr is None: y1 = _height_prof_data[ipStartTr][0]
             else: y1 = _ar_arg_tr[ipStartTr - 1]
             
             for i in range(ipStartTr + 1, npDataTr + 1):
             #for i in range(ipStartTr + 1, npDataTr):
-                if _ar_arg_tr == None: y2 = _height_prof_data[i][0]
+                if _ar_arg_tr is None: y2 = _height_prof_data[i][0]
                 else: y2 = _ar_arg_tr[i - 1]
                 
                 if((y1 <= y) and (y < y2)):
@@ -3364,14 +3364,14 @@ def srwl_opt_setup_surf_height_2d(_height_prof_data, _dim, _ang, _ang_r=0, _amp_
             if('y' in _dim):
                 if(ix == 0): ipStartTr = 1
               
-                if _ar_arg_tr == None: x1 = _height_prof_data[ipStartTr][0]
+                if _ar_arg_tr is None: x1 = _height_prof_data[ipStartTr][0]
                 else: x1 = _ar_arg_tr[ipStartTr - 1]
 
                 #print(ipStartTr + 1, npDataTr + 1)
                 
                 for i in range(ipStartTr + 1, npDataTr + 1):
                 #for i in range(ipStartTr + 1, npDataTr):
-                    if _ar_arg_tr == None: x2 = _height_prof_data[i][0]
+                    if _ar_arg_tr is None: x2 = _height_prof_data[i][0]
                     else: x2 = _ar_arg_tr[i - 1]
                     
                     if((x1 <= x) and (x < x2)):
@@ -3385,13 +3385,13 @@ def srwl_opt_setup_surf_height_2d(_height_prof_data, _dim, _ang, _ang_r=0, _amp_
                 if(ix == 0): ipStart = 1
                 
                 #x1 = argHeightProfData[ipStart]*sinAngR
-                if _ar_arg_long == None: x1 = _height_prof_data[0][ipStart]*sinAngR
+                if _ar_arg_long is None: x1 = _height_prof_data[0][ipStart]*sinAngR
                 else: x1 = _ar_arg_long[ipStart - 1]*sinAngR
                 
                 for i in range(ipStart + 1, npData + 1):
                 #for i in range(ipStart + 1, npData):
                     #x2 = argHeightProfData[i]*sinAngR
-                    if _ar_arg_long == None: x2 = _height_prof_data[0][i]*sinAngR
+                    if _ar_arg_long is None: x2 = _height_prof_data[0][i]*sinAngR
                     else: x2 = _ar_arg_long[i - 1]*sinAngR
                     
                     if((x1 <= x) and (x < x2)):
@@ -3399,8 +3399,8 @@ def srwl_opt_setup_surf_height_2d(_height_prof_data, _dim, _ang, _ang_r=0, _amp_
                         break
                     x1 = x2
 
-            if _ar_arg_long != None: ipStart -= 1
-            if _ar_arg_tr != None: ipStartTr -= 1
+            if _ar_arg_long is not None: ipStart -= 1
+            if _ar_arg_tr is not None: ipStartTr -= 1
 
             #Bi-Linear Interpolation
             xt = 0; yt = 0
@@ -3604,7 +3604,7 @@ def srwl_uti_save_intens_ascii(_ar_intens, _mesh, _file_path, _n_stokes=1, _arLa
 
     if(_mutual != 0):
         sUnitEntParts = ['']
-        if((sUnitEnt != None) and (len(sUnitEnt) > 0)): sUnitEntParts = sUnitEnt.split(' ')
+        if((sUnitEnt is not None) and (len(sUnitEnt) > 0)): sUnitEntParts = sUnitEnt.split(' ')
         sUnitEntTest = sUnitEnt
         if(len(sUnitEntParts) > 0): sUnitEntTest = sUnitEntParts[0]
         sUnitEntTest = sUnitEntTest.replace(' ', '')
@@ -3752,14 +3752,14 @@ def srwl_uti_write_data_cols(_file_path, _cols, _str_sep, _str_head=None, _i_col
     """
     f = open(_file_path, 'w')
 
-    if(_str_head != None):
+    if(_str_head is not None):
         lenStrHead = len(_str_head)
         if(lenStrHead > 0):
             strHead = _str_head
             if(_str_head[lenStrHead - 1] != '\n'):
                 strHead = copy(_str_head) + '\n'
             f.write(strHead)
-    if(_cols == None):
+    if(_cols is None):
         f.close(); return
         
     nCols = len(_cols)
@@ -3772,7 +3772,7 @@ def srwl_uti_write_data_cols(_file_path, _cols, _str_sep, _str_head=None, _i_col
         if(nLines < newLen): nLines = newLen
 
     strSep = '\t'
-    if(_str_sep != None):
+    if(_str_sep is not None):
         if(len(_str_sep) > 0): strSep = _str_sep
 
     strTot = ''
@@ -4244,7 +4244,7 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
     resLabelsToSave = ['Photon Energy', 'Horizontal Position', 'Vertical Position', resEntityName] #OC26042016
     resUnitsToSave=['eV', 'm', 'm', resEntityUnits] #OC26042016
     
-    if(((rank == 0) or (nProc == 1)) and (_opt_bl != None)): #calculate once the central wavefront in the master process (this has to be done only if propagation is required)
+    if(((rank == 0) or (nProc == 1)) and (_opt_bl is not None)): #calculate once the central wavefront in the master process (this has to be done only if propagation is required)
 
         if(useGsnBmSrc):
             srwl.CalcElecFieldGaussian(wfr, _mag, arPrecParSR)
@@ -4323,7 +4323,7 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
     #print('DEBUG MESSAGE: rank=', rank)
     if((rank > 0) or (nProc == 1)):
 
-        if((nProc > 1) and (_opt_bl != None)): #receive mesh for the resulting wavefront from the master
+        if((nProc > 1) and (_opt_bl is not None)): #receive mesh for the resulting wavefront from the master
             arMesh = array('f', [0]*9)
             #_stat = MPI.Status() #an he
             #comMPI.Recv([arMesh, MPI.FLOAT], source=0)
@@ -4464,7 +4464,7 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
                     #print('DEBUG: Commented-out: CalcElecFieldSR')
                     #print('DEBUG MESSAGE: CalcElecFieldSR called (rank:', rank,')')
 
-                if(_opt_bl != None):
+                if(_opt_bl is not None):
 
                     #print('Wavefront propagation calculation ... ', end='') #DEBUG
                     #t0 = time.time(); #DEBUG
@@ -4498,7 +4498,7 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
                     meshWork.xStart = _x0
                     meshWork.xFin = _x0
 
-            if(workStokes == None):
+            if(workStokes is None):
                 workStokes = SRWLStokes(1, 'f', meshWork.eStart, meshWork.eFin, meshWork.ne, meshWork.xStart, meshWork.xFin, meshWork.nx, meshWork.yStart, meshWork.yFin, meshWork.ny, doMutual)
             else:
                 nRadPtCur = meshWork.ne*meshWork.nx*meshWork.ny
@@ -4517,13 +4517,13 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
             #srwl_uti_save_intens_ascii(workStokes.arS, workStokes.mesh, _file_path, 1)
             #END DEBUG
 
-            if(resStokes == None):
+            if(resStokes is None):
                 resStokes = SRWLStokes(1, 'f', meshRes.eStart, meshRes.eFin, meshRes.ne, meshRes.xStart, meshRes.xFin, meshRes.nx, meshRes.yStart, meshRes.yFin, meshRes.ny, doMutual)
                 #DEBUG
                 #print('resStokes #2: ne=', resStokes.mesh.ne, 'eStart=', resStokes.mesh.eStart, 'eFin=', resStokes.mesh.eFin)
                 #END DEBUG
  
-            if(_opt_bl == None):
+            if(_opt_bl is None):
                 #resStokes.avg_update_same_mesh(workStokes, iAvgProc, 1)
 
                 #print('resStokes.avg_update_same_mesh ... ', end='') #DEBUG
@@ -4585,7 +4585,7 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
                 #    sys.exit(0)
                 #END DEBUG
                 iSave += 1
-                if((_file_path != None) and (iSave == _n_save_per)):
+                if((_file_path is not None) and (iSave == _n_save_per)):
                     #Saving results from time to time in the process of calculation:
 
                     #print('srwl_uti_save_intens_ascii ... ', end='') #DEBUG
@@ -4613,10 +4613,10 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
         #srwl_uti_save_text("nRecv: " + str(nRecv) + " nPartPerProc: " + str(nPartPerProc) + " nProc: " + str(nProc) + " _n_part_avg_proc: " + str(_n_part_avg_proc), _file_path + ".00.dbg")
         #END DEBUG
 
-        if(resStokes == None):
+        if(resStokes is None):
             resStokes = SRWLStokes(1, 'f', meshRes.eStart, meshRes.eFin, meshRes.ne, meshRes.xStart, meshRes.xFin, meshRes.nx, meshRes.yStart, meshRes.yFin, meshRes.ny, doMutual)
 
-        if(workStokes == None):
+        if(workStokes is None):
             workStokes = SRWLStokes(1, 'f', meshRes.eStart, meshRes.eFin, meshRes.ne, meshRes.xStart, meshRes.xFin, meshRes.nx, meshRes.yStart, meshRes.yFin, meshRes.ny, doMutual)
 
         for i in range(nRecv): #loop over messages from workers
@@ -4669,7 +4669,7 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
 
     if((rank == 0) or (nProc == 1)):
         #Saving final results:
-        if(_file_path != None):
+        if(_file_path is not None):
 
             #print('srwl_uti_save_intens_ascii ... ', end='') #DEBUG
             #t0 = time.time(); #DEBUG
