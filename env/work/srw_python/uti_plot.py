@@ -1,6 +1,6 @@
 """Simple 1D & 2D plotting utilities package for "Synchrotron Radiation Workshop" (SRW).
 
-``uti_plot`` currenly wraps ``matplotlib``, but other backends are
+``uti_plot`` currently wraps ``matplotlib``, but other backends are
 planned.  If no suitable backend is available, ``uti_plot_init`` sets
 the backend to ``uti_plot_none`` so that the calling program is still
 functional.  This is useful for systems where there is no graphing
@@ -45,7 +45,7 @@ def uti_plot_init(backend=DEFAULT_BACKEND, fname_format=None):
     DEFAULT_BACKEND provided, an appropriate backend will be chosen and printed.
     Plots may also be saved if fname_format is supplied.
 
-    You may call ``uti_plot_init(None)`` expicitly so that no plotting occurs.
+    You may call ``uti_plot_init(None)`` explicitly so that no plotting occurs.
 
     :param str backend: a matplot backend (TkAgg, etc.) or ``inline`` in IPython
     :param str fname_format: where to save plots. format field is a sequential plot number, starting at 0.
@@ -60,7 +60,7 @@ def uti_plot_init(backend=DEFAULT_BACKEND, fname_format=None):
             traceback.print_exc()
             print(backend + ': unable to import specified backend (or its dependency); no plots')
     elif fname_format is not None:
-        raise Value(fname_format + ': fname_format must be null if backend is None')
+        raise ValueError(fname_format + ': fname_format must be null if backend is None')
     _backend = _BackendNone()
 
 def uti_plot_show():

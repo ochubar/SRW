@@ -1695,10 +1695,24 @@ class SRWLBeamline(object):
         plotOK = False
 
         if (_v.tr == True) and (len(_v.tr_pl) > 0):
-            #uti_plot1d(int_ss, [mesh_ss.eStart, mesh_ss.eFin, mesh_ss.ne], ['Photon Energy', 'Intensity', 'Intensity'], ['eV', 'ph/s/.1%bw/mm^2'])
-
-            #To implement!
-            #ddddddddddddddddddddddddddddddddddddddddddddddddd
+            args = []
+            kwargs = {
+                'labels': ['Longitudinal Position'],
+                'units': ['m', 'm'],
+            }
+            traj_rep_allowed_values = ['xz', 'yz']
+            traj_rep_allowed_values += [x.upper() for x in traj_rep_allowed_values]
+            if _v.tr_pl.lower() == 'xz':
+                args.append(trj.arX)
+                kwargs['labels'].append('Horizontal Position')
+            elif _v.tr_pl.lower() == 'yz':
+                args.append(trj.arY)
+                kwargs['labels'].append('Vertical Position')
+            else:
+                raise ValueError('No such option allowed: {}. Allowed values: {}'.format(_v.tr_pl, traj_rep_allowed_values))
+            kwargs['labels'].append('Electron Trajectory')
+            args.append([min(trj.arZ), max(trj.arZ), len(trj.arZ)])
+            uti_plot1d(*args, **kwargs)
 
             plotOK = True
         
