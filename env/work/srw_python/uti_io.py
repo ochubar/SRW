@@ -107,12 +107,10 @@ def write_ascii_data_cols(_file_path, _cols, _str_sep, _str_head=None, _i_col_st
     f.close()
 
 #********************** Read data from an image file:
-def read_image(image_path, bottom_limit=None, cutoff_background=0.5, ignore_bottom_limit=False): #MR17112016
+def read_image(image_path):  # MR26102017
     """Read data from an image file.
 
     :param image_path: full path to the image.
-    :param bottom_limit: the bottom limit separating the image and the legend (black block).
-    :param cutoff_background: the ratio for cutoff the background noise.
     :return: dict with the processed data.
     """
 
@@ -120,11 +118,11 @@ def read_image(image_path, bottom_limit=None, cutoff_background=0.5, ignore_bott
     try:
         import numpy as np
     except:
-        raise ValueError(msg.format('numpy'))
+        raise ImportError(msg.format('numpy'))
     try:
         from PIL import Image
     except:
-        raise ValueError(msg.format('pillow'))
+        raise ImportError(msg.format('pillow'))
 
     # Read the image:
     raw_image = Image.open(image_path)
@@ -141,33 +139,8 @@ def read_image(image_path, bottom_limit=None, cutoff_background=0.5, ignore_bott
     bpp = mode_to_bpp[raw_image.mode]
     limit_value = float(2 ** bpp - 1)
 
-    # Get the bottom limit if it's not provided:
-    if not bottom_limit:
-        if not ignore_bottom_limit:
-            try:
-                bottom_limit = np.where(data[:, 0] == 0)[0][0]
-            except IndexError:
-                bottom_limit = data.shape[0]
-        else:
-            bottom_limit = data.shape[0]
-
-    # Remove the bottom black area:
-    if data[:, 0].max() > 0:  # do not remove if the background is already black
-        data = np.copy(data[:bottom_limit, :])
-
-    # Remove background noise:
-    idxs_less = np.where(data < limit_value * cutoff_background)
-    data[idxs_less] = np.uint16(0)
-
-    # Generate new image object to track the changes:
-    processed_image = Image.fromarray(data)
-
     return {
-        # data is represented as [Y, X] with counting from top to bottom, so change the counting from bottom to top and
-        # transpose the data to be represented as [X, Y].
-        'data': np.transpose(data[::-1, :]),
+        'data': data,
         'raw_image': raw_image,
-        'processed_image': processed_image,
-        'bottom_limit': bottom_limit,
         'limit_value': limit_value,
     }
