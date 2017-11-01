@@ -104,12 +104,14 @@ class Backend(object):
         return self._maybe_savefig(fig)
 
     #def srw_ascii_plot(fname):
-    def uti_data_file_plot(self, _fname, _read_labels=1, _e=0, _x=0, _y=0, _graphs_joined=1, _traj_report=False, _traj_axis='x',
+    def uti_data_file_plot(self, _fname, _read_labels=1, _e=0, _x=0, _y=0, _graphs_joined=1,
+                           _multicolumn_data=False, _column_x=None, _column_y=None, #MR31102017
                            _scale='linear', _width_pixels=None):
         #data, mode, allrange = srw_ascii_load(fname)
         #data, mode, allrange, arLabels, arUnits = _file_load(_fname, _read_labels)
-        data, mode, allrange, arLabels, arUnits = uti_plot_com.file_load(_fname, _read_labels, _traj_report, _traj_axis)
-        data = np.array(data)
+        data, mode, allrange, arLabels, arUnits = uti_plot_com.file_load(_fname, _read_labels, _multicolumn_data) #MR31102017
+        if not _multicolumn_data:
+            data = np.array(data)
         if mode == 3:
             try:
                 fwhm_dict = uti_math.fwhm(np.linspace(allrange[0], allrange[1], allrange[2]), data, return_as_dict=True)
@@ -159,11 +161,26 @@ class Backend(object):
         #  fig = __mode_EH(data,allrange)
         elif mode==m.EHV:
             fig = self.__mode_EHV(data, allrange, arLabels, arUnits, _e, _x, _y, _graphs_joined)
+        if _multicolumn_data: #MR31102017
+            available_cols = list(data.keys())
+            for c in [_column_x, _column_y]:
+                if c not in available_cols:
+                    raise ValueError('Incorrect column specified: {}.\nAvailable columns: {}'.format(c, available_cols))
+            fig = self._plot_1D_XvsY(data, _column_x, _column_y)
         return self._maybe_savefig(fig)
 
     def _enum(self, *sequential, **named): #Had to copy this in uti_plot_com
         enums = dict(zip(sequential, range(len(sequential))), **named)
         return type('Enum', (), enums)
+
+    def _plot_1D_XvsY(self, data, column_x, column_y, figsize=(8, 5), typ=111): #MR31102017
+        fig = self._pl.figure(figsize=figsize)
+        ax = fig.add_subplot(typ)
+        ax.plot(data[column_x]['data'], data[column_y]['data'])
+        ax.grid()
+        ax.set_xlabel(data[column_x]['label'])
+        ax.set_ylabel(data[column_y]['label'])
+        return fig
 
     def _plot_1D(self, ar1d, x_range, labels, fig, typ=111):
         lenAr1d = len(ar1d)

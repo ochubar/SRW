@@ -12,39 +12,20 @@ import uti_math
 import uti_io
 
 
-def _traj_file_load(fname, traj_axis='x'):  #MR20160725
-    nLinesHead = 1
-    hlp = []
+def _multicolumn_file_load(fname):  #MR20160725
     with open(fname, 'r') as f:
-        for i in range(nLinesHead):
-            hlp.append(f.readline())
-
-    data = uti_io.read_ascii_data_cols(fname, '\t', _i_col_start=0, _i_col_end=10, _n_line_skip=nLinesHead)
-
-    mode = 3
-    allrange = [
-        data[5][0],  # z-coordinate begin
-        data[5][-1],  # z-coordinate end
-        len(data[0]),  # number of points
-        min(data[1]),  # x-coordinate begin
-        max(data[1]),  # x-coordinate end
-        1,
-        min(data[3]),  # y-coordinate begin
-        max(data[3]),  # y-coordinate end
-        1,
-    ]
-    arLabels = ['Longitudinal Position', 'Horizontal Position', 'Vertical Position']
-    arUnits = ['m', 'm', 'm', 'm']
-    if traj_axis == 'x':
-        data = data[1]
-        arLabels.append('Horizontal Coordinate')
-    elif traj_axis == 'y':
-        data = data[3]
-        arLabels.append('Vertical Coordinate')
-    else:
-        raise ValueError('Parameter "axis" has wrong value: {}. Allowed values are "x" and "y"'.format(traj_axis))
-
-    return data, mode, allrange, arLabels, arUnits
+        header = f.readline().split(',')
+        header = [x.replace('#', '').strip() for x in header]
+    data = uti_io.read_ascii_data_cols(fname, '\t', _i_col_start=0, _i_col_end=-1, _n_line_skip=1)
+    d = {}
+    for i, k in enumerate(header):
+        k_no_units = k.split('[')[0].strip()
+        d[k_no_units] = {
+            'data': data[i],
+            'label': k,
+        }
+    # data, mode, allrange, arLabels, arUnits
+    return d, None, [], [], []
 
 
 #****************************************************************************
@@ -112,11 +93,11 @@ def _file_load(_fname, _read_labels=1): #MR20160725
     return data, mode, allrange, arLabels, arUnits
 
 
-def file_load(fname, read_labels=1, traj_report=False, traj_axis='x'): #MR20160729
-    if not traj_report:
+def file_load(fname, read_labels=1, _multicolumn_data=False): #MR31102017
+    if not _multicolumn_data:
         return _file_load(fname, read_labels)
     else:
-        return _traj_file_load(fname, traj_axis)
+        return _multicolumn_file_load(fname)
 
 #****************************************************************************
 def rescale(maxabsval, strval):

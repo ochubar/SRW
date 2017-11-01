@@ -148,7 +148,8 @@ def uti_plot2d1d(ar2d, x_range, y_range, x=0, y=0, labels=('Horizontal Position'
     _backend.uti_plot2d1d(ar2d, x_range, y_range, x, y, labels, graphs_joined)
     
 #def uti_data_file_plot(_fname, _read_labels=1, _e=0, _x=0, _y=0, _graphs_joined=True):
-def uti_data_file_plot(_fname, _read_labels=1, _e=0, _x=0, _y=0, _graphs_joined=True, _traj_report=False, _traj_axis='x',
+def uti_data_file_plot(_fname, _read_labels=1, _e=0, _x=0, _y=0, _graphs_joined=True,
+                       _multicolumn_data=False, _column_x=None, _column_y=None, #MR31102017
                        _scale='linear', _width_pixels=None): #MR20012017
     """Generate plot from configuration in _fname
 
@@ -158,15 +159,17 @@ def uti_data_file_plot(_fname, _read_labels=1, _e=0, _x=0, _y=0, _graphs_joined=
     :param float _x: horizonal position adjustment
     :param float _y: vertical position adjustment
     :param bool _graphs_joined: if true, all plots in a single figure
-    :param bool _traj_report: if true, plot trajectory report data
-    :param str _traj_axis: the axis to plot vs. z-axis
+    :param bool _multicolumn_data: if true, visualize multicolumn data data
+    :param str _column_x: column for horizontal axis
+    :param str _column_x: column for vertical axis
     :param str _scale: the scale to use for plotting data (linear by default, but could use log, log2, log10)
     :param int _width_pixels: the width of the final plot in pixels
 
     """
     #if '_backend' not in locals(): uti_plot_init() #?
     #_backend.uti_data_file_plot(_fname, _read_labels, _e, _x, _y, _graphs_joined)
-    _backend.uti_data_file_plot(_fname, _read_labels, _e, _x, _y, _graphs_joined, _traj_report, _traj_axis,
+    _backend.uti_data_file_plot(_fname, _read_labels, _e, _x, _y, _graphs_joined,
+                                _multicolumn_data, _column_x, _column_y, #MR31102017
                                 _scale, _width_pixels) #MR20012017
 
 class _BackendBase(object):
