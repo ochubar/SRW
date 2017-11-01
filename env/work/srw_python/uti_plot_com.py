@@ -12,7 +12,7 @@ import uti_math
 import uti_io
 
 
-def _multicolumn_file_load(fname):  #MR20160725
+def _multicolumn_file_load(fname): #MR31102017
     with open(fname, 'r') as f:
         header = f.readline().split(',')
         header = [x.replace('#', '').strip() for x in header]
@@ -20,9 +20,11 @@ def _multicolumn_file_load(fname):  #MR20160725
     d = {}
     for i, k in enumerate(header):
         k_no_units = k.split('[')[0].strip()
+        units = k.split('[')[1].split(']')[0].strip()
         d[k_no_units] = {
             'data': data[i],
             'label': k,
+            'units': units,
         }
     # data, mode, allrange, arLabels, arUnits
     return d, None, [], [], []
@@ -93,8 +95,8 @@ def _file_load(_fname, _read_labels=1): #MR20160725
     return data, mode, allrange, arLabels, arUnits
 
 
-def file_load(fname, read_labels=1, _multicolumn_data=False): #MR31102017
-    if not _multicolumn_data:
+def file_load(fname, read_labels=1, multicolumn_data=False): #MR31102017
+    if not multicolumn_data:
         return _file_load(fname, read_labels)
     else:
         return _multicolumn_file_load(fname)
