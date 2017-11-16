@@ -9,10 +9,6 @@
 import math
 import os
 
-import numpy as np
-from PIL import Image
-from scipy.ndimage.interpolation import rotate
-
 import srwlib
 import uti_io
 
@@ -91,6 +87,20 @@ class SRWLUtiSmp:
             self.save_images()
 
     def get_data_from_image(self):
+        import_err_msg = '"{}" library cannot be imported. Please install it first with "pip install {}".'
+        try:
+            import numpy as np
+        except ImportError:
+            raise ImportError(import_err_msg.format('NumPy', 'numpy'))
+        try:
+            from PIL import Image
+        except ImportError:
+            raise ImportError(import_err_msg.format('PIL', 'pillow'))
+        try:
+            from scipy.ndimage.interpolation import rotate
+        except ImportError:
+            raise ImportError(import_err_msg.format('SciPy', 'scipy'))
+
         d = uti_io.read_image(image_path=self.file_path)
         self.data = d['data']
         self.raw_image = d['raw_image']
