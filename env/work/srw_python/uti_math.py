@@ -646,14 +646,3 @@ def fwhm(x, y, shift=0.5, return_as_dict=False):  # MR21032017
             }
     else:
         raise Exception('Number of roots is less than 2!')
-
-#****************************************************************************
-def fwhm_scipy(x, y): #MR27092016
-    """Computing FWHM (Full width at half maximum)"""
-    try:
-        from scipy.interpolate import UnivariateSpline
-        spline = UnivariateSpline(x, y, s=0)
-        r1, r2 = spline.roots()  # find the roots
-        return r2 - r1  # return the difference (full width)
-    except ImportError:
-        return fwhm(x, y)
