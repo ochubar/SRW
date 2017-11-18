@@ -627,7 +627,10 @@ def fwhm(x, y, shift=0.5, return_as_dict=False):  # MR21032017
         return True if num > 0 else False
 
     # Normalize values first:
-    y = (y - min(y)) / (max(y) - min(y)) - shift  # roots are at Y=0
+    min_y = min(y)
+    max_y = max(y)
+    for i in range(len(y)):
+        y[i] = (y[i] - min_y) / (max_y - min_y) - shift  # roots are at Y=0
 
     positive = is_positive(y[0])
     list_of_roots = []
