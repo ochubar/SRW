@@ -546,7 +546,9 @@ int srTMirror::WfrInterpolOnOrigGrid2(srTSRWRadStructAccessData* pWfr, double* a
 		
 		//if(!((fabs(pWfr->RobsX + 0.99) < 0.1) && (fabs(pWfr->RobsZ + 0.99) < 0.1)))
 		//{//OCTEST
+		
 		TreatStronglyOscillatingTermIrregMesh(*pWfr, arRayTrCoord, xMin, xMax, zMin, zMax, 'r');
+		
 		//}//OCTEST
 		
 		pWfr->pBaseRadX = pPrevBaseRadX;
@@ -716,7 +718,8 @@ int srTMirror::WfrInterpolOnOrigGrid2(srTSRWRadStructAccessData* pWfr, double* a
 					}
 				}
 
-				if(indCloseRayTrCoord >= 0) 
+				//if(indCloseRayTrCoord >= 0) 
+				if((indCloseRayTrCoord >= 0) && ((xMin <= x) && (x <= xMax) && (zMin <= z) && (z <= zMax))) //OC03072017 (trying to avoid having an aventual "nan" in the resulting field data)
 				{
 					double *pRayTrCoord = arRayTrCoord + indCloseRayTrCoord;
 					double xCloseRayTr = *pRayTrCoord;
@@ -968,7 +971,25 @@ int srTMirror::WfrInterpolOnOrigGrid2(srTSRWRadStructAccessData* pWfr, double* a
 					}
 
 					double resReEx=0, resImEx=0, resReEz=0, resImEz=0;
-					if(arEX != 0)
+
+					//OC04072017
+					bool interpCanBeDone = true;
+					double absCoordThres = 1.e+20;
+					if((relX < -absCoordThres) || (relX > absCoordThres) || (relZ < -absCoordThres) || (relZ > absCoordThres)) interpCanBeDone = false;
+					if(interpCanBeDone)
+					{
+						for(int jj = 0; jj < 6; jj++)
+						{
+							double curCoord = arRelCoordXZ[jj];
+							if((curCoord < -absCoordThres) || (curCoord > absCoordThres))
+							{
+								interpCanBeDone = false; break;
+							}
+						}
+					}
+
+					//if(arEX != 0)
+					if(interpCanBeDone && (arEX != 0)) //OC04072017
 					{
 						//static double Interp2dBiLinVar(double x, double y, double* arXY, double* arF)
 						//bilinear interpolation on irregular mesh, for relative arguments, first point is x = 0, y = 0
@@ -996,7 +1017,8 @@ int srTMirror::WfrInterpolOnOrigGrid2(srTSRWRadStructAccessData* pWfr, double* a
 							}
 						}
 					}
-					if(arEZ != 0)
+					//if(arEZ != 0)
+					if(interpCanBeDone && (arEZ != 0)) //OC04072017
 					{
 						//resReEz = CGenMathInterp::Interp2dBiLinVar(x, z, arRelCoordXZ, arReEz);
 						//resImEz = CGenMathInterp::Interp2dBiLinVar(x, z, arRelCoordXZ, arImEz);
@@ -1798,6 +1820,8 @@ int srTMirror::PropagateRadiationSimple_LocRayTracing(srTSRWRadStructAccessData*
 	int res = 0;
 	//char LocWaveFrontTermCanBeTreated = WaveFrontTermCanBeTreated(*pRadAccessData); //checks if quad. term can be treated and set local variables
 
+	const double relTolAstigm = 1.e-06; //to steer (used for calculating directions of inpiut rays)
+
 	if((m_treatInOut == 2) && (m_extAlongOptAxIn != 0.))
 	{//Propagate wavefront back (by -m_extAlongOptAxIn) to the beginning of the optical element using Wavefront Propagation through a Drift
 		srTRadResizeVect dummyResizeVect; //consider removing this completely
@@ -1877,6 +1901,11 @@ int srTMirror::PropagateRadiationSimple_LocRayTracing(srTSRWRadStructAccessData*
 	//Determine Exit (output) plane coordinates in the Local frame
 	if(!FindRayIntersectWithSurfInLocFrame(planeBeforeLocFrP, m_vInLoc, planeAfterLocFrP)) return FAILED_DETERMINE_OPTICAL_AXIS;
 	planeAfterLocFrV = m_vOutLoc;
+
+			//OCTEST
+			//TVector3d vpTestFoc1Loc = -0.2*m_vInLoc;
+			//TVector3d vpTestFoc2Loc = 0.2*m_vOutLoc;
+			//END OCTEST
 
 	planeCenOutLocFrV = m_vOutLoc;
 	planeCenOutLocFrP = planeAfterLocFrP;
@@ -1981,13 +2010,13 @@ int srTMirror::PropagateRadiationSimple_LocRayTracing(srTSRWRadStructAccessData*
 				*pAuxRayTrCoordX = -1.E+23; *pAuxRayTrCoordY = -1.E+23;
 
 								//OCTEST
-								if(fabs(pRadAccessData->RobsZ + 18.079) < 0.1)
-								{
+								//if(fabs(pRadAccessData->RobsZ + 18.079) < 0.1)
+								//{
 									//if((ix == 1124) && (iz == 408))
 									//{
-									int aha = 1;
+									//int aha = 1;
 									//}
-								}
+								//}
 								//END OCTEST
 
 				//long *pAuxIndRayTrCoord = arAuxIndRayTrCoord + iyHalfPerY_p_ie + ix*HalfPerX;
@@ -2009,16 +2038,42 @@ int srTMirror::PropagateRadiationSimple_LocRayTracing(srTSRWRadStructAccessData*
 					//double tgAngX=0, tgAngY=0;
 					//pRadAccessData->GetWaveFrontNormal(x, y, tgAngX, tgAngY);
 
-					double tgAngX = (x - xcInWfr)/RxInWfr; //check sign
-					double tgAngY = (y - zcInWfr)/RzInWfr; //check sign
+					//OC20092017 (commented-out)
+					//double tgAngX = (x - xcInWfr)/RxInWfr; //check sign
+					//double tgAngY = (y - zcInWfr)/RzInWfr; //check sign
 
-						//OCtest!!!!!!!!!!!!!!!!!!!!!
-						//tgAngX = 0.; tgAngY = 0.;
-						//end OCtest
+					//rayLocFrV.x = tgAngX;
+					//rayLocFrV.y = tgAngY;
+					//rayLocFrV.z = sqrt(1. - rayLocFrV.x*rayLocFrV.x - rayLocFrV.y*rayLocFrV.y);
 
-					rayLocFrV.x = tgAngX;
-					rayLocFrV.y = tgAngY;
-					rayLocFrV.z = sqrt(1. - rayLocFrV.x*rayLocFrV.x - rayLocFrV.y*rayLocFrV.y);
+					//OC20092017
+					double x_mi_xc = x - xcInWfr, y_mi_yc = y - zcInWfr;
+					rayLocFrV.x = x_mi_xc;
+					rayLocFrV.y = y_mi_yc;
+					rayLocFrV.z = RxInWfr;
+					rayLocFrV.Normalize();
+
+					if(fabs(RxInWfr - RzInWfr) > fabs(RxInWfr)*relTolAstigm)
+					{//astigmatism
+						double auxVx = rayLocFrV.x;
+						rayLocFrV.x = x_mi_xc;
+						rayLocFrV.y = y_mi_yc;
+						rayLocFrV.z = RzInWfr;
+						rayLocFrV.Normalize();
+						double auxVy = rayLocFrV.y;
+						rayLocFrV.x = auxVx;
+						rayLocFrV.z = sqrt(1. - auxVx*auxVx - auxVy*auxVy);
+					}
+
+						//OCTEST
+						//TVector3d vInRayInFr(x - xcInWfr, y - zcInWfr, RzInWfr);
+						//vInRayInFr.Normalize();
+						//double nxTest = sin(atan(tgAngX));
+						//double nyTest = sin(atan(tgAngY));
+						//double nzTest = sqrt(1. - nxTest*nxTest - nyTest*nyTest);
+						//TVector3d vInRayInFrTest(nxTest, nyTest, nzTest);
+						//END OCTEST
+
 					rayLocFrP.x = x; rayLocFrP.y = y; rayLocFrP.z = 0.;
 
 					if((m_treatInOut == 0) || (m_treatInOut == 2))
@@ -2044,9 +2099,18 @@ int srTMirror::PropagateRadiationSimple_LocRayTracing(srTSRWRadStructAccessData*
 					{
 						if(CheckIfPointIsWithinOptElem(vIntersPtLocFr.x, vIntersPtLocFr.y)) 
 						{//continue calculating reflected and propagated electric field
-							//test
-							//FindRayIntersectWithSurfInLocFrame(rayLocFrP, rayLocFrV, vIntersPtLocFr, &vSurfNormLocFr);
-							//intersectHappened = true;
+									//OCTEST
+									//FindRayIntersectWithSurfInLocFrame(rayLocFrP, rayLocFrV, vIntersPtLocFr, &vSurfNormLocFr);
+									//intersectHappened = true;
+									//END OCTEST
+									//OCTEST
+									//TVector3d vTestToFoc1 = vpTestFoc1Loc - vIntersPtLocFr;
+									//TVector3d vTestToFoc2 = vpTestFoc2Loc - vIntersPtLocFr;
+									//double distFoc1 = vTestToFoc1.Abs(), distFoc2 = vTestToFoc2.Abs();
+									//double distFoc12 = distFoc1 + distFoc2;
+									//vTestToFoc1.Normalize();
+									//vTestToFoc2.Normalize();
+									//END OCTEST
 
 							vAuxOptPath = vIntersPtLocFr - rayLocFrP;
 							//double optPath = vAuxOptPath.Abs();
@@ -2069,6 +2133,7 @@ int srTMirror::PropagateRadiationSimple_LocRayTracing(srTSRWRadStructAccessData*
 								//OCTEST
 								//double locGrDen = m_grDen; // + xGr*(xGr*(xGr*(xGr*m_grDen4 + m_grDen3) + m_grDen2) + m_grDen1); //Calculate local Groove Density
 								//vTang *= (grMult*locGrDen);
+								//END OCTEST
 								vTang *= (-grMult*locGrDen);
 
 								TVector3d vInLocTang = rayLocFrV - ((rayLocFrV*vSurfNormLocFr)*vSurfNormLocFr);
@@ -2105,7 +2170,6 @@ int srTMirror::PropagateRadiationSimple_LocRayTracing(srTSRWRadStructAccessData*
 								//FindLineIntersectWithPlane(planeCenOutLocFr, rayTestLocFr, vTestAuxIntersectP);
 								//vAuxOptPath = vTestAuxIntersectP - rayLocFrP;
 								//auxPathAfter = vAuxOptPath*rayTestLocFr[1];
-								//int aha = 1;
 								//END OCTEST
 							}
 
@@ -2125,7 +2189,7 @@ int srTMirror::PropagateRadiationSimple_LocRayTracing(srTSRWRadStructAccessData*
 							RxOutCor = RxOutWfr - optPathAfter;
 							RzOutCor = RzOutWfr - optPathAfter;
 							if((RxInCor != 0.) && (RzInCor != 0.) && (RxOutWfr != 0.) && (RzOutCor != 0.))
-							{
+							{//OC: this may require more tests/debugging
 								ampFactE2 = RxInWfr*RxOutCor/(RxInCor*RxOutWfr);
 								ampFactE2 *= RzInWfr*RzOutCor/(RzInCor*RzOutWfr);
 								//ampFact = sqrt(fabs(ampFactE2));
@@ -2148,6 +2212,22 @@ int srTMirror::PropagateRadiationSimple_LocRayTracing(srTSRWRadStructAccessData*
 
 							*pAuxRayTrCoordX = xRelOut;
 							*pAuxRayTrCoordY = yRelOut;
+
+									//OCTEST
+									//if(y > 0)
+									//if(y > 0.0043)
+									//{
+									//	int aha = 1;
+									//}
+									//if((-0.5*(pRadAccessData->xStep) <= x) && (x <= 0.5*(pRadAccessData->xStep)))
+									//{
+									//	TVector3d auxTestPlane[2], vTest;
+									//	auxTestPlane[0] = 1.8*m_vOutLoc; //point
+									//	auxTestPlane[1] = m_vOutLoc; //normal vector
+									//	FindLineIntersectWithPlane(auxTestPlane, rayLocFr, vTest);
+									//	int aha = 1;
+									//}
+									//END OCTEST
 
 							if(xRelOutMin > xRelOut) 
 							{
@@ -2384,6 +2464,12 @@ int srTMirror::PropagateRadiationSimple_LocRayTracing(srTSRWRadStructAccessData*
 		driftOut.PropBufVars.UseExactRxRzForAnalytTreatQuadPhaseTerm = true;
 		if(res = driftOut.PropagateRadiation(pRadAccessData, m_ParPrecWfrPropag, dummyResizeVect)) return res;
 	}
+
+	//DEBUG
+	//srTMomentsPtrs MomX(pRadAccessData->pMomX, 0);
+	//ComputeRadMoments(pRadAccessData);
+	//MomX.ComputeCentralMoments();
+	//END DEBUG
 
 	if(arAuxEX != 0) delete[] arAuxEX;
 	if(arAuxEY != 0) delete[] arAuxEY;

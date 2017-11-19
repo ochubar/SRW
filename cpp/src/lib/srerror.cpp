@@ -239,6 +239,10 @@ CErrWarn::CErrWarn()
 	error.push_back("Incorrect input parameters for conversion of tabulated magnetic field to periodic.\0"); //#182
 	error.push_back("Incorrect spherical mirror parameter: radius should not be zero.\0"); //#183
 	error.push_back("Incorrect crystal parameter: use case is not supported.\0"); //#184
+	error.push_back("Incorrect input parameters for search of indexes of undulator gap and phase values requiired for undulator field interpolation based on gap and phase.\0"); //#185
+	error.push_back("Incorrect or insufficient parameters for spherical wave electric field calculation.\0"); //#186
+	
+	error.push_back("Failed to determine array element index for interpolation.\0"); //#187
 
 //};
 

@@ -24,6 +24,9 @@
 #ifndef MEMORY_ALLOCATION_FAILURE
 #define MEMORY_ALLOCATION_FAILURE 8 + 10000 //in line with SRW
 #endif
+#ifndef CAN_NOT_FIND_IND_FOR_INTERP
+#define CAN_NOT_FIND_IND_FOR_INTERP 187 + 10000 //in line with SRW
+#endif
 
 //-------------------------------------------------------------------------
 
@@ -89,12 +92,19 @@ public:
 	static double InterpCubicSpline(double *xa, double *ya, double *y2a, int n, double x);
 	static double Deriv1(double* f, double h, int PoIndx, int AmOfPo);
 	static double Derivative(double* f, double h, int PoIndx, int AmOfPo=5);
+	//static bool TryToFindRectMesh(double* arX, double* arY, int nPtTot, double* arResMeshX, double* arResMeshY, int& nMeshX, int& nMeshY, int* arPtMeshInd, double arMinMaxX[2], double arMinMaxY[2]);
+	static bool TryToFindRectMesh(double* arX, double* arY, int nPtTot, double* arResMeshX, double* arResMeshY, int& nMeshX, int& nMeshY, double arMinMaxX[2], double arMinMaxY[2]);
+	//static void SelectPointsForInterp2d(double x, double y, double* arX, double* arY, int nPtTot, int ord, int* arResInd, int& nResInd);
+	static int SelectPointsForInterp2d(double x, double y, double* arX, double* arY, int nPtTot, int& ord, int* arResInd, int& nResInd, bool& resMeshIsRect);
+	static void SelectPointsForInterp1d2d(double* arGaps, double* arPhases, int nVals, int* arResInds, int& nResInds, double arPrecPar[5]);
+	static int TryToFindMeshPointForPars(double* arPar1, double* arPar2, int nVals, double* arPrecPar);
 
 	void Interpolate(double sSt, double sStp, int Np, double* pInterpData);
 	void CompDerivForOrigData(double* OrigF, double* DerF);
 
 	void InitCubicSpline(double *x, double *y, int np);
 	void InitCubicSplineU(double xStart, double xStep, double *y, int np);
+
 	double Interp1D(double x)
 	{
 		if((mMethNo == 1) && (mSplineY2Arr != 0) && (mSplineArgTabArr != 0) && (mSplineValTabArr != 0) && (mSplineTabNp > 0))
@@ -167,6 +177,51 @@ public:
         if(AllCf != 0) { delete[] AllCf; AllCf = 0;}
         if(PlnCf != 0) { delete[] PlnCf; PlnCf = 0;}
     }
+
+	static int FindIndOfPointOnIrregMesh2d(double x, double y, double* arX, double* arY, int nPtTot, double relTol=1.e-09)
+	{
+		//if((nPtTot <= 0) || (arX == 0) || (arY == 0)) return -1;
+		if((nPtTot <= 0) || (arX == 0) || (arY == 0)) throw CAN_NOT_FIND_IND_FOR_INTERP;
+
+		if(nPtTot == 1)
+		{
+			double dXi = x - (*arX);
+			double curTolX = (*arX)*relTol;
+			if((-curTolX <= dXi) && (dXi <= curTolX))
+			{
+				double dYi = y - (*arY);
+				double curTolY = (*arY)*relTol;
+				if((-curTolY <= dYi) && (dYi <= curTolY))
+				{
+					return 0;
+				}
+			}
+		}
+
+		//double curTolX = (arX[1] - arX[0])*relTol;
+		//double curTolY = (arY[1] - arY[0])*relTol;
+		int nPtTot_mi_1 = nPtTot - 1; //OC31102017
+		double curTolX = (arX[nPtTot_mi_1] - arX[0])*relTol;
+		double curTolY = (arY[nPtTot_mi_1] - arY[0])*relTol;
+		for(int i=0; i<nPtTot; i++)
+		{
+			double dXi = x - arX[i];
+			if((-curTolX <= dXi) && (dXi <= curTolX))
+			{
+				double dYi = y - arY[i];
+				if((-curTolY <= dYi) && (dYi <= curTolY)) return i;
+			}
+
+			//OC31102017 (commented-out)
+			//if(i > 1)
+			//{
+			//	curTolX = (arX[i] - arX[i - 1])*relTol;
+			//	curTolY = (arY[i] - arY[i - 1])*relTol;
+			//}
+		}
+		throw CAN_NOT_FIND_IND_FOR_INTERP;
+		return -1;
+	}
 
 	static double Interp3dBilin(double* inP, double* inArrArgBounds, double* inArrFunc)
 	{
@@ -322,6 +377,71 @@ public:
 		double a01 = f01 + i6*(-3.*f00 - 2.*f0m1 - f02);
 
 		return f00 + xt*(a10 + xt*(a20 + xt*(a30 + yt*a31) + yt*a21) + yt*(a11 + yt*(a12 + yt*a13))) + yt*(a01 + yt*(a02 + yt*a03));
+	}
+
+	static double Interp2dBiCubic12pRecVar(double x, double y, double* arXY, double* arF)
+	{//bi-cubic interpolation on rectangular, but variable step-size mesh (12 points), for relative arguments, "central" point (that correspopnds to f00) is x = 0, y = 0
+		double *p = arF;
+		double f0m1,f1m1,fm10,f00,f10,f20,fm11,f01,f11,f21,f02,f12;
+		f0m1=*(p++); f1m1=*(p++); fm10=*(p++); f00=*(p++); f10=*(p++); f20=*(p++); fm11=*(p++); f01=*(p++); f11=*(p++); f21=*(p++); f02=*(p++); f12=*(p++); 
+
+		double xm1 = *(arXY++), ym1 = *(arXY++);
+		//double x0 = 0, y0 = 0;
+		double x1 = *(arXY++), y1 = *(arXY++);
+		double x2 = *(arXY++), y2 = *(arXY++);
+
+		double x1_mi_xm1 = x1 - xm1, x1_mi_x2 = x1 - x2, x2_mi_xm1 = x2 - xm1;
+		double y1_mi_ym1 = y1 - ym1, y2_mi_ym1 = y2 - ym1, y1_mi_y2 = y1 - y2;
+
+		double fm10_d_x1_mi_xm1_x2_mi_xm1_xm1 = fm10/(x1_mi_xm1*x2_mi_xm1*xm1);
+		double x1_mi_x2_x2_x2_mi_xm1 = x1_mi_x2*x2*x2_mi_xm1;
+		double x1_x1_mi_x2_x1_mi_xm1 = x1*x1_mi_x2*x1_mi_xm1;
+		double f10_d_x1_x1_mi_x2_x1_mi_xm1 = f10/x1_x1_mi_x2_x1_mi_xm1;
+		double f20_d_x1_mi_x2_x2_x2_mi_xm1 = f20/x1_mi_x2_x2_x2_mi_xm1;
+		double x1_mi_xm1_xm1_x2_mi_xm1 = x1_mi_xm1*xm1*x2_mi_xm1;
+		double x1_mi_xm1_xm1_x2_mi_xm1_y1 = x1_mi_xm1_xm1_x2_mi_xm1*y1;
+		double y1_mi_ym1_y2_mi_ym1_ym1 = y1_mi_ym1*y2_mi_ym1*ym1;
+		double f0m1_d_y1_mi_ym1_y2_mi_ym1_ym1 = f0m1/y1_mi_ym1_y2_mi_ym1_ym1;
+		double x1_p_x2 = x1 + x2, x1_p_xm1 = x1 + xm1, x2_p_xm1 = x2 + xm1;
+		double x1_x2 = x1*x2, x1_xm1 = x1*xm1, x2_xm1 = x2*xm1;
+		double x1_x2_xm1 = x1_x2*xm1;
+		double y1_mi_ym1_ym1_y2_mi_ym1 = y1_mi_ym1*ym1*y2_mi_ym1;
+		double x1_y1_mi_ym1_ym1_y2_mi_ym1 = x1*y1_mi_ym1_ym1_y2_mi_ym1;
+		double f0m1_mi_f1m1_d_x1_y1_mi_ym1_ym1_y2_mi_ym1 = (f0m1 - f1m1)/x1_y1_mi_ym1_ym1_y2_mi_ym1;
+		double y1_mi_y2_y2_y2_mi_ym1 = y1_mi_y2*y2*y2_mi_ym1;
+		double f02_d_y1_mi_y2_y2_y2_mi_ym1 = f02/y1_mi_y2_y2_y2_mi_ym1, x1_y1_mi_y2_y2_y2_mi_ym1 = x1*y1_mi_y2_y2_y2_mi_ym1;
+		double y1_mi_y2_y1_mi_ym1 = y1_mi_y2*y1_mi_ym1;
+		double y1_mi_y2_y1_mi_ym1_x1 = y1_mi_y2_y1_mi_ym1*x1;
+		double y1_y1_mi_y2_y1_mi_ym1 = y1*y1_mi_y2_y1_mi_ym1;
+		double f01_d_y1_y1_mi_y2_y1_mi_ym1 = f01/y1_y1_mi_y2_y1_mi_ym1;
+		double f20_mi_f21_d_x1_mi_x2_x2_x2_mi_xm1_y1 = (f20 - f21)/(x1_mi_x2_x2_x2_mi_xm1*y1);
+		double x1_x1_mi_x2_x1_mi_xm1_y1 = x1_x1_mi_x2_x1_mi_xm1*y1;
+		double f11_mi_f10_d_x1_x1_mi_x2_x1_mi_xm1_y1 = (f11 - f10)/x1_x1_mi_x2_x1_mi_xm1_y1;
+		double x1_mi_x2_x2_mi_xm1_x2 = x1_mi_x2*x2_mi_xm1*x2;
+		double fm10_mi_fm11_d_x1_mi_xm1_xm1_x2_mi_xm1_y1 = (fm10 - fm11)/x1_mi_xm1_xm1_x2_mi_xm1_y1;
+		double y2_y1_mi_y2_y2_mi_ym1 = y2*y1_mi_y2*y2_mi_ym1;
+		double y1_p_y2 = y1 + y2, y1_p_ym1 = y1 + ym1, y2_p_ym1 = y2 + ym1;
+		double y1_y2 = y1*y2, y1_ym1 = y1*ym1, y2_ym1 = y2*ym1;
+		double y1_y2_ym1 = y1_y2*ym1;
+		double f00_mi_f10_d_x1_y1_y2_ym1 = (f00 - f10)/(x1*y1_y2_ym1);
+		double f00_mi_f01_d_x1_x2_xm1_y1 = (f00 - f01)/(x1_x2_xm1*y1);
+		double f02_mi_f12_d_x1_y1_mi_y2_y2_y2_mi_ym1 = (f02 - f12)/x1_y1_mi_y2_y2_y2_mi_ym1;
+		double f11_mi_f01_d_x1_y1_y1_mi_y2_y1_mi_ym1 = (f11 - f01)/(x1*y1_y1_mi_y2_y1_mi_ym1);
+		double x2_xm1_d_x1_x1_mi_x2_x1_mi_xm1_y1 = x2_xm1/x1_x1_mi_x2_x1_mi_xm1_y1;
+
+		double a10 = x1_x2*fm10_d_x1_mi_xm1_x2_mi_xm1_xm1 - x1_xm1*f20_d_x1_mi_x2_x2_x2_mi_xm1 + x2_xm1*f10_d_x1_x1_mi_x2_x1_mi_xm1 - f00*(1/x1 + 1/x2 + 1/xm1);
+		double a20 = -x1_p_x2*fm10_d_x1_mi_xm1_x2_mi_xm1_xm1 + x1_p_xm1*f20_d_x1_mi_x2_x2_x2_mi_xm1 - x2_p_xm1*f10_d_x1_x1_mi_x2_x1_mi_xm1 + f00*(1/x1_x2 + 1/x1_xm1 + 1/x2_xm1);
+		double a30 = fm10_d_x1_mi_xm1_x2_mi_xm1_xm1 + f10_d_x1_x1_mi_x2_x1_mi_xm1 - f20_d_x1_mi_x2_x2_x2_mi_xm1 - f00/x1_x2_xm1;
+		double a01 = y1_y2*f0m1_d_y1_mi_ym1_y2_mi_ym1_ym1 - y1_ym1*f02_d_y1_mi_y2_y2_y2_mi_ym1 + y2_ym1*f01_d_y1_y1_mi_y2_y1_mi_ym1 - f00*(1/y1 + 1/y2 + 1/ym1);
+		double a11 = -y1_y2*f0m1_mi_f1m1_d_x1_y1_mi_ym1_ym1_y2_mi_ym1 + y1_ym1*f02_mi_f12_d_x1_y1_mi_y2_y2_y2_mi_ym1 - x1_x2*fm10_mi_fm11_d_x1_mi_xm1_xm1_x2_mi_xm1_y1 + x1_xm1*f20_mi_f21_d_x1_mi_x2_x2_x2_mi_xm1_y1 - f10*(x2_xm1_d_x1_x1_mi_x2_x1_mi_xm1_y1 + 1/(x1*y2) + 1/(x1*ym1)) - f01*(1/(x2*y1) + 1/(xm1*y1) + y2_ym1/(y1*y1_mi_y2_y1_mi_ym1_x1)) + f11*(x2_xm1_d_x1_x1_mi_x2_x1_mi_xm1_y1 + (ym1 - y1_mi_y2)/y1_mi_y2_y1_mi_ym1_x1) + f00*(1/(x1*y1) + 1/(x2*y1) + 1/(xm1*y1) + 1/(x1*y2) + 1/(x1*ym1));
+		double a21 = x1_p_x2*fm10_mi_fm11_d_x1_mi_xm1_xm1_x2_mi_xm1_y1 - x1_p_xm1*f20_mi_f21_d_x1_mi_x2_x2_x2_mi_xm1_y1 - x2_p_xm1*f11_mi_f10_d_x1_x1_mi_x2_x1_mi_xm1_y1 - (x1_p_x2 + xm1)*f00_mi_f01_d_x1_x2_xm1_y1;
+		double a31 = -fm10_mi_fm11_d_x1_mi_xm1_xm1_x2_mi_xm1_y1 + f00_mi_f01_d_x1_x2_xm1_y1 + f11_mi_f10_d_x1_x1_mi_x2_x1_mi_xm1_y1 + f20_mi_f21_d_x1_mi_x2_x2_x2_mi_xm1_y1;
+		double a02 = -y1_p_y2*f0m1_d_y1_mi_ym1_y2_mi_ym1_ym1 + y1_p_ym1*f02_d_y1_mi_y2_y2_y2_mi_ym1 + f00*(1/y1_y2 + 1/y1_ym1 + 1/y2_ym1) - y2_p_ym1*f01_d_y1_y1_mi_y2_y1_mi_ym1; 
+		double a12 = y1_p_y2*f0m1_mi_f1m1_d_x1_y1_mi_ym1_ym1_y2_mi_ym1 - y1_p_ym1*f02_mi_f12_d_x1_y1_mi_y2_y2_y2_mi_ym1 - y2_p_ym1*f11_mi_f01_d_x1_y1_y1_mi_y2_y1_mi_ym1 - (y1_p_y2 + ym1)*f00_mi_f10_d_x1_y1_y2_ym1;
+		double a03 = f0m1_d_y1_mi_ym1_y2_mi_ym1_ym1 + f01_d_y1_y1_mi_y2_y1_mi_ym1 - f02_d_y1_mi_y2_y2_y2_mi_ym1 - f00/y1_y2_ym1;
+		double a13 = f11_mi_f01_d_x1_y1_y1_mi_y2_y1_mi_ym1 - f0m1_mi_f1m1_d_x1_y1_mi_ym1_ym1_y2_mi_ym1 + f00_mi_f10_d_x1_y1_y2_ym1 + f02_mi_f12_d_x1_y1_mi_y2_y2_y2_mi_ym1;
+
+		return f00 + x*(a10 + x*(a20 + a21*y + x*(a30 + a31*y)) + y*(a11 + y*(a12 + a13*y))) + y*(a01 + y*(a02 + a03*y));
 	}
 
 	static double Interp2dBiLinRec(double xt, double yt, double* arF)
@@ -501,7 +621,6 @@ public:
 	{// assumes 0 <= xr <= 1; 0 <= yr <= 1; f00 := f|xr=0,yr=0; f10 := f|xr=1,yr=0;
 		return (f11 + f00 - f10 - f01)*xr*yr + (f10 - f00)*xr + (f01 - f00)*xr + f00;
 	}
-
 };
 
 //-------------------------------------------------------------------------

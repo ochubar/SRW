@@ -45,7 +45,7 @@ def srwl_uti_cryst_pl_sp(_hr=None, _mat='Si'):
     else: raise Exception(strMatDataNotDefined)
 
     #return d/norm(Hr)
-    if(_hr == None): return d
+    if(_hr is None): return d
     else: return d/sqrt(sum(n*n for n in _hr))
 
 #****************************************************************************

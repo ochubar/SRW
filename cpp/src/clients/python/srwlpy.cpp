@@ -50,6 +50,7 @@ static const char strEr_BadTrj[] = "Incorrect Trajectory structure";
 static const char strEr_BadPrt[] = "Incorrect Particle structure";
 static const char strEr_BadPrtBm[] = "Incorrect Particle Beam structure";
 static const char strEr_BadGsnBm[] = "Incorrect Gaussian Beam structure";
+static const char strEr_BadPtSrc[] = "Incorrect Point Source structure";
 static const char strEr_BadMagC[] = "Incorrect Magnetic Field Container structure";
 static const char strEr_BadMag3D[] = "Incorrect 3D Magnetic Field structure";
 static const char strEr_BadMagM[] = "Incorrect Multipole Magnet structure";
@@ -82,6 +83,7 @@ static const char strEr_BadPrec_CalcElecFieldSR[] = "Incorrect precision paramet
 static const char strEr_BadArg_CalcStokesUR[] = "Incorrect arguments for UR Stokes parameters calculation function";
 static const char strEr_BadArg_CalcPowDenSR[] = "Incorrect arguments for SR power density calculation function";
 static const char strEr_BadArg_CalcElecFieldGaussian[] = "Incorrect precision parameters for Gaussian beam electric field calculation";
+static const char strEr_BadArg_CalcElecFieldSpherWave[] = "Incorrect precision parameters for spherical wave electric field calculation";
 static const char strEr_BadArg_CalcIntFromElecField[] = "Incorrect arguments for intensity extraction function";
 static const char strEr_BadArg_ResizeElecField[] = "Incorrect arguments for electric field resizing function";
 static const char strEr_BadArg_SetRepresElecField[] = "Incorrect arguments for changing electric field representation function";
@@ -89,6 +91,7 @@ static const char strEr_BadArg_PropagElecField[] = "Incorrect arguments for elec
 static const char strEr_BadArg_UtiFFT[] = "Incorrect arguments for FFT function";
 static const char strEr_BadArg_UtiConvWithGaussian[] = "Incorrect arguments for convolution function";
 static const char strEr_BadArg_UtiUndFromMagFldTab[] = "Incorrect arguments for magnetic field conversion to periodic function";
+static const char strEr_BadArg_UtiUndFindMagFldInterpInds[] = "Incorrect arguments for magnetic field interpolaton index search function";
 
 /************************************************************************//**
  * Global objects to be used across different function calls
@@ -738,7 +741,7 @@ void ParseSructSRWLKickM(SRWLKickM* pKickM, PyObject* oKickM, vector<Py_buffer>*
 	if((cpBuf == 0) || (sizeBuf <= 0)) pKickM->arKickMx = 0;
 	else
 	{
-		if(sizeBuf != npTot*sizeof(double)) throw strEr_BadKickM;
+		if((long long)sizeBuf != (long long)(npTot*sizeof(double))) throw strEr_BadKickM;
 		pKickM->arKickMx = (double*)cpBuf;
 	}
 	Py_DECREF(o_tmp);
@@ -758,7 +761,7 @@ void ParseSructSRWLKickM(SRWLKickM* pKickM, PyObject* oKickM, vector<Py_buffer>*
 	if((cpBuf == 0) || (sizeBuf <= 0)) pKickM->arKickMy = 0;
 	else
 	{
-		if(sizeBuf != npTot*sizeof(double)) throw strEr_BadKickM;
+		if((long long)sizeBuf != (long long)(npTot*sizeof(double))) throw strEr_BadKickM;
 		pKickM->arKickMy = (double*)cpBuf;
 	}
 	Py_DECREF(o_tmp);
@@ -841,7 +844,7 @@ void ParseSructSRWLMagFld3D(SRWLMagFld3D* pMag, PyObject* oMag, vector<Py_buffer
 	if((cpBuf == 0) || (sizeBuf <= 0)) pMag->arBx = 0;
 	else
 	{
-		if(sizeBuf != npTot*sizeof(double)) throw strEr_BadMag3D;
+		if((long long)sizeBuf != (long long)(npTot*sizeof(double))) throw strEr_BadMag3D;
 		pMag->arBx = (double*)cpBuf;
 	}
 	Py_DECREF(o_tmp);
@@ -861,7 +864,7 @@ void ParseSructSRWLMagFld3D(SRWLMagFld3D* pMag, PyObject* oMag, vector<Py_buffer
 	if((cpBuf == 0) || (sizeBuf <= 0)) pMag->arBy = 0;
 	else
 	{
-		if(sizeBuf != npTot*sizeof(double)) throw strEr_BadMag3D;
+		if((long long)sizeBuf != (long long)(npTot*sizeof(double))) throw strEr_BadMag3D;
 		pMag->arBy = (double*)cpBuf;
 	}
 	Py_DECREF(o_tmp);
@@ -881,7 +884,7 @@ void ParseSructSRWLMagFld3D(SRWLMagFld3D* pMag, PyObject* oMag, vector<Py_buffer
 	if((cpBuf == 0) || (sizeBuf <= 0)) pMag->arBz = 0;
 	else
 	{
-		if(sizeBuf != npTot*sizeof(double)) throw strEr_BadMag3D;
+		if((long long)sizeBuf != (long long)(npTot*sizeof(double))) throw strEr_BadMag3D;
 		pMag->arBz = (double*)cpBuf;
 	}
 	Py_DECREF(o_tmp);
@@ -1269,7 +1272,7 @@ void ParseSructSRWLMagFldC(SRWLMagFldC* pMag, PyObject* oMag, vector<Py_buffer>*
 	//pMag->arXc = (double*)pb_tmp.buf;
 	//if(!(pMag->arXc = (double*)GetPyArrayBuf(o_tmp, vBuf, PyBUF_WRITABLE, &sizeBuf))) throw strEr_BadMagC;
 	if(!(pMag->arXc = (double*)GetPyArrayBuf(o_tmp, pvBuf, &sizeBuf))) throw strEr_BadMagC;
-	if(sizeBuf != nElem*sizeof(double)) throw strEr_BadMagC;
+	if((long long)sizeBuf != (long long)(nElem*sizeof(double))) throw strEr_BadMagC;
 	Py_DECREF(o_tmp);
 
 	o_tmp = PyObject_GetAttrString(oMag, "arYc");
@@ -1281,7 +1284,7 @@ void ParseSructSRWLMagFldC(SRWLMagFldC* pMag, PyObject* oMag, vector<Py_buffer>*
 	//pMag->arYc = (double*)pb_tmp.buf;
 	//if(!(pMag->arYc = (double*)GetPyArrayBuf(o_tmp, vBuf, PyBUF_WRITABLE, &sizeBuf))) throw strEr_BadMagC;
 	if(!(pMag->arYc = (double*)GetPyArrayBuf(o_tmp, pvBuf, &sizeBuf))) throw strEr_BadMagC;
-	if(sizeBuf != nElem*sizeof(double)) throw strEr_BadMagC;
+	if((long long)sizeBuf != (long long)(nElem*sizeof(double))) throw strEr_BadMagC;
 	Py_DECREF(o_tmp);
 
 	o_tmp = PyObject_GetAttrString(oMag, "arZc");
@@ -1293,7 +1296,7 @@ void ParseSructSRWLMagFldC(SRWLMagFldC* pMag, PyObject* oMag, vector<Py_buffer>*
 	//pMag->arZc = (double*)pb_tmp.buf;
 	//if(!(pMag->arZc = (double*)GetPyArrayBuf(o_tmp, vBuf, PyBUF_WRITABLE, &sizeBuf))) throw strEr_BadMagC;
 	if(!(pMag->arZc = (double*)GetPyArrayBuf(o_tmp, pvBuf, &sizeBuf))) throw strEr_BadMagC;
-	if(sizeBuf != nElem*sizeof(double)) throw strEr_BadMagC;
+	if((long long)sizeBuf != (long long)(nElem*sizeof(double))) throw strEr_BadMagC;
 	Py_DECREF(o_tmp);
 
 	pMag->arVx = 0;
@@ -1304,7 +1307,7 @@ void ParseSructSRWLMagFldC(SRWLMagFldC* pMag, PyObject* oMag, vector<Py_buffer>*
 		{
 			if(!(pMag->arVx = (double*)GetPyArrayBuf(o_tmp, pvBuf, &sizeBuf))) throw strEr_BadMagC;
 			if(sizeBuf == 0) pMag->arVx = 0;
-			else if(sizeBuf != nElem*sizeof(double)) throw strEr_BadMagC;
+			else if((long long)sizeBuf != (long long)(nElem*sizeof(double))) throw strEr_BadMagC;
 			Py_DECREF(o_tmp);
 		}
 	}
@@ -1316,7 +1319,7 @@ void ParseSructSRWLMagFldC(SRWLMagFldC* pMag, PyObject* oMag, vector<Py_buffer>*
 		{
 			if(!(pMag->arVy = (double*)GetPyArrayBuf(o_tmp, pvBuf, &sizeBuf))) throw strEr_BadMagC;
 			if(sizeBuf == 0) pMag->arVy = 0;
-			else if(sizeBuf != nElem*sizeof(double)) throw strEr_BadMagC;
+			else if((long long)sizeBuf != (long long)(nElem*sizeof(double))) throw strEr_BadMagC;
 			Py_DECREF(o_tmp);
 		}
 	}
@@ -1328,7 +1331,7 @@ void ParseSructSRWLMagFldC(SRWLMagFldC* pMag, PyObject* oMag, vector<Py_buffer>*
 		{
 			if(!(pMag->arVz = (double*)GetPyArrayBuf(o_tmp, pvBuf, &sizeBuf))) throw strEr_BadMagC;
 			if(sizeBuf == 0) pMag->arVz = 0;
-			else if(sizeBuf != nElem*sizeof(double)) throw strEr_BadMagC;
+			else if((long long)sizeBuf != (long long)(nElem*sizeof(double))) throw strEr_BadMagC;
 			Py_DECREF(o_tmp);
 		}
 	}
@@ -1339,7 +1342,7 @@ void ParseSructSRWLMagFldC(SRWLMagFldC* pMag, PyObject* oMag, vector<Py_buffer>*
 		if(o_tmp != 0) 
 		{
 			if(!(pMag->arAng = (double*)GetPyArrayBuf(o_tmp, pvBuf, &sizeBuf))) throw strEr_BadMagC;
-			if(sizeBuf != nElem*sizeof(double)) throw strEr_BadMagC;
+			if((long long)sizeBuf != (long long)(nElem*sizeof(double))) throw strEr_BadMagC;
 			Py_DECREF(o_tmp);
 		}
 	}
@@ -1351,7 +1354,7 @@ void ParseSructSRWLMagFldC(SRWLMagFldC* pMag, PyObject* oMag, vector<Py_buffer>*
 		if(o_tmp != 0)
 		{
 			if(!(pMag->arPar1 = (double*)GetPyArrayBuf(o_tmp, pvBuf, &sizeBuf))) throw strEr_BadMagC;
-			if(sizeBuf != nElem*sizeof(double)) throw strEr_BadMagC; //?
+			if((long long)sizeBuf != (long long)(nElem*sizeof(double))) throw strEr_BadMagC; //?
 			Py_DECREF(o_tmp);
 		}
 	}
@@ -1362,7 +1365,7 @@ void ParseSructSRWLMagFldC(SRWLMagFldC* pMag, PyObject* oMag, vector<Py_buffer>*
 		if(o_tmp != 0)
 		{
 			if(!(pMag->arPar2 = (double*)GetPyArrayBuf(o_tmp, pvBuf, &sizeBuf))) throw strEr_BadMagC;
-			if(sizeBuf != nElem*sizeof(double)) throw strEr_BadMagC; //?
+			if((long long)sizeBuf != (long long)(nElem*sizeof(double))) throw strEr_BadMagC; //?
 			Py_DECREF(o_tmp);
 		}
 	}
@@ -1373,7 +1376,7 @@ void ParseSructSRWLMagFldC(SRWLMagFldC* pMag, PyObject* oMag, vector<Py_buffer>*
 		if(o_tmp != 0)
 		{
 			if(!(pMag->arPar3 = (double*)GetPyArrayBuf(o_tmp, pvBuf, &sizeBuf))) throw strEr_BadMagC;
-			if(sizeBuf != nElem*sizeof(double)) throw strEr_BadMagC; //?
+			if((long long)sizeBuf != (long long)(nElem*sizeof(double))) throw strEr_BadMagC; //?
 			Py_DECREF(o_tmp);
 		}
 	}
@@ -1384,7 +1387,7 @@ void ParseSructSRWLMagFldC(SRWLMagFldC* pMag, PyObject* oMag, vector<Py_buffer>*
 		if(o_tmp != 0)
 		{
 			if(!(pMag->arPar4 = (double*)GetPyArrayBuf(o_tmp, pvBuf, &sizeBuf))) throw strEr_BadMagC;
-			if(sizeBuf != nElem*sizeof(double)) throw strEr_BadMagC; //?
+			if((long long)sizeBuf != (long long)(nElem*sizeof(double))) throw strEr_BadMagC; //?
 			Py_DECREF(o_tmp);
 		}
 	}
@@ -2508,11 +2511,11 @@ void ParseSructSRWLGsnBm(SRWLGsnBm* pGsnBm, PyObject* oGsnBm) //throw(...)
 	pGsnBm->repRate = PyFloat_AsDouble(o_tmp);
 	Py_DECREF(o_tmp);
 
-	o_tmp = PyObject_GetAttrString(oGsnBm, "repRate");
-	if(o_tmp == 0) throw strEr_BadGsnBm;
-	if(!PyNumber_Check(o_tmp)) throw strEr_BadGsnBm;
-	pGsnBm->repRate = PyFloat_AsDouble(o_tmp);
-	Py_DECREF(o_tmp);
+	//o_tmp = PyObject_GetAttrString(oGsnBm, "repRate");
+	//if(o_tmp == 0) throw strEr_BadGsnBm;
+	//if(!PyNumber_Check(o_tmp)) throw strEr_BadGsnBm;
+	//pGsnBm->repRate = PyFloat_AsDouble(o_tmp);
+	//Py_DECREF(o_tmp);
 
 	o_tmp = PyObject_GetAttrString(oGsnBm, "polar");
 	if(o_tmp == 0) throw strEr_BadGsnBm;
@@ -2548,6 +2551,51 @@ void ParseSructSRWLGsnBm(SRWLGsnBm* pGsnBm, PyObject* oGsnBm) //throw(...)
 	if(o_tmp == 0) throw strEr_BadGsnBm;
 	if(!PyNumber_Check(o_tmp)) throw strEr_BadGsnBm;
 	pGsnBm->my = (char)PyLong_AsLong(o_tmp);
+	Py_DECREF(o_tmp);
+}
+
+/************************************************************************//**
+ * Parses PyObject* to SRWLPtSrc*
+ ***************************************************************************/
+void ParseSructSRWLPtSrc(SRWLPtSrc* pPtSrc, PyObject* oPtSrc) //throw(...) 
+{
+	if((pPtSrc == 0) || (oPtSrc == 0)) throw strEr_NoObj;
+	PyObject *o_tmp = 0;
+
+	o_tmp = PyObject_GetAttrString(oPtSrc, "x");
+	if(o_tmp == 0) throw strEr_BadPtSrc;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadPtSrc;
+	pPtSrc->x = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oPtSrc, "y");
+	if(o_tmp == 0) throw strEr_BadPtSrc;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadPtSrc;
+	pPtSrc->y = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oPtSrc, "z");
+	if(o_tmp == 0) throw strEr_BadPtSrc;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadPtSrc;
+	pPtSrc->z = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oPtSrc, "flux");
+	if(o_tmp == 0) throw strEr_BadPtSrc;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadPtSrc;
+	pPtSrc->flux = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oPtSrc, "unitFlux");
+	if(o_tmp == 0) throw strEr_BadPtSrc;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadPtSrc;
+	pPtSrc->unitFlux = (char)PyLong_AsLong(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oPtSrc, "polar");
+	if(o_tmp == 0) throw strEr_BadPtSrc;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadPtSrc;
+	pPtSrc->polar = (char)PyLong_AsLong(o_tmp);
 	Py_DECREF(o_tmp);
 }
 
@@ -2608,7 +2656,9 @@ void ParseSructSRWLWfr(SRWLWfr* pWfr, PyObject* oWfr, vector<Py_buffer>* pvBuf, 
 		if(o_tmp != 0)
 		{
 			sizeVectBuf = (int)pvBuf->size();
-			if(pWfr->arExAux = GetPyArrayBuf(o_tmp, pvBuf, 0))
+			//if(pWfr->arExAux = GetPyArrayBuf(o_tmp, pvBuf, 0))
+			pWfr->arExAux = GetPyArrayBuf(o_tmp, pvBuf, 0);
+			if(pWfr->arExAux)
 			{
 				if((int)pvBuf->size() > sizeVectBuf) sPyObjectPtrs.pbExAux = (*pvBuf)[sizeVectBuf];
 				Py_DECREF(o_tmp);
@@ -2623,7 +2673,9 @@ void ParseSructSRWLWfr(SRWLWfr* pWfr, PyObject* oWfr, vector<Py_buffer>* pvBuf, 
 		if(o_tmp != 0)
 		{
 			sizeVectBuf = (int)pvBuf->size();
-			if(pWfr->arEyAux = GetPyArrayBuf(o_tmp, pvBuf, 0))
+			//if(pWfr->arEyAux = GetPyArrayBuf(o_tmp, pvBuf, 0))
+			pWfr->arEyAux = GetPyArrayBuf(o_tmp, pvBuf, 0);
+			if(pWfr->arEyAux)
 			{
 				if((int)pvBuf->size() > sizeVectBuf) sPyObjectPtrs.pbEyAux = (*pvBuf)[sizeVectBuf];
 				Py_DECREF(o_tmp);
@@ -2921,10 +2973,20 @@ template<class T> void UpdatePyListNum(PyObject* oList, const T* ar, int n) //OC
 
 		char arNumType[2];
 		arNumType[1] = '\0';
-		if(PyLong_Check(oElemOld)) arNumType[0] = 'i';
-		else if(PyFloat_Check(oElemOld))  arNumType[0] = 'd';
-
-		if(PyList_SetItem(oList, (Py_ssize_t)i, Py_BuildValue(arNumType, ar[i])) != 0) throw strEr_BadNum;
+		//if(PyLong_Check(oElemOld)) arNumType[0] = 'i';
+		//else if(PyFloat_Check(oElemOld))  arNumType[0] = 'd';
+		//if(PyList_SetItem(oList, (Py_ssize_t)i, Py_BuildValue(arNumType, ar[i])) != 0) throw strEr_BadNum;
+		//OC02112017
+		if(PyLong_Check(oElemOld)) 
+		{
+			arNumType[0] = 'i';
+			if(PyList_SetItem(oList, (Py_ssize_t)i, Py_BuildValue(arNumType, (int)(ar[i]))) != 0) throw strEr_BadNum;
+		}
+		else if(PyFloat_Check(oElemOld))  
+		{
+			arNumType[0] = 'd';
+			if(PyList_SetItem(oList, (Py_ssize_t)i, Py_BuildValue(arNumType, (double)(ar[i]))) != 0) throw strEr_BadNum;
+		}
 	}
 
 	for(int j=nExist; j<n; j++)
@@ -3398,7 +3460,9 @@ int ModifySRWLWfr(int action, SRWLWfr* pWfr, char pol)
 		{
 			sizeVectBuf = 0;
 			if(it->second.pv_buf != 0) sizeVectBuf = (int)it->second.pv_buf->size();
-			if(pWfr->arExAux = GetPyArrayBuf(o_tmp, it->second.pv_buf, 0))
+			//if(pWfr->arExAux = GetPyArrayBuf(o_tmp, it->second.pv_buf, 0))
+			pWfr->arExAux = GetPyArrayBuf(o_tmp, it->second.pv_buf, 0);
+			if(pWfr->arExAux)
 			{
 				if((int)it->second.pv_buf->size() > sizeVectBuf) it->second.pbExAux = (*it->second.pv_buf)[sizeVectBuf];
 				Py_DECREF(o_tmp);
@@ -3418,7 +3482,9 @@ int ModifySRWLWfr(int action, SRWLWfr* pWfr, char pol)
 		{
 			sizeVectBuf = 0;
 			if(it->second.pv_buf != 0) sizeVectBuf = (int)it->second.pv_buf->size();
-			if(pWfr->arEyAux = GetPyArrayBuf(o_tmp, it->second.pv_buf, 0))
+			//if(pWfr->arEyAux = GetPyArrayBuf(o_tmp, it->second.pv_buf, 0))
+			pWfr->arEyAux = GetPyArrayBuf(o_tmp, it->second.pv_buf, 0);
+			if(pWfr->arEyAux)
 			{
 				if((int)it->second.pv_buf->size() > sizeVectBuf) it->second.pbEyAux = (*it->second.pv_buf)[sizeVectBuf];
 				Py_DECREF(o_tmp);
@@ -3492,9 +3558,9 @@ static PyObject* srwlpy_CalcMagnField(PyObject *self, PyObject *args)
 		if((dispMagCnt.nElem != 1) || (dispMagCnt.arMagFldTypes[0] != 'a')) throw strEr_BadArg_CalcMagnField;
 		ParseSructSRWLMagFldC(&magCnt, oMagFldCnt, &vBuf);
 
-		double arPrecPar[] = {0,0,0,0}; //to increase if necessary
+		double arPrecPar[] = {0,0,0,0,0,0}; //to increase if necessary
 		double *pPrecPar = arPrecPar;
-		int nPrecPar = 4;
+		int nPrecPar = 6;
 		if(oPrecPar != 0)
 		{
 			//pPrecPar = arPrecPar;
@@ -3704,7 +3770,7 @@ static PyObject* srwlpy_CalcElecFieldGaussian(PyObject *self, PyObject *args)
 	try
 	{
 		if(!PyArg_ParseTuple(args, "OOO:CalcElecFieldGaussian", &oWfr, &oGsnBm, &oPrecPar)) throw strEr_BadArg_CalcElecFieldGaussian;
-		if((oWfr == 0) || (oGsnBm == 0) || (oGsnBm == 0)) throw strEr_BadArg_CalcElecFieldGaussian;
+		if((oWfr == 0) || (oGsnBm == 0) || (oPrecPar == 0)) throw strEr_BadArg_CalcElecFieldGaussian;
 
 		ParseSructSRWLWfr(&wfr, oWfr, &vBuf, gmWfrPyPtr);
 		ParseSructSRWLGsnBm(&gsnBm, oGsnBm);
@@ -3730,6 +3796,45 @@ static PyObject* srwlpy_CalcElecFieldGaussian(PyObject *self, PyObject *args)
 	return oWfr;
 }
 
+/************************************************************************//**
+ * Calculates Wavefront (electric field) of a Gaussian Beam;
+ * see help to srwlCalcElecFieldSR
+ ***************************************************************************/
+static PyObject* srwlpy_CalcElecFieldPointSrc(PyObject *self, PyObject *args)
+{
+	PyObject *oWfr=0, *oPtSrc=0, *oPrecPar=0;
+	vector<Py_buffer> vBuf;
+	SRWLWfr wfr;
+	SRWLPtSrc ptSrc;
+
+	try
+	{
+		if(!PyArg_ParseTuple(args, "OOO:CalcElecFieldSpherWave", &oWfr, &oPtSrc, &oPrecPar)) throw strEr_BadArg_CalcElecFieldSpherWave;
+		if((oWfr == 0) || (oPtSrc == 0) || (oPrecPar == 0)) throw strEr_BadArg_CalcElecFieldSpherWave;
+
+		ParseSructSRWLWfr(&wfr, oWfr, &vBuf, gmWfrPyPtr);
+		ParseSructSRWLPtSrc(&ptSrc, oPtSrc);
+
+		double arPrecPar[1];
+		double *pPrecPar = arPrecPar;
+		int nPrecPar = 1;
+		CopyPyListElemsToNumArray(oPrecPar, 'd', pPrecPar, nPrecPar);
+
+		ProcRes(srwlCalcElecFieldPointSrc(&wfr, &ptSrc, arPrecPar));
+		UpdatePyWfr(oWfr, &wfr);
+	}
+	catch(const char* erText) 
+	{
+		PyErr_SetString(PyExc_RuntimeError, erText);
+		oWfr = 0;
+	}
+
+	ReleasePyBuffers(vBuf);
+	EraseElementFromMap(&wfr, gmWfrPyPtr);
+
+	if(oWfr) Py_XINCREF(oWfr);
+	return oWfr;
+}
 
 /************************************************************************//**
  * Calculates Stokes parameters of Undulator Radiation by a relativistic 
@@ -4217,6 +4322,57 @@ static PyObject* srwlpy_UtiUndFromMagFldTab(PyObject *self, PyObject *args)
 }
 
 /************************************************************************//**
+ * Finds indexes of undulator gap and phase values and associated magnetic fields requiired to be used in field interpolation based on gap and phase
+ * see help to srwlUtiUndFindMagFldInterpInds
+ ***************************************************************************/
+static PyObject* srwlpy_UtiUndFindMagFldInterpInds(PyObject *self, PyObject *args)
+{
+	PyObject *oResInds=0, *oGaps=0, *oPhases=0, *oPrecPar=0;
+	int *arResInds=0;
+	double *arGaps=0, *arPhases=0;
+	int nResInds=0;
+
+	try
+	{
+		if(!PyArg_ParseTuple(args, "OOOO:UtiUndFindMagFldInterpInds", &oResInds, &oGaps, &oPhases, &oPrecPar)) throw strEr_BadArg_UtiUndFindMagFldInterpInds;
+		if((oResInds == 0) || (oGaps == 0) || (oPhases == 0) || (oPrecPar == 0)) throw strEr_BadArg_UtiUndFindMagFldInterpInds;
+
+		CopyPyListElemsToNumArray(oResInds, 'i', arResInds, nResInds);
+
+		int nGaps=0, nPhases=0;
+		CopyPyListElemsToNumArray(oGaps, 'd', arGaps, nGaps);
+		CopyPyListElemsToNumArray(oPhases, 'd', arPhases, nPhases);
+
+		if((arGaps != 0) && (arPhases != 0))
+		{
+			if(nGaps != nPhases) throw strEr_BadArg_UtiUndFindMagFldInterpInds;
+		}
+
+		double arPrecPar[5];
+		double *pPrecPar = arPrecPar;
+		int nPrecPar = 5;
+		CopyPyListElemsToNumArray(oPrecPar, 'd', pPrecPar, nPrecPar);
+
+		ProcRes(srwlUtiUndFindMagFldInterpInds(arResInds, &nResInds, arGaps, arPhases, nGaps, arPrecPar));
+
+		UpdatePyListNum(oResInds, arResInds, nResInds);
+		UpdatePyListNum(oPrecPar, arPrecPar, nPrecPar);
+	}
+	catch(const char* erText) 
+	{
+		PyErr_SetString(PyExc_RuntimeError, erText);
+		//PyErr_PrintEx(1);
+	}
+	if(arResInds != 0) delete[] arResInds;
+	if(arGaps != 0) delete[] arGaps;
+	if(arPhases != 0) delete[] arPhases;
+
+	PyObject *oResNumInds = Py_BuildValue("i", nResInds);
+	Py_XINCREF(oResNumInds); //?
+	return oResNumInds;
+}
+
+/************************************************************************//**
  * Python C API stuff: module & method definition2, etc.
  ***************************************************************************/
 
@@ -4245,6 +4401,7 @@ static PyMethodDef srwlpy_methods[] = {
 	{"CalcPartTrajFromKickMatr", srwlpy_CalcPartTrajFromKickMatr, METH_VARARGS, "CalcPartTrajFromKickMatr() Calculates charged particle trajectory from an array of kick matrices"},
 	{"CalcElecFieldSR", srwlpy_CalcElecFieldSR, METH_VARARGS, "CalcElecFieldSR() Calculates Electric Field (Wavefront) of Synchrotron Radiation by a relativistic charged particle traveling in external 3D magnetic field"},
 	{"CalcElecFieldGaussian", srwlpy_CalcElecFieldGaussian, METH_VARARGS, "CalcElecFieldGaussian() Calculates Electric Field (Wavefront) of a coherent Gaussian Beam"},
+	{"CalcElecFieldPointSrc", srwlpy_CalcElecFieldPointSrc, METH_VARARGS, "CalcElecFieldPointSrc() Calculates Electric Field (Wavefront) of a spherical wave"},
 	{"CalcStokesUR", srwlpy_CalcStokesUR, METH_VARARGS, "CalcStokesUR() Calculates Stokes parameters of Synchrotron Radiation by a relativistic finite-emittance electron beam traveling in periodic magnetic field of an undulator"},
 	{"CalcPowDenSR", srwlpy_CalcPowDenSR, METH_VARARGS, "CalcPowDenSR() Calculates Power Density distribution of Synchrotron Radiation by a relativistic finite-emittance electron beam traveling in arbitrary magnetic field"},
 	{"CalcIntFromElecField", srwlpy_CalcIntFromElecField, METH_VARARGS, "CalcIntFromElecField() Calculates/extracts Intensity from pre-calculated Electric Field"},
@@ -4254,6 +4411,7 @@ static PyMethodDef srwlpy_methods[] = {
 	{"UtiFFT", srwlpy_UtiFFT, METH_VARARGS, "UtiFFT() Performs 1D or 2D FFT (as defined by arguments)"},
 	{"UtiConvWithGaussian", srwlpy_UtiConvWithGaussian, METH_VARARGS, "UtiConvWithGaussian() Performs convolution of 1D or 2D data wave with 1D or 2D Gaussian (as defined by arguments)"},
 	{"UtiUndFromMagFldTab", srwlpy_UtiUndFromMagFldTab, METH_VARARGS, "UtiUndFromMagFldTab() Attempts to create periodic undulator structure from tabulated magnetic field"},
+	{"UtiUndFindMagFldInterpInds", srwlpy_UtiUndFindMagFldInterpInds, METH_VARARGS, "UtiUndFindMagFldInterpInds() Finds indexes of undulator gap and phase values and associated magnetic fields requiired to be used in field interpolation based on gap and phase"},
 	{NULL, NULL}
 };
 

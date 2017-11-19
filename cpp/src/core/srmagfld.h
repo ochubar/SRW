@@ -1228,7 +1228,8 @@ public:
 		}
 	}
 
-	void tabInterpB(srTMagFldCont& magCont, double* arPrecPar, double* arPar1, double* arPar2, double* arCoefBx, double* arCoefBy);
+	void tabInterpB(srTMagFldCont& magCont, double arPrecPar[6], double* arPar1, double* arPar2, double* arCoefBx, double* arCoefBy); //OC02112017
+	//void tabInterpB(srTMagFldCont& magCont, double* arPrecPar, double* arPar1, double* arPar2, double* arCoefBx, double* arCoefBy);
 
 	//void DeallocAuxData() //virtual in srTMagElem
 	//{
@@ -1424,9 +1425,29 @@ public:
 		double xr = Ploc.x, yr = Ploc.y, zr = Ploc.z;
 
 		if(m_R != 0)
-		{//OC310715
-			double Rmix0 = m_R - xr;
-			xr = m_R - sqrt(Rmix0*Rmix0 + zr*zr);
+		{	//OC310715
+			//double Rmix0 = m_R - xr;
+			//xr = m_R - sqrt(Rmix0*Rmix0 + zr*zr);
+
+			//OC23102016
+			if(m_R < 0)
+			{
+				double XmiR = xr - m_R;
+				xr = sqrt(XmiR*XmiR + zr*zr) + m_R;
+				double alp = atan(zr/XmiR);
+				zr = -alp*m_R;
+			}
+			else
+			{
+				double RmiX = m_R - xr;
+				xr = m_R - sqrt(RmiX*RmiX + zr*zr);
+				double alp = atan(zr/RmiX);
+				zr = alp*m_R;
+			}
+			//double RpX = m_R + xr;
+			//xr = sqrt(RpX*RpX + zr*zr) - m_R;
+			//double alp = atan(zr/RpX);
+			//zr = m_R*alp;
 		}
 
 		double Strength_u = 0.;

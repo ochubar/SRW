@@ -1974,6 +1974,14 @@ int srTRadInt::RadIntegrationAuto1(double& OutIntXRe, double& OutIntXIm, double&
 
 			CosAndSin(Ph, CosPh, SinPh);
 			Sum1XRe += Ax*CosPh; Sum1XIm += Ax*SinPh; Sum1ZRe += Az*CosPh; Sum1ZIm += Az*SinPh; 
+
+			//DEBUG
+			//if(::fabs(Ax) > 0.1)
+			//{
+			//	int aha = 1;
+			//}
+			//END DEBUG
+
 			s += sStep;
 
 			if(Ph - PhPrev > PI) ThisMayBeTheLastLoop = 0;

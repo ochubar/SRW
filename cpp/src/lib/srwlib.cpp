@@ -25,6 +25,7 @@
 #include "srgsnbm.h"
 #include "srpersto.h"
 #include "srpowden.h"
+#include "srisosrc.h"
 
 //-------------------------------------------------------------------------
 // Global Variables (used in SRW/SRWLIB, some may be obsolete)
@@ -127,12 +128,138 @@ EXP int CALL srwlUtiGetErrText(char* t, int errNo)
 
 //-------------------------------------------------------------------------
 
+bool TryToCopyMagFldInsteadOfInterp(SRWLMagFldC* pDispMagFld, SRWLMagFldC* pMagFld)
+{
+	if((pDispMagFld == 0) || (pMagFld == 0)) throw SRWL_NO_FUNC_ARG_DATA;
+	if((pDispMagFld->nElem != 1) || (pDispMagFld->arMagFldTypes[0] != 'a')) throw SRWL_INCORRECT_PARAM_FOR_MAG_FLD_COMP;
+
+	if((pMagFld->nElem != 1) ||
+	   (pMagFld->arMagFldTypes[0] != 'a') ||
+	   (pDispMagFld->arMagFldTypes[0] != 'a') ||
+	   (pMagFld->arXc[0] != pDispMagFld->arXc[0]) ||
+	   (pMagFld->arYc[0] != pDispMagFld->arYc[0]) ||
+	   (pMagFld->arZc[0] != pDispMagFld->arZc[0])) return false;
+	   
+	if(((pMagFld->arVx != 0) && (pDispMagFld->arVx == 0)) ||
+	   ((pMagFld->arVx == 0) && (pDispMagFld->arVx != 0))) return false;
+	else if((pMagFld->arVx != 0) && (pDispMagFld->arVx != 0))
+	{
+		if(pMagFld->arVx[0] != pDispMagFld->arVx[0]) return false;
+	}
+	if(((pMagFld->arVy != 0) && (pDispMagFld->arVy == 0)) ||
+	   ((pMagFld->arVy == 0) && (pDispMagFld->arVy != 0))) return false;
+	else if((pMagFld->arVy != 0) && (pDispMagFld->arVy != 0))
+	{
+		if(pMagFld->arVy[0] != pDispMagFld->arVy[0]) return false;
+	}
+	if(((pMagFld->arVz != 0) && (pDispMagFld->arVz == 0)) ||
+	   ((pMagFld->arVz == 0) && (pDispMagFld->arVz != 0))) return false;
+	else if((pMagFld->arVz != 0) && (pDispMagFld->arVz != 0))
+	{
+		if(pMagFld->arVz[0] != pDispMagFld->arVz[0]) return false;
+	}
+		
+	if(((pMagFld->arAng != 0) && (pDispMagFld->arAng == 0)) ||
+	   ((pMagFld->arAng == 0) && (pDispMagFld->arAng != 0))) return false;
+	else if((pMagFld->arAng != 0) && (pDispMagFld->arAng != 0))
+	{
+		if(pMagFld->arAng[0] != pDispMagFld->arAng[0]) return false;
+	}
+
+	SRWLMagFld3D *pOutFld3D = (SRWLMagFld3D*)(*(pDispMagFld->arMagFld));
+	SRWLMagFld3D *pInFld3D = (SRWLMagFld3D*)(*(pMagFld->arMagFld));
+
+	if((pOutFld3D->nx == pInFld3D->nx) &&
+	   (pOutFld3D->ny == pInFld3D->ny) &&
+	   (pOutFld3D->nz == pInFld3D->nz) &&
+	   (pOutFld3D->nRep == pInFld3D->nRep))
+	{
+		if((pInFld3D->arX != 0) && (pOutFld3D->arX != 0))
+		{
+			double *arXin = pInFld3D->arX, *arXout = pOutFld3D->arX;
+			for(int i = 0; i < (pInFld3D->nx); i++)
+			{
+				if(arXin[i] != arXout[i]) return false;
+			}
+		}
+		else if(((pInFld3D->arX != 0) && (pOutFld3D->arX == 0)) ||
+				((pInFld3D->arX == 0) && (pOutFld3D->arX != 0)) ||
+				 (pOutFld3D->rx != pInFld3D->rx)) return false;
+
+		if((pInFld3D->arY != 0) && (pOutFld3D->arY != 0))
+		{
+			double *arYin = pInFld3D->arY, *arYout = pOutFld3D->arY;
+			for(int i = 0; i < (pInFld3D->ny); i++)
+			{
+				if(arYin[i] != arYout[i]) return false;
+			}
+		}
+		else if(((pInFld3D->arY != 0) && (pOutFld3D->arY == 0)) ||
+				((pInFld3D->arY == 0) && (pOutFld3D->arY != 0)) ||
+				 (pOutFld3D->ry != pInFld3D->ry)) return false;
+
+		if((pInFld3D->arZ != 0) && (pOutFld3D->arZ != 0))
+		{
+			double *arZin = pInFld3D->arZ, *arZout = pOutFld3D->arZ;
+			for(int i = 0; i < (pInFld3D->nz); i++)
+			{
+				if(arZin[i] != arZout[i]) return false;
+			}
+		}
+		else if(((pInFld3D->arZ != 0) && (pOutFld3D->arZ == 0)) ||
+				((pInFld3D->arZ == 0) && (pOutFld3D->arZ != 0)) ||
+				 (pOutFld3D->rz != pInFld3D->rz)) return false;
+
+		if(((pInFld3D->arBx != 0) && (pOutFld3D->arBx == 0)) ||
+		   ((pInFld3D->arBx == 0) && (pOutFld3D->arBx != 0))) return false;
+
+		if(((pInFld3D->arBy != 0) && (pOutFld3D->arBy == 0)) ||
+		   ((pInFld3D->arBy == 0) && (pOutFld3D->arBy != 0))) return false;
+
+		if(((pInFld3D->arBz != 0) && (pOutFld3D->arBz == 0)) ||
+		   ((pInFld3D->arBz == 0) && (pOutFld3D->arBz != 0))) return false;
+
+		bool BxIsDef = ((pInFld3D->arBx != 0) && (pOutFld3D->arBx != 0));
+		bool ByIsDef = ((pInFld3D->arBy != 0) && (pOutFld3D->arBy != 0));
+		bool BzIsDef = ((pInFld3D->arBz != 0) && (pOutFld3D->arBz != 0));
+		if(!(BxIsDef || ByIsDef || BzIsDef)) return false;
+
+		long long nTot = (pInFld3D->nx)*(pInFld3D->ny)*(pInFld3D->nz);
+		double *tBxIn = pInFld3D->arBx, *tBxOut = pOutFld3D->arBx;
+		double *tByIn = pInFld3D->arBy, *tByOut = pOutFld3D->arBy;
+		double *tBzIn = pInFld3D->arBz, *tBzOut = pOutFld3D->arBz;
+		for(long long i = 0; i < nTot; i++)
+		{
+			if(BxIsDef) *(tBxOut++) = *(tBxIn++);
+			if(ByIsDef) *(tByOut++) = *(tByIn++);
+			if(BzIsDef) *(tBzOut++) = *(tBzIn++);
+		}
+		return true;
+	}
+	return false;
+}
+
+//-------------------------------------------------------------------------
+
 EXP int CALL srwlCalcMagFld(SRWLMagFldC* pDispMagFld, SRWLMagFldC* pMagFld, double* precPar)
 {
 	if((pDispMagFld == 0) || (pMagFld == 0)) return SRWL_NO_FUNC_ARG_DATA;
 	if((pDispMagFld->nElem != 1) || (pDispMagFld->arMagFldTypes[0] != 'a')) return SRWL_INCORRECT_PARAM_FOR_MAG_FLD_COMP;
 	try 
 	{
+		int typeCalc = int(precPar[0]);
+		if((typeCalc > 0) && (typeCalc < 3))
+		{//testing if parameter(s) coinside with one of mesh values, then the field has to be just copied without any interpolation
+			bool skipIndSearch = (bool)precPar[5];
+			if(skipIndSearch)
+			{
+				if(TryToCopyMagFldInsteadOfInterp(pDispMagFld, pMagFld))
+				{
+					UtiWarnCheck(); return 0;
+				}
+			}
+		}
+
 		//TVector3d vZeroCenP(0,0,0);
 		//srTMagFldCont magCont(*pMagFld, vZeroCenP);
 		TVector3d vZero(0,0,0);
@@ -160,7 +287,7 @@ EXP int CALL srwlCalcMagFld(SRWLMagFldC* pDispMagFld, SRWLMagFldC* pMagFld, doub
 		//srTMagFld3d magFld3d(pFld3D->rx, pFld3D->nx, pFld3D->ry, pFld3D->ny, pFld3D->rz, pFld3D->nz, pFld3D->arX, pFld3D->arY, pFld3D->arZ, pFld3D->arBx, pFld3D->arBy, pFld3D->arBz, pFld3D->nRep, pFld3D->interp, 0, vDispCenP);
 		srTMagFld3d magFld3d(pFld3D->rx, pFld3D->nx, pFld3D->ry, pFld3D->ny, pFld3D->rz, pFld3D->nz, pFld3D->arX, pFld3D->arY, pFld3D->arZ, pFld3D->arBx, pFld3D->arBy, pFld3D->arBz, pFld3D->nRep, pFld3D->interp, 0, vDispCenP, vDispAxV, ang); //OC170615
 		
-		int typeCalc = int(precPar[0]);
+		//int typeCalc = int(precPar[0]);
 		if(typeCalc == 0) magFld3d.tabulateB(&magCont);
 		else if((typeCalc > 0) && (typeCalc < 3)) magFld3d.tabInterpB(magCont, precPar, pMagFld->arPar1, pMagFld->arPar2, pMagFld->arPar3, pMagFld->arPar4);
 
@@ -357,6 +484,34 @@ EXP int CALL srwlCalcElecFieldGaussian(SRWLWfr* pWfr, SRWLGsnBm* pGsnBm, double*
 		wfr.SetObsParamFromWfr(auxSmp);
 
 		GsnBm.ComputeElectricField(&auxSmp, &wfr);
+		wfr.OutSRWRadPtrs(*pWfr);
+
+		UtiWarnCheck();
+	}
+	catch(int erNo) 
+	{
+		locErNo = erNo;
+		//return erNo;
+	}
+	return locErNo;
+}
+
+//-------------------------------------------------------------------------
+
+EXP int CALL srwlCalcElecFieldPointSrc(SRWLWfr* pWfr, SRWLPtSrc* pPtSrc, double* precPar)
+{
+	if(pWfr == 0) return SRWL_INCORRECT_PARAM_FOR_SPHER_WAVE_COMP;
+
+	int locErNo = 0;
+	try 
+	{
+		srTIsotrSrc IsotrSrc(pPtSrc);
+		srTSRWRadStructAccessData wfr(pWfr, pPtSrc->z, precPar); //ATTENTION: this may request for changing numbers of points in the wavefront mesh
+
+		//srTWfrSmp auxSmp;
+		//wfr.SetObsParamFromWfr(auxSmp);
+
+		IsotrSrc.ComputeElectricField(wfr);
 		wfr.OutSRWRadPtrs(*pWfr);
 
 		UtiWarnCheck();
@@ -932,6 +1087,23 @@ EXP int CALL srwlUtiUndFromMagFldTab(SRWLMagFldC* pUndCnt, SRWLMagFldC* pMagCnt,
 
 		if(pMagFldPer != 0) delete pMagFldPer;
 		UtiWarnCheck();
+	}
+	catch(int erNo) 
+	{ 
+		return erNo;
+	}
+	return 0;
+}
+
+//-------------------------------------------------------------------------
+
+EXP int CALL srwlUtiUndFindMagFldInterpInds(int* arResInds, int* pnResInds, double* arGaps, double* arPhases, int nVals, double arPrecPar[5])
+{
+	if((arResInds == 0) || (pnResInds == 0) || ((arGaps == 0) && (arPhases == 0)) || (nVals <= 0)) return SRWL_INCORRECT_PARAM_FOR_UND_FLD_INTERP_IND_SEARCH;
+
+	try 
+	{
+		CGenMathInterp::SelectPointsForInterp1d2d(arGaps, arPhases, nVals, arResInds, *pnResInds, arPrecPar);
 	}
 	catch(int erNo) 
 	{ 

@@ -248,7 +248,9 @@ public:
 	inline void GetCellDataForInterpol(float*, long long , long long, srTInterpolAuxF*);
 	inline void SetupCellDataI(srTInterpolAuxF*, srTInterpolAuxF*);
 	//char WaveFrontTermCanBeTreated(srTSRWRadStructAccessData&);
-	char WaveFrontTermCanBeTreated(srTSRWRadStructAccessData&, bool checkBenefit=true);
+	//char WaveFrontTermCanBeTreated(srTSRWRadStructAccessData&, bool checkBenefit=true); //OC06012017 (uncommented after some fixes in bool srTSRWRadStructAccessData::CheckIfQuadTermTreatIsBenefit(char, char))
+	//char WaveFrontTermCanBeTreated(srTSRWRadStructAccessData&, bool checkBenefit=false); //OC05012017 (changed to checkBenefit=false to resolve problem of resizing in near field at strong under-sampling)
+	char WaveFrontTermCanBeTreated(srTSRWRadStructAccessData&, bool checkBenefit=false); //OC29032017 (changed again to checkBenefit=false to resolve problem of resizing of wiggler radiation at strong under-sampling, the ELETTRA SCW case)
 
 	void TreatStronglyOscillatingTerm(srTSRWRadStructAccessData&, char, char =0, int ieOnly =-1);
 	//void TreatStronglyOscillatingTermIrregMesh(srTSRWRadStructAccessData&, float*, float, float, float, float, char, char =0, int =-1);

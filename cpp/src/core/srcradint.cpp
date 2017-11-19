@@ -36,15 +36,105 @@ void TAuxParamForIntegCSR::setupConstParams(srTEbmDat& eBeam)
 	half_k_d_e = PIm10e6*0.80654658; // PIm10e6dEnCon
 	k_d_e = 2.*half_k_d_e;
 
-	pxx = eBeam.GammaPartDistr('x'); pzz = eBeam.GammaPartDistr('z'); //to fix: take into account cross-moments!!!
-	pxx1 = eBeam.AlphaPartDistr('x'); pzz1 = eBeam.AlphaPartDistr('z');
-	px1x1 = eBeam.BetaPartDistr('x'); pz1z1 = eBeam.BetaPartDistr('z');
-	pxz = 0; px1z = 0; pxz1 = 0; px1z1 = 0;
-	pxg = 0; pzg = 0; px1g = 0; pz1g = 0; //to fix !
-	pxs = 0; px1s = 0; pzs = 0; pz1s = 0; //to fix !
-	psg = 0; //to fix !
-	pss = eBeam.PssPartDistr_NoCross(); //to fix !
-	pgg = eBeam.PggPartDistr_NoCross(); //to fix !
+	//OC25042017 (commented-out)
+	//pxx = eBeam.GammaPartDistr('x'); pzz = eBeam.GammaPartDistr('z'); //to fix: take into account cross-moments!!!
+	//pxx1 = eBeam.AlphaPartDistr('x'); pzz1 = eBeam.AlphaPartDistr('z');
+	//px1x1 = eBeam.BetaPartDistr('x'); pz1z1 = eBeam.BetaPartDistr('z');
+	//pxz = 0; px1z = 0; pxz1 = 0; px1z1 = 0;
+	//pxg = 0; pzg = 0; px1g = 0; pz1g = 0; //to fix !
+	//pxs = 0; px1s = 0; pzs = 0; pz1s = 0; //to fix !
+	//psg = 0; //to fix !
+	//pss = eBeam.PssPartDistr_NoCross(); //to fix !
+	//pgg = eBeam.PggPartDistr_NoCross(); //to fix !
+
+	//OC25042017
+	double Mxx = eBeam.Mxx, Mxx1 = eBeam.Mxxp, Mx1x1 = eBeam.Mxpxp;
+	double Myy = eBeam.Mzz, Myy1 = eBeam.Mzzp, My1y1 = eBeam.Mzpzp;
+	double Mxy = eBeam.Mxz, Mx1y = eBeam.Mxpz, Mxy1 = eBeam.Mxzp, Mx1y1 = eBeam.Mxpzp;
+	double Mee = eBeam.Mee; //(SigmaE/E)^2
+	double Mss = eBeam.Mss;
+	double Mes = eBeam.Mse;
+	double Mxe = eBeam.Mxe, Mx1e = eBeam.Mxpe, Mye = eBeam.Mze, My1e = eBeam.Mzpe;
+	double Mxs = eBeam.Mxs, Mx1s = eBeam.Mxps, Mys = eBeam.Mzs, My1s = eBeam.Mzps;
+
+	double MesE2 = Mes*Mes, Mxx1E2 = Mxx1*Mxx1, Myy1E2 = Myy1*Myy1, Mxy1E2 = Mxy1*Mxy1, MxsE2 = Mxs*Mxs, MxeE2 = Mxe*Mxe, Mx1yE2 = Mx1y*Mx1y, Mx1y1E2 = Mx1y1*Mx1y1;
+	double Mx1sE2 = Mx1s*Mx1s, Mx1eE2 = Mx1e*Mx1e, MysE2 = Mys*Mys, MyeE2 = Mye*Mye, My1sE2 = My1s*My1s, My1eE2 = My1e*My1e, MxyE2 = Mxy*Mxy;
+
+	double emTotE2 = Mxx*Mx1x1*Myy*My1y1*Mee*Mss 
+				    -Mx1x1*Mxx*My1y1*Myy*MesE2 - Mss*Mxx1E2*My1y1*Myy*Mee - Mss*Mx1x1*Mxx*Myy1E2*Mee - Mx1x1*My1y1*Mss*Mee*MxyE2 - Mx1x1*Myy*Mss*Mee*Mxy1E2 
+				    -Mx1x1*Myy*My1y1*Mee*MxsE2 - Mx1x1*Myy*My1y1*Mss*MxeE2 - Mxx*My1y1*Mss*Mee*Mx1yE2 - Mxx*Myy*Mss*Mee*Mx1y1E2 - Mxx*Myy*My1y1*Mee*Mx1sE2 
+				    -Mxx*Myy*My1y1*Mss*Mx1eE2 - Mxx*Mx1x1*My1y1*Mee*MysE2 - Mxx*Mx1x1*My1y1*Mss*MyeE2 - Mxx*Mx1x1*Myy*Mee*My1sE2 - Mxx*Mx1x1*Myy*Mss*My1eE2 
+				    +Mxx*Mx1x1*Myy1E2*MesE2 + Mxx*Mx1x1*MysE2*My1eE2 + Mxx*Mx1x1*MyeE2*My1sE2 + Mxx*Myy*Mx1y1E2*MesE2 + Mxx*Myy*Mx1eE2*My1sE2 + Mxx*Myy*Mx1sE2*My1eE2 + Mxx*My1y1*Mx1yE2*MesE2 
+				    +Mxx*My1y1*Mx1eE2*MysE2 + Mxx*My1y1*Mx1sE2*MyeE2 + Mxx*Mee*Mx1yE2*My1sE2 + Mxx*Mee*Mx1y1E2*MysE2 + Mxx*Mee*Mx1sE2*Myy1E2 + Mxx*Mss*Mx1yE2*My1eE2 + Mxx*Mss*Mx1y1E2*MyeE2 
+				    +Mxx*Mss*Mx1eE2*Myy1E2 + Mx1x1*Myy*Mxy1E2*MesE2 + Mx1x1*Myy*MxeE2*My1sE2 + Mx1x1*Myy*MxsE2*My1eE2 + Mx1x1*My1y1*MxyE2*MesE2 + Mx1x1*My1y1*MxeE2*MysE2 + Mx1x1*My1y1*MxsE2*MyeE2 
+				    +Mx1x1*Mee*MxyE2*My1sE2 + Mx1x1*Mee*Mxy1E2*MysE2 + Mx1x1*Mee*MxsE2*Myy1E2 + Mx1x1*Mss*MxyE2*My1eE2 + Mx1x1*Mss*Mxy1E2*MyeE2 + Mx1x1*Mss*MxeE2*Myy1E2 + Myy*My1y1*Mxx1E2*MesE2 
+				    +Myy*My1y1*MxeE2*Mx1sE2 + Myy*My1y1*MxsE2*Mx1eE2 + Myy*Mee*Mxx1E2*My1sE2 + Myy*Mee*Mxy1E2*Mx1sE2 + Myy*Mee*MxsE2*Mx1y1E2 + Myy*Mss*Mxx1E2*My1eE2 + Myy*Mss*Mxy1E2*Mx1eE2 
+				    +Myy*Mss*MxeE2*Mx1y1E2 + My1y1*Mee*Mxx1E2*MysE2 + My1y1*Mee*MxyE2*Mx1sE2 + My1y1*Mee*MxsE2*Mx1yE2 + My1y1*Mss*Mxx1E2*MyeE2 + My1y1*Mss*MxyE2*Mx1e + My1y1*Mss*MxeE2*Mx1yE2 
+				    +Mss*Mee*Mxx1E2*Myy1E2 + Mss*Mee*MxyE2*Mx1y1E2 + Mss*Mee*Mxy1E2*Mx1yE2 
+				    -Mxx1E2*Myy1E2*MesE2 - Mxx1E2*MyeE2*My1sE2 - Mxx1E2*MysE2*My1eE2 - MxyE2*Mx1y1E2*MesE2 - MxyE2*Mx1eE2*My1sE2 - MxyE2*Mx1sE2*My1eE2 - Mxy1E2*Mx1yE2*MesE2 - Mxy1E2*Mx1eE2*MysE2 
+				    -Mxy1E2*Mx1sE2*MyeE2 - MxeE2*Mx1yE2*My1sE2 - MxeE2*Mx1y1E2*MysE2 - MxeE2*Mx1sE2*Myy1E2 - MxsE2*Mx1yE2*My1eE2 - MxsE2*Mx1y1E2*MyeE2 - MxsE2*Mx1eE2*Myy1E2;
+	double emxxE2 = Mss*Mx1yE2*My1eE2 + Mx1eE2*My1y1*MysE2 + Mx1x1*My1eE2*MysE2 + Mx1eE2*My1sE2*Myy - Mss*Mx1eE2*My1y1*Myy + Mx1sE2*My1eE2*Myy - Mss*Mx1x1*My1eE2*Myy 
+				   +Mss*Mx1eE2*Myy1E2 + Mss*Mx1y1E2*MyeE2 + Mx1x1*My1sE2*MyeE2 + Mx1sE2*My1y1*MyeE2 - Mss*Mx1x1*My1y1*MyeE2 + Mx1yE2*My1y1*MesE2 + Mx1y1E2*Myy*MesE2 
+				   -Mx1x1*My1y1*Myy*MesE2 + Mx1x1*Myy1E2*MesE2 + Mx1yE2*My1sE2*Mee - Mss*Mx1yE2*My1y1*Mee + Mx1y1E2*MysE2*Mee - Mx1x1*My1y1*MysE2*Mee 
+				   -Mss*Mx1y1E2*Myy*Mee - Mx1x1*My1sE2*Myy*Mee - Mx1sE2*My1y1*Myy*Mee + Mss*Mx1x1*My1y1*Myy*Mee + Mx1sE2*Myy1E2*Mee - Mss*Mx1x1*Myy1E2*Mee;
+	double emx1x1E2 = Mss*MxyE2*My1eE2 + MxeE2*My1y1*MysE2 + Mxx*My1eE2*MysE2 + MxeE2*My1sE2*Myy - Mss*MxeE2*My1y1*Myy + MxsE2*My1eE2*Myy - Mss*Mxx*My1eE2*Myy 
+					 +Mss*MxeE2*Myy1E2 + Mss*Mxy1E2*MyeE2 + Mxx*My1sE2*MyeE2 + MxsE2*My1y1*MyeE2 - Mss*Mxx*My1y1*MyeE2 + MxyE2*My1y1*MesE2 + Mxy1E2*Myy*MesE2 
+					 -Mxx*My1y1*Myy*MesE2 + Mxx*Myy1E2*MesE2 + MxyE2*My1sE2*Mee - Mss*MxyE2*My1y1*Mee + Mxy1E2*MysE2*Mee - Mxx*My1y1*MysE2*Mee - Mss*Mxy1E2*Myy*Mee 
+					 -Mxx*My1sE2*Myy*Mee - MxsE2*My1y1*Myy*Mee + Mss*Mxx*My1y1*Myy*Mee + MxsE2*Myy1E2*Mee - Mss*Mxx*Myy1E2*Mee;
+	double emyyE2 = Mss*Mx1eE2*Mxy1E2 + Mss*Mx1y1E2*MxeE2 + Mx1eE2*Mxx*My1sE2 + Mx1x1*MxeE2*My1sE2 + Mx1eE2*MxsE2*My1y1 - Mss*Mx1eE2*Mxx*My1y1 + Mx1sE2*MxeE2*My1y1 
+				   -Mss*Mx1x1*MxeE2*My1y1 + Mx1x1*MxsE2*My1eE2 + Mx1sE2*Mxx*My1eE2 - Mss*Mx1x1*Mxx*My1eE2 + Mss*Mxx1E2*My1eE2 + Mx1y1E2*Mxx*MesE2 + Mx1x1*Mxy1E2*MesE2 
+				   -Mx1x1*Mxx*My1y1*MesE2 + Mxx1E2*My1y1*MesE2 + Mx1y1E2*MxsE2*Mee - Mss*Mx1y1E2*Mxx*Mee + Mx1sE2*Mxy1E2*Mee - Mss*Mx1x1*Mxy1E2*Mee - Mx1x1*Mxx*My1sE2*Mee 
+				   +Mxx1E2*My1sE2*Mee - Mx1x1*MxsE2*My1y1*Mee - Mx1sE2*Mxx*My1y1*Mee + Mss*Mx1x1*Mxx*My1y1*Mee - Mss*Mxx1E2*My1y1*Mee;
+	double emy1y1E2 = Mss*Mx1e*MxyE2 + Mss*Mx1yE2*MxeE2 + Mx1eE2*Mxx*MysE2 + Mx1x1*MxeE2*MysE2 + Mx1eE2*MxsE2*Myy - Mss*Mx1eE2*Mxx*Myy + Mx1sE2*MxeE2*Myy 
+				     -Mss*Mx1x1*MxeE2*Myy + Mx1x1*MxsE2*MyeE2 + Mx1sE2*Mxx*MyeE2 - Mss*Mx1x1*Mxx*MyeE2 + Mss*Mxx1E2*MyeE2 + Mx1yE2*Mxx*MesE2 + Mx1x1*MxyE2*MesE2 
+					 -Mx1x1*Mxx*Myy*MesE2 + Mxx1E2*Myy*MesE2 + Mx1yE2*MxsE2*Mee - Mss*Mx1yE2*Mxx*Mee + Mx1sE2*MxyE2*Mee - Mss*Mx1x1*MxyE2*Mee - Mx1x1*Mxx*MysE2*Mee 
+					 +Mxx1E2*MysE2*Mee - Mx1x1*MxsE2*Myy*Mee - Mx1sE2*Mxx*Myy*Mee + Mss*Mx1x1*Mxx*Myy*Mee - Mss*Mxx1E2*Myy*Mee;
+	double emeeE2 = Mss*Mx1y1E2*MxyE2 + Mss*Mx1yE2*Mxy1E2 + Mx1yE2*Mxx*My1sE2 + Mx1x1*MxyE2*My1sE2 + Mx1yE2*MxsE2*My1y1 - Mss*Mx1yE2*Mxx*My1y1 + Mx1sE2*MxyE2*My1y1 
+				   -Mss*Mx1x1*MxyE2*My1y1 + Mx1y1E2*Mxx*MysE2 + Mx1x1*Mxy1E2*MysE2 - Mx1x1*Mxx*My1y1*MysE2 + Mxx1E2*My1y1*MysE2 + Mx1y1E2*MxsE2*Myy - Mss*Mx1y1E2*Mxx*Myy 
+				   +Mx1sE2*Mxy1E2*Myy - Mss*Mx1x1*Mxy1E2*Myy - Mx1x1*Mxx*My1sE2*Myy + Mxx1E2*My1sE2*Myy - Mx1x1*MxsE2*My1y1*Myy - Mx1sE2*Mxx*My1y1*Myy + Mss*Mx1x1*Mxx*My1y1*Myy 
+				   -Mss*Mxx1E2*My1y1*Myy + Mx1x1*MxsE2*Myy1E2 + Mx1sE2*Mxx*Myy1E2 - Mss*Mx1x1*Mxx*Myy1E2 + Mss*Mxx1E2*Myy1E2;
+	double emssE2 = Mx1e*MxyE2*My1y1 + Mx1yE2*MxeE2*My1y1 + Mx1yE2*Mxx*My1eE2 + Mx1x1*MxyE2*My1eE2 + Mx1eE2*Mxy1E2*Myy + Mx1y1E2*MxeE2*Myy - Mx1eE2*Mxx*My1y1*Myy 
+				   -Mx1x1*MxeE2*My1y1*Myy - Mx1x1*Mxx*My1eE2*Myy + Mxx1E2*My1eE2*Myy + Mx1eE2*Mxx*Myy1E2 + Mx1x1*MxeE2*Myy1E2 + Mx1y1E2*Mxx*MyeE2 + Mx1x1*Mxy1E2*MyeE2 
+				   -Mx1x1*Mxx*My1y1*MyeE2 + Mxx1E2*My1y1*MyeE2 + Mx1y1E2*MxyE2*Mee + Mx1yE2*Mxy1E2*Mee - Mx1yE2*Mxx*My1y1*Mee - Mx1x1*MxyE2*My1y1*Mee - Mx1y1E2*Mxx*Myy*Mee 
+				   -Mx1x1*Mxy1E2*Myy*Mee + Mx1x1*Mxx*My1y1*Myy*Mee - Mxx1E2*My1y1*Myy*Mee - Mx1x1*Mxx*Myy1E2*Mee + Mxx1E2*Myy1E2*Mee;
+	double emxx1E2 = My1eE2*MysE2 - Mss*My1eE2*Myy + My1sE2*MyeE2 - Mss*My1y1*MyeE2 - My1y1*Myy*MesE2 + Myy1E2*MesE2 - My1y1*MysE2*Mee - My1sE2*Myy*Mee + Mss*My1y1*Myy*Mee - Mss*Myy1E2*Mee;
+	double emxyE2 = Mx1eE2*My1sE2 - Mss*Mx1eE2*My1y1 + Mx1sE2*My1eE2 - Mss*Mx1x1*My1eE2 + Mx1y1E2*MesE2 - Mx1x1*My1y1*MesE2 - Mss*Mx1y1E2*Mee - Mx1x1*My1sE2*Mee - Mx1sE2*My1y1*Mee + Mss*Mx1x1*My1y1*Mee;
+	double emxy1E2 = Mx1eE2*MysE2 - Mss*Mx1eE2*Myy + Mx1sE2*MyeE2 - Mss*Mx1x1*MyeE2 + Mx1yE2*MesE2 - Mx1x1*Myy*MesE2 - Mss*Mx1yE2*Mee - Mx1x1*MysE2*Mee - Mx1sE2*Myy*Mee + Mss*Mx1x1*Myy*Mee;
+	double emxeE2 = Mx1yE2*My1sE2 - Mss*Mx1yE2*My1y1 + Mx1y1E2*MysE2 - Mx1x1*My1y1*MysE2 - Mss*Mx1y1E2*Myy - Mx1x1*My1sE2*Myy - Mx1sE2*My1y1*Myy + Mss*Mx1x1*My1y1*Myy + Mx1sE2*Myy1E2 - Mss*Mx1x1*Myy1E2;
+	double emxsE2 = Mx1yE2*My1eE2 - Mx1eE2*My1y1*Myy - Mx1x1*My1eE2*Myy + Mx1eE2*Myy1E2 + Mx1y1E2*MyeE2 - Mx1x1*My1y1*MyeE2 - Mx1yE2*My1y1*Mee - Mx1y1E2*Myy*Mee + Mx1x1*My1y1*Myy*Mee - Mx1x1*Myy1E2*Mee;
+	double emx1yE2 = MxeE2*My1sE2 - Mss*MxeE2*My1y1 + MxsE2*My1eE2 - Mss*Mxx*My1eE2 + Mxy1E2*MesE2 - Mxx*My1y1*MesE2 - Mss*Mxy1E2*Mee - Mxx*My1sE2*Mee - MxsE2*My1y1*Mee + Mss*Mxx*My1y1*Mee;
+	double emx1y1E2 = MxeE2*MysE2 - Mss*MxeE2*Myy + MxsE2*MyeE2 - Mss*Mxx*MyeE2 + MxyE2*MesE2 - Mxx*Myy*MesE2 - Mss*MxyE2*Mee - Mxx*MysE2*Mee - MxsE2*Myy*Mee + Mss*Mxx*Myy*Mee;
+	double emx1eE2 = MxyE2*My1sE2 - Mss*MxyE2*My1y1 + Mxy1E2*MysE2 - Mxx*My1y1*MysE2 - Mss*Mxy1E2*Myy - Mxx*My1sE2*Myy - MxsE2*My1y1*Myy + Mss*Mxx*My1y1*Myy + MxsE2*Myy1E2 - Mss*Mxx*Myy1E2;
+	double emx1sE2 = MxyE2*My1eE2 - MxeE2*My1y1*Myy - Mxx*My1eE2*Myy + MxeE2*Myy1E2 + Mxy1E2*MyeE2 - Mxx*My1y1*MyeE2 - MxyE2*My1y1*Mee - Mxy1E2*Myy*Mee + Mxx*My1y1*Myy*Mee - Mxx*Myy1E2*Mee;
+	double emyy1E2 = Mx1eE2*MxsE2 - Mss*Mx1eE2*Mxx + Mx1sE2*MxeE2 - Mss*Mx1x1*MxeE2 - Mx1x1*Mxx*MesE2 + Mxx1E2*MesE2 - Mx1x1*MxsE2*Mee - Mx1sE2*Mxx*Mee + Mss*Mx1x1*Mxx*Mee - Mss*Mxx1E2*Mee;
+	double emyeE2 = Mx1y1E2*MxsE2 - Mss*Mx1y1E2*Mxx + Mx1sE2*Mxy1E2 - Mss*Mx1x1*Mxy1E2 - Mx1x1*Mxx*My1sE2 + Mxx1E2*My1sE2 - Mx1x1*MxsE2*My1y1 - Mx1sE2*Mxx*My1y1 + Mss*Mx1x1*Mxx*My1y1 - Mss*Mxx1E2*My1y1;
+	double emysE2 = Mx1eE2*Mxy1E2 + Mx1y1E2*MxeE2 - Mx1eE2*Mxx*My1y1 - Mx1x1*MxeE2*My1y1 - Mx1x1*Mxx*My1eE2 + Mxx1E2*My1eE2 - Mx1y1E2*Mxx*Mee - Mx1x1*Mxy1E2*Mee + Mx1x1*Mxx*My1y1*Mee - Mxx1E2*My1y1*Mee;
+	double emy1eE2 = Mx1yE2*MxsE2 - Mss*Mx1yE2*Mxx + Mx1sE2*MxyE2 - Mss*Mx1x1*MxyE2 - Mx1x1*Mxx*MysE2 + Mxx1E2*MysE2 - Mx1x1*MxsE2*Myy - Mx1sE2*Mxx*Myy + Mss*Mx1x1*Mxx*Myy - Mss*Mxx1E2*Myy;
+	double emy1sE2 = Mx1e*MxyE2 + Mx1yE2*MxeE2 - Mx1eE2*Mxx*Myy - Mx1x1*MxeE2*Myy - Mx1x1*Mxx*MyeE2 + Mxx1E2*MyeE2 - Mx1yE2*Mxx*Mee - Mx1x1*MxyE2*Mee + Mx1x1*Mxx*Myy*Mee - Mxx1E2*Myy*Mee;
+	double emesE2 = Mx1y1E2*MxyE2 + Mx1yE2*Mxy1E2 - Mx1yE2*Mxx*My1y1 - Mx1x1*MxyE2*My1y1 - Mx1y1E2*Mxx*Myy - Mx1x1*Mxy1E2*Myy + Mx1x1*Mxx*My1y1*Myy - Mxx1E2*My1y1*Myy - Mx1x1*Mxx*Myy1E2 + Mxx1E2*Myy1E2;
+
+	double inv2_emTotE2 = 0.5/emTotE2;
+	pxx = emxxE2*inv2_emTotE2;
+	px1x1 = emx1x1E2*inv2_emTotE2;
+	pzz = emyyE2*inv2_emTotE2;
+	pz1z1 = emy1y1E2*inv2_emTotE2;
+	pgg = emeeE2*inv2_emTotE2;
+	pss = emssE2*inv2_emTotE2;
+	pxx1 = (-Mxx1*emxx1E2)*inv2_emTotE2;
+	pxz = (-Mxy*emxyE2)*inv2_emTotE2;
+	pxz1 = (-Mxy1*emxy1E2)*inv2_emTotE2;
+	pxg = (-Mxe*emxeE2)*inv2_emTotE2;
+	pxs = (-Mxs*emxsE2)*inv2_emTotE2;
+	px1z = (-Mx1y*emx1yE2)*inv2_emTotE2;
+	px1z1 = (-Mx1y1*emx1y1E2)*inv2_emTotE2;
+	px1g = (-Mx1e*emx1eE2)*inv2_emTotE2;
+	px1s = (-Mx1s*emx1sE2)*inv2_emTotE2;
+	pzz1 = (-Myy1*emyy1E2)*inv2_emTotE2;
+	pzg = (-Mye*emyeE2)*inv2_emTotE2;
+	pzs = (-Mys*emysE2)*inv2_emTotE2;
+	pz1g = (-My1e*emy1eE2)*inv2_emTotE2;
+	pz1s = (-My1s*emy1sE2)*inv2_emTotE2;
+	psg = (-Mes*emesE2)*inv2_emTotE2;
 
 	constW1 = 2*(pxx*eBeam.x0 + pxx1*eBeam.dxds0 + pxz*eBeam.z0 + pxz1*eBeam.dzds0 + pxs*eBeam.sc);
 	constW2 = 2*(pxx1*eBeam.x0 + px1x1*eBeam.dxds0 + px1z*eBeam.z0 + px1z1*eBeam.dzds0 + px1s*eBeam.sc);
@@ -57,28 +147,31 @@ void TAuxParamForIntegCSR::setupConstParams(srTEbmDat& eBeam)
 		-2.*pzz1*eBeam.z0*eBeam.dzds0 - pz1z1*eBeam.dzds0*eBeam.dzds0 -2.*pxs*eBeam.x0*eBeam.sc - 2.*px1s*eBeam.dxds0*eBeam.sc 
 		-2.*pzs*eBeam.z0*eBeam.sc - 2.*pz1s*eBeam.dzds0*eBeam.sc - pss*eBeam.sc*eBeam.sc;
 
-	//double f02 = -pxx; //OC030110
-	//double f02e2 = f02*f02; //OC030110
-	//double f12 = -((f02*px1x1 + pxx1*pxx1)/f02); //OC030110
-	//double k0 = -(pxx1*pxg) - f02*px1g; //OC030110
-	//double k1 = f02*px1z + pxx1*pxz; //OC030110
-	//double k3 = f02*px1z1 + pxx1*pxz1; //OC030110
-	//double k2 = (k0*k1)/(f02e2*f12) - (pxz*pxg)/f02 - pzg; //OC030110
-	//double k4 = -(k1*k3)/(f02e2*f12) - (pxz*pxz1)/f02 - pzz1; //OC030110
-	//double k5 = (pxz*pxg)/f02 + (k1*(pxx1*pxg + f02*px1g))/(f02e2*f12) + pzg; //OC030110
-	//double k6 = (pxz*pxs)/f02 - (k1*(-(f02*px1s) - pxx1*pxs))/(f02e2*f12) + pzs; //OC030110
-	//double f22 = -(k1*k1/f12 + f02*(pxz*pxz + f02*pzz))/f02e2; //OC030110
-    //double k7 = (k0*k3)/(f02e2*f12) + (k4*k5)/f22 - (pxz1*pxg)/f02 - pz1g; //OC030110
-	//double k8 = (k4*k6)/f22 - (pxz1*pxs)/f02 + (k3*(-(f02*px1s) - pxx1*pxs))/(f02e2*f12) - pz1s; //OC030110
-	//double f32 = -(k3*k3/(f02e2*f12)) - pxz1*pxz1/f02 - (k4*k4 + f22*pz1z1)/f22; //OC030110
-	//double k9 = (2*k2*k6)/f22 - (2*k7*k8)/f32 - (2*k0*(-(f02*px1s) - pxx1*pxs))/(f02e2*f12) - (2*pxs*pxg)/f02 - 2*psg; //OC030110
-	//double buf42_1 = f02*px1s + pxx1*pxs; //OC030110
-	//double buf42_2 = f02e2*f12*k4*k4 + f22*(k3*k3 + f02*f12*(pxz1*pxz1 + f02*pz1z1)); //OC030110
-	//double f42 = -(k6*k6/f22) - pxs*pxs/f02 - buf42_1*buf42_1/(f02e2*f12) + (f02e2*f12*f22*k8*k8)/buf42_2 - pss;
-	//double f52 = -(k0*k0/(f02e2*f12)) - k2*k2/f22 - k7*k7/f32 - k9*k9/(4.*f42) - pxg*pxg/f02 - pgg; //OC030110
-	//cf = sqrt(f02*f12*f22*f32*f42*f52)/(pi*pi*pi);
+	//OC26042017 (uncommented)
+	double f02 = -pxx; //OC030110
+	double f02e2 = f02*f02; //OC030110
+	double f12 = -((f02*px1x1 + pxx1*pxx1)/f02); //OC030110
+	double k0 = -(pxx1*pxg) - f02*px1g; //OC030110
+	double k1 = f02*px1z + pxx1*pxz; //OC030110
+	double k3 = f02*px1z1 + pxx1*pxz1; //OC030110
+	double k2 = (k0*k1)/(f02e2*f12) - (pxz*pxg)/f02 - pzg; //OC030110
+	double k4 = -(k1*k3)/(f02e2*f12) - (pxz*pxz1)/f02 - pzz1; //OC030110
+	double k5 = (pxz*pxg)/f02 + (k1*(pxx1*pxg + f02*px1g))/(f02e2*f12) + pzg; //OC030110
+	double k6 = (pxz*pxs)/f02 - (k1*(-(f02*px1s) - pxx1*pxs))/(f02e2*f12) + pzs; //OC030110
+	double f22 = -(k1*k1/f12 + f02*(pxz*pxz + f02*pzz))/f02e2; //OC030110
+    double k7 = (k0*k3)/(f02e2*f12) + (k4*k5)/f22 - (pxz1*pxg)/f02 - pz1g; //OC030110
+	double k8 = (k4*k6)/f22 - (pxz1*pxs)/f02 + (k3*(-(f02*px1s) - pxx1*pxs))/(f02e2*f12) - pz1s; //OC030110
+	double f32 = -(k3*k3/(f02e2*f12)) - pxz1*pxz1/f02 - (k4*k4 + f22*pz1z1)/f22; //OC030110
+	double k9 = (2*k2*k6)/f22 - (2*k7*k8)/f32 - (2*k0*(-(f02*px1s) - pxx1*pxs))/(f02e2*f12) - (2*pxs*pxg)/f02 - 2*psg; //OC030110
+	double buf42_1 = f02*px1s + pxx1*pxs; //OC030110
+	double buf42_2 = f02e2*f12*k4*k4 + f22*(k3*k3 + f02*f12*(pxz1*pxz1 + f02*pz1z1)); //OC030110
+	double f42 = -(k6*k6/f22) - pxs*pxs/f02 - buf42_1*buf42_1/(f02e2*f12) + (f02e2*f12*f22*k8*k8)/buf42_2 - pss;
+	double f52 = -(k0*k0/(f02e2*f12)) - k2*k2/f22 - k7*k7/f32 - k9*k9/(4.*f42) - pxg*pxg/f02 - pgg; //OC030110
+	cf = sqrt(f02*f12*f22*f32*f42*f52)/(pi*pi*pi);
+
     //double cf_no_cross = sqrt(pxx*px1x1*pzz*pz1z1*pss*pgg)/(pi*pi*pi); //test
-    cf = sqrt(pxx*px1x1*pzz*pz1z1*pss*pgg)/(pi*pi*pi); //test
+	//OC26042017 (commented-out)
+    //cf = sqrt(pxx*px1x1*pzz*pz1z1*pss*pgg)/(pi*pi*pi); //test
 
 	//double sig_z1 = sqrt(1./(2.*pz1z1));
 	//double sig_z = sqrt(1./(2.*pzz));
@@ -748,73 +841,73 @@ void srTCSR::computeFuncToIntegAtOnePointOnTrj(long long i, srTEXZY exzy, srTEFo
 	complex<double> vz1 = ((z2dr*invR)*bufC) + ((*pZ2p)*invR);
 
 	complex<double> sxx(-m_AuxIntPar.pxx, phi_xx), szz(-m_AuxIntPar.pzz, phi_zz);
-	//complex<double> sxx1(-2*m_AuxIntPar.pxx1, phi_xx1), szz1(-2*m_AuxIntPar.pzz1, phi_zz1);
-		complex<double> sxx1(0, phi_xx1), szz1(0, phi_zz1);
+	complex<double> sxx1(-2*m_AuxIntPar.pxx1, phi_xx1), szz1(-2*m_AuxIntPar.pzz1, phi_zz1); //OC26042017 (uncommented)
+		//complex<double> sxx1(0, phi_xx1), szz1(0, phi_zz1);
 
 	complex<double> sx1x1(-m_AuxIntPar.px1x1, phi_x1x1), sz1z1(-m_AuxIntPar.pz1z1, phi_z1z1);
-	//complex<double> sxg(-2*m_AuxIntPar.pxg, phi_xg), szg(-2*m_AuxIntPar.pzg, phi_zg);
-		complex<double> sxg(0, phi_xg), szg(0, phi_zg);
+	complex<double> sxg(-2*m_AuxIntPar.pxg, phi_xg), szg(-2*m_AuxIntPar.pzg, phi_zg); //OC26042017 (uncommented)
+		//complex<double> sxg(0, phi_xg), szg(0, phi_zg);
 
 	complex<double> s0 = sxx;
 	complex<double> sxx1_d_s0 = sxx1/s0;
-	//complex<double> sx1z = (-2*m_AuxIntPar.px1z) + (m_AuxIntPar.pxz*sxx1_d_s0);
-		complex<double> sx1z = 0;
+	complex<double> sx1z = (-2*m_AuxIntPar.px1z) + (m_AuxIntPar.pxz*sxx1_d_s0); //OC26042017 (uncommented)
+		//complex<double> sx1z = 0;
 
-	//complex<double> sx1z1 = (-2*m_AuxIntPar.px1z1) + (m_AuxIntPar.pxz1*sxx1_d_s0);
-		complex<double> sx1z1 = 0;
+	complex<double> sx1z1 = (-2*m_AuxIntPar.px1z1) + (m_AuxIntPar.pxz1*sxx1_d_s0); //OC26042017 (uncommented)
+		//complex<double> sx1z1 = 0;
 
-	//complex<double> sx1s = (-2*m_AuxIntPar.px1s) + (m_AuxIntPar.pxs*sxx1_d_s0);
-		complex<double> sx1s = 0;
+	complex<double> sx1s = (-2*m_AuxIntPar.px1s) + (m_AuxIntPar.pxs*sxx1_d_s0); //OC26042017 (uncommented)
+		//complex<double> sx1s = 0;
 
 	complex<double> s1 = sx1x1 - (0.25*sxx1*sxx1_d_s0);
 
-	//complex<double> pxz_d_s0 = m_AuxIntPar.pxz/s0, sx1z_d_s1 = sx1z/s1;
-		complex<double> pxz_d_s0 = 0, sx1z_d_s1 = 0;
+	complex<double> pxz_d_s0 = m_AuxIntPar.pxz/s0, sx1z_d_s1 = sx1z/s1; //OC26042017 (uncommented)
+		//complex<double> pxz_d_s0 = 0, sx1z_d_s1 = 0;
 
-	//complex<double> pxz1_d_s0 = m_AuxIntPar.pxz1/s0, sx1z1_d_s1 = sx1z1/s1;
-		complex<double> pxz1_d_s0 = 0, sx1z1_d_s1 = 0;
+	complex<double> pxz1_d_s0 = m_AuxIntPar.pxz1/s0, sx1z1_d_s1 = sx1z1/s1; //OC26042017 (uncommented)
+		//complex<double> pxz1_d_s0 = 0, sx1z1_d_s1 = 0;
 
-	//complex<double> szz1a = szz1 - ((2*m_AuxIntPar.pxz1)*pxz_d_s0) - (0.5*sx1z1*sx1z_d_s1);
-		complex<double> szz1a = szz1;
+	complex<double> szz1a = szz1 - ((2*m_AuxIntPar.pxz1)*pxz_d_s0) - (0.5*sx1z1*sx1z_d_s1); //OC26042017 (uncommented)
+		//complex<double> szz1a = szz1;
 
-	//complex<double> szs = (-2*m_AuxIntPar.pzs) - ((2*m_AuxIntPar.pxs)*pxz_d_s0) - (0.5*sx1s*sx1z_d_s1);
-		complex<double> szs = 0;
+	complex<double> szs = (-2*m_AuxIntPar.pzs) - ((2*m_AuxIntPar.pxs)*pxz_d_s0) - (0.5*sx1s*sx1z_d_s1); //OC26042017 (uncommented)
+		//complex<double> szs = 0;
 
-	//complex<double> s2 = szz - (m_AuxIntPar.pxz*pxz_d_s0) - (0.25*sx1z*sx1z_d_s1);
-		complex<double> s2 = szz;
+	complex<double> s2 = szz - (m_AuxIntPar.pxz*pxz_d_s0) - (0.25*sx1z*sx1z_d_s1); //OC26042017 (uncommented)
+		//complex<double> s2 = szz;
 
 	complex<double> szz1a_d_s2 = szz1a/s2;
 	
-	//complex<double> sz1s = (-2*m_AuxIntPar.pz1s) - (2*m_AuxIntPar.pxs*pxz1_d_s0) - (0.5*sx1s*sx1z1_d_s1) - (0.5*szs*szz1a_d_s2);
-		complex<double> sz1s = 0;
+	complex<double> sz1s = (-2*m_AuxIntPar.pz1s) - (2*m_AuxIntPar.pxs*pxz1_d_s0) - (0.5*sx1s*sx1z1_d_s1) - (0.5*szs*szz1a_d_s2); //OC26042017 (uncommented)
+		//complex<double> sz1s = 0;
 
-    //complex<double> sx1g(-2*m_AuxIntPar.px1g, phi_x1g);
-		complex<double> sx1g(0, phi_x1g);
+    complex<double> sx1g(-2*m_AuxIntPar.px1g, phi_x1g); //OC26042017 (uncommented)
+		//complex<double> sx1g(0, phi_x1g);
 
 	sx1g -= 0.5*sxg*sxx1_d_s0;
 
-	//complex<double> szga = (-0.5*sx1g*sx1z_d_s1) + (sxg*pxz_d_s0) + szg;
-		complex<double> szga = szg;
+	complex<double> szga = (-0.5*sx1g*sx1z_d_s1) + (sxg*pxz_d_s0) + szg; //OC26042017 (uncommented)
+		//complex<double> szga = szg;
 
-    //complex<double> sz1g(-2*m_AuxIntPar.pz1g, phi_z1g);
-		complex<double> sz1g(0, phi_z1g);
+    complex<double> sz1g(-2*m_AuxIntPar.pz1g, phi_z1g); //OC26042017 (uncommented)
+		//complex<double> sz1g(0, phi_z1g);
 
-	//sz1g += (sxg*pxz1_d_s0) - (0.5*sx1g*sx1z1_d_s1) - (0.5*szga*szz1a_d_s2);
-		sz1g += -(0.5*szga*szz1a_d_s2);
+	sz1g += (sxg*pxz1_d_s0) - (0.5*sx1g*sx1z1_d_s1) - (0.5*szga*szz1a_d_s2); //OC26042017 (uncommented)
+		//sz1g += -(0.5*szga*szz1a_d_s2);
 
-	//complex<double> s3 = sz1z1 - (m_AuxIntPar.pxz1*pxz1_d_s0) - (0.25*sx1z1*sx1z1_d_s1) - (0.25*szz1a*szz1a_d_s2);
-		complex<double> s3 = sz1z1 - (0.25*szz1a*szz1a_d_s2);
+	complex<double> s3 = sz1z1 - (m_AuxIntPar.pxz1*pxz1_d_s0) - (0.25*sx1z1*sx1z1_d_s1) - (0.25*szz1a*szz1a_d_s2); //OC26042017 (uncommented)
+		//complex<double> s3 = sz1z1 - (0.25*szz1a*szz1a_d_s2);
 
-	//complex<double> ssg = (-2*m_AuxIntPar.psg) + (m_AuxIntPar.pxs*sxg/s0) - (0.5*sx1s*sx1g/s1) - (0.5*szs*szga/s2) - (0.5*sz1s*sz1g/s3);
-		complex<double> ssg = 0;
+	complex<double> ssg = (-2*m_AuxIntPar.psg) + (m_AuxIntPar.pxs*sxg/s0) - (0.5*sx1s*sx1g/s1) - (0.5*szs*szga/s2) - (0.5*sz1s*sz1g/s3); //OC26042017 (uncommented)
+		//complex<double> ssg = 0;
 	
-	//complex<double> s4 = (-m_AuxIntPar.pss) - ((m_AuxIntPar.pxs*m_AuxIntPar.pxs)/s0) - (0.25*((sx1s*sx1s/s1) + (szs*szs/s2) + (sz1s*sz1s/s3)));
-		complex<double> s4 = (-m_AuxIntPar.pss);
+	complex<double> s4 = (-m_AuxIntPar.pss) - ((m_AuxIntPar.pxs*m_AuxIntPar.pxs)/s0) - (0.25*((sx1s*sx1s/s1) + (szs*szs/s2) + (sz1s*sz1s/s3))); //OC26042017 (uncommented)
+		//complex<double> s4 = (-m_AuxIntPar.pss);
 
 	complex<double> s5(-m_AuxIntPar.pgg, phi_gg);
 	
-	//s5 -= 0.25*((sxg*sxg/s0) + (sx1g*sx1g/s1) + (szga*szga/s2) + (sz1g*sz1g/s3) + (ssg*ssg/s4));
-		s5 -= 0.25*((sxg*sxg/s0) + (sx1g*sx1g/s1) + (szga*szga/s2) + (sz1g*sz1g/s3));
+	s5 -= 0.25*((sxg*sxg/s0) + (sx1g*sx1g/s1) + (szga*szga/s2) + (sz1g*sz1g/s3) + (ssg*ssg/s4)); //OC26042017 (uncommented)
+		//s5 -= 0.25*((sxg*sxg/s0) + (sx1g*sx1g/s1) + (szga*szga/s2) + (sz1g*sz1g/s3));
 
 	complex<double> a0 = hx;
 	complex<double> sqrt_mi_s0 = sqrtC(-s0), sqrt_mi_s1 = sqrtC(-s1), sqrt_mi_s2 = sqrtC(-s2), sqrt_mi_s3 = sqrtC(-s3), sqrt_mi_s4 = sqrtC(-s4), sqrt_mi_s5 = sqrtC(-s5);
@@ -824,24 +917,24 @@ void srTCSR::computeFuncToIntegAtOnePointOnTrj(long long i, srTEXZY exzy, srTEFo
 	complex<double> a1 = (m_AuxIntPar.half_sqrt_pi*inv_mi_s0_e32)*((a0*sxx1) - (2.*hx1*s0));
 	complex<double> a0_s1_inv_mi_s0_e32 = a0*s1*inv_mi_s0_e32;
 
-	//complex<double> a2 = (m_AuxIntPar.half_sqrt_pi*inv_mi_s1_e32)*(((m_AuxIntPar.two_sqrt_pi*m_AuxIntPar.pxz)*a0_s1_inv_mi_s0_e32) + a1*sx1z);
-	complex<double> a2 = 0;
+	complex<double> a2 = (m_AuxIntPar.half_sqrt_pi*inv_mi_s1_e32)*(((m_AuxIntPar.two_sqrt_pi*m_AuxIntPar.pxz)*a0_s1_inv_mi_s0_e32) + a1*sx1z); //OC26042017 (uncommented)
+		//complex<double> a2 = 0;
 
 	complex<double> pi_d_sqrt_mi_s0_d_sqrt_mi_s1 = m_AuxIntPar.pi/(sqrt_mi_s0*sqrt_mi_s1);
 	complex<double> a2z = pi_d_sqrt_mi_s0_d_sqrt_mi_s1*vz;
 	complex<double> half_sqrt_pi_inv_mi_s2_e32 = m_AuxIntPar.half_sqrt_pi*inv_mi_s2_e32;
 	
-	//complex<double> a3 = half_sqrt_pi_inv_mi_s2_e32*(((-m_AuxIntPar.sqrt_pi)*s2*inv_mi_s1_e32)*(((m_AuxIntPar.two_sqrt_pi*m_AuxIntPar.pxz1)*a0_s1_inv_mi_s0_e32) + (a1*sx1z1)) + (a2*szz1a));
-		complex<double> a3 = 0;
+	complex<double> a3 = half_sqrt_pi_inv_mi_s2_e32*(((-m_AuxIntPar.sqrt_pi)*s2*inv_mi_s1_e32)*(((m_AuxIntPar.two_sqrt_pi*m_AuxIntPar.pxz1)*a0_s1_inv_mi_s0_e32) + (a1*sx1z1)) + (a2*szz1a)); //OC26042017 (uncommented)
+		//complex<double> a3 = 0;
 
 	complex<double> a3z = half_sqrt_pi_inv_mi_s2_e32*((a2z*szz1a) - (2.*s2*vz1*pi_d_sqrt_mi_s0_d_sqrt_mi_s1));
 	complex<double> inv_mi_s2_e32_inv_mi_s3_e32 = inv_mi_s2_e32*inv_mi_s3_e32;
     
-	//complex<double> a4 = (0.5*inv_mi_s0_e32*inv_mi_s1_e32*inv_mi_s2_e32_inv_mi_s3_e32)*(((2*m_AuxIntPar.piE2*m_AuxIntPar.pxs)*a0*s1*s2*s3) + (m_AuxIntPar.sqrt_pi*mi_s0_e32)*((m_AuxIntPar.pi*a1*s2*s3*sx1s) + (sqrt_mi_s1*s1)*((a3*sqrt_mi_s2*s2*sz1s) + (a2*m_AuxIntPar.sqrt_pi*s3*szs))));
-		complex<double> a4 = 0;
+	complex<double> a4 = (0.5*inv_mi_s0_e32*inv_mi_s1_e32*inv_mi_s2_e32_inv_mi_s3_e32)*(((2*m_AuxIntPar.piE2*m_AuxIntPar.pxs)*a0*s1*s2*s3) + (m_AuxIntPar.sqrt_pi*mi_s0_e32)*((m_AuxIntPar.pi*a1*s2*s3*sx1s) + (sqrt_mi_s1*s1)*((a3*sqrt_mi_s2*s2*sz1s) + (a2*m_AuxIntPar.sqrt_pi*s3*szs)))); //OC26042017 (uncommented)
+		//complex<double> a4 = 0;
 	
-	//complex<double> a4z = (m_AuxIntPar.half_sqrt_pi*a3z*sz1s*inv_mi_s3_e32) - (0.5*inv_mi_s2_e32_inv_mi_s3_e32*m_AuxIntPar.pi*a2z*s3*szs);
-		complex<double> a4z = 0;
+	complex<double> a4z = (m_AuxIntPar.half_sqrt_pi*a3z*sz1s*inv_mi_s3_e32) - (0.5*inv_mi_s2_e32_inv_mi_s3_e32*m_AuxIntPar.pi*a2z*s3*szs); //OC26042017 (uncommented)
+		//complex<double> a4z = 0;
 	
 	complex<double> half_sqrt_pi_inv_mi_s4_e32 = m_AuxIntPar.half_sqrt_pi*inv_mi_s4_e32;
 	complex<double> mi_sqrt_pi_s4_inv_mi_s3_e32 = -m_AuxIntPar.sqrt_pi*s4*inv_mi_s3_e32;
@@ -849,11 +942,11 @@ void srTCSR::computeFuncToIntegAtOnePointOnTrj(long long i, srTEXZY exzy, srTEFo
     complex<double> mi_sqrt_pi_s2_inv_mi_s1_e32 = -m_AuxIntPar.sqrt_pi*s2*inv_mi_s1_e32;
 	complex<double> mi_sqrt_pi_s1_inv_mi_s0_e32 = -m_AuxIntPar.sqrt_pi*s1*inv_mi_s0_e32;
 	
-	//complex<double> a5 = half_sqrt_pi_inv_mi_s4_e32*(mi_sqrt_pi_s4_inv_mi_s3_e32*(mi_sqrt_pi_s3_inv_mi_s2_e32*(mi_sqrt_pi_s2_inv_mi_s1_e32*((-m_AuxIntPar.sqrt_pi*s1*inv_mi_s0_e32)*((-2.*hg*s0) + (a0*sxg)) + (a1*sx1g)) + (a2*szga)) + (a3*sz1g)) + (a4*ssg));
-		complex<double> a5 = half_sqrt_pi_inv_mi_s4_e32*(mi_sqrt_pi_s4_inv_mi_s3_e32*(mi_sqrt_pi_s3_inv_mi_s2_e32*(mi_sqrt_pi_s2_inv_mi_s1_e32*((-m_AuxIntPar.sqrt_pi*s1*inv_mi_s0_e32)*((-2.*hg*s0) + (a0*sxg)) + (a1*sx1g)))));
+	complex<double> a5 = half_sqrt_pi_inv_mi_s4_e32*(mi_sqrt_pi_s4_inv_mi_s3_e32*(mi_sqrt_pi_s3_inv_mi_s2_e32*(mi_sqrt_pi_s2_inv_mi_s1_e32*((-m_AuxIntPar.sqrt_pi*s1*inv_mi_s0_e32)*((-2.*hg*s0) + (a0*sxg)) + (a1*sx1g)) + (a2*szga)) + (a3*sz1g)) + (a4*ssg)); //OC26042017 (uncommented)
+		//complex<double> a5 = half_sqrt_pi_inv_mi_s4_e32*(mi_sqrt_pi_s4_inv_mi_s3_e32*(mi_sqrt_pi_s3_inv_mi_s2_e32*(mi_sqrt_pi_s2_inv_mi_s1_e32*((-m_AuxIntPar.sqrt_pi*s1*inv_mi_s0_e32)*((-2.*hg*s0) + (a0*sxg)) + (a1*sx1g)))));
 	
-	//complex<double> a5z = half_sqrt_pi_inv_mi_s4_e32*(mi_sqrt_pi_s4_inv_mi_s3_e32*(mi_sqrt_pi_s3_inv_mi_s2_e32*(mi_sqrt_pi_s2_inv_mi_s1_e32*(-m_AuxIntPar.two_sqrt_pi*s1*vg/sqrt_mi_s0) + (a2z*szga)) + (a3z*sz1g)) + (a4z*ssg));
-		complex<double> a5z = half_sqrt_pi_inv_mi_s4_e32*(mi_sqrt_pi_s4_inv_mi_s3_e32*(mi_sqrt_pi_s3_inv_mi_s2_e32*(mi_sqrt_pi_s2_inv_mi_s1_e32*(-m_AuxIntPar.two_sqrt_pi*s1*vg/sqrt_mi_s0) + (a2z*szga)) + (a3z*sz1g)));
+	complex<double> a5z = half_sqrt_pi_inv_mi_s4_e32*(mi_sqrt_pi_s4_inv_mi_s3_e32*(mi_sqrt_pi_s3_inv_mi_s2_e32*(mi_sqrt_pi_s2_inv_mi_s1_e32*(-m_AuxIntPar.two_sqrt_pi*s1*vg/sqrt_mi_s0) + (a2z*szga)) + (a3z*sz1g)) + (a4z*ssg)); //OC26042017 (uncommented)
+		//complex<double> a5z = half_sqrt_pi_inv_mi_s4_e32*(mi_sqrt_pi_s4_inv_mi_s3_e32*(mi_sqrt_pi_s3_inv_mi_s2_e32*(mi_sqrt_pi_s2_inv_mi_s1_e32*(-m_AuxIntPar.two_sqrt_pi*s1*vg/sqrt_mi_s0) + (a2z*szga)) + (a3z*sz1g)));
 
     complex<double> w1(m_AuxIntPar.constW1, phi_x);
 	complex<double> w1_d_s0 = w1/s0;
@@ -862,33 +955,33 @@ void srTCSR::computeFuncToIntegAtOnePointOnTrj(long long i, srTEXZY exzy, srTEFo
 	complex<double> half_w2_d_s1 = 0.5*w2/s1;
 	complex<double> w3a(m_AuxIntPar.constW3a, phi_z);
     
-	//w3a += (m_AuxIntPar.pxz*w1_d_s0) - (sx1z*half_w2_d_s1);
+	w3a += (m_AuxIntPar.pxz*w1_d_s0) - (sx1z*half_w2_d_s1); //OC26042017 (uncommented)
 
 	complex<double> half_w3a_d_s2 = 0.5*w3a/s2;
 	complex<double> w3b(m_AuxIntPar.constW3b, phi_z1);
 
-	//w3b += (m_AuxIntPar.pxz1*w1_d_s0) - (sx1z1*half_w2_d_s1);
+	w3b += (m_AuxIntPar.pxz1*w1_d_s0) - (sx1z1*half_w2_d_s1); //OC26042017 (uncommented)
 
 	complex<double> w4a = w3b - (half_w3a_d_s2*szz1a);
 	complex<double> half_w4a_d_s3 = 0.5*w4a/s3;
 	complex<double> w4b(m_AuxIntPar.constW4b, phi_s);
 
-	//w4b += (m_AuxIntPar.pxs*w1_d_s0) - (sx1s*half_w2_d_s1) - (szs*half_w3a_d_s2) - (sz1s*half_w4a_d_s3);
+	w4b += (m_AuxIntPar.pxs*w1_d_s0) - (sx1s*half_w2_d_s1) - (szs*half_w3a_d_s2) - (sz1s*half_w4a_d_s3); //OC26042017 (uncommented)
 	
 	complex<double> half_w4b_d_s4 = 0.5*w4b/s4;
 	complex<double> w5(m_AuxIntPar.constW5, phi_g);
 
-	//w5 -= (0.5*sxg*w1_d_s0) + (sx1g*half_w2_d_s1) + (szga*half_w3a_d_s2) + (sz1g*half_w4a_d_s3) + (ssg*half_w4b_d_s4);
-		w5 -= (0.5*sxg*w1_d_s0) + (sx1g*half_w2_d_s1) + (szga*half_w3a_d_s2) + (sz1g*half_w4a_d_s3);
+	w5 -= (0.5*sxg*w1_d_s0) + (sx1g*half_w2_d_s1) + (szga*half_w3a_d_s2) + (sz1g*half_w4a_d_s3) + (ssg*half_w4b_d_s4); //OC26042017 (uncommented)
+		//w5 -= (0.5*sxg*w1_d_s0) + (sx1g*half_w2_d_s1) + (szga*half_w3a_d_s2) + (sz1g*half_w4a_d_s3);
 
 	complex<double> half_sqrt_pi_inv_mi_s5_e32 = m_AuxIntPar.half_sqrt_pi*inv_mi_s5_e32;
 	complex<double> mi_sqrt_pi_s5_inv_mi_s4_e32 = -m_AuxIntPar.sqrt_pi*s5*inv_mi_s4_e32;
 	
-	//ampX = half_sqrt_pi_inv_mi_s5_e32*(mi_sqrt_pi_s5_inv_mi_s4_e32*(mi_sqrt_pi_s4_inv_mi_s3_e32*(mi_sqrt_pi_s3_inv_mi_s2_e32*(mi_sqrt_pi_s2_inv_mi_s1_e32*(mi_sqrt_pi_s1_inv_mi_s0_e32*((-2.*h0*s0) + (a0*w1)) + (a1*w2)) + (a2*w3a)) + (a3*w4a)) + (a4*w4b)) + (a5*w5));
-		ampX = half_sqrt_pi_inv_mi_s5_e32*(mi_sqrt_pi_s5_inv_mi_s4_e32*(mi_sqrt_pi_s4_inv_mi_s3_e32*(mi_sqrt_pi_s3_inv_mi_s2_e32*(mi_sqrt_pi_s2_inv_mi_s1_e32*(mi_sqrt_pi_s1_inv_mi_s0_e32*((-2.*h0*s0) + (a0*w1)) + (a1*w2))))) + (a5*w5));
+	ampX = half_sqrt_pi_inv_mi_s5_e32*(mi_sqrt_pi_s5_inv_mi_s4_e32*(mi_sqrt_pi_s4_inv_mi_s3_e32*(mi_sqrt_pi_s3_inv_mi_s2_e32*(mi_sqrt_pi_s2_inv_mi_s1_e32*(mi_sqrt_pi_s1_inv_mi_s0_e32*((-2.*h0*s0) + (a0*w1)) + (a1*w2)) + (a2*w3a)) + (a3*w4a)) + (a4*w4b)) + (a5*w5)); //OC26042017 (uncommented)
+		//ampX = half_sqrt_pi_inv_mi_s5_e32*(mi_sqrt_pi_s5_inv_mi_s4_e32*(mi_sqrt_pi_s4_inv_mi_s3_e32*(mi_sqrt_pi_s3_inv_mi_s2_e32*(mi_sqrt_pi_s2_inv_mi_s1_e32*(mi_sqrt_pi_s1_inv_mi_s0_e32*((-2.*h0*s0) + (a0*w1)) + (a1*w2))))) + (a5*w5));
 	
-	//ampZ = half_sqrt_pi_inv_mi_s5_e32*(mi_sqrt_pi_s5_inv_mi_s4_e32*(mi_sqrt_pi_s4_inv_mi_s3_e32*(mi_sqrt_pi_s3_inv_mi_s2_e32*(mi_sqrt_pi_s2_inv_mi_s1_e32*(mi_sqrt_pi_s1_inv_mi_s0_e32*(-2.*s0*v0)) + (a2z*w3a)) + (a3z*w4a)) + (a4z*w4b)) + (a5z*w5));
-		ampZ = half_sqrt_pi_inv_mi_s5_e32*(mi_sqrt_pi_s5_inv_mi_s4_e32*(mi_sqrt_pi_s4_inv_mi_s3_e32*(mi_sqrt_pi_s3_inv_mi_s2_e32*(mi_sqrt_pi_s2_inv_mi_s1_e32*(mi_sqrt_pi_s1_inv_mi_s0_e32*(-2.*s0*v0)) + (a2z*w3a)) + (a3z*w4a))) + (a5z*w5));
+	ampZ = half_sqrt_pi_inv_mi_s5_e32*(mi_sqrt_pi_s5_inv_mi_s4_e32*(mi_sqrt_pi_s4_inv_mi_s3_e32*(mi_sqrt_pi_s3_inv_mi_s2_e32*(mi_sqrt_pi_s2_inv_mi_s1_e32*(mi_sqrt_pi_s1_inv_mi_s0_e32*(-2.*s0*v0)) + (a2z*w3a)) + (a3z*w4a)) + (a4z*w4b)) + (a5z*w5)); //OC26042017 (uncommented)
+		//ampZ = half_sqrt_pi_inv_mi_s5_e32*(mi_sqrt_pi_s5_inv_mi_s4_e32*(mi_sqrt_pi_s4_inv_mi_s3_e32*(mi_sqrt_pi_s3_inv_mi_s2_e32*(mi_sqrt_pi_s2_inv_mi_s1_e32*(mi_sqrt_pi_s1_inv_mi_s0_e32*(-2.*s0*v0)) + (a2z*w3a)) + (a3z*w4a))) + (a5z*w5));
 	
 	complex<double> q6(m_AuxIntPar.constQ6, phi_0);
 

@@ -105,3 +105,42 @@ def write_ascii_data_cols(_file_path, _cols, _str_sep, _str_head=None, _i_col_st
         
     f.write(strTot)
     f.close()
+
+#********************** Read data from an image file:
+def read_image(image_path):  # MR26102017
+    """Read data from an image file.
+
+    :param image_path: full path to the image.
+    :return: dict with the processed data.
+    """
+
+    msg = '{0} library is not installed. Use "pip install {0}" to install it.'
+    try:
+        import numpy as np
+    except:
+        raise ImportError(msg.format('numpy'))
+    try:
+        from PIL import Image
+    except:
+        raise ImportError(msg.format('pillow'))
+
+    # Read the image:
+    raw_image = Image.open(image_path)
+    image_format = raw_image.format
+    raw_image = raw_image.convert('L')
+
+    # Convert it to NumPy array:
+    data = np.array(raw_image)
+    if image_format not in ('TIFF', 'PNG', 'BMP', 'GIF', 'JPEG'):
+        raise ValueError('"{}" format is not supported at the moment.'.format(raw_image.format))
+
+    # Get bits per point:
+    mode_to_bpp = {'1': 1, 'L': 8, 'P': 8, 'I;16': 16, 'RGB': 24, 'RGBA': 32, 'CMYK': 32, 'YCbCr': 24, 'I': 32, 'F': 32}
+    bpp = mode_to_bpp[raw_image.mode]
+    limit_value = float(2 ** bpp - 1)
+
+    return {
+        'data': data,
+        'raw_image': raw_image,
+        'limit_value': limit_value,
+    }

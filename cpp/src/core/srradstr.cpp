@@ -220,6 +220,29 @@ srTSRWRadStructAccessData::srTSRWRadStructAccessData(SRWLWfr* pWfr, srTGsnBeam* 
 
 //*************************************************************************
 
+srTSRWRadStructAccessData::srTSRWRadStructAccessData(SRWLWfr* pWfr, double longPosSrc, double* precPar)
+{//Used for setting up spherical wave
+	if(pWfr == 0) throw SRWL_INCORRECT_WFR_STRUCT;
+	
+	Initialize();
+	InSRWRadPtrs(*pWfr);
+	m_newExtWfrCreateNotAllowed = true; //since new wavefront creation is not implemented in SRWLIB
+
+	yStart = pWfr->mesh.zStart;
+	double Robs = pWfr->mesh.zStart - longPosSrc;
+	double RobsAbsErr = 0.01*(::fabs(Robs));
+	double xElAtYsrc = pWfr->xc, zElAtYsrc = pWfr->yc;
+	double NxNzOversamplingFactor = precPar[0];
+	AuxSetupActionsArbSrc(*pWfr, Robs, RobsAbsErr, xElAtYsrc, zElAtYsrc, NxNzOversamplingFactor);
+
+	if(pWfr->presFT == 1)
+	{
+		avgPhotEn = 0.5*(pWfr->mesh.eStart + pWfr->mesh.eFin);
+	}
+}
+
+//*************************************************************************
+
 void srTSRWRadStructAccessData::AuxSetupActions2(srTSRWRadInData* pRadInData, srTTrjDat* pTrjDat, srTWfrSmp* pWfrSmp, double From_s0ToObsPoint, double NxNzOversamplingFactor)
 {
  	SetRadSamplingFromObs(*pWfrSmp);
@@ -3885,10 +3908,21 @@ bool srTSRWRadStructAccessData::CheckIfQuadTermTreatIsBenefit(char cutX_or_Z, ch
 	double prevDerReAfter=0, prevDerImAfter=0;
 	int numDerReSignChange=0, numDerImSignChange=0;
 	int numDerReSignChangeAfter=0, numDerImSignChangeAfter=0;
+	
+	const double twoPi = 6.2831853;
+	double phShiftPrev;
 
 	for(long i=0; i<argN; i++)
 	{
 		phShift = coefPh*difArg*difArg;
+
+		bool phShiftIsSmall = false;
+		if(i > 0) //OC05012017
+		{
+			if(::fabs(phShift - phShiftPrev) < twoPi) phShiftIsSmall = true;
+		}
+		phShiftPrev = phShift;
+
 		difArg += argStep;
 		cosPh = cos(phShift); sinPh = sin(phShift);
 
@@ -3902,7 +3936,8 @@ bool srTSRWRadStructAccessData::CheckIfQuadTermTreatIsBenefit(char cutX_or_Z, ch
 		derImAfter = (imAfter - prevImAfter)*invArgStep;
 
 		double curInt = re*re + im*im;
-		if(curInt > threshInt)
+		//if(curInt > threshInt)
+		if((curInt > threshInt) && phShiftIsSmall) //OC05012017 //take into account only "resolved" oscillations
 		{
 			if(derRe*prevDerRe < 0.) numDerReSignChange++;
 			if(derIm*prevDerIm < 0.) numDerImSignChange++;
