@@ -222,6 +222,17 @@ struct SRWLStructGaussianBeam {
 typedef struct SRWLStructGaussianBeam SRWLGsnBm;
 
 /**
+ * Coherent Gaussian Beam
+ */
+struct SRWLStructPointSource {
+	double x, y, z; /* coordinates [m] */
+	double flux; /* spectral flux */
+	char unitFlux; /* spectral flux units: 1- ph/s/.1%bw, 2- W/eV */
+	char polar; /* polarization: 1- lin. hor., 2- lin. vert., 3- lin. 45 deg., 4- lin.135 deg., 5- circ. right, 6- circ. left, 7- radial */
+};
+typedef struct SRWLStructPointSource SRWLPtSrc;
+
+/**
  * Radiation Mesh (for Electric Field, Stokes params, etc.)
  * TENTATIVE VERSION !
  */
@@ -534,7 +545,9 @@ EXP int CALL srwlUtiGetErrText(char* t, int erNo);
  *             precPar[0] defines the type of calculation: =0 -standard calculation, =1 -interpolation vs one parameter, =2 -interpolation vs two parameters
  *             [1]: first parameter value the field has to be interpolated for
  *             [2]: second parameter value the field has to be interpolated for
- *             [3]: specifies type of interpolation: =1 -(bi-)linear, =2 -(bi-)quadratic, =3 -(bi-)cubic 
+ *             [3]: specifies type (order) of interpolation: =1 -(bi-)linear, =2 -(bi-)quadratic, =3 -(bi-)cubic 
+ *             [4]: specifies whether mesh for the interpolation is rectangular (1) or not (0)
+ *             [5]: specifies whether pMagFld contains just the field required for the interpolation (1) or the required fields have to be found from the general list (0)
  * @return	integer error (>0) or warnig (<0) code
  * @see ...
  */
@@ -576,13 +589,13 @@ EXP int CALL srwlCalcPartTrajFromKickMatr(SRWLPrtTrj* pTrj, SRWLKickM* arKickM, 
  * @param [in] pMagFld optional pointer to input magnetic field (container) structure; to be taken into account only if particle trajectroy arrays (pTrj->arX, pTrj->arXp, pTrj->arY, pTrj->arYp) are not supplied
  * @param [in] precPar precision parameters: 
  *	   precPar[0]: method ID (0- "manual", 1- "auto-undulator", 2- "auto-wiggler")
- *			  [1]: step size or relative precision
- *			  [2]: longitudinal position to start integration
- *			  [3]: longitudinal position to finish integration
- *			  [4]: number of points to use for trajectory calculation 
- *			  [5]: calculate terminating terms or not: 0- don't calculate two terms, 1- do calculate two terms, 2- calculate only upstream term, 3- calculate only downstream term 
- *			  [6]: sampling factor (for propagation, effective if > 0)
- *			  [7]: ... 
+ *            [1]: step size or relative precision
+ *            [2]: longitudinal position to start integration
+ *            [3]: longitudinal position to finish integration
+ *            [4]: number of points to use for trajectory calculation 
+ *            [5]: calculate terminating terms or not: 0- don't calculate two terms, 1- do calculate two terms, 2- calculate only upstream term, 3- calculate only downstream term 
+ *            [6]: sampling factor (for propagation, effective if > 0)
+ *            [7]: ... 
  * @param [in] nPrecPar number of precision parameters 
  * @return	integer error (>0) or warnig (<0) code
  * @see ...
@@ -598,6 +611,16 @@ EXP int CALL srwlCalcElecFieldSR(SRWLWfr* pWfr, SRWLPrtTrj* pTrj, SRWLMagFldC* p
  * @see ...
  */
 EXP int CALL srwlCalcElecFieldGaussian(SRWLWfr* pWfr, SRWLGsnBm* pGsnBm, double* precPar =0);
+
+/** 
+ * Calculates Electric Field (Wavefront) of a Pont Source (i.e. spherical wave)
+ * @param [in, out] pWfr pointer to resulting Wavefront structure; all data arrays should be allocated in a calling function/application; the mesh, presentation, etc., should be specified in this structure at input
+ * @param [in] pPtSrc pointer to a Point Source parameters structure
+ * @param [in] precPar precision parameters: [0]- sampling factor (for propagation, effective if > 0), 
+ * @return	integer error (>0) or warnig (<0) code
+ * @see ...
+ */
+EXP int CALL srwlCalcElecFieldPointSrc(SRWLWfr* pWfr, SRWLPtSrc* pPtSrc, double* precPar =0);
 
 /** 
  * Calculates Spectral Flux (Stokes components) of Synchrotron Radiation by a relativistic finite-emittance electron beam traveling in periodic magnetic field of an Undulator
@@ -774,6 +797,24 @@ EXP int CALL srwlUtiConvWithGaussian(char* pcData, char typeData, double* arMesh
  * @see ...
  */
 EXP int CALL srwlUtiUndFromMagFldTab(SRWLMagFldC* pUndCnt, SRWLMagFldC* pMagCnt, double* arPrecPar);
+
+/** 
+ * Attempts to find indexes of undulator gap and phase values and associated magnetic fields requiired to be used in field interpolation based on gap and phase
+ * @param [in, out] arResInds array of indexes to be found
+ * @param [in, out] pnResInds pointer to number of indexes found
+ * @param [in] arGaps array of undulator gap values
+ * @param [in] arPhases array of undulator phase values
+ * @param [in] nVals number of undulator gap and phase values
+ * @param [in] arPrecPar array of precision parameters:
+ *             arPrecPar[0]: number of dimensions (1 if only gaps should be considered; 2 if both gaps and phases should be considered)
+ *             arPrecPar[1]: gap value for which interpolation should be done
+ *             arPrecPar[2]: phase value for which interpolation should be done
+ *             arPrecPar[3]: order of interpolation (1 to 3)
+ *             arPrecPar[4]: mesh is rectangular (0 for no, 1 for yes)
+ * @return	integer error (>0) or warnig (<0) code
+ * @see ...
+ */
+EXP int CALL srwlUtiUndFindMagFldInterpInds(int* arResInds, int* pnResInds, double* arGaps, double* arPhases, int nVals, double arPrecPar[5]);
 
 /***************************************************************************/
 

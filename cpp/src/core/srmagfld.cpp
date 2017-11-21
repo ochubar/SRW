@@ -1415,21 +1415,116 @@ void srTMagFldCont::DetermineLongStartAndEndPos()
 
 //*************************************************************************
 
-void srTMagFld3d::tabInterpB(srTMagFldCont& magCont, double* arPrecPar, double* arPar1, double* arPar2, double* arCoefBx, double* arCoefBy)
+void srTMagFld3d::tabInterpB(srTMagFldCont& magCont, double arPrecPar[6], double* arPar1, double* arPar2, double* arCoefBx, double* arCoefBy) //OC02112017
+//void srTMagFld3d::tabInterpB(srTMagFldCont& magCont, double* arPrecPar, double* arPar1, double* arPar2, double* arCoefBx, double* arCoefBy)
 {
-	if((arPrecPar == 0) || (arPar1 == 0)) return;
+	//if((arPrecPar == 0) || (arPar1 == 0)) return; //throw exception?
+	if(arPrecPar == 0) return; //throw exception?
+	if((arPar1 == 0) && (arPar2 == 0)) return; //throw exception?
 
 	int dimInterp = (int)arPrecPar[0];
 	double par1 = arPrecPar[1];
 	double par2 = arPrecPar[2];
 	int ordInterp = (int)arPrecPar[3];
+	bool meshIsRect = (bool)arPrecPar[4];
+	bool skipIndSearch = (bool)arPrecPar[5];
+
+	if(arPar1 == 0)
+	{
+		arPar1 = arPar2;
+		par1 = par2;
+		dimInterp = 1;
+	}
+	if(arPar2 == 0) dimInterp = 1;
 
 	int nMag = magCont.size();
+	if(nMag == 1)
+	{//Just copy the only available data for one phase and gap to the resulting array
+
+		TVector3d vP, vB;
+		double *tBx = BxArr, *tBy = ByArr, *tBz = BzArr;
+		double z = zStart; //+ mCenP.z; //OC170615
+
+		for(int iz=0; iz<nz; iz++)
+		{
+			if(zArr != 0) z = zArr[iz]; //+ mCenP.z; //OC170615
+			double y = yStart; //+ mCenP.y; //OC170615
+			
+			for(int iy=0; iy<ny; iy++)
+			{
+				if(yArr != 0) y = yArr[iy]; //+ mCenP.y; //OC170615
+				double x = xStart; //+ mCenP.x; //OC170615
+			
+				for(int ix=0; ix<nx; ix++)
+				{
+					if(xArr != 0) x = xArr[ix]; //+ mCenP.x; //OC170615
+					vP.x = x; vP.y = y; vP.z = z;
+					vP = mTrans.TrPoint(vP); //OC170615
+
+					vB.x = vB.y = vB.z = 0.;
+					magCont.compB_i(vP, vB, 0);
+					vB = mTrans.TrVectField_inv(vB); //OC170615??
+					if(arCoefBx != 0) vB.x *= (*arCoefBx);
+					if(arCoefBy != 0) vB.y *= (*arCoefBy);
+
+					if(BxArr != 0) *(tBx++) = vB.x;
+					if(ByArr != 0) *(tBy++) = vB.y;
+					if(BzArr != 0) *(tBz++) = vB.z;
+					x += xStep;
+				}
+				y += yStep;
+			}
+			z += zStep;
+		}
+	}
+
 	int nMag_mi_1 = nMag - 1;
 	if(ordInterp > nMag_mi_1) ordInterp = nMag_mi_1;
 
-	//int im1 = -2, i0 = -2, ip1 = -2, ip2 = -2;
-	int i0 = -2;
+	int arIndForInterp2d[12], nIndForInterp2d=0;
+	double relPar1, relPar2;
+
+	if(dimInterp == 2)
+	{
+		if(skipIndSearch)
+		{
+			if(ordInterp == 1) nIndForInterp2d = 4;
+			else if(ordInterp == 2) nIndForInterp2d = 5;
+			else if(ordInterp == 3) nIndForInterp2d = 12;
+
+			for(int i=0; i<nIndForInterp2d; i++) arIndForInterp2d[i] = i;
+		}
+		else
+		{
+			int ordInterpOrig = ordInterp;
+			if(ordInterp > 2) ordInterp = 2; //To update this when/if higher-order 2d interpolation will be implemented.
+
+			int effDimInterp = CGenMathInterp::SelectPointsForInterp2d(par1, par2, arPar1, arPar2, nMag, ordInterp, arIndForInterp2d, nIndForInterp2d,  meshIsRect);
+
+			if(effDimInterp <= 0) return; //throw exception?
+			else if(effDimInterp == 1)
+			{
+				if((arPar1 == 0) && (arPar2 != 0)) 
+				{
+					arPar1 = arPar2;
+					par1 = par2; //Check this
+				}
+				ordInterp = ordInterpOrig;
+				dimInterp = 1;
+			}
+			//else if(effDimInterp == 2)
+			//{
+			//}
+			//To add more conversion/restrictions if necessary.
+		}
+	}
+
+	int im1 = -2, i0 = -2, ip1 = -2, ip2 = -2;
+	//int i0 = -2;
+	int nMag_mi_3 = nMag - 3, nMag_mi_2 = nMag - 2;
+	double relPar1_hmdhp1 = 0., relPar1_hp2dhp1 = 0.;
+	double arDifPar1Par2[8], difPar1, difPar2;
+
 	if(dimInterp == 1)
 	{
 		for(int i=0; i<nMag; i++)
@@ -1440,35 +1535,117 @@ void srTMagFld3d::tabInterpB(srTMagFldCont& magCont, double* arPrecPar, double* 
 		if(ordInterp == 1)
 		{
 			if(i0 < 0) i0 = 0;
-			else if(i0 == -2) i0 = nMag - 2;
+			//else if(i0 == -2) i0 = nMag - 2;
+			else if(i0 > nMag_mi_2) i0 = nMag_mi_2; //OC18082017
 		}
 		else if(ordInterp == 2)
 		{
 			//if(i0 < 0) i0 = 1;
 			if(i0 < 1) i0 = 1; //OC280114
-			else if(i0 == -2) i0 = nMag - 2;
+			//else if(i0 == -2) i0 = nMag - 2;
+			else if(i0 > nMag_mi_2) i0 = nMag_mi_2; //OC18082017
 		}
 		else if(ordInterp == 3)
 		{
 			//if(i0 < 0) i0 = 1;
 			if(i0 < 1) i0 = 1; //OC280114
-			else if(i0 == -2) i0 = nMag - 3;
+			//else if(i0 == -2) i0 = nMag - 3;
+			else if(i0 > nMag_mi_3) i0 = nMag_mi_3; //OC18082017
 		}
-	}
-	int im1 = i0 - 1, ip1 = i0 + 1, ip2 = i0 + 2;
-	double relPar1 = (par1 - arPar1[i0])/(arPar1[ip1] - arPar1[i0]);
 
-	double relPar1_hmdhp1 = 0., relPar1_hp2dhp1 = 0.;
-	if(ordInterp > 1)
-	{
-		relPar1_hmdhp1 = (arPar1[i0] - arPar1[im1])/(arPar1[ip1] - arPar1[i0]);
-		if(ordInterp > 2)
+		im1 = i0 - 1; ip1 = i0 + 1; ip2 = i0 + 2;
+		relPar1 = (par1 - arPar1[i0])/(arPar1[ip1] - arPar1[i0]);
+
+		if(ordInterp > 1)
 		{
-			relPar1_hp2dhp1 = (arPar1[ip2] - arPar1[i0])/(arPar1[ip1] - arPar1[i0]);
+			relPar1_hmdhp1 = (arPar1[i0] - arPar1[im1])/(arPar1[ip1] - arPar1[i0]);
+			if(ordInterp > 2)
+			{
+				relPar1_hp2dhp1 = (arPar1[ip2] - arPar1[i0])/(arPar1[ip1] - arPar1[i0]);
+			}
+		}
+	}
+	else if(dimInterp == 2)
+	{
+		//int i0Par1=-1, i1Par1=-1, i0Par2=-1, i1Par2=-1;
+		if(ordInterp == 1)
+		{
+			//int i0Par1 = 0, i1Par1 = 1, i0Par2 = 0, i1Par2 = 2;
+			if(meshIsRect)
+			{//Args for CGenMathInterp::Interp2dBiLinRec(relPar1, relPar2, arInterpBx);
+				//relPar1 = (par1 - arPar1[arIndForInterp2d[i0Par1]])/(arPar1[arIndForInterp2d[i1Par1]] - arPar1[arIndForInterp2d[i0Par1]]);
+				//relPar2 = (par2 - arPar2[arIndForInterp2d[i0Par2]])/(arPar2[arIndForInterp2d[i1Par2]] - arPar2[arIndForInterp2d[i0Par2]]);
+				relPar1 = (par1 - arPar1[arIndForInterp2d[0]])/(arPar1[arIndForInterp2d[1]] - arPar1[arIndForInterp2d[0]]);
+				relPar2 = (par2 - arPar2[arIndForInterp2d[0]])/(arPar2[arIndForInterp2d[2]] - arPar2[arIndForInterp2d[0]]);
+			}
+			else
+			{//Args for CGenMathInterp::Interp2dBiLinVar(double x, double y, double* arXY, double* arF)
+				double par1_0 = arPar1[arIndForInterp2d[0]];
+				double par2_0 = arPar2[arIndForInterp2d[0]];
+				//{x10, y10, x01, y01, x11, y11}
+				arDifPar1Par2[0] = arPar1[arIndForInterp2d[1]] - par1_0; //x10
+				arDifPar1Par2[1] = arPar2[arIndForInterp2d[1]] - par2_0; //y10
+				arDifPar1Par2[2] = arPar1[arIndForInterp2d[2]] - par1_0; //x01
+				arDifPar1Par2[3] = arPar2[arIndForInterp2d[2]] - par2_0; //y01
+				arDifPar1Par2[4] = arPar1[arIndForInterp2d[3]] - par1_0; //x11
+				arDifPar1Par2[5] = arPar2[arIndForInterp2d[3]] - par2_0; //y11
+				difPar1 = par1 - par1_0; //x
+				difPar2 = par2 - par2_0; //y
+			}
+		}
+		else if(ordInterp == 2)
+		{
+			double par1_0 = arPar1[arIndForInterp2d[2]];
+			double par2_0 = arPar2[arIndForInterp2d[2]];
+			difPar1 = par1 - par1_0; //x
+			difPar2 = par2 - par2_0; //y
+
+			if(meshIsRect)
+			{//Args for CGenMathInterp::Interp2dBiQuad5RecVar(double x, double y, double* arXY, double* arF)
+				//{xm1, ym1, x1, y1}
+				arDifPar1Par2[0] = arPar1[arIndForInterp2d[1]] - par1_0; //xm1
+				arDifPar1Par2[1] = arPar2[arIndForInterp2d[0]] - par2_0; //ym1
+				arDifPar1Par2[2] = arPar1[arIndForInterp2d[3]] - par1_0; //x1
+				arDifPar1Par2[3] = arPar2[arIndForInterp2d[4]] - par2_0; //y1
+			}
+			else
+			{//Args for CGenMathInterp::Interp2dBiQuad5Var(double x, double y, double* arXY, double* arF)
+				//{x0m1, y0m1, xm10, ym10, x10, y10, x01, y01}
+				arDifPar1Par2[0] = arPar1[arIndForInterp2d[0]] - par1_0; //x0m1
+				arDifPar1Par2[1] = arPar2[arIndForInterp2d[0]] - par2_0; //y0m1
+				arDifPar1Par2[2] = arPar1[arIndForInterp2d[1]] - par1_0; //xm10
+				arDifPar1Par2[3] = arPar2[arIndForInterp2d[1]] - par2_0; //ym10
+				arDifPar1Par2[4] = arPar1[arIndForInterp2d[3]] - par1_0; //x10
+				arDifPar1Par2[5] = arPar2[arIndForInterp2d[3]] - par2_0; //y10
+				arDifPar1Par2[6] = arPar1[arIndForInterp2d[4]] - par1_0; //x01
+				arDifPar1Par2[7] = arPar2[arIndForInterp2d[4]] - par2_0; //y01
+			}
+		}
+		else if(ordInterp == 3)
+		{
+			double par1_0 = arPar1[arIndForInterp2d[3]];
+			double par2_0 = arPar2[arIndForInterp2d[3]];
+			difPar1 = par1 - par1_0; //x
+			difPar2 = par2 - par2_0; //y
+
+			if(meshIsRect)
+			{//Args for CGenMathInterp::Interp2dBiCubic12pRecVar(double x, double y, double* arXY, double* arF)
+				//{xm1, ym1, x1, y1, x2, y2}
+				arDifPar1Par2[0] = arPar1[arIndForInterp2d[2]] - par1_0; //xm1
+				arDifPar1Par2[1] = arPar2[arIndForInterp2d[0]] - par2_0; //ym1
+				arDifPar1Par2[2] = arPar1[arIndForInterp2d[1]] - par1_0; //x1
+				arDifPar1Par2[3] = arPar2[arIndForInterp2d[6]] - par2_0; //y1
+				arDifPar1Par2[4] = arPar1[arIndForInterp2d[5]] - par1_0; //x2
+				arDifPar1Par2[5] = arPar2[arIndForInterp2d[10]] - par2_0; //y2
+			}
 		}
 	}
 
-	TVector3d vP, vB, vBm1, vB0, vBp1, vBp2;
+	TVector3d vP, vB, vBm1, vB0, vBp1, vBp2; //for 1D interpolation (vs gap)
+	//TVector3d vB_0_m1, vB_m1_0, vB_0_0, vB_p1_0, vB_0_p1, vB_p1_p1; //for 2D interpolation (vs gap and phase)
+	//TVector3d ar_vB[5]; //for 2D interpolation (vs gap and phase)
+	double arInterpBx[5], arInterpBy[5], arInterpBz[5]; //for 2D interpolation (vs gap and phase)
+
 	double *tBx = BxArr, *tBy = ByArr, *tBz = BzArr;
 	double z = zStart; //+ mCenP.z; //OC170615
 	for(int iz=0; iz<nz; iz++)
@@ -1526,21 +1703,77 @@ void srTMagFld3d::tabInterpB(srTMagFldCont& magCont, double* arPrecPar, double* 
 
 					if(ordInterp == 1)
 					{
-						vB.x = CGenMathInterp::Interp1dLinRel(relPar1, vB0.x, vBp1.x);
-						vB.y = CGenMathInterp::Interp1dLinRel(relPar1, vB0.y, vBp1.y);
-						vB.z = CGenMathInterp::Interp1dLinRel(relPar1, vB0.z, vBp1.z);
+						if(BxArr != 0) vB.x = CGenMathInterp::Interp1dLinRel(relPar1, vB0.x, vBp1.x);
+						if(ByArr != 0) vB.y = CGenMathInterp::Interp1dLinRel(relPar1, vB0.y, vBp1.y);
+						if(BzArr != 0) vB.z = CGenMathInterp::Interp1dLinRel(relPar1, vB0.z, vBp1.z);
 					}
 					else if(ordInterp == 2)
 					{
-						vB.x = CGenMathInterp::Interp1dQuadVarRel(relPar1, relPar1_hmdhp1, vBm1.x, vB0.x, vBp1.x);
-						vB.y = CGenMathInterp::Interp1dQuadVarRel(relPar1, relPar1_hmdhp1, vBm1.y, vB0.y, vBp1.y);
-						vB.z = CGenMathInterp::Interp1dQuadVarRel(relPar1, relPar1_hmdhp1, vBm1.z, vB0.z, vBp1.z);
+						if(BxArr != 0) vB.x = CGenMathInterp::Interp1dQuadVarRel(relPar1, relPar1_hmdhp1, vBm1.x, vB0.x, vBp1.x);
+						if(ByArr != 0) vB.y = CGenMathInterp::Interp1dQuadVarRel(relPar1, relPar1_hmdhp1, vBm1.y, vB0.y, vBp1.y);
+						if(BzArr != 0) vB.z = CGenMathInterp::Interp1dQuadVarRel(relPar1, relPar1_hmdhp1, vBm1.z, vB0.z, vBp1.z);
 					}
 					else if(ordInterp == 3)
 					{
-						vB.x = CGenMathInterp::Interp1dCubVarRel(relPar1, relPar1_hmdhp1, relPar1_hp2dhp1, vBm1.x, vB0.x, vBp1.x, vBp2.x);
-						vB.y = CGenMathInterp::Interp1dCubVarRel(relPar1, relPar1_hmdhp1, relPar1_hp2dhp1, vBm1.y, vB0.y, vBp1.y, vBp2.y);
-						vB.z = CGenMathInterp::Interp1dCubVarRel(relPar1, relPar1_hmdhp1, relPar1_hp2dhp1, vBm1.z, vB0.z, vBp1.z, vBp2.z);
+						if(BxArr != 0) vB.x = CGenMathInterp::Interp1dCubVarRel(relPar1, relPar1_hmdhp1, relPar1_hp2dhp1, vBm1.x, vB0.x, vBp1.x, vBp2.x);
+						if(ByArr != 0) vB.y = CGenMathInterp::Interp1dCubVarRel(relPar1, relPar1_hmdhp1, relPar1_hp2dhp1, vBm1.y, vB0.y, vBp1.y, vBp2.y);
+						if(BzArr != 0) vB.z = CGenMathInterp::Interp1dCubVarRel(relPar1, relPar1_hmdhp1, relPar1_hp2dhp1, vBm1.z, vB0.z, vBp1.z, vBp2.z);
+					}
+				}
+				else if(dimInterp == 2)
+				{
+					double *t_arInterpBx = arInterpBx, *t_arInterpBy = arInterpBy, *t_arInterpBz = arInterpBz;
+					int *pIndInterp = arIndForInterp2d;
+					for(int i=0; i<nIndForInterp2d; i++)
+					{
+						TVector3d vAuxB(0.,0.,0.);
+						magCont.compB_i(vP, vAuxB, *pIndInterp);
+						if(arCoefBx != 0) vAuxB.x *= arCoefBx[*pIndInterp];
+						if(arCoefBy != 0) vAuxB.y *= arCoefBy[*pIndInterp];
+						*(t_arInterpBx++) = vAuxB.x;
+						*(t_arInterpBy++) = vAuxB.y;
+						*(t_arInterpBz++) = vAuxB.z;
+						pIndInterp++;
+					}
+
+					if(ordInterp == 1)
+					{
+						if(meshIsRect)
+						{
+							if(BxArr != 0) vB.x = CGenMathInterp::Interp2dBiLinRec(relPar1, relPar2, arInterpBx);
+							if(ByArr != 0) vB.y = CGenMathInterp::Interp2dBiLinRec(relPar1, relPar2, arInterpBy);
+							if(BzArr != 0) vB.z = CGenMathInterp::Interp2dBiLinRec(relPar1, relPar2, arInterpBz);
+						}
+						else
+						{
+							if(BxArr != 0) vB.x = CGenMathInterp::Interp2dBiLinVar(difPar1, difPar2, arDifPar1Par2, arInterpBx);
+							if(ByArr != 0) vB.y = CGenMathInterp::Interp2dBiLinVar(difPar1, difPar2, arDifPar1Par2, arInterpBy);
+							if(BzArr != 0) vB.z = CGenMathInterp::Interp2dBiLinVar(difPar1, difPar2, arDifPar1Par2, arInterpBz);
+						}
+					}
+					else if(ordInterp == 2)
+					{
+						if(meshIsRect)
+						{//Args for CGenMathInterp::Interp2dBiQuad5RecVar(double x, double y, double* arXY, double* arF)
+							if(BxArr != 0) vB.x = CGenMathInterp::Interp2dBiQuad5RecVar(difPar1, difPar2, arDifPar1Par2, arInterpBx);
+							if(ByArr != 0) vB.y = CGenMathInterp::Interp2dBiQuad5RecVar(difPar1, difPar2, arDifPar1Par2, arInterpBy);
+							if(BzArr != 0) vB.z = CGenMathInterp::Interp2dBiQuad5RecVar(difPar1, difPar2, arDifPar1Par2, arInterpBz);
+						}
+						else
+						{//Args for CGenMathInterp::Interp2dBiQuad5Var(double x, double y, double* arXY, double* arF)
+							if(BxArr != 0) vB.x = CGenMathInterp::Interp2dBiQuad5Var(difPar1, difPar2, arDifPar1Par2, arInterpBx);
+							if(ByArr != 0) vB.y = CGenMathInterp::Interp2dBiQuad5Var(difPar1, difPar2, arDifPar1Par2, arInterpBy);
+							if(BzArr != 0) vB.z = CGenMathInterp::Interp2dBiQuad5Var(difPar1, difPar2, arDifPar1Par2, arInterpBz);
+						}
+					}
+					else if(ordInterp == 3)
+					{
+						if(meshIsRect)
+						{//Args for CGenMathInterp::Interp2dBiCubic12pRecVar(double x, double y, double* arXY, double* arF)
+							if(BxArr != 0) vB.x = CGenMathInterp::Interp2dBiCubic12pRecVar(difPar1, difPar2, arDifPar1Par2, arInterpBx);
+							if(ByArr != 0) vB.y = CGenMathInterp::Interp2dBiCubic12pRecVar(difPar1, difPar2, arDifPar1Par2, arInterpBy);
+							if(BzArr != 0) vB.z = CGenMathInterp::Interp2dBiCubic12pRecVar(difPar1, difPar2, arDifPar1Par2, arInterpBz);
+						}
 					}
 				}
 

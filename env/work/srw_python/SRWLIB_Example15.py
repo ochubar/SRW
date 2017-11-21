@@ -6,7 +6,7 @@ Adapted by Maksim Rakitin (BNL).
 The purpose of the example is to demonstrate good agreement of the SRW simulation
 of propagation of a gaussian beam through a drift with an analytical estimation.
 """
-# v. 0.02
+# v. 0.03
 
 from __future__ import print_function
 import uti_plot
@@ -127,7 +127,8 @@ intensitiesToPlot = {  # dict to store intensities and distances to plot at the 
 # print('z        xRMS         yRMS       mesh.nx  mesh.ny       xStart       yStart')
 # print('z   xRMS     yRMS     nx ny  xStart        yStart') # OC
 data_to_print = []
-header = '{:3s} {:8s} {:8s} {:2s} {:2s} {:13s} {:13s}'.format('z', 'xRMS', 'yRMS', 'nx', 'ny', 'xStart', 'yStart') #MR27092016
+#header = '{:3s} {:8s} {:8s} {:2s} {:2s} {:13s} {:13s}'.format('z', 'xRMS', 'yRMS', 'nx', 'ny', 'xStart', 'yStart') #MR27092016
+header = '{:3s} {:8s} {:8s} {:2s} {:2s} {:13s} {:13s}'.format('z', 'xFWHM', 'yFWHM', 'nx', 'ny', 'xStart', 'yStart') #OC18112017
 data_to_print.append(header)
 print(header)
 for j in range(NumSteps):
@@ -244,7 +245,8 @@ try:
     ax.plot(s, Wthy, '--bo', label="Y envelope from analytical estimate")
     ax.legend()
     ax.set_xlabel('Distance along beam line [m]')
-    ax.set_ylabel('Horizontal and Vertical RMS beam sizes [m]')
+    #ax.set_ylabel('Horizontal and Vertical RMS beam sizes [m]')
+    ax.set_ylabel('Horizontal and Vertical FWHM beam sizes [m]') #OC18112017
     ax.set_title('Gaussian beam envelopes through a drift after a lens')
     ax.grid()
     plt.savefig('{}/compare.png'.format(example_folder))

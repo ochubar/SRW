@@ -1,5 +1,5 @@
-#############################################################################
-# SRWLib for Python v 0.13
+﻿#############################################################################
+# SRWLib for Python v 0.14
 #############################################################################
 
 from __future__ import print_function #Python 2.7 compatibility
@@ -77,6 +77,7 @@ class SRWLParticle(object):
         self.z += _dist
         self.x +=  self.xp*_dist
         self.y +=  self.yp*_dist
+        #print('e-beam positions after drift: x=', self.x, ' y=', self.y, ' at z=', self.z)
 
     def get_E(self, _unit='GeV'):
         en = self.gamma*self.relE0*_ElMass_MeV #[MeV]
@@ -183,6 +184,8 @@ class SRWLPartBeam(object):
         self.arStatMom2[1] += self.arStatMom2[2]*_dist
         self.arStatMom2[3] += self.arStatMom2[4]*_dist*2 + self.arStatMom2[5]*_dist*_dist
         self.arStatMom2[4] += self.arStatMom2[5]*_dist
+        #print('E-beam 2nd order moments after drift=', _dist)
+        #print(self.arStatMom2)
         #to be checked and extended for other stat. moments
 
 #****************************************************************************
@@ -240,16 +243,17 @@ class SRWLMagFld3D(SRWLMagFld):
         """Auxiliary function to write tabulated Arbitrary 3D Magnetic Field data to ASCII file"""
         sHead = '#Bx [T], By [T], Bz [T] on 3D mesh: inmost loop vs X (horizontal transverse position), outmost loop vs Z (longitudinal position)\n'
         sHead += '#' + repr(-0.5*self.rx + _xc) + ' #initial X position [m]\n'
-        sHead += '#' + repr(0. if(self.nx <= 1) else  self.rx/(self.nx - 1)) + ' #step of X [m]\n'
+        sHead += '#' + repr(0. if(self.nx <= 1) else self.rx/(self.nx - 1)) + ' #step of X [m]\n'
         sHead += '#' + repr(self.nx) + ' #number of points vs X\n'
         sHead += '#' + repr(-0.5*self.ry + _yc) + ' #initial Y position [m]\n'
-        sHead += '#' + repr(0. if(self.ny <= 1) else  self.ry/(self.ny - 1)) + ' #step of Y [m]\n'
+        sHead += '#' + repr(0. if(self.ny <= 1) else self.ry/(self.ny - 1)) + ' #step of Y [m]\n'
         sHead += '#' + repr(self.ny) + ' #number of points vs Y\n'
         sHead += '#' + repr(-0.5*self.rz + _zc) + ' #initial Z position [m]\n'
-        sHead += '#' + repr(0. if(self.nz <= 1) else  self.rz/(self.nz - 1)) + ' #step of Z [m]\n'
+        sHead += '#' + repr(0. if(self.nz <= 1) else self.rz/(self.nz - 1)) + ' #step of Z [m]\n'
         sHead += '#' + repr(self.nz) + ' #number of points vs Z\n'
         arColsWr = [self.arBx, self.arBy, self.arBz]
-        srwl_uti_write_data_cols(_file_path, arColsWr, '\t', sHead)       
+        #print(self.nx, self.rx, self.ny, self.ry, self.nz, self.rz)
+        srwl_uti_write_data_cols(_file_path, arColsWr, '\t', sHead)
 
 class SRWLMagFldM(SRWLMagFld):
     """Magnetic Field: Multipole Magnet"""
@@ -441,7 +445,7 @@ class SRWLMagFldC(SRWLMagFld):
                 self.arYc = array('d', [0])
                 self.arYc[0] = _arYc
 
-            if(_arZc is None):
+            if(_arZc == None):
                 self.arZc = array('d', [0]*nElem)
             #elif(isinstance(_arZc, list) or isinstance(_arZc, array) or isinstance(_arZc, tuple)):
             #    self.arZc = _arZc
@@ -691,13 +695,14 @@ class SRWLKickM(object):
 
 #****************************************************************************
 class SRWLGsnBm(object):
-    """Gaussian Beam"""
+    """(Coherent) Gaussian (Radiation) Beam"""
     
     def __init__(self, _x=0, _y=0, _z=0, _xp=0, _yp=0, _avgPhotEn=1, _pulseEn=1, _repRate=1, _polar=1, _sigX=10e-06,
                  _sigY=10e-06, _sigT=1e-15, _mx=0, _my=0):
+                 #_sigY=10e-06, _sigT=1e-15, _mx=0, _my=0, _arIncohStatMom2=None): #OC15092017 (?)
         """
-        :param _x: average horizontal coordinates of waist [m]
-        :param _y: average vertical coordinates of waist [m]
+        :param _x: average horizontal coordinate of waist [m]
+        :param _y: average vertical coordinate of waist [m]
         :param _z: average longitudinal coordinate of waist [m]
         :param _xp: average horizontal angle at waist [rad]
         :param _yp: average verical angle at waist [rad]
@@ -725,6 +730,28 @@ class SRWLGsnBm(object):
         self.sigT = _sigT
         self.mx = _mx
         self.my = _my
+
+        #if(_arIncohStatMom2 is not None): self.arIncohStatMom2 = _arIncohStatMom2 #OC15092017 (?)
+
+#****************************************************************************
+class SRWLPtSrc(object):
+    """Point Source (emitting coherent spherical wave)"""
+    
+    def __init__(self, _x=0, _y=0, _z=0, _flux=1, _unitFlux=1, _polar=1):
+        """
+        :param _x: horizontal position [m]
+        :param _y: vertical position [m]
+        :param _z: longitudinal position [m]
+        :param _flux: spectral flux value
+        :param _unitFlux: spectral flux units: 1- ph/s/.1%bw, 2- W/eV
+        :param _polar: polarization 1- lin. hor., 2- lin. vert., 3- lin. 45 deg., 4- lin.135 deg., 5- circ. right, 6- circ. left, 7- radial
+        """
+        self.x = _x
+        self.y = _y
+        self.z = _z
+        self.flux = _flux
+        self.unitFlux = _unitFlux
+        self.polar = _polar
 
 #****************************************************************************
 class SRWLRadMesh(object):
@@ -787,6 +814,17 @@ class SRWLRadMesh(object):
                         self.arSurf[i] = _mesh.arSurf[i]
             except:
                 pass
+
+    def get_dep_type(self): #Get possible dependency type (for intensity calc.)
+        depType = -1
+        if((self.ne >= 1) and (self.nx == 1) and (self.ny == 1)): depType = 0
+        elif((self.ne == 1) and (self.nx > 1) and (self.ny == 1)): depType = 1
+        elif((self.ne == 1) and (self.nx == 1) and (self.ny > 1)): depType = 2
+        elif((self.ne == 1) and (self.nx > 1) and (self.ny > 1)): depType = 3
+        elif((self.ne > 1) and (self.nx > 1) and (self.ny == 1)): depType = 4
+        elif((self.ne > 1) and (self.nx == 1) and (self.ny > 1)): depType = 5
+        elif((self.ne > 1) and (self.nx > 1) and (self.ny > 1)): depType = 6
+        return depType
 
 #****************************************************************************
 class SRWLStokes(object):
@@ -859,6 +897,10 @@ class SRWLStokes(object):
             nTot *= nTot
         nTot *= 4 #array length of all Stokes components
         #eventually allow for storage of less than 4 Stokes components!
+
+        #DEBUG
+        #print('_ne=', _ne, '_nx=', _nx, '_ny=', _ny, 'nTot=', nTot)
+        #END DEBUG
         
         self.arS = array(_typeStokes, [0]*nTot)
         self.numTypeStokes = _typeStokes
@@ -1009,6 +1051,16 @@ class SRWLStokes(object):
                             a01 = f01 - a00
                             a11 = a00 - f01 - f10 + f11
                             fInterp = a00 + tx*(a10 + ty*a11) + ty*a01
+
+                            #DEBUG
+                            #if(isnan(fInterp)):
+                            #    print('nx=', _more_stokes.mesh.nx, ' ny=', _more_stokes.mesh.ny)
+                            #    print('i00=', iy0_nx_ix_per + ix0_ix_per_p_ix_ofst, ' i10=', iy0_nx_ix_per + ix1_ix_per_p_ix_ofst, ' i01=', iy1_nx_ix_per + ix0_ix_per_p_ix_ofst, ' i11=', iy1_nx_ix_per + ix1_ix_per_p_ix_ofst)
+                            #    print('ix0=', ix0, ' ix1=', ix1, ' iy0=', iy0, ' iy1=', iy1)
+                            #    print('f00=', a00, ' f10=', f10, ' f01=', f01, ' f11=', f11)
+                            #    sys.exit()
+                            #else: print('OK')
+                            #END DEBUG
 
                         elif(_ord == 2): #bi-quadratic interpolation based on 6 points
                             ix0 = int(round((xMeshRes - xStartWfr)/xStepWfr))
@@ -1534,7 +1586,7 @@ class SRWLWfr(object):
                     del self.arEx; self.arEx = None
             if((_type == 0) or (_type == 2)):
                 if(hasattr(self, 'arExAux')):
-                    if(self.arExAux is not None):  #MR20072017: https://docs.scipy.org/doc/numpy/release.html#futurewarning-to-changed-behavior
+                    if(self.arExAux is not None):
                         del self.arExAux; self.arExAux = None
         if _treatEY:
             if((_type == 0) or (_type == 1)):
@@ -1579,6 +1631,32 @@ class SRWLWfr(object):
         elif(_meth == 3):
             #to implement
             raise Exception("This Electric Field addition method is not implemented yet")
+    
+    def copy_comp(self, _stokes): 
+        """Copy compenents of Electric Field to Stokes structure"""
+        if(isinstance(_stokes, SRWLStokes) == False):
+            raise Exception("Incorrect Stokes parameters object submitted") 
+        nTot = self.mesh.ne*self.mesh.nx*self.mesh.ny
+        nTotSt = nTot*4
+        nTot2 = nTot*2
+        nTot3 = nTot*3
+        if(_stokes.arS is not None):
+            if(len(_stokes.arS) < nTotSt):
+                _stokes.arS = array('f', [0]*nTotSt)
+        else:
+            _stokes.arS = array('f', [0]*nTotSt)           
+        for i in range(nTot):
+            i2 = i*2
+            i2p1 = i2 + 1
+            #reEx = self.arEx[i2]
+            #imEx = self.arEx[i2p1]
+            #reEy = self.arEy[i2]
+            #imEy = self.arEy[i2p1]
+            _stokes.arS[i] = self.arEx[i2] #reEx
+            _stokes.arS[i + nTot] = self.arEx[i2p1] #imEx
+            _stokes.arS[i + nTot2] = self.arEy[i2] #reEy
+            _stokes.arS[i + nTot3] = self.arEy[i2p1] #imEy
+        _stokes.mesh.set_from_other(self.mesh)
 
     def calc_stokes(self, _stokes):
         """Calculate Stokes parameters from Electric Field"""
@@ -1608,6 +1686,12 @@ class SRWLWfr(object):
                 _stokes.arS[i + nTot] = intLinX - intLinY #check sign
                 _stokes.arS[i + nTot2] = -2*(reEx*reEy + imEx*imEy) #check sign
                 _stokes.arS[i + nTot3] = 2*(-reEx*reEy + imEx*imEy) #check sign
+
+                #DEBUG
+                #if(isnan(reEx) or isnan(imEx) or isnan(reEy) or isnan(imEy)):
+                #    print('reEx=', reEx, ' imEx=', imEx, ' reEy=', reEy, ' imEy=', imEy)
+                #END DEBUG
+                
             _stokes.mesh.set_from_other(self.mesh)
             
         else: #calculate Mutual Stokes parameters on the _stokes.mesh
@@ -2149,6 +2233,7 @@ class SRWLOptMir(SRWLOpt):
 
         #DEBUG
         #print(self.arRefl)
+        
         self.reflNumPhEn = int(_n_ph_en)
         self.reflNumAng = int(_n_ang)
         self.reflNumComp = _n_comp
@@ -2263,7 +2348,8 @@ class SRWLOptMirPl(SRWLOptMir):
                      _refl, _n_ph_en, _n_ang, _n_comp, _ph_en_start, _ph_en_fin, _ph_en_scale_type, _ang_start, _ang_fin, _ang_scale_type)
 
 class SRWLOptMirEl(SRWLOptMir):
-    """Optical Element: Mirror: Ellipsoid"""
+    """Optical Element: Mirror: Elliptical
+       NOTE: in the Local frame of the Mirror tangential direction is X, saggital Y, mirror normal is along Z"""
     
     def __init__(self, _p=1, _q=1, _ang_graz=1e-03, _r_sag=1.e+23,
                  _size_tang=1, _size_sag=1, _ap_shape='r', _sim_meth=2, _npt=500, _nps=500, _treat_in_out=1, _ext_in=0, _ext_out=0,
@@ -2366,7 +2452,8 @@ class SRWLOptMirSph(SRWLOptMir):
                      _refl, _n_ph_en, _n_ang, _n_comp, _ph_en_start, _ph_en_fin, _ph_en_scale_type, _ang_start, _ang_fin, _ang_scale_type)
 
 class SRWLOptMirTor(SRWLOptMir):
-    """Optical Element: Mirror: Toroid (to be developed)"""
+    """Optical Element: Mirror: Toroid
+       NOTE: in the Local frame of the Mirror tangential direction is X, saggital Y, mirror normal is along Z"""
     
     def __init__(self, _rt=1, _rs=1,
                  _size_tang=1, _size_sag=1, _ap_shape='r', _sim_meth=2, _npt=500, _nps=500, _treat_in_out=1, _ext_in=0, _ext_out=0,
@@ -2700,6 +2787,8 @@ def srwl_opt_setup_CRL(_foc_plane, _delta, _atten_len, _shape, _apert_h, _apert_
     :param _void_cen_rad: flat array/list of void center coordinates and radii: [x1, y1, r1, x2, y2, r2,...] 
     :param _e_start: initial photon energy
     :param _e_fin: final photon energy
+    :param _nx: number of points vs horizontal position to represent the transmission element
+    :param _ny: number of points vs vertical position to represent the transmission element
     :return: transmission (SRWLOptT) type optical element which simulates CRL
     """
 
@@ -2794,7 +2883,7 @@ def srwl_opt_setup_CRL(_foc_plane, _delta, _atten_len, _shape, _apert_h, _apert_
         arDelta[0] = _delta
         arAttenLen[0] = _atten_len
 
-    foc_len = (0.5*_r_min/(_n*arDelta[int(0.5*ne)]))
+    foc_len = 0.5*_r_min/(_n*arDelta[int(0.5*ne)])
     print('Optical Element Setup: CRL Focal Length:', foc_len, 'm')
 
     fx = 1e+23
@@ -2805,8 +2894,6 @@ def srwl_opt_setup_CRL(_foc_plane, _delta, _atten_len, _shape, _apert_h, _apert_
         fx = foc_len
     
     opT = SRWLOptT(nx, ny, rx, ry, None, 1, fx, fy, _xc, _yc, ne, _e_start, _e_fin)
-
-    #print(ne, _e_start, _e_fin)
 
     halfApert = 0.5*_apert_h
     halfApertV = 0.5*_apert_v
@@ -3005,6 +3092,25 @@ def srwl_opt_setup_mask(_delta, _atten_len, _thick,
     pointer = 0  # pointer for array trans_opt.arTr
     y = - mask_Ry / 2  # Mask is always centered on the grid, however grid can be shifted.
 
+    #Calculate aux. constants for equations for edges of rectangle.
+    xCross1 = None; yCross1 = None #OC27012017
+    xCross2 = None; yCross2 = None
+    k1 = None; k2 = None; k3 = None; k4 = None
+    if(_grid_sh == 1):
+        grid_dx_d_sqrt2 = _grid_dx / sqrt(2)
+        cosGridAng = cos(_grid_angle)
+        sinGridAng = sin(_grid_angle)
+        xCross2 = grid_dx_d_sqrt2 * cosGridAng
+        #xCross1 = - grid_dx_d_sqrt2 * cosGridAng
+        xCross1 = -xCross2
+        yCross2 = grid_dx_d_sqrt2 * sinGridAng
+        #yCross1 = - grid_dx_d_sqrt2 * sinGridAng
+        yCross1 = -yCross2
+        k1 = tan(pi / 4 + _grid_angle)
+        k2 = -tan(pi / 4 - _grid_angle)
+        k4 = tan(pi / 4 + _grid_angle)
+        k3 = -tan(pi / 4 - _grid_angle)
+
     for iy in range(_mask_Ny):
         # Calculate the relative position in y.
         # NOTE: Use round to solve the precision issue!
@@ -3037,14 +3143,15 @@ def srwl_opt_setup_mask(_delta, _atten_len, _thick,
             # Hartmann hole in a rectangular shape.
             elif _grid_sh == 1:
                 # Calculate the equations for edges of rectangle.
-                xCross1 = - _grid_dx / (2 ** 0.5) * cos(_grid_angle)
-                yCross1 = - _grid_dx / (2 ** 0.5) * sin(_grid_angle)
-                xCross2 = + _grid_dx / (2 ** 0.5) * cos(_grid_angle)
-                yCross2 = + _grid_dx / (2 ** 0.5) * sin(_grid_angle)
-                k1 = tan(pi / 4 + _grid_angle)
-                k2 = -tan(pi / 4 - _grid_angle)
-                k4 = tan(pi / 4 + _grid_angle)
-                k3 = -tan(pi / 4 - _grid_angle)
+                #OC27012017 (commented-out, calculation of these constants was moved outside of the loop)
+                #xCross1 = - _grid_dx / (2 ** 0.5) * math.cos(_grid_angle)
+                #yCross1 = - _grid_dx / (2 ** 0.5) * math.sin(_grid_angle)
+                #xCross2 = + _grid_dx / (2 ** 0.5) * math.cos(_grid_angle)
+                #yCross2 = + _grid_dx / (2 ** 0.5) * math.sin(_grid_angle)
+                #k1 = math.tan(math.pi / 4 + _grid_angle)
+                #k2 = -math.tan(math.pi / 4 - _grid_angle)
+                #k4 = math.tan(math.pi / 4 + _grid_angle)
+                #k3 = -math.tan(math.pi / 4 - _grid_angle)
 
                 if (k2 * x_rel + (yCross2 - k2 * xCross2)) > y_rel > (k3 * x_rel + (yCross1 - k3 * xCross1)) \
                         and (k1 * x_rel + (yCross1 - k1 * xCross1)) > y_rel > (k4 * x_rel + (yCross2 - k4 * xCross2)) \
@@ -3104,7 +3211,7 @@ def srwl_opt_setup_surf_height_1d(_height_prof_data, _dim, _ang, _ang_r=0, _amp_
     :param _ang: grazing angle (between input optical axis and mirror/grating plane)
     :param _ang_r: reflection angle (between output optical axis and mirror/grating plane)
     :param _amp_coef: height profile "amplification coefficient"
-    :param _ar_arg_long: optional array of longitudinal position (along mirror/grating) in [m]; if _ar_arg_long != None, any longitudinal position contained in _height_prof_data is ignored
+    :param _ar_arg_long: optional array of longitudinal position (along mirror/grating) in [m]; if _ar_arg_long is not None, any longitudinal position contained in _height_prof_data is ignored
     :param _nx: optional number of points in horizontal dimension of the output transmission optical element
     :param _ny: optional number of points in vertical dimension of the output transmission optical element
     :param _size_x: optional horizontal transverse size of the output transmission optical element (if <=0: _height_prof_data, _dim, _ar_arg_long, _ar_arg_tr data is used)
@@ -3230,7 +3337,7 @@ def srwl_opt_setup_surf_height_1d(_height_prof_data, _dim, _ang, _ang_r=0, _amp_
 def srwl_opt_setup_surf_height_2d(_height_prof_data, _dim, _ang, _ang_r=0, _amp_coef=1, _ar_arg_long=None, _ar_arg_tr=None, _nx=0, _ny=0, _size_x=0, _size_y=0):
     """
     Setup Transmission type optical element with 2D (mirror or grating) surface Heght Profile data
-    :param _height_prof_data: a matrix (2D array) containing the Height Profile data in [m]; if _ar_height_prof_x==None and _ar_height_prof_y==None: the first column in _height_prof_data is assumed to be the "longitudinal" position [m] and first row the "transverse" position [m], and _height_prof_data[0][0] is not used; otherwise the "longitudinal" and "transverse" positions on the surface are assumed to be given by _ar_height_prof_x, _ar_height_prof_y 
+    :param _height_prof_data: a matrix (2D array) containing the Height Profile data in [m]; if _ar_height_prof_x is None and _ar_height_prof_y is None: the first column in _height_prof_data is assumed to be the "longitudinal" position [m] and first row the "transverse" position [m], and _height_prof_data[0][0] is not used; otherwise the "longitudinal" and "transverse" positions on the surface are assumed to be given by _ar_height_prof_x, _ar_height_prof_y 
     :param _dim: orientation of the reflection (deflection) plane; can be 'x' or 'y'
     :param _ang: grazing angle (between input optical axis and mirror/grating plane)
     :param _ang_r: reflection angle (between output optical axis and mirror/grating plane)
@@ -3246,6 +3353,7 @@ def srwl_opt_setup_surf_height_2d(_height_prof_data, _dim, _ang, _ang_r=0, _amp_
     #To test all options!
 
     input_parms = { #MR26022016: Options will be used for 2D mirror profiles in Sirepo in the future:
+        #"type": "mirror",
         "type": "mirror2d",
         "heightProfileFile": "",
         "orientation": _dim,
@@ -3446,6 +3554,190 @@ def srwl_opt_setup_surf_height_2d(_height_prof_data, _dim, _ang, _ang_r=0, _amp_
 
     optSlopeErr.input_parms = input_parms #MR26022016
     return optSlopeErr
+
+#****************************************************************************
+def srwl_opt_setup_gen_transm(_func_path_dif, _delta, _atten_len, _rx, _ry, _xc=0, _yc=0, _ext_tr=0, _fx=0, _fy=0, _e_start=0, _e_fin=0, _nx=1001, _ny=1001):
+    """
+    Setup Transmission type Optical Element similar to one simulating CRL, but with arbitrary optical path difference over hor. and vert. positions, defined by external function _func_path_dif(x, y)
+    :param _func_path_dif: user-defined function of 2 variables specifying optical path difference over hor. and vert. positions (x, y)
+    :param _delta: refractive index decrement (can be one number of array vs photon energy)
+    :param _atten_len: attenuation length [m] (can be one number of array vs photon energy)
+    :param _rx: horizontal aperture (range) size [m]
+    :param _ry: vertical aperture (range) size [m]
+    :param _xc: horizontal coordinate of center [m]
+    :param _yc: vertical coordinate of center [m]
+    :param _ext_tr: transmission outside the grid/mesh is zero (0), or it is same as on boundary (1)
+    :param _fx: horizontal focal length [m]; if it is not set, a numerical estimate will be made (around _xc, _yc)
+    :param _fy: vertical focal length [m]; if it is not set, a numerical estimate will be made (around _xc, _yc)
+    :param _e_start: initial photon energy
+    :param _e_fin: final photon energy
+    :param _nx: number of points vs horizontal position to represent the transmission element
+    :param _ny: number of points vs vertical position to represent the transmission element
+    :return: transmission (SRWLOptT) type optical element which simulates CRL
+    """
+
+    ne = 1
+    arDelta = [0]
+    arAttenLen = [0]
+
+    #if(((type(_delta).__name__ == 'list') or (type(_delta).__name__ == 'array')) and ((type(_atten_len).__name__ == 'list') or (type(_atten_len).__name__ == 'array'))):
+    if(isinstance(_delta, list) or isinstance(_delta, array)) and (isinstance(_atten_len, list) or isinstance(_atten_len, array)):
+        ne = len(_delta)
+        ne1 = len(_atten_len)
+        if(ne > ne1):
+            ne = ne1
+        arDelta = _delta
+        arAttenLen = _atten_len
+    else:
+        arDelta[0] = _delta
+        arAttenLen[0] = _atten_len
+
+    dx = _rx/(_nx - 1)
+    dy = _ry/(_ny - 1)
+
+    nTot = 2*ne*_nx*_ny #total array length to store amplitude transmission and optical path difference
+    arLocTr = array('d', [0]*nTot)
+    #Same data alignment as for wavefront: outmost loop vs y, inmost loop vs e
+    ofst = 0
+    y = -0.5*_ry #CRL is always centered on the grid, however grid can be shifted
+    for iy in range(_ny):
+        x = -0.5*_rx
+        for ix in range(_nx):
+            pathDif = _func_path_dif(x, y)
+            for ie in range(ne):
+                arLocTr[ofst] = exp(-0.5*pathDif/arAttenLen[ie]) #amplitude transmission
+                arLocTr[ofst + 1] = -arDelta[ie]*pathDif #optical path difference
+                ofst += 2
+            x += dx
+        y += dy
+
+    #Estimating focal lengths
+    fx = _fx
+    fy = _fy
+    avgDelta = arDelta[int(0.5*ne)]
+    if(avgDelta != 0):
+        if(fx == 0):
+            fm1 = _func_path_dif(_xc - dx, _yc)
+            f0 = _func_path_dif(_xc, _yc)
+            f1 = _func_path_dif(_xc + dx, _yc)
+            dfdx = 0.5*(f1 - fm1)/dx
+            d2fdx2 = (fm1 - 2*f0 + f1)/(dx*dx)
+            fx = 1.e+23
+            if(d2fdx2 != 0):
+                auxSqrt = sqrt(1 + dfdx*dfdx)
+                radCurvX = auxSqrt*auxSqrt*auxSqrt/d2fdx2
+                #print('Estimated radCurvX:', radCurvX)
+                fx = radCurvX/avgDelta #see the formula for CRL
+                #print('Estimated Fx=', fx)
+        if(fy == 0):
+            fm1 = _func_path_dif(_xc, _yc - dy)
+            f0 = _func_path_dif(_xc, _yc)
+            f1 = _func_path_dif(_xc, _yc + dy)
+            dfdy = 0.5*(f1 - fm1)/dy
+            d2fdy2 = (fm1 - 2*f0 + f1)/(dy*dy)
+            fy = 1.e+23
+            if(d2fdy2 != 0):
+                auxSqrt = sqrt(1 + dfdy*dfdy)
+                radCurvY = auxSqrt*auxSqrt*auxSqrt/d2fdy2
+                fy = radCurvY/avgDelta #see the formula for CRL
+                #print('Estimated Fy=', fy)
+
+    return SRWLOptT(_nx, _ny, _rx, _ry, arLocTr, _ext_tr, fx, fy, _xc, _yc, ne, _e_start, _e_fin)
+
+#****************************************************************************
+class SRWLDet(object):
+    """Detector of Radiation"""
+
+    def __init__(self, _xStart=0, _xFin=0, _nx=1, _yStart=0, _yFin=0, _ny=1, _dx=0, _dy=0, _spec_eff=1, _eStart=0, _eFin=0, _ord_interp=1): #, _ne=1): #, _eff_e=False):
+        """
+        :param _xStart: initial value of horizontal position [m] (/angle [rad])
+        :param _xFin: final value of horizontal position [m] (/angle [rad])
+        :param _nx: number of points vs horizontal position [m] (/angle [rad])
+        :param _yStart: initial value of vertical position [m] (/angle [rad])
+        :param _yFin: final value of vertical position [m] (/angle [rad])
+        :param _ny: number of points vs vertical position [m] (/angle [rad])
+        :param _dx: horizontal pixel size [m] (/angle [rad])
+        :param _dy: vertical pixel size [m] (/angle [rad])
+        :param _spec_eff: one number or array defining detector spectral efficiency (as function of photon energy, on the mesh given by _eStart, _eFin, _ne)
+        :param _eStart: initial value of photon energy [eV] (/time [s])
+        :param _eFin: final value of photon energy [eV] (/time [s])
+        :param _ne: number of points vs photon energy [eV] (/time [s])
+        :param _eff_e: treat spectral efficiency as for electric field if True
+        :param _ord_interp: interpolation order (i.e. order of polynomials to be used at 2D interpolation)
+        """
+        self.xStart = _xStart
+        self.xFin = _xFin
+        self.nx = _nx
+        self.yStart = _yStart
+        self.yFin = _yFin
+        self.ny = _ny
+        self.dx = _dx
+        self.dy = _dy
+        self.specEff = _spec_eff
+        self.eStartEff = _eStart
+        self.eFinEff = _eFin
+        self.ord_interp = _ord_interp
+
+        ne = 1
+        if(isinstance(_spec_eff, list) or isinstance(_spec_eff, array)): ne = len(_spec_eff)
+        self.neEff = ne
+
+        self.eStepEff = 0 if(ne <= 1) else (_eFin - _eStart)/ne
+
+    def treat_int(self, _stk, _mesh=None, _ord_interp=0):
+        """Treat Intensity of Input Radiation
+        :param _stk: Stokes data structure or a simple Intensity array to be treated by detector
+        :param _mesh: mesh structure (if it is defined, _stk should be treated as Intensity array of type f)
+        :param _ord_interp: Interpolation order to be used (overrides self.ord_interp)
+        """
+        #Move this function to C in the future?
+
+        resInt = SRWLStokes(1, 'f', self.eStartEff, self.eFinEff, 1, self.xStart, self.xFin, self.nx, self.yStart, self.yFin, self.ny)
+
+        meshIn = None
+        sktIn = None
+        if(_mesh is not None) and (isinstance(_mesh, SRWLRadMesh)): 
+            meshIn = _mesh
+            arI = None
+            if(isinstance(_stk, array) and (_stk.itemsize == 4)): #array of type f
+                arI = _stk
+            else:
+                nTot = meshIn.ne*meshIn.nx*meshIn.ny
+                arI = array('f', [0]*nTot)
+                for i in range(nTot): arI[i] = _stk[i]
+                
+            sktIn = SRWLStokes(arI, 'f', meshIn.eStart, meshIn.eFin, meshIn.ne, meshIn.xStart, meshIn.xFin, meshIn.nx, meshIn.yStart, meshIn.yFin, meshIn.ny)
+        else: 
+            if(not isinstance(_stk, SRWLStokes)): raise Exception('An object of SRWLStokes class is expected')
+            meshIn = _stk.mesh
+            #extMeshIsDef = True
+
+        eRange = meshIn.eFin - meshIn.eStart
+        eStep = 0 if(meshIn.ne <= 1) else eRange/(meshIn.ne - 1)
+        bwMult = 1 if(eRange == 0) else 1./eRange
+        ePh = meshIn.eStart
+        for ie in range(meshIn.ne):
+            effMult = 1 #To treat Spectral Efficiency
+            if(self.specEff is not None):
+                if(isinstance(self.specEff, list) or isinstance(self.specEff, array)):
+                    effMult = interp_1d(ePh, self.eStartEff, self.eStepEff, self.neEff, self.specEff, _ord=2)
+                else: effMult = self.specEff
+
+            if((self.dx <= 0) or (self.dy <= 0)):
+                ordInterp = _ord_interp if(_ord_interp > 0) else self.ord_interp
+                resInt.avg_update_interp(sktIn, _iter=0, _ord=ordInterp, _n_stokes_comp=1, _mult=effMult*bwMult) #to treat all Stokes components / Polarization in the future
+            #else: 
+                #Program integration within pixels self.dx, self.dy here
+            ePh += eStep
+
+        return resInt
+
+    def get_mesh(self):
+        eAvg = 0.5*(self.eStartEff + self.eFinEff) #?
+        return SRWLRadMesh(
+            _eStart=eAvg, _eFin=eAvg, _ne=1, 
+            _xStart=self.xStart, _xFin=self.xFin, _nx=self.nx, 
+            _yStart=self.yStart, _yFin=self.yFin, _ny=self.ny)
 
 #****************************************************************************
 #****************************************************************************
@@ -3796,10 +4088,11 @@ def srwl_uti_write_data_cols(_file_path, _cols, _str_sep, _str_head=None, _i_col
 
 #**********************Auxiliary function to write auxiliary information about calculation status with "srwl_wfr_emit_prop_multi_e" to an ASCII files:
 #def srwl_uti_save_status_mpi(  # #MR20160908
-def srwl_uti_save_stat_wfr_emit_prop_multi_e(  # #MR20160908
+def srwl_uti_save_stat_wfr_emit_prop_multi_e(  #MR20160908
         particle_number=0,
         total_num_of_particles=0,
-        filename='srwl_stat_wfr_emit_prop_multi_e',
+        #filename='srw_mpi',
+        filename='srwl_stat_wfr_emit_prop_multi_e', #MR13012017
         cores=None,
         particles_per_iteration=None
 ):
@@ -3847,44 +4140,45 @@ def srwl_uti_save_stat_wfr_emit_prop_multi_e(  # #MR20160908
         'status': status,
     }
     status_json_file = '{}.json'.format(filename)
-    #MR05122016: A temp file is created on the same filesystem as the status file to ensure the atomic rename operation:
-    # See the following discussions:
-    # - https://github.com/radiasoft/sirepo/issues/555
-    # - https://github.com/radiasoft/SRW-light/commit/987547f4da3079626bef92aad2f9ca3bade84ada
-    # - http://stackoverflow.com/a/3716361/4143531
+    #with open(status_json_file, 'w') as f:
+    #    json.dump(status, f, indent=4, separators=(',', ': '), sort_keys=True)
+    #MR05122016: A temp file is created on the same filesystem as the status file to ensure the atomic rename operation:  
+    # See the following discussions:  
+    # - https://github.com/radiasoft/sirepo/issues/555  
+    # - https://github.com/radiasoft/SRW-light/commit/987547f4da3079626bef92aad2f9ca3bade84ada  
+    # - http://stackoverflow.com/a/3716361/4143531  
     tmp_file = tempfile.NamedTemporaryFile(delete=False, mode='w', dir=os.path.dirname(status_json_file))
     json.dump(status, tmp_file, indent=4, separators=(',', ': '), sort_keys=True)
     tmp_file.close()
     shutil.move(tmp_file.name, status_json_file)
 
-def srwl_uti_save_stat_wfr_emit_prop_multi_e_init(rank, num_of_proc, num_part_per_proc, num_sent_per_proc, num_part_avg_proc): #MR20012017
-    """Initialize parameters for the SRW status files and generate the files.
-
-    :param rank: rank of the process.
-    :param num_of_proc: total number of processes.
-    :param num_part_per_proc: number of electrons treated by each worker process.
-    :param num_sent_per_proc: number of sending acts made by each worker process.
-    :param num_part_avg_proc: number of macro-electrons to be used in calculation by each worker.
-    """
-    log_dir = os.path.abspath('__srwl_logs__')
-    if rank == 0:
-        try:
-            os.mkdir(log_dir)
-        except OSError as exc:
+#**********************Auxiliary function to initialize parameters for the SRW status files and generate the files
+def srwl_uti_save_stat_wfr_emit_prop_multi_e_init(rank, num_of_proc, num_part_per_proc, num_sent_per_proc, num_part_avg_proc): #MR20012017  
+    """Initialize parameters for the SRW status files and generate the files.  
+    :param rank: rank of the process.  
+    :param num_of_proc: total number of processes.  
+    :param num_part_per_proc: number of electrons treated by each worker process.  
+    :param num_sent_per_proc: number of sending acts made by each worker process.  
+    :param num_part_avg_proc: number of macro-electrons to be used in calculation by each worker.  
+    """  
+    log_dir = os.path.abspath('__srwl_logs__')  
+    if rank == 0:  
+        try:  
+            os.mkdir(log_dir)  
+        except OSError as exc:  
             if exc.errno == errno.EEXIST and os.path.isdir(log_dir):
-                pass
+                pass  
             else:
-                raise
-    timestamp = '{:%Y-%m-%d_%H-%M-%S}'.format(datetime.datetime.now())
-    log_file = 'srwl_stat_wfr_emit_prop_multi_e_{}'.format(timestamp)
-    log_path = os.path.join(log_dir, log_file)
-    if num_of_proc <= 1:
-        total_num_of_particles = num_part_per_proc
-    else:
-        total_num_of_particles = num_sent_per_proc * (num_of_proc - 1) * num_part_avg_proc
-    if rank == 0:
-        srwl_uti_save_stat_wfr_emit_prop_multi_e(0, total_num_of_particles, filename=log_path,
-                                                 cores=num_of_proc, particles_per_iteration=num_part_avg_proc)
+                raise  
+    timestamp = '{:%Y-%m-%d_%H-%M-%S}'.format(datetime.datetime.now())  
+    log_file = 'srwl_stat_wfr_emit_prop_multi_e_{}'.format(timestamp)  
+    log_path = os.path.join(log_dir, log_file)  
+    if num_of_proc <= 1:  
+        total_num_of_particles = num_part_per_proc  
+    else:  
+        total_num_of_particles = num_sent_per_proc * (num_of_proc - 1) * num_part_avg_proc  
+    if rank == 0:  
+        srwl_uti_save_stat_wfr_emit_prop_multi_e(0, total_num_of_particles, filename=log_path, cores=num_of_proc, particles_per_iteration=num_part_avg_proc)  
     return log_path, total_num_of_particles
 
 #**********************Auxiliary function to read tabulated 3D Magnetic Field data from ASCII file:
@@ -3907,6 +4201,9 @@ def srwl_uti_read_mag_fld_3d(_fpath, _scom='#'):
     strSep = '\t'
     for i in range(totNp):
         curLineParts = f.readline().split(strSep)
+        #DEBUG
+        #print(i, curLineParts)
+        #END DEBUG
         locArBx[i] = float(curLineParts[0])
         locArBy[i] = float(curLineParts[1])
         locArBz[i] = float(curLineParts[2])
@@ -3926,12 +4223,6 @@ def srwl_uti_read_mag_fld_3d(_fpath, _scom='#'):
 #**********************Auxiliary function to allocate array
 #(to walk-around the problem that simple allocation "array(type, [0]*n)" at large n is usually very time-consuming)
 def srwl_uti_array_alloc(_type, _n):
-    try:
-        import numpy
-        return numpy.zeros((_n,), dtype='float32')  #MR14032017: fix error with float64
-    except ImportError:
-        pass
-
     nPartMax = 10000000 #to tune
     if(_n <= nPartMax): return array(_type, [0]*_n)
         #resAr = array(_type, [0]*_n)
@@ -3972,7 +4263,7 @@ def srwl_uti_math_seq_halton(i, base=2):
 #****************************************************************************
 #****************************************************************************
 
-#**********************Auxiliary function to setup Coherent Wavefront from Intensity (assuming spherical or asigmatic wave)
+#**********************Auxiliary function to setup Coherent Wavefront from Intensity (assuming spherical or astigmatic wave)
 def srwl_wfr_from_intens(_ar_int, _mesh, _part_beam, _Rx, _Ry, _xc=0, _yc=0):
     """
     Setup Coherent Wavefront from Intensity (assuming spherical or asigmatic wave): note this is an error-prone procedure
@@ -4061,13 +4352,16 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
                                _file_path=None, _sr_samp_fact=-1, _opt_bl=None, _pres_ang=0, _char=0, _x0=0, _y0=0, _e_ph_integ=0,
                                #_rand_meth=1, _tryToUseMPI=True):
                                #_rand_meth=1, _tryToUseMPI=True, _w_wr=0.): #OC26032016 (added _w_wr)
-                               _rand_meth=1, _tryToUseMPI=True, _wr=0.): #OC07092016 (added _wr)
+                               #_rand_meth=1, _tryToUseMPI=True, _wr=0.): #OC07092016 (renamed _wr)
+                               #_rand_meth=1, _tryToUseMPI=True, _wr=0., _det=None): #OC06122016
+                               #_rand_meth=1, _tryToUseMPI=True, _wr=0., _wre=0., _det=None): #OC05012017
+                               _rand_meth=1, _tryToUseMPI=True, _wr=0., _wre=0., _det=None, _me_approx=0): #OC05042017
     """
     Calculate Stokes Parameters of Emitted (and Propagated, if beamline is defined) Partially-Coherent SR
     :param _e_beam: Finite-Emittance e-beam (SRWLPartBeam type)
-    :param _mag: Magnetic Field container (magFldCnt type)
+    :param _mag: Magnetic Field container (magFldCnt type) or Coherent Gaussian beam (SRWLGsnBm type) or Point Source (SRWLPtSrc type)
     :param _mesh: mesh vs photon energy, horizontal and vertical positions (SRWLRadMesh type) on which initial SR should be calculated
-    :param _sr_meth: SR Electric Field calculation method to be used (0- "manual", 1- "auto-undulator", 2- "auto-wiggler")
+    :param _sr_meth: SR Electric Field calculation method to be used: 0- "manual", 1- "auto-undulator", 2- "auto-wiggler"
     :param _sr_rel_prec: relative precision for SR Electric Field calculation (usually 0.01 is OK, the smaller the more accurate)
     :param _n_part_tot: total number of "macro-electrons" to be used in the calculation
     :param _n_part_avg_proc: number of "macro-electrons" to be used in calculation at each "slave" before sending Stokes data to "master" (effective if the calculation is run via MPI)
@@ -4077,12 +4371,13 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
     :param _opt_bl: optical beamline (container) to propagate the radiation through (SRWLOptC type)
     :param _pres_ang: switch specifying presentation of the resulting Stokes parameters: coordinate (0) or angular (1)
     :param _char: radiation characteristic to calculate:
-        0- Intensity (s0);
+        0- Total Intensity (s0);
         1- Four Stokes components;
         2- Mutual Intensity Cut vs X;
         3- Mutual Intensity Cut vs Y;
-        4- Mutual Intensity Cut vs X & Y;
+        4- Mutual Intensity Cuts vs X & Y;
         10- Flux
+        20- Electric Field (sum of fields from all macro-electrons)
     :param _x0: horizontal center position for mutual intensity calculation
     :param _y0: vertical center position for mutual intensity calculation
     :param _e_ph_integ: integration over photon energy is required (1) or not (0); if the integration is required, the limits are taken from _mesh
@@ -4092,9 +4387,17 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
         3- LPtau sequences (to be implemented)
     :param _tryToUseMPI: switch specifying whether MPI should be attempted to be used
     :param _wr: initial wavefront radius [m] to assume at wavefront propagation (is taken into account if != 0)
+    :param _wre: initial wavefront radius error [m] to assume at wavefront propagation (is taken into account if != 0)
+    :param _det: detector object for post-processing of final intensity (instance of SRWLDet)
+    :param _me_approx: approximation to be used at multi-electron integration: 0- none (i.e. do standard M-C integration over 5D phase space volume of e-beam), 1- integrate numerically only over e-beam energy spread and use convolution to treat transverse emittance
     """
 
-    #import time #DEBUG
+    doMutual = 0 #OC30052017
+    if((_char >= 2) and (_char <= 4)): doMutual = 1
+
+    if((_det is not None) and (doMutual > 0)): raise Exception("Detector processing is not supported for mutual intensity") #OC30052017
+
+    import time #DEBUG
     #print('_mesh.xStart=', _mesh.xStart, '_mesh.xFin=', _mesh.xFin, '_mesh.yStart=', _mesh.yStart, '_mesh.yFin=', _mesh.yFin) #DEBUG
     #print('_sr_samp_fact:', _sr_samp_fact) #DEBUG
     #for i in range(len(_opt_bl.arProp)): #DEBUG
@@ -4132,26 +4435,76 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
     #if(nProc <= 1): #OC050214
     #    _n_part_avg_proc = _n_part_tot
 
-    wfr = SRWLWfr() #Wavefronts to be used in each process
-    wfr.allocate(_mesh.ne, _mesh.nx, _mesh.ny) #Numbers of points vs Photon Energy, Horizontal and Vertical Positions
-    wfr.mesh.set_from_other(_mesh)    
-    wfr.partBeam = deepcopy(_e_beam)
+    #OC30052017 (commented-out)
+    #wfr = SRWLWfr() #Wavefronts to be used in each process
+    #wfr.allocate(_mesh.ne, _mesh.nx, _mesh.ny) #Numbers of points vs Photon Energy, Horizontal and Vertical Positions
+    #wfr.mesh.set_from_other(_mesh)    
+    #wfr.partBeam = deepcopy(_e_beam)
+
     #arPrecParSR = [_sr_meth, _sr_rel_prec, 0, 0, 50000, 0, _sr_samp_fact] #to add npTraj, useTermin ([4], [5]) terms as input parameters
     arPrecParSR = [_sr_meth, _sr_rel_prec, 0, 0, 50000, 1, _sr_samp_fact] #to add npTraj, useTermin ([4], [5]) terms as input parameters
 
-    #meshRes = SRWLRadMesh()
-    meshRes = SRWLRadMesh(_mesh.eStart, _mesh.eFin, _mesh.ne, _mesh.xStart, _mesh.xFin, _mesh.nx, _mesh.yStart, _mesh.yFin, _mesh.ny, _mesh.zStart) #to ensure correct final mesh if _opt_bl==None
+    meshRes = SRWLRadMesh(_mesh.eStart, _mesh.eFin, _mesh.ne, _mesh.xStart, _mesh.xFin, _mesh.nx, _mesh.yStart, _mesh.yFin, _mesh.ny, _mesh.zStart) #OC30052017 (uncommented) #to ensure correct final mesh if _opt_bl is None
+    #meshRes = SRWLRadMesh(_mesh.eStart, _mesh.eFin, _mesh.ne, _mesh.xStart, _mesh.xFin, _mesh.nx, _mesh.yStart, _mesh.yFin, _mesh.ny, _mesh.zStart) if(_det is None) else _det.get_mesh() #OC06122016
+    #Note: the case ((_det is not None) and (doMutual > 0)) is not supported
+
+    file_path1 = copy(_file_path) #OC30052017
+    file_path2 = None
+    meshRes2 = None #OC30052017
+    if(_char == 4): #Mutual Intensity Cuts vs X & Y are required
+        meshRes2 = copy(meshRes)
+        file_path1 += '.1'
+        file_path2 = copy(_file_path) + '.2'
+
+    wfr = SRWLWfr() #Wavefronts to be used in each process
+    wfr2 = None #OC30052017
+    if((_opt_bl is None) and (doMutual > 0)): #OC30052017
+        if(_char == 2): #Cut vs X
+            meshRes.ny = 1
+            meshRes.yStart = _y0
+            meshRes.yFin = _y0
+        elif(_char == 3): #Cut vs Y
+            meshRes.nx = 1
+            meshRes.xStart = _x0
+            meshRes.xFin = _x0
+        elif(_char == 4): #Cuts of Mutual Intensity vs X & Y
+            meshRes.ny = 1
+            meshRes.yStart = _y0
+            meshRes.yFin = _y0
+            meshRes2.nx = 1
+            meshRes2.xStart = _x0
+            meshRes2.xFin = _x0
+            wfr2 = SRWLWfr()
+
+    #OC30052017
+    wfr.allocate(meshRes.ne, meshRes.nx, meshRes.ny) #Numbers of points vs Photon Energy, Horizontal and Vertical Positions
+    wfr.mesh.set_from_other(meshRes)    
+    wfr.partBeam = deepcopy(_e_beam)
+    if(wfr2 is not None):
+        wfr2.allocate(meshRes2.ne, meshRes2.nx, meshRes2.ny) #Numbers of points vs Photon Energy, Horizontal and Vertical Positions
+        wfr2.mesh.set_from_other(meshRes2)    
+        wfr2.partBeam = deepcopy(_e_beam)
+
+    if(_det is not None): meshRes = _det.get_mesh() #OC06122016
 
     ePhIntegMult = 1
     if(_e_ph_integ == 1): #Integrate over Photon Energy
         eAvg = 0.5*(_mesh.eStart + _mesh.eFin)
         ePhIntegMult = 1000*(_mesh.eFin - _mesh.eStart)/eAvg #To obtain photon energy integrated Intensity in [ph/s/mm^2] assuming monochromatic Spectral Intensity in [ph/s/.1%bw/mm^2]
-        wfr.mesh.eStart = eAvg
+        wfr.mesh.eStart = eAvg 
         wfr.mesh.eFin = eAvg
         wfr.mesh.ne = 1
-        meshRes.eStart = eAvg
+        if(wfr2 is not None):
+            wfr2.mesh.eStart = eAvg #OC30052017
+            wfr2.mesh.eFin = eAvg
+            wfr2.mesh.ne = 1
+        meshRes.eStart = eAvg #to check compatibility with _mesh_res is not None
         meshRes.eFin = eAvg
         meshRes.ne = 1
+        if(meshRes2 is not None): #OC30052017
+            meshRes2.eStart = eAvg #to check compatibility with _mesh_res is not None
+            meshRes2.eFin = eAvg
+            meshRes2.ne = 1
 
     calcSpecFluxSrc = False
     if((_char == 10) and (_mesh.nx == 1) and (_mesh.ny == 1)):
@@ -4174,6 +4527,7 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
     elecRelEnSpr = sqrt(_e_beam.arStatMom2[10]) #<(E-E0)^2>/E0^2
     elecAbsEnSpr = elecE0*elecRelEnSpr
     #print('DEBUG MESSAGE: elecAbsEnSpr=', elecAbsEnSpr)
+    #Consider taking into account other 2nd order moments?
     
     multX = 0.5/(elecSigXe2*elecSigXpe2 - elecMXXp*elecMXXp)
     BX = elecSigXe2*multX
@@ -4216,6 +4570,7 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
     log_path, total_num_of_particles = srwl_uti_save_stat_wfr_emit_prop_multi_e_init(rank, nProc, nPartPerProc, nSentPerProc, _n_part_avg_proc) #MR20012017
 
     useGsnBmSrc = False
+    usePtSrc = False #OC16102017
     if(isinstance(_mag, SRWLGsnBm)):
         useGsnBmSrc = True
         arPrecParSR = [_sr_samp_fact]
@@ -4226,14 +4581,43 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
         _mag.yp = elecYp0
         #print('Gaussian Beam')
         #sys.exit()
+    elif(isinstance(_mag, SRWLPtSrc)): 
+        usePtSrc = True #OC16102017
+        arPrecParSR = [_sr_samp_fact]
+        _mag = deepcopy(_mag)
+        _mag.x = elecX0
+        _mag.xp = 0
+        _mag.y = elecY0
+        _mag.yp = 0
 
     resStokes = None
     workStokes = None
+    resStokes2 = None #OC30052017
+    workStokes2 = None
+    arAuxResSt12 = None #OC31052017
+    arAuxWorkSt12 = None #OC31052017
     iAvgProc = 0
     iSave = 0
 
-    doMutual = 0
-    if((_char >= 2) and (_char <= 4)): doMutual = 1
+    #doMutual = 0
+    #if((_char >= 2) and (_char <= 4)): doMutual = 1
+
+    #depTypeME_Approx = 3 #vs x&y (horizontal and vertical positions or angles); to be used only at _me_approx > 0
+    #OC15092017
+    depTypeInt = 3 #vs x&y (horizontal and vertical positions or angles); to be used only at _me_approx > 0
+    #phEnME_Approx = _mesh.eStart
+    phEnInt = _mesh.eStart #OC15092017
+    #if(_me_approx == 1): #OC15092017
+    #if((_mesh.nx <= 1) or (_mesh.ny <= 1)):
+    if((_me_approx == 1) and ((_mesh.nx <= 1) or (_mesh.ny <= 1))): #OC01102017
+        raise Exception("This calculation method requires more than one observation point in the horizontal and vertical directions")
+
+    if(_mesh.ne > 1):
+        #OC15092017
+        depTypeInt = 6 #vs e&x&y (photon energy or time, horizontal and vertical positions or angles)
+        phEnInt = 0.5*(_mesh.eStart + _mesh.eFin)
+        #depTypeME_Approx = 6 #vs e&x&y (photon energy or time, horizontal and vertical positions or angles)
+        #phEnME_Approx = 0.5*(_mesh.eStart + _mesh.eFin)
 
     resEntityName = 'Intensity' #OC26042016
     resEntityUnits = 'ph/s/.1%bw/mm^2'
@@ -4244,17 +4628,23 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
     resLabelsToSave = ['Photon Energy', 'Horizontal Position', 'Vertical Position', resEntityName] #OC26042016
     resUnitsToSave=['eV', 'm', 'm', resEntityUnits] #OC26042016
     
-    if(((rank == 0) or (nProc == 1)) and (_opt_bl is not None)): #calculate once the central wavefront in the master process (this has to be done only if propagation is required)
+    #if(((rank == 0) or (nProc == 1)) and (_opt_bl != None)): #calculate once the central wavefront in the master process (this has to be done only if propagation is required)
+    if(((rank == 0) or (nProc == 1)) and (_det is None)): #12/01/2017 
 
         if(useGsnBmSrc):
             srwl.CalcElecFieldGaussian(wfr, _mag, arPrecParSR)
+            if(wfr2 is not None): srwl.CalcElecFieldGaussian(wfr2, _mag, arPrecParSR) #OC30052017
             #print('DEBUG: Commented-out: CalcElecFieldGaussian')
+        elif(usePtSrc): #OC16102017
+            srwl.CalcElecFieldPointSrc(wfr, _mag, arPrecParSR)
+            if(wfr2 is not None): srwl.CalcElecFieldPointSrc(wfr2, _mag, arPrecParSR)
         else:
 
             #print('Single-electron SR calculation ... ', end='') #DEBUG
             #t0 = time.time(); #DEBUG
-            
+
             srwl.CalcElecFieldSR(wfr, 0, _mag, arPrecParSR)
+            if(wfr2 is not None): srwl.CalcElecFieldSR(wfr2, 0, _mag, arPrecParSR) #OC30052017
             
             #print('completed (lasted', round(time.time() - t0, 6), 's)') #DEBUG
             #print('DEBUG MESSAGE: CalcElecFieldSR called (rank:', rank,')')
@@ -4268,8 +4658,19 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
         if(_wr != 0.): #OC07092016
             wfr.Rx = _wr
             wfr.Ry = _wr
+            if(wfr2 is not None): #OC30052017
+                wfr2.Rx = _wr
+                wfr2.Ry = _wr
+
+        if(_wre > 0.): #OC05012017
+            wfr.dRx = _wre
+            wfr.dRy = _wre
+            if(wfr2 is not None): #OC30052017
+                wfr2.dRx = _wre
+                wfr2.dRy = _wre
         
-        srwl.PropagElecField(wfr, _opt_bl)
+        if(_opt_bl is not None): #OC16012017
+            srwl.PropagElecField(wfr, _opt_bl)
 
         #print('completed (lasted', round(time.time() - t0, 6), 's)') #DEBUG
         #meshRes.set_from_other(wfr.mesh) #DEBUG
@@ -4281,23 +4682,46 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
         #print('DEBUG MESSAGE: Central Wavefront propagated')
         if(_pres_ang > 0):
             srwl.SetRepresElecField(wfr, 'a')
+            if(wfr2 is not None): srwl.SetRepresElecField(wfr2, 'a') #OC30052017
             #print('DEBUG: Commented-out: SetRepresElecField')
 
-        meshRes.set_from_other(wfr.mesh)
+        #meshRes.set_from_other(wfr.mesh)
+        #if(_det is None): meshRes.set_from_other(wfr.mesh) #OC06122016
+        #else: meshRes = _det.get_mesh() #??
+        
+        meshRes.set_from_other(wfr.mesh) #OC12012016
+
+        #if(wfr2 is not None): meshRes2.set_from_other(wfr2.mesh) #OC30052017
 
         if(doMutual > 0):
-            if(_char == 2):
+            if(_char == 2): #Cut vs X
                 meshRes.ny = 1
                 meshRes.yStart = _y0
                 meshRes.yFin = _y0
-            elif(_char == 3):
+            elif(_char == 3): #Cut vs Y
                 meshRes.nx = 1
                 meshRes.xStart = _x0
                 meshRes.xFin = _x0
+            elif(_char == 4): #Cuts of Mutual Intensity vs X & Y
+                meshRes.ny = 1
+                meshRes.yStart = _y0
+                meshRes.yFin = _y0
+                if(wfr2 is None): meshRes2.set_from_other(wfr.mesh) #OC31052017
+                else: meshRes2.set_from_other(wfr2.mesh) #OC31052017
+                meshRes2.nx = 1
+                meshRes2.xStart = _x0
+                meshRes2.xFin = _x0
 
         if(nProc > 1): #send resulting mesh to all workers
             #comMPI.send(wfr.mesh, dest=)
             arMesh = array('f', [meshRes.eStart, meshRes.eFin, meshRes.ne, meshRes.xStart, meshRes.xFin, meshRes.nx, meshRes.yStart, meshRes.yFin, meshRes.ny])
+            
+            #arMesh2 = None #OC30052017
+            if(_char == 4): #Cuts of Mutual Intensity vs X & Y
+                arMesh2 = array('f', [meshRes2.eStart, meshRes2.eFin, meshRes2.ne, meshRes2.xStart, meshRes2.xFin, meshRes2.nx, meshRes2.yStart, meshRes2.yFin, meshRes2.ny])
+                for ii in range(len(arMesh2)): #OC31052017
+                    arMesh.append(arMesh2[ii])
+
             #comMPI.Bcast([arMesh, MPI.FLOAT], root=MPI.ROOT)
             #comMPI.Bcast([arMesh, MPI.FLOAT])
 
@@ -4306,25 +4730,49 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
                 dst = iRank + 1
                 #print("msg %d: sending data from %d to %d" % (iRank, rank, dst)) #an he
                 comMPI.Send([arMesh, MPI.FLOAT], dest=dst)
+
+                #OC30052017
+                #if(_char == 4): #Cuts of Mutual Intensity vs X & Y
+                #    comMPI.Send([arMesh2, MPI.FLOAT], dest=dst)
+
             #print('DEBUG MESSAGE: Mesh of Propagated central wavefront broadcasted')
 
         #DEBUG
         #print('meshRes: ne=', meshRes.ne, 'eStart=', meshRes.eStart, 'eFin=', meshRes.eFin)
+        #print('meshRes: nx=', meshRes.nx, 'xStart=', meshRes.xStart, 'xFin=', meshRes.xFin)
+        #print('meshRes: ny=', meshRes.ny, 'yStart=', meshRes.yStart, 'yFin=', meshRes.yFin)
         #END DEBUG
 
         resStokes = SRWLStokes(1, 'f', meshRes.eStart, meshRes.eFin, meshRes.ne, meshRes.xStart, meshRes.xFin, meshRes.nx, meshRes.yStart, meshRes.yFin, meshRes.ny, doMutual)
-        #wfr.calc_stokes(resStokes) #OC190414 (don't take into account first "central" beam)
-        workStokes = SRWLStokes(1, 'f', meshRes.eStart, meshRes.eFin, meshRes.ne, meshRes.xStart, meshRes.xFin, meshRes.nx, meshRes.yStart, meshRes.yFin, meshRes.ny, doMutual)
+        #wfr.calc_stokes(resStokes) #OC190414: don't take into account the first "central" beam!
+        #workStokes = SRWLStokes(1, 'f', meshRes.eStart, meshRes.eFin, meshRes.ne, meshRes.xStart, meshRes.xFin, meshRes.nx, meshRes.yStart, meshRes.yFin, meshRes.ny, doMutual)
+        #OC06042017 (commented-out workStokes = ...)
+
+        if(_char == 4): #OC31052017 #Cuts of Mutual Intensity vs X & Y
+            resStokes2 = SRWLStokes(1, 'f', meshRes2.eStart, meshRes2.eFin, meshRes2.ne, meshRes2.xStart, meshRes2.xFin, meshRes2.nx, meshRes2.yStart, meshRes2.yFin, meshRes2.ny, doMutual)
+            lenArSt12 = len(resStokes.arS) + len(resStokes2.arS)
+            arAuxResSt12 = array('f', [0]*lenArSt12)
 
         #iAvgProc += 1 #OC190414 (commented-out)
         #iSave += 1
 
     #slaves = [] #an he
     #print('DEBUG MESSAGE: rank=', rank)
+    numComp = 1
+    if(_char == 20): numComp = 4 #OC16012017
+
+    if(_opt_bl is None): arPrecParSR[6] = 0 #Ensure non-automatic choice of numbers of points if there is no beamline
+
     if((rank > 0) or (nProc == 1)):
 
-        if((nProc > 1) and (_opt_bl is not None)): #receive mesh for the resulting wavefront from the master
-            arMesh = array('f', [0]*9)
+        #if((nProc > 1) and (_opt_bl != None)): #receive mesh for the resulting wavefront from the master
+        #if((nProc > 1) and (_opt_bl is not None) and (_det is None)): #OC12012017 #receive mesh for the resulting wavefront from the master
+        if((nProc > 1) and (_det is None)): #OC16012017 #receive mesh for the resulting wavefront from the master
+            #arMesh = array('f', [0]*9)
+            nNumToRecv = 9
+            if(_char == 4): nNumToRecv = 18 #OC31052017 #Cuts of Mutual Intensity vs X & Y
+            arMesh = array('f', [0]*nNumToRecv)
+
             #_stat = MPI.Status() #an he
             #comMPI.Recv([arMesh, MPI.FLOAT], source=0)
             comMPI.Recv([arMesh, MPI.FLOAT], source=MPI.ANY_SOURCE)
@@ -4339,12 +4787,36 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
             meshRes.yStart = arMesh[6]
             meshRes.yFin = arMesh[7]
             meshRes.ny = int(arMesh[8])
+
+            #arMesh2 = None #OC30052017
+            if(_char == 4): #Cuts of Mutual Intensity vs X & Y
+                #arMesh2 = array('f', [0]*9)
+                #_stat = MPI.Status() #an he
+                #comMPI.Recv([arMesh2, MPI.FLOAT], source=MPI.ANY_SOURCE)
+                #comMPI.Bcast([arMesh, MPI.FLOAT], root=0)
+                #print("received mesh %d -> %d" % (_stat.Get_source(), rank))
+                meshRes2.eStart = arMesh[9] #OC31052017
+                meshRes2.eFin = arMesh[10]
+                meshRes2.ne = int(arMesh[11])
+                meshRes2.xStart = arMesh[12]
+                meshRes2.xFin = arMesh[13]
+                meshRes2.nx = int(arMesh[14])
+                meshRes2.yStart = arMesh[15]
+                meshRes2.yFin = arMesh[16]
+                meshRes2.ny = int(arMesh[17])
+
             #sys.exit(0)
 
         nRadPt = meshRes.ne*meshRes.nx*meshRes.ny
         if(doMutual > 0): nRadPt *= nRadPt
-        
         nStPt = nRadPt*4
+
+        nRadPt2 = None #OC30052017
+        nStPt2 = None
+        if(_char == 4): #Cuts of Mutual Intensity vs X & Y
+            nRadPt2 = meshRes2.ne*meshRes2.nx*meshRes2.ny
+            nStPt2 = nRadPt2*4
+        
         randAr = array('d', [0]*6) #for random Gaussian numbers
 
         #random.seed(rank)
@@ -4356,65 +4828,156 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
         
         for i in range(nPartPerProc): #loop over macro-electrons
 
-            if(_rand_meth == 1):
-                for ir in range(5): #to expend to 6D eventually
-                    randAr[ir] = random.gauss(0, 1)
-            elif(_rand_meth == 2):
-                if(nProc > 1):
-                    iArg = i*(nProc - 1) + rank
-                    a1 = srwl_uti_math_seq_halton(iArg, 2)
-                    a2 = srwl_uti_math_seq_halton(iArg, 3)
-                    a3 = srwl_uti_math_seq_halton(iArg, 5)
-                    a4 = srwl_uti_math_seq_halton(iArg, 7)
-                    a5 = srwl_uti_math_seq_halton(iArg, 11) #?
-                elif(nProc == 1):
-                    i_p_1 = i + 1
-                    a1 = srwl_uti_math_seq_halton(i_p_1, 2)
-                    a2 = srwl_uti_math_seq_halton(i_p_1, 3)
-                    a3 = srwl_uti_math_seq_halton(i_p_1, 5)
-                    a4 = srwl_uti_math_seq_halton(i_p_1, 7)
-                    a5 = srwl_uti_math_seq_halton(i_p_1, 11) #?
-                twoPi = 2*pi
-                twoPi_a2 = twoPi*a2
-                twoPi_a4 = twoPi*a4
-                m2_log_a1 = -2.0*log(a1)
-                m2_log_a3 = -2.0*log(a3)
-                randAr[0] = sqrt(m2_log_a1)*cos(twoPi_a2)
-                randAr[1] = sqrt(m2_log_a1)*sin(twoPi_a2)
-                randAr[2] = sqrt(m2_log_a3)*cos(twoPi_a4)
-                randAr[3] = sqrt(m2_log_a3)*sin(twoPi_a4)
-                randAr[4] = sqrt(m2_log_a1)*cos(twoPi*a3) #or just random.gauss(0,1) depends on cases #why not using a5?
-                randAr[5] = a5
-            elif(_rand_meth == 3):
-                #to program LPtau sequences here
-                continue
+            if(_me_approx == 0): #OC05042017 #General method
+                
+                if(_rand_meth == 1):
+                    for ir in range(5): #to expend to 6D eventually
+                        randAr[ir] = random.gauss(0, 1)
+                elif(_rand_meth == 2):
+                    if(nProc > 1):
+                        iArg = i*(nProc - 1) + rank
+                        a1 = srwl_uti_math_seq_halton(iArg, 2)
+                        a2 = srwl_uti_math_seq_halton(iArg, 3)
+                        a3 = srwl_uti_math_seq_halton(iArg, 5)
+                        a4 = srwl_uti_math_seq_halton(iArg, 7)
+                        a5 = srwl_uti_math_seq_halton(iArg, 11) #?
+                    elif(nProc == 1):
+                        i_p_1 = i + 1
+                        a1 = srwl_uti_math_seq_halton(i_p_1, 2)
+                        a2 = srwl_uti_math_seq_halton(i_p_1, 3)
+                        a3 = srwl_uti_math_seq_halton(i_p_1, 5)
+                        a4 = srwl_uti_math_seq_halton(i_p_1, 7)
+                        a5 = srwl_uti_math_seq_halton(i_p_1, 11) #?
+                    twoPi = 2*pi
+                    twoPi_a2 = twoPi*a2
+                    twoPi_a4 = twoPi*a4
+                    m2_log_a1 = -2.0*log(a1)
+                    m2_log_a3 = -2.0*log(a3)
+                    randAr[0] = sqrt(m2_log_a1)*cos(twoPi_a2)
+                    randAr[1] = sqrt(m2_log_a1)*sin(twoPi_a2)
+                    randAr[2] = sqrt(m2_log_a3)*cos(twoPi_a4)
+                    randAr[3] = sqrt(m2_log_a3)*sin(twoPi_a4)
+                    randAr[4] = sqrt(m2_log_a1)*cos(twoPi*a3) #or just random.gauss(0,1) depends on cases #why not using a5?
+                    randAr[5] = a5
+                elif(_rand_meth == 3):
+                    #to program LPtau sequences here
+                    continue
 
-            #DEBUG
-            #if(i == 0):
-            #    randAr = array('d', [0,0,0,2,0])
-            #if(i == 1):
-            #    randAr = array('d', [0,0,0,-2,0])
-            #END DEBUG
+                #DEBUG
+                #if(i == 0):
+                #    randAr = array('d', [0,0,0,2,0])
+                #if(i == 1):
+                #    randAr = array('d', [0,0,0,-2,0])
+                #END DEBUG
 
-            auxPXp = SigQX*randAr[0]
-            auxPX = SigPX*randAr[1] + AX*auxPXp/GX
-            wfr.partBeam.partStatMom1.x = elecX0 + auxPX
-            wfr.partBeam.partStatMom1.xp = elecXp0 + auxPXp
-            auxPYp = SigQY*randAr[2]
-            auxPY = SigPY*randAr[3] + AY*auxPYp/GY
-            wfr.partBeam.partStatMom1.y = elecY0 + auxPY
-            wfr.partBeam.partStatMom1.yp = elecYp0 + auxPYp
-            #wfr.partBeam.partStatMom1.gamma = (elecEn0 + elecAbsEnSpr*randAr[4])/0.51099890221e-03 #Relative Energy
-            wfr.partBeam.partStatMom1.gamma = elecGamma0*(1 + elecAbsEnSpr*randAr[4]/elecE0)
+                auxPXp = SigQX*randAr[0]
+                auxPX = SigPX*randAr[1] + AX*auxPXp/GX
+                wfr.partBeam.partStatMom1.x = elecX0 + auxPX
+                wfr.partBeam.partStatMom1.xp = elecXp0 + auxPXp
+                auxPYp = SigQY*randAr[2]
+                auxPY = SigPY*randAr[3] + AY*auxPYp/GY
+                wfr.partBeam.partStatMom1.y = elecY0 + auxPY
+                wfr.partBeam.partStatMom1.yp = elecYp0 + auxPYp
+                #wfr.partBeam.partStatMom1.gamma = (elecEn0 + elecAbsEnSpr*randAr[4])/0.51099890221e-03 #Relative Energy
+                #wfr.partBeam.partStatMom1.gamma = elecGamma0*(1 + elecAbsEnSpr*randAr[4]/elecE0)
+                wfr.partBeam.partStatMom1.gamma = elecGamma0*(1 + elecRelEnSpr*randAr[4]) #OC28122016
+
+                if(wfr2 is not None): #OC30052017
+                    wfr2.partBeam.partStatMom1.x = elecX0 + auxPX
+                    wfr2.partBeam.partStatMom1.xp = elecXp0 + auxPXp
+                    wfr2.partBeam.partStatMom1.y = elecY0 + auxPY
+                    wfr2.partBeam.partStatMom1.yp = elecYp0 + auxPYp
+                    wfr2.partBeam.partStatMom1.gamma = elecGamma0*(1 + elecRelEnSpr*randAr[4]) #OC28122016
+
+                #Consider taking into account other 2nd order moments?
+
+            elif(_me_approx == 1): #OC05042017 #Numerical integration only over electron energy
+
+                if(_rand_meth == 1):
+                    randAr[0] = random.gauss(0, 1)
+                elif(_rand_meth == 2):
+                    if(nProc > 1):
+                        iArg = i*(nProc - 1) + rank
+                        a1 = srwl_uti_math_seq_halton(iArg, 2)
+                        a2 = srwl_uti_math_seq_halton(iArg, 3)
+                        #a3 = srwl_uti_math_seq_halton(iArg, 5)
+                        #a4 = srwl_uti_math_seq_halton(iArg, 7)
+                        #a5 = srwl_uti_math_seq_halton(iArg, 11) #?
+                    elif(nProc == 1):
+                        i_p_1 = i + 1
+                        a1 = srwl_uti_math_seq_halton(i_p_1, 2)
+                        a2 = srwl_uti_math_seq_halton(i_p_1, 3)
+                        #a3 = srwl_uti_math_seq_halton(i_p_1, 5)
+                        #a4 = srwl_uti_math_seq_halton(i_p_1, 7)
+                        #a5 = srwl_uti_math_seq_halton(i_p_1, 11) #?
+                    twoPi = 2*pi
+                    twoPi_a2 = twoPi*a2
+                    #twoPi_a4 = twoPi*a4
+                    m2_log_a1 = -2.0*log(a1)
+                    #m2_log_a3 = -2.0*log(a3)
+                    randAr[0] = sqrt(m2_log_a1)*cos(twoPi_a2)
+                    #randAr[1] = sqrt(m2_log_a1)*sin(twoPi_a2)
+                    #randAr[2] = sqrt(m2_log_a3)*cos(twoPi_a4)
+                    #randAr[3] = sqrt(m2_log_a3)*sin(twoPi_a4)
+                    #randAr[4] = sqrt(m2_log_a1)*cos(twoPi*a3) #or just random.gauss(0,1) depends on cases #why not using a5?
+                    #randAr[5] = a5
+                elif(_rand_meth == 3):
+                    #to program LPtau sequences here
+                    continue
+
+                wfr.partBeam.partStatMom1.x = elecX0
+                wfr.partBeam.partStatMom1.xp = elecXp0
+                wfr.partBeam.partStatMom1.y = elecY0
+                wfr.partBeam.partStatMom1.yp = elecYp0
+                wfr.partBeam.partStatMom1.gamma = elecGamma0*(1 + elecRelEnSpr*randAr[0]) #OC05042017
+                if(wfr2 is not None): #OC30052017
+                    wfr2.partBeam.partStatMom1.x = elecX0
+                    wfr2.partBeam.partStatMom1.xp = elecXp0
+                    wfr2.partBeam.partStatMom1.y = elecY0
+                    wfr2.partBeam.partStatMom1.yp = elecYp0
+                    wfr2.partBeam.partStatMom1.gamma = elecGamma0*(1 + elecRelEnSpr*randAr[0])
+
+            #OC06042017 (added for _me_approx == 1 and possibly other future methods)
+            wfr.partBeam.arStatMom2[0] = elecSigXe2 #<(x-x0)^2>
+            wfr.partBeam.arStatMom2[1] = elecMXXp #<(x-x0)*(xp-xp0)>
+            wfr.partBeam.arStatMom2[2] = elecSigXpe2 #<(xp-xp0)^2>
+            wfr.partBeam.arStatMom2[3] = elecSigYe2 #<(y-y0)^2>
+            wfr.partBeam.arStatMom2[4] = elecMYYp #<(y-y0)*(yp-yp0)>
+            wfr.partBeam.arStatMom2[5] = elecSigYpe2 #<(yp-yp0)^2>
+            wfr.partBeam.arStatMom2[10] = elecRelEnSpr*elecRelEnSpr #<(E-E0)^2>/E0^2
+            if(wfr2 is not None): #OC30052017
+                wfr2.partBeam.arStatMom2[0] = elecSigXe2 #<(x-x0)^2>
+                wfr2.partBeam.arStatMom2[1] = elecMXXp #<(x-x0)*(xp-xp0)>
+                wfr2.partBeam.arStatMom2[2] = elecSigXpe2 #<(xp-xp0)^2>
+                wfr2.partBeam.arStatMom2[3] = elecSigYe2 #<(y-y0)^2>
+                wfr2.partBeam.arStatMom2[4] = elecMYYp #<(y-y0)*(yp-yp0)>
+                wfr2.partBeam.arStatMom2[5] = elecSigYpe2 #<(yp-yp0)^2>
+                wfr2.partBeam.arStatMom2[10] = elecRelEnSpr*elecRelEnSpr #<(E-E0)^2>/E0^2
+
+            #Consider taking into account other 2nd order moments?
 
             #reset mesh, because it may be modified by CalcElecFieldSR and PropagElecField
             #print('Numbers of points (before re-setting): nx=', wfr.mesh.nx, ' ny=', wfr.mesh.ny) #DEBUG
             curWfrMesh = wfr.mesh #OC02042016
-            if((curWfrMesh.ne != _mesh.ne) or (curWfrMesh.nx != _mesh.nx) or (curWfrMesh.ny != _mesh.ny)):
-                wfr.allocate(_mesh.ne, _mesh.nx, _mesh.ny)
+            newWfrMesh = _mesh if(_opt_bl is not None) else meshRes #OC16012017
 
-            wfr.mesh.set_from_other(_mesh)
-            #print('Numbers of points (after re-setting): nx=', wfr.mesh.nx, ' ny=', wfr.mesh.ny) #DEBUG
+            #if((curWfrMesh.ne != _mesh.ne) or (curWfrMesh.nx != _mesh.nx) or (curWfrMesh.ny != _mesh.ny)):
+            #    wfr.allocate(_mesh.ne, _mesh.nx, _mesh.ny)
+            if((curWfrMesh.ne != newWfrMesh.ne) or (curWfrMesh.nx != newWfrMesh.nx) or (curWfrMesh.ny != newWfrMesh.ny)):  #OC16012017
+                wfr.allocate(newWfrMesh.ne, newWfrMesh.nx, newWfrMesh.ny)
+
+            if(_opt_bl is None): wfr.mesh.set_from_other(meshRes) #OC16012017
+            else: wfr.mesh.set_from_other(_mesh)
+
+            if(wfr2 is not None): #OC30052017
+                curWfrMesh2 = wfr2.mesh
+                newWfrMesh2 = _mesh if(_opt_bl is not None) else meshRes2
+
+                if((curWfrMesh2.ne != newWfrMesh2.ne) or (curWfrMesh2.nx != newWfrMesh2.nx) or (curWfrMesh2.ny != newWfrMesh2.ny)):
+                    wfr2.allocate(newWfrMesh2.ne, newWfrMesh2.nx, newWfrMesh2.ny)
+
+                if(_opt_bl is None): wfr2.mesh.set_from_other(meshRes2)
+                else: wfr2.mesh.set_from_other(_mesh)
 
             if(_e_ph_integ == 1):
                 if(_rand_meth == 1):
@@ -4425,14 +4988,23 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
                 wfr.mesh.eStart = ePh
                 wfr.mesh.eFin = ePh
                 wfr.mesh.ne = 1
-            
+                if(wfr2 is not None):
+                    wfr2.mesh.eStart = ePh
+                    wfr2.mesh.eFin = ePh
+                    wfr2.mesh.ne = 1
+
             wfr.presCA = 0 #presentation/domain: 0- coordinates, 1- angles
             wfr.presFT = 0 #presentation/domain: 0- frequency (photon energy), 1- time
+            if(wfr2 is not None):
+                wfr2.presCA = 0 #presentation/domain: 0- coordinates, 1- angles
+                wfr2.presFT = 0 #presentation/domain: 0- frequency (photon energy), 1- time
 
             if(nProc == 1):
-                print('i=', i, 'Electron Coord.: x=', wfr.partBeam.partStatMom1.x, 'x\'=', wfr.partBeam.partStatMom1.xp, 'y=', wfr.partBeam.partStatMom1.y, 'y\'=', wfr.partBeam.partStatMom1.yp, 'E=',  wfr.partBeam.partStatMom1.gamma*0.51099890221e-03)
-                if(_e_ph_integ == 1):
-                     print('Eph=', wfr.mesh.eStart)
+                if(useGsnBmSrc): print('i=', i, 'Gaussian Beam Coord.: x=', wfr.partBeam.partStatMom1.x, 'x\'=', wfr.partBeam.partStatMom1.xp, 'y=', wfr.partBeam.partStatMom1.y, 'y\'=', wfr.partBeam.partStatMom1.yp)
+                elif(usePtSrc): print('i=', i, 'Point Source Coord.: x=', wfr.partBeam.partStatMom1.x, 'y=', wfr.partBeam.partStatMom1.y)
+                else: print('i=', i, 'Electron Coord.: x=', wfr.partBeam.partStatMom1.x, 'x\'=', wfr.partBeam.partStatMom1.xp, 'y=', wfr.partBeam.partStatMom1.y, 'y\'=', wfr.partBeam.partStatMom1.yp, 'E=',  wfr.partBeam.partStatMom1.gamma*0.51099890221e-03)
+                
+                if(_e_ph_integ == 1): print('Eph=', wfr.mesh.eStart)
 
             if(calcSpecFluxSrc): #consider taking into account _rand_meth != 1 here
                 xObs = random.uniform(_mesh.xStart, _mesh.xFin)
@@ -4450,15 +5022,47 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
                     _mag.y = wfr.partBeam.partStatMom1.y
                     _mag.yp = wfr.partBeam.partStatMom1.yp
                     srwl.CalcElecFieldGaussian(wfr, _mag, arPrecParSR)
+                    if(wfr2 is not None): srwl.CalcElecFieldGaussian(wfr2, _mag, arPrecParSR) #OC30052017
                     #print('DEBUG: Commented-out: CalcElecFieldGaussian')
                     #print('Gaussian wavefront calc. done')
+                elif(usePtSrc):
+                    _mag.x = wfr.partBeam.partStatMom1.x
+                    _mag.xp = 0
+                    _mag.y = wfr.partBeam.partStatMom1.y
+                    _mag.yp = 0
+                    srwl.CalcElecFieldPointSrc(wfr, _mag, arPrecParSR)
+                    if(wfr2 is not None): srwl.CalcElecFieldPointSrc(wfr2, _mag, arPrecParSR) #OC30052017
                 else:
 
                     #print('Single-electron SR calculatiton ... ', end='') #DEBUG
                     #t0 = time.time(); #DEBUG
-                    #print('Numbers of points: nx=', wfr.mesh.nx, ' ny=', wfr.mesh.ny) #DEBUG
+                    #print('arPrecParSR[6]=', arPrecParSR[6])
+
+                    #DEBUG
+                    #print('Numbers of points (after re-setting):') #DEBUG
+                    #print('ne=', wfr.mesh.ne, 'eStart=', wfr.mesh.eStart, 'eFin=', wfr.mesh.eFin)
+                    #print('nx=', wfr.mesh.nx, 'xStart=', wfr.mesh.xStart, 'xFin=', wfr.mesh.xFin)
+                    #print('ny=', wfr.mesh.ny, 'yStart=', wfr.mesh.yStart, 'yFin=', wfr.mesh.yFin)
+                    #print('zStart=', wfr.mesh.zStart)
+                    #END DEBUG
+
+                    #DEBUG
+                    #if(i == 48):
+                    #    print('Eel=', wfr.partBeam.partStatMom1.get_E(), ' GeV')
+                    #    print('xe=', wfr.partBeam.partStatMom1.x, ' xpe=', wfr.partBeam.partStatMom1.xp, ' ye=', wfr.partBeam.partStatMom1.y, ' ype=', wfr.partBeam.partStatMom1.yp)
+                    #    print('nx=', wfr.mesh.nx, ' xStart=', wfr.mesh.xStart, ' xFin=', wfr.mesh.xFin)
+                    #    print('ny=', wfr.mesh.ny, ' yStart=', wfr.mesh.yStart, ' yFin=', wfr.mesh.yFin)
+                    #END DEBUG
 
                     srwl.CalcElecFieldSR(wfr, 0, _mag, arPrecParSR) #calculate Electric Field emitted by current electron
+                    if(wfr2 is not None): srwl.CalcElecFieldSR(wfr2, 0, _mag, arPrecParSR) #OC30052017
+
+                    #DEBUG
+                    #if(i == 48):
+                    #    arI1 = array('f', [0]*wfr.mesh.nx*wfr.mesh.ny) #"flat" 2D array to take intensity data
+                    #    srwl.CalcIntFromElecField(arI1, wfr, 6, 0, 3, wfr.mesh.eStart, 0, 0)
+                    #    srwl_uti_save_intens_ascii(arI1, wfr.mesh, os.path.join(os.getcwd(), 'data_CDI', 'debug_int_se.dat'))
+                    #END DEBUG
 
                     #print('completed (lasted', round(time.time() - t0, 6), 's)') #DEBUG
                     #print('DEBUG: Commented-out: CalcElecFieldSR')
@@ -4474,20 +5078,34 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
                         wfr.Rx = _wr
                         wfr.Ry = _wr
 
+                    if(_wre > 0.): #OC05012017
+                        wfr.dRx = _wre
+                        wfr.dRy = _wre
+
                     srwl.PropagElecField(wfr, _opt_bl) #propagate Electric Field emitted by the electron
 
                     #print('completed (lasted', round(time.time() - t0, 6), 's)') #DEBUG
                     #print('DEBUG: Commented-out: PropagElecField')
 
+                    #DEBUG
+                    #if(i == 48):
+                    #    arI1 = array('f', [0]*wfr.mesh.nx*wfr.mesh.ny) #"flat" 2D array to take intensity data
+                    #    srwl.CalcIntFromElecField(arI1, wfr, 6, 0, 3, wfr.mesh.eStart, 0, 0)
+                    #    srwl_uti_save_intens_ascii(arI1, wfr.mesh, os.path.join(os.getcwd(), 'data_CDI', 'debug_int_pr_se.dat'))
+                    #    sys.exit()
+                    #END DEBUG
+
                 if(_pres_ang > 0):
                     srwl.SetRepresElecField(wfr, 'a')
+                    if(wfr2 is not None): srwl.SetRepresElecField(wfr2, 'a')
+
                     #print('DEBUG: Commented-out: SetRepresElecField')
 
             except:
                 traceback.print_exc()
 
             meshWork = deepcopy(wfr.mesh)
-
+            meshWork2 = None #OC30052017
             if(doMutual > 0):
                 if(_char == 2):
                     meshWork.ny = 1
@@ -4497,22 +5115,67 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
                     meshWork.nx = 1
                     meshWork.xStart = _x0
                     meshWork.xFin = _x0
+                elif(_char == 4): #OC30052017 #Cuts of Mutual Intensity vs X & Y
+                    meshWork.ny = 1
+                    meshWork.yStart = _y0
+                    meshWork.yFin = _y0
+                    meshWork2 = deepcopy(wfr.mesh)
+                    meshWork2.nx = 1
+                    meshWork2.xStart = _x0
+                    meshWork2.xFin = _x0
 
-            if(workStokes is None):
-                workStokes = SRWLStokes(1, 'f', meshWork.eStart, meshWork.eFin, meshWork.ne, meshWork.xStart, meshWork.xFin, meshWork.nx, meshWork.yStart, meshWork.yFin, meshWork.ny, doMutual)
-            else:
-                nRadPtCur = meshWork.ne*meshWork.nx*meshWork.ny
-                if(doMutual > 0):
-                    nRadPtCur *= nRadPtCur
-
-                nPtCur = nRadPtCur*4
+            #OC06042017 (commented-out the above, entered workStokes = ... below)
+            workStokes = SRWLStokes(1, 'f', meshWork.eStart, meshWork.eFin, meshWork.ne, meshWork.xStart, meshWork.xFin, meshWork.nx, meshWork.yStart, meshWork.yFin, meshWork.ny, doMutual)
+            
+            if(_char == 4): #Cuts of Mutual Intensity vs X & Y
+                workStokes2 = SRWLStokes(1, 'f', meshWork2.eStart, meshWork2.eFin, meshWork2.ne, meshWork2.xStart, meshWork2.xFin, meshWork2.nx, meshWork2.yStart, meshWork2.yFin, meshWork2.ny, doMutual)
+                     
+            if(_me_approx == 0): #OC05042017 #General case of numerical integration over 5D phase space of electron beam
                 
-                if(len(workStokes.arS) < nPtCur):
-                    del workStokes.arS
-                    workStokes.arS = array('f', [0]*nPtCur)
-                    #workStokes.mesh.set_from_other(wfr.mesh)
+                if(_char == 20): 
+                    wfr.copy_comp(workStokes) #OC15012017: copy electric field components to Stokes structure
+                elif(_char == 0): #OC15092017
+                    srwl.CalcIntFromElecField(workStokes.arS, wfr, 6, 0, depTypeInt, phEnInt, 0., 0.)
+                else: 
+                    wfr.calc_stokes(workStokes) #calculate Stokes parameters from Electric Field
+                    if(workStokes2 is not None): #OC30052017
+                        if(wfr2 is None): wfr.calc_stokes(workStokes2)
+                        else: wfr2.calc_stokes(workStokes2)
 
-            wfr.calc_stokes(workStokes) #calculate Stokes parameters from Electric Field
+            elif(_me_approx == 1): #OC05042017 #Numerical integration only over electron energy, convolution over transverse phase space
+
+                if(_char == 0): #Total intensity
+                    #DEBUG
+                    #print('DEBUG: 2nd order e-beam moments after eventual propagation:')
+                    #print('sigX=', sqrt(wfr.partBeam.arStatMom2[0]))
+                    #print('mXXp=', wfr.partBeam.arStatMom2[1])
+                    #print('sigXp=', sqrt(wfr.partBeam.arStatMom2[2]))
+                    #print('sigY=', sqrt(wfr.partBeam.arStatMom2[3]))
+                    #print('mYYp=', wfr.partBeam.arStatMom2[4])
+                    #print('sigYp=', sqrt(wfr.partBeam.arStatMom2[5]))
+                    #print('relEnSpr=', sqrt(wfr.partBeam.arStatMom2[10]))
+                    #print('wfr.Rx=', wfr.Rx, ' wfr.Ry=', wfr.Ry)
+                    #print('wfr.arElecPropMatr=', wfr.arElecPropMatr)
+                    #END DEBUG
+
+                    #srwl.CalcIntFromElecField(workStokes.arS, wfr, 6, 1, depTypeME_Approx, phEnME_Approx, _x0, _y0)
+                    srwl.CalcIntFromElecField(workStokes.arS, wfr, 6, 1, depTypeInt, phEnInt, _x0, _y0) #OC30052017
+
+                    #DEBUG
+                    #arTest = array('f', [0]*wfr.mesh.nx*wfr.mesh.ny)
+                    ##srwl.CalcIntFromElecField(arTest, wfr, 6, 1, depTypeME_Approx, phEnME_Approx, _x0, _y0)
+                    #srwl.CalcIntFromElecField(arTest, wfr, 6, 0, depTypeME_Approx, phEnME_Approx, _x0, _y0)
+
+                    #srwl_uti_save_intens_ascii(arTest, wfr.mesh, _file_path + '.debug', numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual)
+
+                    ##srwl_uti_save_intens_ascii(workStokes.arS, workStokes.mesh, _file_path + '.debug', numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual)
+                    #if(i == 0): raise Exception("DEBUG: STOP") #OC06042017
+                    ##srwl.CalcIntFromElecField(workStokes.arS, wfr, 6, 0, depTypeME_Approx, phEnME_Approx, _x0, _y0)
+                    #END DEBUG
+
+                #elif(_char == 1): #Four Stokes components
+                    #To implement extraction of Stokes components, with and without convolution, in CalcIntFromElecField
+
             #DEBUG
             #srwl_uti_save_intens_ascii(workStokes.arS, workStokes.mesh, _file_path, 1)
             #END DEBUG
@@ -4522,6 +5185,20 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
                 #DEBUG
                 #print('resStokes #2: ne=', resStokes.mesh.ne, 'eStart=', resStokes.mesh.eStart, 'eFin=', resStokes.mesh.eFin)
                 #END DEBUG
+            if(_char == 4): #OC31052017 #Cuts of Mutual Intensity vs X & Y
+                if(resStokes2 is None):
+                    resStokes2 = SRWLStokes(1, 'f', meshRes2.eStart, meshRes2.eFin, meshRes2.ne, meshRes2.xStart, meshRes2.xFin, meshRes2.nx, meshRes2.yStart, meshRes2.yFin, meshRes2.ny, doMutual)
+
+                if(arAuxResSt12 is None):
+                    lenArSt12 = len(resStokes.arS) + len(resStokes2.arS)
+                    arAuxResSt12 = array('f', [0]*lenArSt12)
+
+            #DEBUG
+            #print('workStokes.mesh: nx=', workStokes.mesh.nx, 'xStart=', workStokes.mesh.xStart, 'xFin=', workStokes.mesh.xFin)
+            #print('workStokes.mesh: ny=', workStokes.mesh.ny, 'yStart=', workStokes.mesh.yStart, 'yFin=', workStokes.mesh.yFin)
+            #print('resStokes.mesh: nx=', resStokes.mesh.nx, 'xStart=', resStokes.mesh.xStart, 'xFin=', resStokes.mesh.xFin)
+            #print('resStokes.mesh: ny=', resStokes.mesh.ny, 'yStart=', resStokes.mesh.yStart, 'yFin=', resStokes.mesh.yFin)
+            #END DEBUG
  
             if(_opt_bl is None):
                 #resStokes.avg_update_same_mesh(workStokes, iAvgProc, 1)
@@ -4529,7 +5206,11 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
                 #print('resStokes.avg_update_same_mesh ... ', end='') #DEBUG
                 #t0 = time.time(); #DEBUG
                 
-                resStokes.avg_update_same_mesh(workStokes, iAvgProc, 1, ePhIntegMult) #to treat all Stokes components / Polarization in the future
+                #resStokes.avg_update_same_mesh(workStokes, iAvgProc, 1, ePhIntegMult) #to treat all Stokes components / Polarization in the future
+                resStokes.avg_update_same_mesh(workStokes, iAvgProc, numComp, ePhIntegMult) #OC16012017 #to treat all Stokes components / Polarization in the future
+
+                if((resStokes2 is not None) and (workStokes2 is not None)): #OC30052017
+                    resStokes2.avg_update_same_mesh(workStokes2, iAvgProc, numComp, ePhIntegMult)
 
                 #print('completed (lasted', round(time.time() - t0, 6), 's)') #DEBUG
                 #DEBUG
@@ -4544,8 +5225,18 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
                 #print('resStokes.avg_update_interp ... ', end='') #DEBUG
                 #t0 = time.time(); #DEBUG
 
-                if(doMutual <= 0): resStokes.avg_update_interp(workStokes, iAvgProc, 1, 1, ePhIntegMult) #to treat all Stokes components / Polarization in the future
-                else: resStokes.avg_update_interp_mutual(workStokes, iAvgProc, 1, ePhIntegMult)
+                #DEBUG (test save at iAvgProc = 0)
+                #if(iAvgProc == 0):
+                #    srwl_uti_save_intens_ascii(resStokes.arS, meshRes, _file_path, 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual)
+                #END DEBUG
+
+                #if(doMutual <= 0): resStokes.avg_update_interp(workStokes, iAvgProc, 1, 1, ePhIntegMult) #to treat all Stokes components / Polarization in the future
+                if(doMutual == 0): resStokes.avg_update_interp(workStokes, iAvgProc, 1, numComp, ePhIntegMult) #OC16012017 #to treat all Stokes components / Polarization in the future
+                else:
+                    resStokes.avg_update_interp_mutual(workStokes, iAvgProc, 1, ePhIntegMult)
+
+                    if((resStokes2 is not None) and (workStokes2 is not None)): #OC30052017
+                        resStokes2.avg_update_interp_mutual(workStokes2, iAvgProc, 1, ePhIntegMult)
 
                 #print('completed (lasted', round(time.time() - t0, 6), 's)') #DEBUG
                 #print('DEBUG MESSAGE: Finished interpolation of current wavefront on resulting mesh')
@@ -4563,7 +5254,17 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
                     #srwl_uti_save_text("Preparing to sending # " + str(iAuxSendCount + 1), _file_path + "." + str(rank) + "bs.dbg")
                     #END DEBUG
 
-                    comMPI.Send([resStokes.arS, MPI.FLOAT], dest=0)
+                    #comMPI.Send([resStokes.arS, MPI.FLOAT], dest=0)
+                    if(resStokes2 is None): comMPI.Send([resStokes.arS, MPI.FLOAT], dest=0)
+                    else: #OC31052017
+                        lenArSt1 = len(resStokes.arS)
+                        lenArSt2 = len(resStokes2.arS)
+                        for i1 in range(lenArSt1): arAuxResSt12[i1] = resStokes.arS[i1]
+                        for i2 in range(lenArSt2): arAuxResSt12[i2 + lenArSt1] = resStokes2.arS[i2]
+                        comMPI.Send([arAuxResSt12, MPI.FLOAT], dest=0)
+
+                    #if(resStokes2 is not None): comMPI.Send([resStokes2.arS, MPI.FLOAT], dest=0) #OC30052017
+
                     iAuxSendCount += 1 #for debug
 
                     #DEBUG
@@ -4572,6 +5273,11 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
 
                     for ir in range(nStPt):
                         resStokes.arS[ir] = 0
+
+                    if(resStokes2 is not None): #OC30052017
+                        for ir in range(nStPt2):
+                            resStokes2.arS[ir] = 0
+
                     #DEBUG
                     #srwl_uti_save_intens_ascii(resStokes.arS, resStokes.mesh, _file_path, 1)
                     #END DEBUG
@@ -4592,11 +5298,21 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
                     #t0 = time.time(); #DEBUG
                     
                     #srwl_uti_save_intens_ascii(resStokes.arS, meshRes, _file_path, 1, _mutual = doMutual)
-                    srwl_uti_save_intens_ascii(resStokes.arS, meshRes, _file_path, 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual) #OC26042016
+                    #srwl_uti_save_intens_ascii(resStokes.arS, meshRes, _file_path, 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual) #OC26042016
+                   
+                    #srwl_uti_save_intens_ascii(resStokes.arS, meshRes, _file_path, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual) #OC16012017
+                    srwl_uti_save_intens_ascii(resStokes.arS, meshRes, file_path1, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual) #OC16012017
 
-                    #MR01112016: write the status of the simulation:
-                    srwl_uti_save_stat_wfr_emit_prop_multi_e(i + 1, total_num_of_particles, filename=log_path)
+                    if((resStokes2 is not None) and (meshRes2 is not None)): #OC30052017
+                        srwl_uti_save_intens_ascii(resStokes2.arS, meshRes2, file_path2, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual)
 
+                    #DEBUG
+                    #srwl_uti_save_intens_ascii(workStokes.arS, workStokes.mesh, _file_path, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual)
+                    #END DEBUG
+
+                    #MR01112016: write the status of the simulation:  
+                    srwl_uti_save_stat_wfr_emit_prop_multi_e(i + 1, total_num_of_particles, filename=log_path)  
+                    
                     #print('completed (lasted', round(time.time() - t0, 6), 's)') #DEBUG
                     
                     #sys.exit(0)
@@ -4607,7 +5323,7 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
         #nRecv = int(nPartPerProc*nProc/_n_part_avg_proc + 1e-09)
         nRecv = nSentPerProc*(nProc - 1) #Total number of sending acts to be made by all worker processes, and to be received by master
 
-        print('DEBUG MESSAGE: Actual number of macro-electrons:', nRecv*_n_part_avg_proc)
+        #print('DEBUG MESSAGE: Actual number of macro-electrons:', nRecv*_n_part_avg_proc)
         
         #DEBUG
         #srwl_uti_save_text("nRecv: " + str(nRecv) + " nPartPerProc: " + str(nPartPerProc) + " nProc: " + str(nProc) + " _n_part_avg_proc: " + str(_n_part_avg_proc), _file_path + ".00.dbg")
@@ -4615,9 +5331,21 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
 
         if(resStokes is None):
             resStokes = SRWLStokes(1, 'f', meshRes.eStart, meshRes.eFin, meshRes.ne, meshRes.xStart, meshRes.xFin, meshRes.nx, meshRes.yStart, meshRes.yFin, meshRes.ny, doMutual)
-
         if(workStokes is None):
             workStokes = SRWLStokes(1, 'f', meshRes.eStart, meshRes.eFin, meshRes.ne, meshRes.xStart, meshRes.xFin, meshRes.nx, meshRes.yStart, meshRes.yFin, meshRes.ny, doMutual)
+
+        if(_char == 4): #OC30052017 #Cuts of Mutual Intensity vs X & Y
+            if(resStokes2 is None):
+                resStokes2 = SRWLStokes(1, 'f', meshRes2.eStart, meshRes2.eFin, meshRes2.ne, meshRes2.xStart, meshRes2.xFin, meshRes2.nx, meshRes2.yStart, meshRes2.yFin, meshRes2.ny, doMutual)
+            if(arAuxResSt12 is None):
+                lenArResSt12 = len(resStokes.arS) + len(resStokes2.arS)
+                arAuxResSt12 = array('f', [0]*lenArResSt12)
+
+            if(workStokes2 is None):
+                workStokes2 = SRWLStokes(1, 'f', meshRes2.eStart, meshRes2.eFin, meshRes2.ne, meshRes2.xStart, meshRes2.xFin, meshRes2.nx, meshRes2.yStart, meshRes2.yFin, meshRes2.ny, doMutual)
+            if(arAuxWorkSt12 is None):
+                lenArWorkSt12 = len(workStokes.arS) + len(workStokes2.arS)
+                arAuxWorkSt12 = array('f', [0]*lenArWorkSt12)
 
         for i in range(nRecv): #loop over messages from workers
 
@@ -4625,10 +5353,23 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
             #srwl_uti_save_text("Preparing to receiving # " + str(i), _file_path + ".br.dbg")
             #END DEBUG
            
-            comMPI.Recv([workStokes.arS, MPI.FLOAT], source=MPI.ANY_SOURCE) #receive #an he (commented-out)
+            #comMPI.Recv([workStokes.arS, MPI.FLOAT], source=MPI.ANY_SOURCE) #receive 
+            if(workStokes2 is None): #OC31052017
+                comMPI.Recv([workStokes.arS, MPI.FLOAT], source=MPI.ANY_SOURCE) #receive 
+            else:
+                comMPI.Recv([arAuxWorkSt12, MPI.FLOAT], source=MPI.ANY_SOURCE) #receive 
+
+                lenArWorkSt1 = len(workStokes.arS)
+                for i1 in range(lenArWorkSt1): workStokes.arS[i1] = arAuxWorkSt12[i1]
+                lenArWorkSt2 = len(workStokes2.arS)
+                for i2 in range(lenArWorkSt2): workStokes2.arS[i2] = arAuxWorkSt12[i2 + lenArWorkSt1]
+
+            #if((_char == 4) and (workStokes2 is not None)): #OC30052017 #Cuts of Mutual Intensity vs X & Y
+            #    comMPI.Recv([workStokes2.arS, MPI.FLOAT], source=MPI.ANY_SOURCE) #receive 
 
             #MR20160907 #Save .log and .json files:
             particle_number = (i + 1) * _n_part_avg_proc
+            #srwl_uti_save_stat_wfr_emit_prop_multi_e(particle_number, total_num_of_particles)
             srwl_uti_save_stat_wfr_emit_prop_multi_e(particle_number, total_num_of_particles, filename=log_path)
 
             #DEBUG
@@ -4642,7 +5383,17 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
             #print('resStokes.avg_update_same_mesh ... ', end='') #DEBUG
             #t0 = time.time(); #DEBUG
 
-            resStokes.avg_update_same_mesh(workStokes, i + 1, 1, multFinAvg) #in the future treat all Stokes components / Polarization, not just s0!
+            #DEBUG (test save at i = 0)
+            #if(i == 0):
+            #    srwl_uti_save_intens_ascii(resStokes.arS, meshRes, _file_path, 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual)
+            #END DEBUG
+
+            #resStokes.avg_update_same_mesh(workStokes, i + 1, 1, multFinAvg) #in the future treat all Stokes components / Polarization, not just s0!
+            #resStokes.avg_update_same_mesh(workStokes, i, 1, multFinAvg) #OC15012017 #in the future treat all Stokes components / Polarization, not just s0!
+            resStokes.avg_update_same_mesh(workStokes, i, numComp, multFinAvg) #OC15012017 #in the future treat all Stokes components / Polarization, not just s0!
+
+            if((resStokes2 is not None) and (workStokes2 is not None)):
+                resStokes2.avg_update_same_mesh(workStokes2, i, numComp, multFinAvg) #OC30052017 #in the future treat all Stokes components / Polarization, not just s0!
 
             #print('completed (lasted', round(time.time() - t0, 6), 's)') #DEBUG
             #DEBUG
@@ -4657,29 +5408,48 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
                 #t0 = time.time(); #DEBUG
                 
                 #srwl_uti_save_intens_ascii(resStokes.arS, meshRes, _file_path, 1, _mutual = doMutual)
-                srwl_uti_save_intens_ascii(resStokes.arS, meshRes, _file_path, 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual) #OC26042016
+                #srwl_uti_save_intens_ascii(resStokes.arS, meshRes, _file_path, 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual) #OC26042016
+                
+                #srwl_uti_save_intens_ascii(resStokes.arS, meshRes, _file_path, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual) #OC16012017
+                srwl_uti_save_intens_ascii(resStokes.arS, meshRes, file_path1, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual) #OC30052017
+
+                if((resStokes2 is not None) and (meshRes2 is not None)): #OC30052017
+                    srwl_uti_save_intens_ascii(resStokes2.arS, meshRes2, file_path2, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual) 
+
+                #DEBUG
+                #srwl_uti_save_intens_ascii(workStokes.arS, meshRes, _file_path, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual) #OC16012017
+                #END DEBUG
 
                 #print('completed (lasted', round(time.time() - t0, 6), 's)') #DEBUG
                 
                 iSave = 0
-
     #DEBUG
     #srwl_uti_save_text("Exiting srwl_wfr_emit_prop_multi_e", _file_path + "." + str(rank) + "e.dbg")
     #END DEBUG
 
     if((rank == 0) or (nProc == 1)):
         #Saving final results:
-        if(_file_path is not None):
+        #if(_file_path != None):
+        if(file_path1 is not None): #OC30052017
 
             #print('srwl_uti_save_intens_ascii ... ', end='') #DEBUG
             #t0 = time.time(); #DEBUG
             
             #srwl_uti_save_intens_ascii(resStokes.arS, meshRes, _file_path, 1, _mutual = doMutual)
-            srwl_uti_save_intens_ascii(resStokes.arS, meshRes, _file_path, 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual) #OC26042016
+            #srwl_uti_save_intens_ascii(resStokes.arS, meshRes, _file_path, 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual) #OC26042016
+            #srwl_uti_save_intens_ascii(resStokes.arS, meshRes, _file_path, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual) #OC16012017
+            srwl_uti_save_intens_ascii(resStokes.arS, meshRes, file_path1, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual) #OC16012017
 
             #print('completed (lasted', round(time.time() - t0, 6), 's)') #DEBUG
             
-        return resStokes
+        if((file_path2 is not None) and (resStokes2 is not None) and (meshRes2 is not None)): #OC30052017
+            srwl_uti_save_intens_ascii(resStokes2.arS, meshRes2, file_path2, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual) #OC16012017
+
+        #return resStokes
+        if(resStokes2 is None): #OC30052017
+            return resStokes
+        else:
+            return resStokes, resStokes2
     else:
         return None
 
@@ -4769,6 +5539,15 @@ function calculates Electric Field (Wavefront) of a coherent Gaussian beam
        all data arrays should be allocated in Python script before calling this function;
        the emitting particle beam, radiation mesh, presentation, etc., should be specified in this structure at input
 :param _inGsnBm: input coherent Gaussian beam parameters structure (instance of SRWLGsnBm)
+:param _inPrec: input list of precision parameters:
+       _inPrec[0]: sampling factor (for propagation, effective if > 0)
+"""
+helpCalcElecFieldPointSrc = """CalcElecFieldPointSrc(_wfr, _inPtSrc, _inPrec)
+function calculates Electric Field (Wavefront) of a Pont Source (i.e. spherical wave)
+:param _wfr: input / output resulting Wavefront structure (instance of SRWLWfr); 
+        all data arrays should be allocated in a calling function/application; 
+        the mesh, presentation, etc., should be specified in this structure at input
+:param _inPtSrc: input Point Source parameters structure (instance of SRWLPtSrc)
 :param _inPrec: input list of precision parameters:
        _inPrec[0]: sampling factor (for propagation, effective if > 0)
 """

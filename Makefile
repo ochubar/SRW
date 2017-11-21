@@ -4,7 +4,6 @@
 # - `make all` - will compile FFTW, C++ core and Python lib;
 # - `make fftw` - will compile FFTW only;
 # - `make` - will compile C++ core and Python lib;
-# - `make test` - will execute `python SRWLIB_Example10.py` during 20 seconds;
 # - `make clean` - will clean temporary files.
 #
 # Updated by Maksim Rakitin (NSLS-II, BNL) on May 2, 2016.
@@ -24,7 +23,7 @@ timeout=20
 
 nofftw: core pylib
 
-all: clean fftw core pylib test
+all: clean fftw core pylib
 
 fftw:
 	if [ ! -d "$(ext_dir)" ]; then \
@@ -51,12 +50,9 @@ core:
 pylib:
 	cd $(py_dir); make python
 
-test:
-	timeout_s=$(timeout) bash $(examples_dir)/basic-test.sh
-
 clean:
 	rm -f $(ext_dir)/libfftw.a $(gcc_dir)/libsrw.a $(gcc_dir)/srwlpy*.so; \
 	rm -rf $(ext_dir)/$(fftw_dir)/ py/build/;
 	if [ -d $(root_dir)/.git ]; then rm -f $(examples_dir)/srwlpy*.so && (git checkout $(examples_dir)/srwlpy*.so 2>/dev/null || :); fi;
 
-.PHONY: all clean core fftw nofftw pylib test
+.PHONY: all clean core fftw nofftw pylib

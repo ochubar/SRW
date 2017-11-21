@@ -218,6 +218,10 @@ BEGIN
 	"Incorrect input parameters for conversion of tabulated magnetic field to periodic.\0", //#182
 	"Incorrect spherical mirror parameter: radius should not be zero.\0", //#183
 	"Incorrect crystal parameter: use case is not supported.\0", //#184
+	"Incorrect input parameters for search of indexes of undulator gap and phase values requiired for undulator field interpolation based on gap and phase.\0", //#185
+	"Incorrect or insufficient parameters for spherical wave electric field calculation.\0", //#186
+	
+	"Failed to determine array element index for interpolation.\0", //#187
 
 	"\0"						// NOTE: NULL required to terminate the resource.
 END

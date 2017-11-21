@@ -362,6 +362,29 @@ public:
 		return x*(0.5 + x*(-0.125 + x*(0.0625 + x*(-0.0390625 + x*(0.02734375 + x*(-0.0205078125 + x*0.01611328125))))));
 	}
 
+	static double azimAngFrXY(double x, double y)
+	{//Returns azimuth angle within limits [-pi, pi) based on Cartesian coordinates (x, y)
+		const double pi = 3.141592653589793;
+		const double halfPi = 0.5*pi;
+		if(x == 0.)
+		{
+			if(y < 0.) return -halfPi;
+			else if(y > 0.) return halfPi;
+			else return 0.;
+		}
+
+		double absAng = atan(fabs(y/x));
+		if(x < 0.)
+		{
+			if(y < 0.) return -pi + absAng;
+			else return pi - absAng;
+		}
+		else
+		{
+			if(y < 0.) return -absAng;
+			else return absAng;
+		}
+	}
 };
 
 //-------------------------------------------------------------------------

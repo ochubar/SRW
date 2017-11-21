@@ -306,6 +306,21 @@ public:
 		return -1;
 	}
 
+	static int FindLargestElemSmallerThanOrEqualTo(double s, double* ar, int lenAr)
+	{
+		if((ar == 0) || (lenAr <= 0)) return -1;
+		
+		double *t_ar = ar;
+		double prev = *(t_ar++);
+		for(int i=1; i<lenAr; i++)
+		{
+			if((prev <= s) && (*t_ar > s)) return (i - 1);
+			prev = *(t_ar++);
+		}
+		if(prev == s) return (lenAr - 1); //?
+		return -1;
+	}
+
 	static int FindSmallestElemLargerThan(double s, double* ar, int lenAr)
 	{
 		if((ar == 0) || (lenAr <= 0)) return -1;
@@ -317,6 +332,18 @@ public:
 		{
 			if((prev > s) && (*t_ar < s)) return (i - 1);
 			prev = *(t_ar--);
+		}
+		return -1;
+	}
+
+	template<class T> static int FindIndVectElemEqualToWithinTol(T valueToFind, vector<T>& v, T& absTol)
+	{
+		int v_size = (int)v.size();
+		if(v_size <= 0) return -1;
+		for(int i=0; i<v_size; i++)
+		{
+			T curElemValDif = v[i] - valueToFind;
+			if((curElemValDif >= -absTol) && (curElemValDif <= absTol)) return i;
 		}
 		return -1;
 	}

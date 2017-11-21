@@ -4,7 +4,7 @@
 The example was created by Timur Shaftan (BNL) for RadTrack project (https://github.com/radiasoft/radtrack).
 Adapted by Maksim Rakitin (BNL).
 The purpose of the example is to demonstrate good agreement of the SRW simulation
-of intensity distribution after diffraction on a circular aperture with an analytical distribution.
+of intensity distribution after diffraction on a circular aperture with an analytical approximation.
 
 The example requires SciPy library to perform comparison.
 """
@@ -14,14 +14,14 @@ from srwlib import *
 from uti_math import fwhm
 
 print('SRWLIB Python Example # 16:')
-print('Intensity distribution after diffraction on a circular aperture.')
+print('Calculation of intensity distribution due to diffraction on a circular aperture.')
 try:
     from scipy.special import jv
     scipy_imported = True
     print('Comparison with an analytical distribution...')
 except:
     scipy_imported = False
-    print('Cannot import scipy for comparison of the intensity distribution with an analytical distribution.')
+    print('Can not import scipy for comparison of the numerically calculated intensity distribution with an analytical approximation.')
 
 #************************************* Create examples directory if it does not exist
 example_folder = 'data_example_16'  # example data sub-folder name
@@ -91,9 +91,12 @@ plotMeshInY = [1000 * wfrIn.mesh.yStart, 1000 * wfrIn.mesh.yFin, wfrIn.mesh.ny]
 srwl_uti_save_intens_ascii(arIin, wfrIn.mesh,
                            '{}/{}'.format(example_folder, strIntOutFileName),
                            0, ['Photon Energy', 'Horizontal Position', 'Vertical Position', ''],
-                           _arUnits=['eV', 'm', 'm', 'ph/s/.1%bw/mm^2'])
+                           #_arUnits=['eV', 'm', 'm', 'ph/s/.1%bw/mm^2'])
+                           _arUnits=['eV', 'm', 'm', 'arb. units'])
 uti_plot.uti_plot2d1d(arIin, plotMeshInX, plotMeshInY,
-                      labels=['Horizontal Position [mm]', 'Vertical Position [mm]', 'Intensity Before Propagation [a.u.]'])
+                      #labels=['Horizontal Position [mm]', 'Vertical Position [mm]', 'Intensity Before Propagation [a.u.]'])
+                      labels=['Horizontal Position', 'Vertical Position', 'Intensity Before Propagation'],
+                      units=['mm', 'mm', 'arb. units'])
 
 # Element definition:
 apertureSize = 0.00075  # Aperture radius, m
@@ -113,9 +116,9 @@ for k, driftLength in enumerate([0.0, defaultDriftLength]):
     opBL = SRWLOptC(OpElement, ppOpElement)
     srwl.PropagElecField(wfr, opBL)  # Propagate Electric Field
 
-    polarization = 6  # 0- Linear Horizontal /  1- Linear Vertical 2- Linear 45 degrees / 3- Linear 135 degrees / 4- Circular Right /  5- Circular /  6- Total
-    intensity = 0  # 0=Single-e I/1=Multi-e I/2=Single-e F/3=Multi-e F/4=Single-e RadPhase/5=Re single-e Efield/6=Im single-e Efield
-    dependArg = 3  # 0 - vs e, 1 - vs x, 2 - vs y, 3- vs x&y, 4-vs x&e, 5-vs y&e, 6-vs x&y&e
+    polarization = 6  #0- Linear Horizontal / 1- Linear Vertical / 2- Linear 45 degrees / 3- Linear 135 degrees / 4- Circular Right / 5- Circular / 6- Total
+    intensity = 0  #0- Single-e Int. / 1- Multi-e Int. / 2- Single-e Flux / 3- Multi-e Flux / 4- Single-e Rad. Phase / 5- Re Single-e E-field / 6- Im Single-e E-field
+    dependArg = 3  #0- vs e / 1- vs x / 2- vs y / 3- vs x&y / 4- vs x&e / 5- vs y&e / 6- vs x&y&e
 
     # Calculating output wavefront:
     arIout = array('f', [0] * wfr.mesh.nx * wfr.mesh.ny)  # "flat" array to take 2D intensity data
@@ -145,7 +148,9 @@ for k, driftLength in enumerate([0.0, defaultDriftLength]):
                                0, ['Photon Energy', 'Horizontal Position', 'Vertical Position', ''],
                                _arUnits=['eV', 'm', 'm', 'ph/s/.1%bw/mm^2'])
     uti_plot.uti_plot2d1d(arII, plotMeshx, plotMeshy,
-                          labels=['Horizontal Position [mm]', 'Vertical Position [mm]', 'Intenisty at {}m After Aperture  [a.u.]'.format(driftLength)])
+                          #labels=['Horizontal Position [mm]', 'Vertical Position [mm]', 'Intenisty at {}m After Aperture  [a.u.]'.format(driftLength)])
+                          labels=['Horizontal Position', 'Vertical Position', 'Intenisty at {} m After Aperture'.format(driftLength)],
+                          units=['mm', 'mm', 'arb. units'])
 
     srwl.CalcIntFromElecField(arRe, wfr, polarization, 5, 2, wfr.mesh.eStart, 0, 0)
     srwl.CalcIntFromElecField(arIm, wfr, polarization, 6, 2, wfr.mesh.eStart, 0, 0)
@@ -211,7 +216,7 @@ try:
         ax.plot(sOut, analyticalIntens, '-b.', label='Analytical estimation')
     ax.legend()
     ax.set_xlabel('Vertical Position [mm]')
-    ax.set_ylabel('Normalized Intensity, [a.u.]')
+    ax.set_ylabel('Normalized Intensity')
     ax.set_title('Intensity Before and After Propagation\n(cut vs vertical position at x=0)')
     ax.grid()
     plt.savefig('{}/compare.png'.format(example_folder))

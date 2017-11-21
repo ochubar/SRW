@@ -16,6 +16,10 @@
 
 #include "srebmdat.h"
 #include "srstraux.h"
+#include "gmmeth.h"
+
+struct SRWLStructPointSource;
+typedef struct SRWLStructPointSource SRWLPtSrc;
 
 //*************************************************************************
 
@@ -31,16 +35,22 @@ public:
 	char InputWasModified;
 
 	double PhotPerBW;
-	int Polar;
-	double x0, z0, SigX, SigZ;
+	double Flux;
+	int Polar, UnitFlux;
+	double x0, z0, LongPos;
+	double SigX, SigZ;
 
 	srTWfrSmp DistrInfoDat;
+
+	srTIsotrSrc() {} //required for compiling for Igor (?)
+	srTIsotrSrc(SRWLPtSrc*);
 
 	int CheckInputConsistency();
 	void SetupSourceConstants();
 	int CreateWavefrontElField(srTSRWRadStructAccessData&);
+	void ComputeElectricField(srTSRWRadStructAccessData &wfr); //, double R0, double pow, int polar);
 
-	void SetupProperPolariz(double ReA, double ImA, float* tRadX, float* tRadZ)
+	void SetupProperPolariz(double ReA, double ImA, double x, double z, float* tRadX, float* tRadZ)
 	{// Same for Isotropic Source and Gaussian Beam
 		const double c = 0.70710678118655;
 		switch(Polar) 
@@ -62,6 +72,11 @@ public:
 			break;
 		case 6: // Circ. Left
 			*tRadX = (float)(c*ReA); *(tRadX+1) = (float)(c*ImA); *tRadZ = (float)(c*ImA); *(tRadZ+1) = (float)(-c*ReA);
+			break;
+		case 7: // Radial
+			double ang = CGenMathMeth::azimAngFrXY(x, z);
+			double cosAng = cos(ang), sinAng = sin(ang);
+			*tRadX = (float)(cosAng*ReA); *(tRadX+1) = (float)(cosAng*ImA); *tRadZ = (float)(sinAng*ReA); *(tRadZ+1) = (float)(sinAng*ImA);
 			break;
 		}
 	}

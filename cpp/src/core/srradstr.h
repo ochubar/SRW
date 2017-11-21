@@ -150,7 +150,9 @@ public:
 	srTSRWRadStructAccessData(const srTSRWRadStructAccessData&, bool createNewEmulStruct=true); //OC140411
 	srTSRWRadStructAccessData(srTWfrSmp* pWfrSmp, bool AllocateData); //used for extracting transmission characteristics of optical elements
 	srTSRWRadStructAccessData(SRWLWfr*, srTTrjDat* pTrj=0, double* arPrec=0);
-	srTSRWRadStructAccessData(SRWLWfr*, srTGsnBeam* pGsnBeam, double* arPrec=0);
+	srTSRWRadStructAccessData(SRWLWfr*, srTGsnBeam*, double* arPrec=0);
+	srTSRWRadStructAccessData(SRWLWfr*, double longPosSrc, double* arPrec=0); //Used for setting up spherical wave
+
 	srTSRWRadStructAccessData()
 	{
 		Initialize();
@@ -910,6 +912,40 @@ public:
 			}
 		}
 	}
+
+	//double EstimWaveFrontRadiusOnAxis(char x_or_y)
+	//{
+	//	double start, step, cen;
+	//	long n = 0;
+
+	//	if((x_or_y == 'x') || (x_or_y == 'X'))
+	//	{
+	//		start = xStart; step = xStep; n = nx; cen = xc;
+	//	}
+	//	else if((x_or_y == 'y') || (x_or_y == 'Y') || (x_or_y == 'z') || (x_or_y == 'Z'))
+	//	{
+	//		start = zStart; step = zStep; n = nz; cen = zc;
+	//	}
+	//	
+	//	if(step == 0.) return 0.;
+	//	if(n < 3) return 0.;
+
+	//	long ic = long((cen - start)/step + 1.e-13);
+	//	if((cen - (ic*step + start)) > 0.5*step) ic++;
+	//	long nmi1 = n - 1;
+	//	if((ic < 0) || (ic > nmi1)) return 0.;
+
+	//	long np = 5, icm2 = ic - 2, icm1 = ic - 1, icp1 = ic + 1, icp2 = ic + 2;
+	//	if(icm2 < 0) np--;
+	//	if(icm1 < 0) np--;
+	//	if(icp1 > nmi1) np--;
+	//	if(icp2 > nmi1) np--;
+	//	if(np < 3) return 0.;
+
+	//	//OC: to continue from here
+	//
+	//	return 0.;
+	//}
 
 	void GetWaveFrontNormal(double x, double y, double& nx, double& ny)
 	{//to improve!

@@ -509,8 +509,17 @@ public:
 		double a = m_ayE2*m_azE2*vx*x0 + m_axE2*m_azE2*vy*y0 + m_axE2*m_ayE2*vz*z0;
 		double b = m_axE2*m_azE2*vyE2 + m_ayE2*(m_azE2*vxE2 + m_axE2*vzE2);
 
-		double t0 = (m_p < m_q)? -(a + ax_ay_az*sqrt(argRoot))/b : -(a - ax_ay_az*sqrt(argRoot))/b; //to check
 		//double t0 = (m_p >= m_q)? -(a + sqrt(argRoot))/b : -(a - sqrt(argRoot))/b; //to check
+		//double t0 = (m_p < m_q)? -(a + ax_ay_az*sqrt(argRoot))/b : -(a - ax_ay_az*sqrt(argRoot))/b; //to check
+		//OC06072017: it looks like the second option of t0 should be used at any m_p,  m_q
+
+			double testTerm = ax_ay_az*sqrt(argRoot); //OCTEST
+			if(fabs(a - testTerm) < fabs(testTerm)*1e-13)
+			{
+				int aha = 1;
+			}
+
+		double t0 = -(a - ax_ay_az*sqrt(argRoot))/b; //OC06072017
 
 		//Coordinates of the Intersection Point in the "Local Normal" frame:
 		double xi = vx*t0 + x0;
@@ -528,17 +537,53 @@ public:
 		else phi = Pi - phi;
 
 		bool phiIsInside = false;
-		if((m_ellPhiMin <= phi) && (phi <= m_ellPhiMax)) phiIsInside = true;
-		else
+
+		if(m_ellPhiMax < m_ellPhiMin) //OC09072017
 		{
-			double testPhi = phi + twoPi;
-			if((m_ellPhiMin <= testPhi) && (testPhi <= m_ellPhiMax)) phiIsInside = true;
+			const double twoPi = 2.*3.141592653589793;
+
+			if((m_ellPhiMin - twoPi <= phi) && (phi <= m_ellPhiMax)) phiIsInside = true;
 			else
 			{
-				testPhi = phi - twoPi;
-				if((m_ellPhiMin <= testPhi) && (testPhi <= m_ellPhiMax)) phiIsInside = true;
+				double testPhi = phi + twoPi;
+				if((m_ellPhiMin - twoPi <= testPhi) && (testPhi <= m_ellPhiMax)) phiIsInside = true;
+				else
+				{
+					testPhi = phi - twoPi;
+					if((m_ellPhiMin - twoPi <= testPhi) && (testPhi <= m_ellPhiMax)) phiIsInside = true;
+				}
+			}
+
+			if(!phiIsInside)
+			{
+				if((m_ellPhiMin <= phi) && (phi <= m_ellPhiMax + twoPi)) phiIsInside = true;
+				else
+				{
+					double testPhi = phi + twoPi;
+					if((m_ellPhiMin <= testPhi) && (testPhi <= m_ellPhiMax + twoPi)) phiIsInside = true;
+					else
+					{
+						testPhi = phi - twoPi;
+						if((m_ellPhiMin - twoPi <= testPhi) && (testPhi <= m_ellPhiMax + twoPi)) phiIsInside = true;
+					}
+				}
 			}
 		}
+		else
+		{
+			if((m_ellPhiMin <= phi) && (phi <= m_ellPhiMax)) phiIsInside = true;
+			else
+			{
+				double testPhi = phi + twoPi;
+				if((m_ellPhiMin <= testPhi) && (testPhi <= m_ellPhiMax)) phiIsInside = true;
+				else
+				{
+					testPhi = phi - twoPi;
+					if((m_ellPhiMin <= testPhi) && (testPhi <= m_ellPhiMax)) phiIsInside = true;
+				}
+			}
+		}
+
 		if(!phiIsInside) 
 		{
 			return false;

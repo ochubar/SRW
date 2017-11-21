@@ -1,6 +1,6 @@
-"""uti_plot backend for matplotlib
+﻿"""uti_plot backend for matplotlib
 
-.. moduleauthor:: O. Chubar, N. Canestrari
+.. moduleauthor:: N. Canestrari, O. Chubar, R. Nagler, M. Rakitin
 """
 import os
 import sys
@@ -46,10 +46,15 @@ class Backend(object):
         self._pyplot_show()
 
     #def plot1D(ar1d,x_range,labels=('energy, KeV','Ph/s/0.1%BW')):
-    def uti_plot1d(self, ar1d, x_range, labels=('energy [eV]', 'ph/s/0.1%bw')):
+    def uti_plot1d(self, ar1d, x_range, labels=('Photon Energy [eV]', 'ph/s/0.1%bw')):
         #fig = _pl.figure(figsize=(12,8))
         fig = self._pl.figure()
         self._plot_1D(ar1d,x_range,labels,fig)
+        return self._maybe_savefig(fig)
+
+    def uti_plot1d_ir(self, arY, arX, labels=('Longitudinal Position [m]', 'Horizontal Position [m]')): #1D plot on irregular mesh
+        fig = self._pl.figure()
+        self._plot_1D_ir(arY, arX, labels, fig)
         return self._maybe_savefig(fig)
 
     #def plot2D(ar2d,x_range,y_range,labels=('Horizontal position, mm','Vertical position, mm')):
@@ -104,20 +109,52 @@ class Backend(object):
         return self._maybe_savefig(fig)
 
     #def srw_ascii_plot(fname):
-    def uti_data_file_plot(self, _fname, _read_labels=1, _e=0, _x=0, _y=0, _graphs_joined=1,
+    #def uti_data_file_plot(self, _fname, _read_labels=1, _e=0, _x=0, _y=0, _graphs_joined=1):
+    #def uti_data_file_plot(self, _fname, _read_labels=1, _e=0, _x=0, _y=0, _graphs_joined=1, _traj_report=False, _traj_axis='x'): #MR20160729
+    #def uti_data_file_plot(self, _fname, _read_labels=1, _e=0, _x=0, _y=0, _graphs_joined=1, _traj_report=False, _traj_axis='x', _scale='linear', _width_pixels=None): #MR27012017
+    def uti_plot_data_file(self, _fname, _read_labels=1, _e=0, _x=0, _y=0, _graphs_joined=1, #OC16112017 (renamed: uti_plot_data_file -> uti_plot_data_file)
                            _multicolumn_data=False, _column_x=None, _column_y=None, #MR31102017
                            _scale='linear', _width_pixels=None):
         #data, mode, allrange = srw_ascii_load(fname)
         #data, mode, allrange, arLabels, arUnits = _file_load(_fname, _read_labels)
+        #data, mode, allrange, arLabels, arUnits = uti_plot_com.file_load(_fname, _read_labels)
+        #data, mode, allrange, arLabels, arUnits = uti_plot_com.file_load(_fname, _read_labels, _traj_report, _traj_axis) #MR20160729
+
+        #data = np.array(data) #MR27012017 (lines added until "pass")
+        #if _scale != 'linear':
+        #    available_scales = ['log', 'log2', 'log10']
+        #    if _scale not in available_scales:
+        #        raise ValueError('Scale "{}" is not supported. Available scales: {}.'.format(_scale, ', '.join(available_scales)))
+        #    data[np.where(data <= 0.)] = 1.e-23
+        #    data = getattr(np, _scale)(data)
+        #if _width_pixels:
+        #    try:
+        #        from scipy.ndimage import zoom
+        #        data = np.reshape(data, (allrange[5], allrange[8]), order='f')
+        #        resize_factor = float(_width_pixels) / float(allrange[5])
+        #        print('Size before: {}  Dimensions: {}'.format(data.size, data.shape))
+        #        data = zoom(data, resize_factor)
+        #        if _scale == 'linear':
+        #            data[np.where(data < 0.)] = 0.0
+        #        print('Size after : {}  Dimensions: {}'.format(data.size, data.shape))
+        #        allrange = list(allrange)
+        #        allrange[5] = data.shape[0]
+        #        allrange[8] = data.shape[1]
+        #        allrange = tuple(allrange)
+        #        data = np.reshape(data, (data.shape[0] * data.shape[1]), order='f')
+        #    except:
+        #        print('Cannot resize the image - scipy.ndimage.zoom() cannot be imported.')
+        #        pass
+
         data, mode, allrange, arLabels, arUnits = uti_plot_com.file_load(_fname, _read_labels, _multicolumn_data) #MR31102017
         if not _multicolumn_data:
             data = np.array(data)
-        if mode == 3:
-            try:
-                fwhm_dict = uti_math.fwhm(np.linspace(allrange[0], allrange[1], allrange[2]), data, return_as_dict=True)
-            except:
-                fwhm_dict = {'fwhm': -1}
-            print('FWHM: {:.5f} [{}]'.format(fwhm_dict['fwhm'], arUnits[0]))
+        #if mode == 3: #OC17112017 (commented-out)
+        #    try:
+        #        fwhm_dict = uti_math.fwhm(np.linspace(allrange[0], allrange[1], allrange[2]), data, return_as_dict=True)
+        #    except:
+        #        fwhm_dict = {'fwhm': -1}
+        #    print('FWHM: {:.5f} [{}]'.format(fwhm_dict['fwhm'], arUnits[0]))
         if _scale != 'linear':
             available_scales = ['log', 'log2', 'log10']
             if _scale not in available_scales:
@@ -161,13 +198,20 @@ class Backend(object):
         #  fig = __mode_EH(data,allrange)
         elif mode==m.EHV:
             fig = self.__mode_EHV(data, allrange, arLabels, arUnits, _e, _x, _y, _graphs_joined)
+
         if _multicolumn_data: #MR31102017
             available_cols = list(data.keys())
             for c in [_column_x, _column_y]:
                 if c not in available_cols:
                     raise ValueError('Incorrect column specified: {}.\nAvailable columns: {}'.format(c, available_cols))
             fig = self._plot_1D_XvsY(data, _column_x, _column_y)
+
         return self._maybe_savefig(fig)
+
+    def uti_data_file_plot(self, _fname, _read_labels=1, _e=0, _x=0, _y=0, _graphs_joined=1,
+                           _multicolumn_data=False, _column_x=None, _column_y=None, #MR31102017
+                           _scale='linear', _width_pixels=None):
+        return self.uti_plot_data_file(_fname, _read_labels, _e, _x, _y, _graphs_joined, _multicolumn_data, _column_x, _column_y, _scale, _width_pixels) #OC16112017
 
     def _enum(self, *sequential, **named): #Had to copy this in uti_plot_com
         enums = dict(zip(sequential, range(len(sequential))), **named)
@@ -181,6 +225,21 @@ class Backend(object):
         ax.set_xlabel(data[column_x]['label'])
         ax.set_ylabel(data[column_y]['label'])
         return fig
+
+    def _plot_1D_ir(self, ary, arx, labels, fig, typ=111): #OC15112017
+        if isinstance(arx, (list, array)): arx = np.array(arx)
+        if isinstance(ary, (list, array)): ary = np.array(ary)
+
+        ax = fig.add_subplot(typ)
+        ax.plot(arx, ary)
+        ax.grid()
+        #ax.set_xlim(arx[0], arx[-1])
+        #ax.set_xlim(min(arx), max(arx))
+
+        ax.set_xlabel(labels[0])
+        ax.set_ylabel(labels[1])
+        if(len(labels) > 2):
+            ax.set_title(labels[2])
 
     def _plot_1D(self, ar1d, x_range, labels, fig, typ=111):
         lenAr1d = len(ar1d)
@@ -279,7 +338,8 @@ class Backend(object):
         range_e = e0, e1, ne
         #label = ("Energy, ["+units[0]+"]","Ph/s/0.1%BW")
         label = (_ar_labels[0] + ' [' + units[0] + ']', _ar_labels[3] + ' [' + _ar_units[3] + ']')
-        fig = self._pl.figure(figsize=(4,4))
+        #fig = self._pl.figure(figsize=(4,4))
+        fig = self._pl.figure(figsize=(7,4)) #OC17112017
         self._plot_1D(data,range_e,label,fig)
         return fig
 
@@ -596,7 +656,8 @@ class Backend(object):
                 return True
             except:
                 pass
-        return False
+        #return false
+        return False #MR19042016
 
     class _HideGUIErrorOutput(object):
         """Redirect low level stderr (fd #2) to os.devnull as context manager

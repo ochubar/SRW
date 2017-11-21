@@ -1,6 +1,6 @@
-#############################################################################
+﻿#############################################################################
 # uti_math module: misc. mathematical utilities / functions
-# v 0.02
+# v 0.03
 # Authors: O.C., Maksim Rakitin
 #############################################################################
 
@@ -366,16 +366,19 @@ def find_ar_max(_ar, _ib=0, _ie=-1, _min=False):
     :param _min: switch specifying that minimum (rather than maximum) has to be searched
     """
 
-    if((_ar == None) or (len(_ar) <= 0)): raise Exception('Incorrect input array.')
-    if(_ie < _ib): raise Exception('Incorrect definition of start and end indexes.')
-
+    strErIncorArray = 'Incorrect input array.'
+    
+    if(_ar is None): raise Exception(strErIncorArray)
     nTot = len(_ar)
+    if(nTot <= 0): raise Exception(strErIncorArray)
 
     iBeg = _ib
     if(_ib < 0): iBeg = 0
-    
+
     iEnd = _ie
-    if(_ie >= nTot): iEnd = nTot - 1
+    if((iEnd == -1) or (_ie >= nTot)): iEnd = nTot - 1
+
+    if(iEnd < iBeg): raise Exception('Incorrect definition of start and end indexes.')
 
     curExtr = _ar[0]
     curInd = 0
@@ -422,11 +425,11 @@ def integ_ar_2d(_ar, _ar_align, _x_grid, _y_grid, _x_lim=None, _y_lim=None):
     :param _y_lim: list/array specifying inegration limits vs another dimensions (_y_lim[0] is start, _y_lim[1] is end)
     """
 
-    if(_x_lim != None):
+    if(_x_lim is not None):
         #print(_x_lim[0], _x_lim[1])
         if(_x_lim[0] >= _x_lim[1]): return 0.
 
-    if(_y_lim != None):
+    if(_y_lim is not None):
         #print(_y_lim[0], _y_lim[1])
         if(_y_lim[0] >= _y_lim[1]): return 0.
 
@@ -441,13 +444,13 @@ def integ_ar_2d(_ar, _ar_align, _x_grid, _y_grid, _x_lim=None, _y_lim=None):
     if((xStep == 0) or (yStep == 0)): return 0.
 
     x_min = xStart; x_max = xEnd; nxInteg = 0
-    if(_x_lim != None):
+    if(_x_lim is not None):
         x_min = _x_lim[0]
         x_max = _x_lim[1]
         if(len(_x_lim) > 2): nxInteg = int(round(_x_lim[2]))
 
     y_min = yStart; y_max = yEnd; nyInteg = 0
-    if(_y_lim != None):
+    if(_y_lim is not None):
         y_min = _y_lim[0]
         y_max = _y_lim[1]
         if(len(_y_lim) > 2): nyInteg = int(round(_y_lim[2]))
@@ -627,14 +630,20 @@ def fwhm(x, y, shift=0.5, return_as_dict=False):  # MR21032017
         return True if num > 0 else False
 
     # Normalize values first:
-    min_y = min(y)
-    max_y = max(y)
-    for i in range(len(y)):
-        y[i] = (y[i] - min_y) / (max_y - min_y) - shift  # roots are at Y=0
+    #y = (y - min(y)) / (max(y) - min(y)) - shift  # roots are at Y=0
+
+    #OC18112017 (making it work with standard Python lists / arrays)
+    minY = min(y)
+    maxY = max(y)
+    if(maxY == minY): raise Exception('FWHM can not be calculated')
+    mult = 1./(maxY - minY)
+    lenY = len(y)
+    for i in range(lenY): y[i] = (y[i] - minY)*mult - shift
 
     positive = is_positive(y[0])
     list_of_roots = []
-    for i in range(len(y)):
+    #for i in range(len(y)):
+    for i in range(lenY):
         current_positive = is_positive(y[i])
         if current_positive != positive:
             list_of_roots.append(x[i - 1] + (x[i] - x[i - 1]) / (abs(y[i]) + abs(y[i - 1])) * abs(y[i - 1]))
@@ -649,3 +658,14 @@ def fwhm(x, y, shift=0.5, return_as_dict=False):  # MR21032017
             }
     else:
         raise Exception('Number of roots is less than 2!')
+
+#****************************************************************************
+#def fwhm_scipy(x, y): #MR27092016
+#    """Computing FWHM (Full width at half maximum)"""
+#    try:
+#        from scipy.interpolate import UnivariateSpline
+#        spline = UnivariateSpline(x, y, s=0)
+#        r1, r2 = spline.roots()  # find the roots
+#        return r2 - r1  # return the difference (full width)
+#    except ImportError:
+#        return fwhm(x, y)
