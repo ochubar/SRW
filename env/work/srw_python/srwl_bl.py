@@ -560,8 +560,7 @@ class SRWLBeamline(object):
 
         #print(precPar)
         nIndReq = srwl.UtiUndFindMagFldInterpInds(arIndReqFiles, arGaps, arPhases, precPar) #to implement
-        #print(nIndReq)
-        #print(precPar)
+        #print(arIndReqFiles)
 
         if((nIndReq <= 0) or (nIndReq > nRows)):
             raise Exception('Inconsistent magnetic field data summary file')
