@@ -265,6 +265,7 @@ struct SRWLStructWaveFront {
 	char presFT; /* presentation/domain: 0- frequency (photon energy), 1- time */
 	char numTypeElFld; /* electric field numerical type: 'f' (float) or 'd' (double) */
 	char unitElFld; /* electric field units: 0- arbitrary, 1- sqrt(Phot/s/0.1%bw/mm^2), 2- sqrt(J/eV/mm^2) or sqrt(W/mm^2), depending on representation (freq. or time) ? */
+	char unitElFldAng; /* electric field units in angular representation: 0- sqrt(Wavelength[m]*Phot/s/0.1%bw/mrad^2) vs rad/Wavelength[m], 1- sqrt(Phot/s/0.1%bw/mrad^2) vs rad; [Phot/s/0.1%bw] can be replaced by [J/eV] or [W], depending on unitElFld, presFT and presCA */
 
 	SRWLPartBeam partBeam; /* particle beam source; strictly speaking, it should be just SRWLParticle; however, "multi-electron" information can appear useful for those cases when "multi-electron intensity" can be deduced from the "single-electron" one by convolution */
 	double *arElecPropMatr; /* effective 1st order "propagation matrix" for electron beam parameters */

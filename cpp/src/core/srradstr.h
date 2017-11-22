@@ -98,6 +98,8 @@ public:
 	char LengthUnit; // 0- m; 1- mm; 
 	char PhotEnergyUnit; // 0- eV; 1- keV; 
 	char ElecFldUnit; // 0- Arb. Units, 1- sqrt(Phot/s/0.1%bw/mm^2), 2- sqrt(J/eV/mm^2) or sqrt(W/mm^2), depending on representation (freq. or time)
+	//OC20112017
+	char ElecFldAngUnit; //Electric field units in angular representation: 0- sqrt(Wavelength[m]*Phot/s/0.1%bw/mrad^2) vs rad/Wavelength[m], 1- sqrt(Phot/s/0.1%bw/mrad^2) vs rad; [Phot/s/0.1%bw] can be replaced by [J/eV] or [W], depending on ElecFldUnit, PresT and Pres
 
 	bool WfrQuadTermCanBeTreatedAtResizeX; // is used at the time of one resize only
 	bool WfrQuadTermCanBeTreatedAtResizeZ;

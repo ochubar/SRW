@@ -284,7 +284,10 @@ int CGenMathFFT2D::Make2DFFT(CGenMathFFT2DInfo& FFT2DInfo)
 		RepairSignAfter2DFFT(DataToFFT);
 		fftwnd(Plan2DFFT, 1, DataToFFT, 1, 0, DataToFFT, 1, 0);
 	}
-	double Mult = FFT2DInfo.xStep*FFT2DInfo.yStep;
+	
+	//double Mult = FFT2DInfo.xStep*FFT2DInfo.yStep;
+	double Mult = FFT2DInfo.xStep*FFT2DInfo.yStep*FFT2DInfo.ExtraMult; //OC20112017
+
 	NormalizeDataAfter2DFFT(DataToFFT, Mult);
 
 	if(NeedsShiftAfterX) FillArrayShift('x', t0SignMult*x0_After, FFT2DInfo.xStepTr);

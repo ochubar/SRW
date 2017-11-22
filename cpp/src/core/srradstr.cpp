@@ -562,6 +562,8 @@ void srTSRWRadStructAccessData::InSRWRadPtrs(SRWLWfr& srwlWfr)
 	Pres = srwlWfr.presCA;
 	PresT = srwlWfr.presFT;
 	ElecFldUnit = srwlWfr.unitElFld;
+	ElecFldAngUnit = srwlWfr.unitElFldAng; //OC20112017
+
 	avgPhotEn = srwlWfr.avgPhotEn;
 	LengthUnit = 0; // 0- m; 1- mm; 
 	PhotEnergyUnit = 0; // 0- eV; 1- keV; 
@@ -3617,6 +3619,8 @@ int srTSRWRadStructAccessData::SetRepresCA(char CoordOrAng)
 //End New
 
 	CGenMathFFT2D FFT2D;
+	const double constPhotEnWavelenConv = 1.239842e-06;
+	double avgWaveLength_m = 0.;
 
 	if(ne == 1)
 	{
@@ -3627,6 +3631,20 @@ int srTSRWRadStructAccessData::SetRepresCA(char CoordOrAng)
 			{
 				if(result = SetupWfrEdgeCorrData(pBaseRadX, pBaseRadZ, DataPtrsForWfrEdgeCorr)) return result;
 			}
+		}
+
+		if(ElecFldAngUnit == 1) //OC20112017
+		{
+			double avgPhotEnLoc = (PresT == 0)? eStart : avgPhotEn;
+			avgWaveLength_m = constPhotEnWavelenConv/avgPhotEnLoc;
+			if(CoordOrAng == 0)
+			{
+				FFT2DInfo.ExtraMult = avgWaveLength_m;
+				double multArg = 1./avgWaveLength_m;
+				FFT2DInfo.xStart *= multArg; FFT2DInfo.xStep *= multArg;
+				FFT2DInfo.yStart *= multArg; FFT2DInfo.yStep *= multArg;
+			}
+			else FFT2DInfo.ExtraMult = 1./avgWaveLength_m;
 		}
 
 		FFT2DInfo.pData = pBaseRadX;
@@ -3648,6 +3666,20 @@ int srTSRWRadStructAccessData::SetRepresCA(char CoordOrAng)
 	}
 	else
 	{
+		if(ElecFldAngUnit == 1) //OC20112017
+		{
+			double avgPhotEnLoc = (PresT == 0)? (eStart + 0.5*ne*eStep) : avgPhotEn;
+			avgWaveLength_m = constPhotEnWavelenConv/avgPhotEnLoc;
+			if(CoordOrAng == 0)
+			{
+				FFT2DInfo.ExtraMult = avgWaveLength_m; //NOTE: this may be incorrect for large bandwidth !?
+				double multArg = 1./avgWaveLength_m;
+				FFT2DInfo.xStart *= multArg; FFT2DInfo.xStep *= multArg;
+				FFT2DInfo.yStart *= multArg; FFT2DInfo.yStep *= multArg;
+			}
+			else FFT2DInfo.ExtraMult = 1./avgWaveLength_m; //NOTE: this may be incorrect for large bandwidth !?
+		}
+
 		//long TwoNxNz = (nx*nz) << 1;
 		long long TwoNxNz = (((long long)nx)*((long long)nz)) << 1;
 		float* AuxEx = new float[TwoNxNz];
@@ -3696,6 +3728,14 @@ int srTSRWRadStructAccessData::SetRepresCA(char CoordOrAng)
 	zStep = FFT2DInfo.yStepTr;
 	xStart = FFT2DInfo.xStartTr;
 	zStart = FFT2DInfo.yStartTr;
+
+	if((ElecFldAngUnit == 1) && (CoordOrAng == 1)) //OC20112017
+	{
+		double multArg = avgWaveLength_m;
+		xStart *= multArg; xStep *= multArg;
+		zStart *= multArg; zStep *= multArg;
+	}
+
 	Pres = CoordOrAng;
 
 	SetNonZeroWavefrontLimitsToFullRange();

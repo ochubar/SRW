@@ -112,11 +112,13 @@ struct CGenMathFFT2DInfo {
 	//using the same strides, etcetera, as were used in the input. 
 
 	char UseGivenStartTrValues;
+	double ExtraMult; //OC20112017
 
 	CGenMathFFT2DInfo() 
 	{ 
 		howMany = 1; iStride = 1; iDist = 0; //OC151014
 		UseGivenStartTrValues = 0;
+		ExtraMult = 1.; //OC20112017
 	}
 };
 

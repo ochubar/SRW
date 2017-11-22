@@ -2818,6 +2818,16 @@ void ParseSructSRWLWfr(SRWLWfr* pWfr, PyObject* oWfr, vector<Py_buffer>* pvBuf, 
 	pWfr->unitElFld = (char)PyLong_AsLong(o_tmp);
 	Py_DECREF(o_tmp);
 
+	pWfr->unitElFldAng = 0; //OC19112017
+	if(PyObject_HasAttrString(oWfr, "unitElFldAng"))
+	{
+		o_tmp = PyObject_GetAttrString(oWfr, "unitElFldAng");
+		if(o_tmp == 0) throw strEr_BadWfr;
+		if(!PyNumber_Check(o_tmp)) throw strEr_BadWfr;
+		pWfr->unitElFldAng = (char)PyLong_AsLong(o_tmp);
+		Py_DECREF(o_tmp);
+	}
+
 	o_tmp = PyObject_GetAttrString(oWfr, "partBeam");
 	if(o_tmp == 0) throw strEr_BadWfr;
 	ParseSructSRWLPartBeam(&(pWfr->partBeam), o_tmp, *pvBuf);
@@ -2977,7 +2987,12 @@ template<class T> void UpdatePyListNum(PyObject* oList, const T* ar, int n) //OC
 		//else if(PyFloat_Check(oElemOld))  arNumType[0] = 'd';
 		//if(PyList_SetItem(oList, (Py_ssize_t)i, Py_BuildValue(arNumType, ar[i])) != 0) throw strEr_BadNum;
 		//OC02112017
-		if(PyLong_Check(oElemOld)) 
+
+#if PY_MAJOR_VERSION >= 3 //OC21112017
+		if(PyLong_Check(oElemOld)) //This compiles, but desn't make a correct test under Py 2.x
+#else
+		if(PyInt_Check(oElemOld)) //This doesn't compile with Py 3.x
+#endif
 		{
 			arNumType[0] = 'i';
 			if(PyList_SetItem(oList, (Py_ssize_t)i, Py_BuildValue(arNumType, (int)(ar[i]))) != 0) throw strEr_BadNum;
@@ -2989,7 +3004,7 @@ template<class T> void UpdatePyListNum(PyObject* oList, const T* ar, int n) //OC
 		}
 	}
 
-	for(int j=nExist; j<n; j++)
+	for(int j=nExist; j<n; j++) //??
 	{
 		if(PyList_Append(oList, Py_BuildValue("d", ar[j])) != 0) throw strEr_BadNum; //consider analyzing T ?
 	}

@@ -1508,6 +1508,7 @@ class SRWLWfr(object):
         self.presCA = 0 #presentation/domain: 0- coordinates, 1- angles
         self.presFT = 0 #presentation/domain: 0- frequency (photon energy), 1- time
         self.unitElFld = 1 #electric field units: 0- arbitrary, 1- sqrt(Phot/s/0.1%bw/mm^2), 2- sqrt(J/eV/mm^2) or sqrt(W/mm^2), depending on representation (freq. or time) ?
+        self.unitElFldAng = 0 #electric field units in angular representation: 0- sqrt(Wavelength[m]*Phot/s/0.1%bw/mrad^2) vs rad/Wavelength[m], 1- sqrt(Phot/s/0.1%bw/mrad^2) vs rad; [Phot/s/0.1%bw] can be replaced by [J/eV] or [W], depending on self.unitElFld, self.presFT and self.presCA
         self.arElecPropMatr = array('d', [0] * 20) #effective 1st order "propagation matrix" for electron beam parameters
         self.arMomX = array('d', [0] * 11 * _ne) #statistical moments (of Wigner distribution); to check the exact number of moments required
         self.arMomY = array('d', [0] * 11 * _ne)
@@ -4621,12 +4622,18 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
 
     resEntityName = 'Intensity' #OC26042016
     resEntityUnits = 'ph/s/.1%bw/mm^2'
+    resLabelsToSave = ['Photon Energy', 'Horizontal Position', 'Vertical Position', resEntityName] #OC26042016
+    resUnitsToSave=['eV', 'm', 'm', resEntityUnits] #OC26042016
+    
+    if(_pres_ang > 0): #OC20112017
+        resEntityName = 'Ang. Intensity Distr.'
+        resEntityUnits = 'ph/s/.1%bw/mrad^2'
+        resLabelsToSave = ['Photon Energy', 'Horizontal Angle', 'Vertical Angle', resEntityName]
+        resUnitsToSave=['eV', 'rad', 'rad', resEntityUnits]
+
     if(calcSpecFluxSrc == True):
         resEntityName = 'Flux'
         resEntityUnits = 'ph/s/.1%bw'
-
-    resLabelsToSave = ['Photon Energy', 'Horizontal Position', 'Vertical Position', resEntityName] #OC26042016
-    resUnitsToSave=['eV', 'm', 'm', resEntityUnits] #OC26042016
     
     #if(((rank == 0) or (nProc == 1)) and (_opt_bl != None)): #calculate once the central wavefront in the master process (this has to be done only if propagation is required)
     if(((rank == 0) or (nProc == 1)) and (_det is None)): #12/01/2017 
@@ -4681,8 +4688,11 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
         #print('DEBUG: Commented-out: PropagElecField')
         #print('DEBUG MESSAGE: Central Wavefront propagated')
         if(_pres_ang > 0):
+            wfr.unitElFldAng = 1 #OC20112017 (to ensure result in [ph/s/.1%bw/mrad^2])
             srwl.SetRepresElecField(wfr, 'a')
-            if(wfr2 is not None): srwl.SetRepresElecField(wfr2, 'a') #OC30052017
+            if(wfr2 is not None):
+                wfr2.unitElFldAng = 1 #OC20112017
+                srwl.SetRepresElecField(wfr2, 'a') #OC30052017
             #print('DEBUG: Commented-out: SetRepresElecField')
 
         #meshRes.set_from_other(wfr.mesh)
@@ -5096,8 +5106,11 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
                     #END DEBUG
 
                 if(_pres_ang > 0):
+                    wfr.unitElFldAng = 1 #OC20112017 (to have result in [ph/s/.1%bw/mrad^2] vs [rad])
                     srwl.SetRepresElecField(wfr, 'a')
-                    if(wfr2 is not None): srwl.SetRepresElecField(wfr2, 'a')
+                    if(wfr2 is not None):
+                        wfr2.unitElFldAng = 1 #OC20112017
+                        srwl.SetRepresElecField(wfr2, 'a')
 
                     #print('DEBUG: Commented-out: SetRepresElecField')
 
