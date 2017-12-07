@@ -2980,7 +2980,8 @@ def srwl_uti_parse_options(_descr, use_sys_argv=True, args=None): #OC08032016 #M
             sType = str
             listOptNamesPostParse.append(curOpt[0])
 
-        curOpt[3] = curOpt[3].replace('%', '%%') # screen special '%' symbol
+        if '%%' not in curOpt[3]:
+            curOpt[3] = curOpt[3].replace('%', '%%') # screen special '%' symbol
         if (len(sTypeShort) <= 0):
             p.add_argument('--' + curOpt[0], default=defVal, help=curOpt[3], action=sAct)
         else:
