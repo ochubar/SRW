@@ -1,13 +1,13 @@
 
 OPEN SOURCE LICENSE AGREEMENT
 
-Copyright © 1997 - 2002, European Synchrotron Radiation Facility
-Copyright © 2003 - 2008, Synchrotron SOLEIL
-Copyright © 2009 - 2012, European X-Ray Free-Electron Laser Facility GmbH
-Copyright © 2009 - 2012, Brookhaven Science Associates, Brookhaven National Laboratory
-Copyright © 2011 - 2012, Diamond Light Source Ltd
-
-The ìSynchrotron Radiation Workshop (SRW)î is distributed subject to the following license conditions:
+Copyright ¬© 1997 - 2002, European Synchrotron Radiation Facility
+Copyright ¬© 2003 - 2008, Synchrotron SOLEIL
+Copyright ¬© 2009 - 2012, European X-Ray Free-Electron Laser Facility GmbH
+Copyright ¬© 2009 - 2012, Brookhaven Science Associates, Brookhaven National Laboratory
+Copyright ¬© 2011 - 2012, Diamond Light Source Ltd
+Copyright ¬© 2018 - 2018. rLiSj
+The ‚ÄúSynchrotron Radiation Workshop (SRW)‚Äù is distributed subject to the following license conditions:
 
 SOFTWARE LICENSE AGREEMENT
 	Software: SRW 
