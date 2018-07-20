@@ -579,17 +579,31 @@ def matr_print(_A):
     """
     for i in range(len(_A)):
         print(_A[i])
- 
+
+#****************************************************************************
+def matr_3x3_det(_M):
+    S0 = _M[0]; S1 = _M[1]; S2 = _M[2]
+    return S0[0]*S1[1]*S2[2] + S0[1]*S1[2]*S2[0] + S0[2]*S1[0]*S2[1] - S0[2]*S1[1]*S2[0] - S0[0]*S1[2]*S2[1] - S0[1]*S1[0]*S2[2]
+
+#****************************************************************************
+def matr_3x3_inv(_M):
+    S0 = _M[0]; S1 = _M[1]; S2 = _M[2]
+    invDet = 1./(S0[0]*S1[1]*S2[2] + S0[1]*S1[2]*S2[0] + S0[2]*S1[0]*S2[1] - S0[2]*S1[1]*S2[0] - S0[0]*S1[2]*S2[1] - S0[1]*S1[0]*S2[2])
+    S0i = [invDet*(S1[1]*S2[2] - S1[2]*S2[1]), invDet*(-S0[1]*S2[2] + S0[2]*S2[1]), invDet*(S0[1]*S1[2] - S0[2]*S1[1])]
+    S1i = [invDet*(-S1[0]*S2[2] + S1[2]*S2[0]), invDet*(S0[0]*S2[2] - S0[2]*S2[0]), invDet*(-S0[0]*S1[2] + S0[2]*S1[0])]
+    S2i = [invDet*(S1[0]*S2[1] - S1[1]*S2[0]), invDet*(-S0[0]*S2[1] + S0[1]*S2[0]), invDet*(S0[0]*S1[1] - S0[1]*S1[0])]
+    return [S0i, S1i, S2i]
+
 #****************************************************************************
 def trf_rotation(_V, _ang, _P):
     """
     Sets up matrix and vector describing rotation about axis _V passing through a point _P about an angle _ang
-    :param _V: vector (array of 3 Cartesian coordinates) rdefining rotation axis
+    :param _V: vector (array of 3 Cartesian coordinates) defining rotation axis
     :param _ang: rotation angle [rad]
     :param _P: point (array of 3 Cartesian coordinates) rotation axis passes through
     :returns list containing the 3x3 matrix and 3-element vector
     """
-    normFact = 1./sqrt(_V[0]*_V[0] + _V[1]*_V[1] + _V[2]*_V[2]);
+    normFact = 1./sqrt(_V[0]*_V[0] + _V[1]*_V[1] + _V[2]*_V[2])
     axVect = [normFact*_V[0], normFact*_V[1], normFact*_V[2]]
     VxVx = axVect[0]*axVect[0]
     VyVy = axVect[1]*axVect[1]

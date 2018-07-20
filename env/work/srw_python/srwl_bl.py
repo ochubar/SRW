@@ -17,6 +17,11 @@ import uti_math
 #import optparse #MR081032016 #Consider placing import argparse here
 import time
 
+try: #OC05042018
+    import cPickle as pickle
+except:
+    import pickle
+
 #****************************************************************************
 class SRWLBeamline(object):
     """Basic Synchrotron Radiation Beamline (in a storage ring based source)
@@ -715,15 +720,22 @@ class SRWLBeamline(object):
         return self.ptSrc
 
     #------------------------------------------------------------------------
-    def set_optics(self, _op):
+    def set_optics(self, _op, _v=None): #OC28042018
+    #def set_optics(self, _op):
         """Setup optical element container
         :param _op: optical element container (SRWLOptC instance)
+        :param _v: additional propagation-related options
         """
 
         #if((_op is None) or (isinstance(_op, SRWLOptC) == False)):
         if((_op is None) or (not isinstance(_op, SRWLOptC))):
-
             raise Exception('Incorrect optics container (SRWLOptC) structure')
+
+        #print(_v)
+        if(_v is not None): #OC28042018
+            if(_v.op_dp != 0):
+                _op.append_drift(_v.op_dp)
+        
         if(self.optics is not None): del self.optics
         self.optics = _op
 
@@ -814,9 +826,62 @@ class SRWLBeamline(object):
         return partTraj
 
     #------------------------------------------------------------------------
+    def calc_int_from_wfr(self, _wfr, _pol=6, _int_type=0, _det=None, _fname='', _pr=True): #OC06042018
+        """Calculates intensity from electric field and saving it to a file
+        :param _wfr: electric field wavefront (instance of SRWLWfr)
+        :param _pol: polarization component to extract: 
+            0- Linear Horizontal; 
+            1- Linear Vertical; 
+            2- Linear 45 degrees; 
+            3- Linear 135 degrees; 
+            4- Circular Right; 
+            5- Circular Left; 
+            6- Total
+        :param _int_type: "type" of a characteristic to be extracted:
+           -1- No Intensity / Electric Field components extraction is necessary (only Wavefront will be calculated)
+            0- "Single-Electron" Intensity; 
+            1- "Multi-Electron" Intensity; 
+            2- "Single-Electron" Flux; 
+            3- "Multi-Electron" Flux; 
+            4- "Single-Electron" Radiation Phase; 
+            5- Re(E): Real part of Single-Electron Electric Field;
+            6- Im(E): Imaginary part of Single-Electron Electric Field;
+            7- "Single-Electron" Intensity, integrated over Time or Photon Energy (i.e. Fluence);
+        :param _det: detector (instance of SRWLDet)
+        :param _fname: name of file to save the resulting data to (for the moment, in ASCII format)
+        :param _pr: switch specifying if printing tracing the execution should be done or not
+        :return: 1D array with (C-aligned) resulting intensity data
+        """
+
+        if _pr:
+            print('Extracting intensity and saving it to a file ... ', end='')
+            t0 = time.time();
+            
+        sNumTypeInt = 'f'
+        if(_int_type == 4): sNumTypeInt = 'd' #Phase?
+
+        resMeshI = deepcopy(_wfr.mesh)
+
+        depType = resMeshI.get_dep_type()
+        if(depType < 0): Exception('Incorrect numbers of points in the mesh structure')
+        
+        arI = array(sNumTypeInt, [0]*resMeshI.ne*resMeshI.nx*resMeshI.ny)
+        srwl.CalcIntFromElecField(arI, _wfr, _pol, _int_type, depType, resMeshI.eStart, resMeshI.xStart, resMeshI.yStart)
+
+        if(_det is not None):
+            resStkDet = _det.treat_int(arI, resMeshI)
+            arI = resStkDet.arS
+            resMeshI = resStkDet.mesh
+
+        if(len(_fname) > 0): srwl_uti_save_intens_ascii(arI, resMeshI, _fname, 0, ['Photon Energy', 'Horizontal Position', 'Vertical Position', ''], _arUnits=['eV', 'm', 'm', 'ph/s/.1%bw/mm^2'])
+        if _pr: print('completed (lasted', round(time.time() - t0, 2), 's)')
+
+        return arI, resMeshI
+
+    #------------------------------------------------------------------------
     #def calc_sr_se(self, _mesh, _samp_fact=-1, _meth=2, _rel_prec=0.01, _pol=6, _int_type=0, _mag_type=1, _fname=''):
     #def calc_sr_se(self, _mesh, _samp_fact=-1, _meth=2, _rel_prec=0.01, _pol=6, _int_type=0, _mag_type=1, _fname='', _det=None): #OC06122016
-    def calc_sr_se(self, _mesh, _samp_fact=-1, _meth=2, _rel_prec=0.01, _pol=6, _int_type=0, _mag_type=1, _fname='', _det=None, _zi=0, _zf=0): #OC27122016
+    def calc_sr_se(self, _mesh, _samp_fact=-1, _meth=2, _rel_prec=0.01, _pol=6, _int_type=0, _mag_type=1, _fname='', _det=None, _zi=0, _zf=0, _pr=True): #OC27122016
         """Calculates single-electron intensity
         :param _mesh: mesh on which the intensity has to be calculated (SRWLRadMesh instance)
         :param _samp_fact: sampling factor for adjusting nx, ny (effective if > 0)
@@ -847,22 +912,24 @@ class SRWLBeamline(object):
         :param _det: detector (instance of SRWLDet)
         :param _zi: initial lonngitudinal position [m] of electron trajectory for SR calculation
         :param _zf: final lonngitudinal position [m] of electron trajectory for SR calculation
-        :return: 1D array with (C-aligned) resulting intensity data
+        :return: resulting wavefront (instance of SRWLWfr) and 1D array with (C-aligned) intensity data
         """
 
         #if((_mesh is None) or (isinstance(_mesh, SRWLRadMesh) == False)):
         if((_mesh is None) or (not isinstance(_mesh, SRWLRadMesh))):
             raise Exception('Incorrect SRWLRadMesh structure')
 
-        depType = -1
-        if((_mesh.ne >= 1) and (_mesh.nx == 1) and (_mesh.ny == 1)): depType = 0
-        elif((_mesh.ne == 1) and (_mesh.nx > 1) and (_mesh.ny == 1)): depType = 1
-        elif((_mesh.ne == 1) and (_mesh.nx == 1) and (_mesh.ny > 1)): depType = 2
-        elif((_mesh.ne == 1) and (_mesh.nx > 1) and (_mesh.ny > 1)): depType = 3
-        elif((_mesh.ne > 1) and (_mesh.nx > 1) and (_mesh.ny == 1)): depType = 4
-        elif((_mesh.ne > 1) and (_mesh.nx == 1) and (_mesh.ny > 1)): depType = 5
-        elif((_mesh.ne > 1) and (_mesh.nx > 1) and (_mesh.ny > 1)): depType = 6
-        if(depType < 0): Exception('Incorrect numbers of points in the mesh structure')
+        #depType = -1
+        #if((_mesh.ne >= 1) and (_mesh.nx == 1) and (_mesh.ny == 1)): depType = 0
+        #elif((_mesh.ne == 1) and (_mesh.nx > 1) and (_mesh.ny == 1)): depType = 1
+        #elif((_mesh.ne == 1) and (_mesh.nx == 1) and (_mesh.ny > 1)): depType = 2
+        #elif((_mesh.ne == 1) and (_mesh.nx > 1) and (_mesh.ny > 1)): depType = 3
+        #elif((_mesh.ne > 1) and (_mesh.nx > 1) and (_mesh.ny == 1)): depType = 4
+        #elif((_mesh.ne > 1) and (_mesh.nx == 1) and (_mesh.ny > 1)): depType = 5
+        #elif((_mesh.ne > 1) and (_mesh.nx > 1) and (_mesh.ny > 1)): depType = 6
+
+        #depType = _mesh.get_dep_type() #OC06042018
+        #if(depType < 0): Exception('Incorrect numbers of points in the mesh structure')
 
         if(self.eBeam is None): Exception('Electron Beam structure is not defined')
 
@@ -895,8 +962,9 @@ class SRWLBeamline(object):
         #print('calc_sr_se: magToUse=', magToUse)
         #print('calc_sr_se: magToUse.arMagFld[0]=', magToUse.arMagFld[0])
 
-        print('Single-electron SR calculation ... ', end='')
-        t0 = time.time();
+        if _pr:
+            print('Single-electron SR calculation ... ', end='')
+            t0 = time.time();
 
         #DEBUG
         #print('       e-beam z=', wfr.partBeam.partStatMom1.z)
@@ -907,35 +975,35 @@ class SRWLBeamline(object):
         #END DEBUG
         
         srwl.CalcElecFieldSR(wfr, 0, magToUse, arPrecPar) #calculate SR
-        print('completed (lasted', round(time.time() - t0, 6), 's)')
+        if _pr: print('completed (lasted', round(time.time() - t0, 2), 's)')
 
         arI = None
+        resMeshI = None
         if(_int_type >= 0):
-            print('Extracting intensity and saving it to a file ... ', end='')
-            t0 = time.time();
-            sNumTypeInt = 'f'
-            if(_int_type == 4): sNumTypeInt = 'd' #Phase?
+            arI, resMeshI = self.calc_int_from_wfr(wfr, _pol, _int_type, _det, _fname)
+            
+            #print('Extracting intensity and saving it to a file ... ', end='')
+            #t0 = time.time();
+            #sNumTypeInt = 'f'
+            #if(_int_type == 4): sNumTypeInt = 'd' #Phase?
 
-            #resMeshI = wfr.mesh
-            resMeshI = deepcopy(wfr.mesh)
-            arI = array(sNumTypeInt, [0]*resMeshI.ne*resMeshI.nx*resMeshI.ny)
-            srwl.CalcIntFromElecField(arI, wfr, _pol, _int_type, depType, resMeshI.eStart, resMeshI.xStart, resMeshI.yStart)
+            #resMeshI = deepcopy(wfr.mesh)
+            #arI = array(sNumTypeInt, [0]*resMeshI.ne*resMeshI.nx*resMeshI.ny)
+            #srwl.CalcIntFromElecField(arI, wfr, _pol, _int_type, depType, resMeshI.eStart, resMeshI.xStart, resMeshI.yStart)
 
-            if(_det is not None): #OC06122016
-                #resStkDet = _det.treat_int(arI, resMeshI, _ord_interp=1)
-                resStkDet = _det.treat_int(arI, resMeshI) #OC11012017
-                arI = resStkDet.arS
-                resMeshI = resStkDet.mesh
+            #if(_det is not None): #OC06122016
+            #    resStkDet = _det.treat_int(arI, resMeshI) #OC11012017
+            #    arI = resStkDet.arS
+            #    resMeshI = resStkDet.mesh
 
-            if(len(_fname) > 0): srwl_uti_save_intens_ascii(arI, resMeshI, _fname, 0, ['Photon Energy', 'Horizontal Position', 'Vertical Position', ''], _arUnits=['eV', 'm', 'm', 'ph/s/.1%bw/mm^2'])
-            print('completed (lasted', round(time.time() - t0, 6), 's)')
+            #if(len(_fname) > 0): srwl_uti_save_intens_ascii(arI, resMeshI, _fname, 0, ['Photon Energy', 'Horizontal Position', 'Vertical Position', ''], _arUnits=['eV', 'm', 'm', 'ph/s/.1%bw/mm^2'])
+            #print('completed (lasted', round(time.time() - t0, 6), 's)')
 
-        #return wfr, arI
         return wfr, arI, resMeshI #OC06122016
 
     #------------------------------------------------------------------------
     #def calc_rad_gsn(self, _mesh, _samp_fact=-1, _pol=6, _int_type=0, _presFT='f', _unitE=2, _fname=''):
-    def calc_rad_gsn(self, _mesh, _samp_fact=-1, _pol=6, _int_type=0, _presFT='f', _unitE=2, _fname='', _det=None): #OC06122016
+    def calc_rad_gsn(self, _mesh, _samp_fact=-1, _pol=6, _int_type=0, _presFT='f', _unitE=2, _fname='', _det=None, _pr=True): #OC06122016
         """Calculates Gaussian beam wavefront (electric field) and intensity
         :param _mesh: mesh on which the intensity has to be calculated (SRWLRadMesh instance)
         :param _samp_fact: sampling factor for adjusting nx, ny (effective if > 0)
@@ -976,8 +1044,8 @@ class SRWLBeamline(object):
         #elif((_mesh.ne > 1) and (_mesh.nx == 1) and (_mesh.ny > 1)): depType = 5
         #elif((_mesh.ne > 1) and (_mesh.nx > 1) and (_mesh.ny > 1)): depType = 6
 
-        depType = _mesh.get_dep_type() #OC11102017
-        if(depType < 0): Exception('Incorrect numbers of points in the mesh structure')
+        #depType = _mesh.get_dep_type() #OC11102017
+        #if(depType < 0): Exception('Incorrect numbers of points in the mesh structure')
 
         wfr = SRWLWfr()
         wfr.allocate(_mesh.ne, _mesh.nx, _mesh.ny) #Numbers of points vs Photon Energy, Horizontal and Vertical Positions
@@ -989,7 +1057,7 @@ class SRWLBeamline(object):
         wfr.unitElFld = _unitE;
 
         locGsnBeam = copy(self.gsnBeam) #OC16102017
-        if(self.eBeam is not None): 
+        if(self.eBeam is not None):
             locGsnBeam.x += self.eBeam.partStatMom1.x
             locGsnBeam.y += self.eBeam.partStatMom1.y
             locGsnBeam.z = self.eBeam.partStatMom1.z #?
@@ -1009,50 +1077,45 @@ class SRWLBeamline(object):
         wfr.partBeam.partStatMom1.yp = locGsnBeam.yp
 
         if(self.eBeam is not None): #OC16102017
+            #print('Debug: 2nd order stat moments of incoherent beam:')
             for i in range(len(wfr.partBeam.arStatMom2)):
                 wfr.partBeam.arStatMom2[i] = self.eBeam.arStatMom2[i]
+                #print(i, wfr.partBeam.arStatMom2[i])
 
-        print('Gaussian beam electric field calculation ... ', end='')
-        t0 = time.time();
+        if _pr:
+            print('Gaussian beam electric field calculation ... ', end='')
+            t0 = time.time();
+            
         #srwl.CalcElecFieldGaussian(wfr, self.gsnBeam, [_samp_fact])
         srwl.CalcElecFieldGaussian(wfr, locGsnBeam, [_samp_fact]) #OC16102017
-        print('completed (lasted', round(time.time() - t0, 6), 's)')
+        if _pr: print('completed (lasted', round(time.time() - t0, 2), 's)')
 
         arI = None
+        resMeshI = None
         if(_int_type >= 0):
-            print('Extracting intensity and saving it to a file ... ', end='')
-            t0 = time.time();
-            sNumTypeInt = 'f'
-            if(_int_type == 4): sNumTypeInt = 'd'
+            arI, resMeshI = self.calc_int_from_wfr(wfr, _pol, _int_type, _det, _fname)
+            
+            #print('Extracting intensity and saving it to a file ... ', end='')
+            #t0 = time.time();
+            #sNumTypeInt = 'f'
+            #if(_int_type == 4): sNumTypeInt = 'd'
 
-            #print('depType=', depType)
-            #resMeshI = wfr.mesh
-            resMeshI = deepcopy(wfr.mesh)
-            arI = array(sNumTypeInt, [0]*resMeshI.ne*resMeshI.nx*resMeshI.ny)
-            srwl.CalcIntFromElecField(arI, wfr, _pol, _int_type, depType, resMeshI.eStart, resMeshI.xStart, resMeshI.yStart)
+            #resMeshI = deepcopy(wfr.mesh)
+            #arI = array(sNumTypeInt, [0]*resMeshI.ne*resMeshI.nx*resMeshI.ny)
+            #srwl.CalcIntFromElecField(arI, wfr, _pol, _int_type, depType, resMeshI.eStart, resMeshI.xStart, resMeshI.yStart)
 
-            #print('_det=', _det)
-            if(_det is not None): #OC06122016
-                #resStkDet = _det.treat_int(arI, resMeshI, _ord_interp=1)
-                resStkDet = _det.treat_int(arI, resMeshI) #OC11012017
-                arI = resStkDet.arS
-                resMeshI = resStkDet.mesh
+            #if(_det is not None): #OC06122016
+            #    resStkDet = _det.treat_int(arI, resMeshI) #OC11012017
+            #    arI = resStkDet.arS
+            #    resMeshI = resStkDet.mesh
 
-            if(len(_fname) > 0): srwl_uti_save_intens_ascii(arI, resMeshI, _fname, 0, ['Photon Energy', 'Horizontal Position', 'Vertical Position', ''], _arUnits=['eV', 'm', 'm', 'ph/s/.1%bw/mm^2'])
-            print('completed (lasted', round(time.time() - t0, 6), 's)')
+            #if(len(_fname) > 0): srwl_uti_save_intens_ascii(arI, resMeshI, _fname, 0, ['Photon Energy', 'Horizontal Position', 'Vertical Position', ''], _arUnits=['eV', 'm', 'm', 'ph/s/.1%bw/mm^2'])
+            #print('completed (lasted', round(time.time() - t0, 6), 's)')
 
-        #print('wfr.mesh.eStart=', wfr.mesh.eStart, 'wfr.mesh.eFin=', wfr.mesh.eFin, 'wfr.mesh.ne=', wfr.mesh.ne)
-        #print('resMeshI.eStart=', resMeshI.eStart, 'resMeshI.eFin=', resMeshI.eFin, 'resMeshI.ne=', resMeshI.ne)
-        #print('wfr.mesh.xStart=', wfr.mesh.xStart, 'wfr.mesh.xFin=', wfr.mesh.xFin, 'wfr.mesh.nx=', wfr.mesh.nx)
-        #print('resMeshI.xStart=', resMeshI.xStart, 'resMeshI.xFin=', resMeshI.xFin, 'resMeshI.nx=', resMeshI.nx)
-        #print('wfr.mesh.yStart=', wfr.mesh.yStart, 'wfr.mesh.yFin=', wfr.mesh.yFin, 'wfr.mesh.ny=', wfr.mesh.ny)
-        #print('resMeshI.yStart=', resMeshI.yStart, 'resMeshI.yFin=', resMeshI.yFin, 'resMeshI.ny=', resMeshI.ny)
-
-        #return wfr, arI
         return wfr, arI, resMeshI #OC06122016
 
     #------------------------------------------------------------------------
-    def calc_rad_pt_src(self, _mesh, _samp_fact=-1, _pol=6, _int_type=0, _presFT='f', _unitE=2, _fname='', _det=None): #OC11102017
+    def calc_rad_pt_src(self, _mesh, _samp_fact=-1, _pol=6, _int_type=0, _presFT='f', _unitE=2, _fname='', _det=None, _pr=True): #OC11102017
         """Calculates Spherical Wave electric field and intensity
         :param _mesh: mesh on which the intensity has to be calculated (SRWLRadMesh instance)
         :param _samp_fact: sampling factor for adjusting nx, ny (effective if > 0)
@@ -1093,8 +1156,8 @@ class SRWLBeamline(object):
         #elif((_mesh.ne > 1) and (_mesh.nx == 1) and (_mesh.ny > 1)): depType = 5
         #elif((_mesh.ne > 1) and (_mesh.nx > 1) and (_mesh.ny > 1)): depType = 6
 
-        depType = _mesh.get_dep_type()
-        if(depType < 0): Exception('Incorrect numbers of points in the mesh structure')
+        #depType = _mesh.get_dep_type()
+        #if(depType < 0): Exception('Incorrect numbers of points in the mesh structure')
 
         wfr = SRWLWfr()
         wfr.allocate(_mesh.ne, _mesh.nx, _mesh.ny) #Numbers of points vs Photon Energy, Horizontal and Vertical Positions
@@ -1127,34 +1190,35 @@ class SRWLBeamline(object):
             for i in range(len(wfr.partBeam.arStatMom2)):
                 wfr.partBeam.arStatMom2[i] = self.eBeam.arStatMom2[i]
 
-        print('Spherical wave electric field calculation ... ', end='')
-        t0 = time.time();
+        if _pr:
+            print('Spherical wave electric field calculation ... ', end='')
+            t0 = time.time();
+            
         #srwl.CalcElecFieldPointSrc(wfr, self.ptSrc, [_samp_fact])
         srwl.CalcElecFieldPointSrc(wfr, locPtSrc, [_samp_fact])
-        print('completed (lasted', round(time.time() - t0, 6), 's)')
+        if _pr: print('completed (lasted', round(time.time() - t0, 2), 's)')
 
         arI = None
+        resMeshI = None
         if(_int_type >= 0):
-            print('Extracting intensity and saving it to a file ... ', end='')
-            t0 = time.time();
-            sNumTypeInt = 'f'
-            if(_int_type == 4): sNumTypeInt = 'd'
+            arI, resMeshI = self.calc_int_from_wfr(wfr, _pol, _int_type, _det, _fname)
+            
+            #print('Extracting intensity and saving it to a file ... ', end='')
+            #t0 = time.time();
+            #sNumTypeInt = 'f'
+            #if(_int_type == 4): sNumTypeInt = 'd'
 
-            #print('depType=', depType)
-            #resMeshI = wfr.mesh
-            resMeshI = deepcopy(wfr.mesh)
-            arI = array(sNumTypeInt, [0]*resMeshI.ne*resMeshI.nx*resMeshI.ny)
-            srwl.CalcIntFromElecField(arI, wfr, _pol, _int_type, depType, resMeshI.eStart, resMeshI.xStart, resMeshI.yStart)
+            #resMeshI = deepcopy(wfr.mesh)
+            #arI = array(sNumTypeInt, [0]*resMeshI.ne*resMeshI.nx*resMeshI.ny)
+            #srwl.CalcIntFromElecField(arI, wfr, _pol, _int_type, depType, resMeshI.eStart, resMeshI.xStart, resMeshI.yStart)
 
-            #print('_det=', _det)
-            if(_det is not None): #OC06122016
-                #resStkDet = _det.treat_int(arI, resMeshI, _ord_interp=1)
-                resStkDet = _det.treat_int(arI, resMeshI) #OC11012017
-                arI = resStkDet.arS
-                resMeshI = resStkDet.mesh
+            #if(_det is not None): #OC06122016
+            #    resStkDet = _det.treat_int(arI, resMeshI) #OC11012017
+            #    arI = resStkDet.arS
+            #    resMeshI = resStkDet.mesh
 
-            if(len(_fname) > 0): srwl_uti_save_intens_ascii(arI, resMeshI, _fname, 0, ['Photon Energy', 'Horizontal Position', 'Vertical Position', ''], _arUnits=['eV', 'm', 'm', 'ph/s/.1%bw/mm^2'])
-            print('completed (lasted', round(time.time() - t0, 6), 's)')
+            #if(len(_fname) > 0): srwl_uti_save_intens_ascii(arI, resMeshI, _fname, 0, ['Photon Energy', 'Horizontal Position', 'Vertical Position', ''], _arUnits=['eV', 'm', 'm', 'ph/s/.1%bw/mm^2'])
+            #print('completed (lasted', round(time.time() - t0, 6), 's)')
 
         #print('wfr.mesh.eStart=', wfr.mesh.eStart, 'wfr.mesh.eFin=', wfr.mesh.eFin, 'wfr.mesh.ne=', wfr.mesh.ne)
         #print('resMeshI.eStart=', resMeshI.eStart, 'resMeshI.eFin=', resMeshI.eFin, 'resMeshI.ne=', resMeshI.ne)
@@ -1190,14 +1254,16 @@ class SRWLBeamline(object):
         if((_mesh is None) or (not isinstance(_mesh, SRWLRadMesh))):
             raise Exception('Incorrect SRWLRadMesh structure')
 
-        depType = -1
-        if((_mesh.ne >= 1) and (_mesh.nx == 1) and (_mesh.ny == 1)): depType = 0
-        elif((_mesh.ne == 1) and (_mesh.nx > 1) and (_mesh.ny == 1)): depType = 1
-        elif((_mesh.ne == 1) and (_mesh.nx == 1) and (_mesh.ny > 1)): depType = 2
-        elif((_mesh.ne == 1) and (_mesh.nx > 1) and (_mesh.ny > 1)): depType = 3
-        elif((_mesh.ne > 1) and (_mesh.nx > 1) and (_mesh.ny == 1)): depType = 4
-        elif((_mesh.ne > 1) and (_mesh.nx == 1) and (_mesh.ny > 1)): depType = 5
-        elif((_mesh.ne > 1) and (_mesh.nx > 1) and (_mesh.ny > 1)): depType = 6
+        #depType = -1
+        #if((_mesh.ne >= 1) and (_mesh.nx == 1) and (_mesh.ny == 1)): depType = 0
+        #elif((_mesh.ne == 1) and (_mesh.nx > 1) and (_mesh.ny == 1)): depType = 1
+        #elif((_mesh.ne == 1) and (_mesh.nx == 1) and (_mesh.ny > 1)): depType = 2
+        #elif((_mesh.ne == 1) and (_mesh.nx > 1) and (_mesh.ny > 1)): depType = 3
+        #elif((_mesh.ne > 1) and (_mesh.nx > 1) and (_mesh.ny == 1)): depType = 4
+        #elif((_mesh.ne > 1) and (_mesh.nx == 1) and (_mesh.ny > 1)): depType = 5
+        #elif((_mesh.ne > 1) and (_mesh.nx > 1) and (_mesh.ny > 1)): depType = 6
+
+        depType = _mesh.get_dep_type() #OC06042018
         if(depType < 0): Exception('Incorrect numbers of points in the mesh structure')
 
         if(self.eBeam is None): Exception('Electron Beam structure is not defined')
@@ -1236,7 +1302,8 @@ class SRWLBeamline(object):
         return arI
 
     #------------------------------------------------------------------------
-    def calc_arb_spec_me(self, _mesh, _meth=2, _rel_prec=0.01, _n_part_tot=100000, _n_part_avg_proc=10, _n_save_per=10, _type=2, _mag=2, _pol=0, _rand_meth=1, _fname=None):
+    #def calc_arb_spec_me(self, _mesh, _meth=2, _rel_prec=0.01, _n_part_tot=100000, _n_part_avg_proc=10, _n_save_per=10, _type=2, _mag=2, _pol=0, _rand_meth=1, _fname=None):
+    def calc_arb_spec_me(self, _mesh, _meth=2, _rel_prec=0.01, _n_part_tot=100000, _n_part_avg_proc=10, _n_save_per=10, _type=2, _mag=2, _pol=0, _rand_meth=1, _fname=None, _sr_samp_fact=-1, _det=None, _me_approx=0): #OC13042018
         """Calculates multi-electron flux of undulator radiation (within fixed aperture of per unit surface), using approximate periodic magnetic field
         :param _mesh: mesh on which the intensity has to be calculated (SRWLRadMesh instance)
         :param _meth: SR Electric Field calculation method to be used (0- "manual", 1- "auto-undulator", 2- "auto-wiggler")
@@ -1259,6 +1326,8 @@ class SRWLBeamline(object):
             2- Halton sequences
             3- LPtau sequences (to be implemented)
         :param _fname: name of file to save the resulting data to (for the moment, in ASCII format)
+        :param _det: detector structure ensuring a given final mesh on which the calculated intensity (or other characteristic) will be interpolated
+        :param _me_approx: multi-electron integration approximation method: 0- no approximation (use the standard 5D integration method), 1- integrate numerically only over e-beam energy spread and use convolution to treat transverse emittance
         :return: 1D array with (C-aligned) resulting intensity data
         """
 
@@ -1283,7 +1352,8 @@ class SRWLBeamline(object):
             _e_beam = self.eBeam, _mag = mag2use, _mesh = _mesh,
             _sr_meth = _meth, _sr_rel_prec = _rel_prec,
             _n_part_tot = _n_part_tot, _n_part_avg_proc = _n_part_avg_proc, _n_save_per = _n_save_per, _rand_meth = _rand_meth,
-            _file_path = _fname, _char = charMultiE)
+            #_file_path = _fname, _char = charMultiE)
+            _file_path = _fname, _sr_samp_fact = _sr_samp_fact, _char = charMultiE, _det = _det, _me_approx = _me_approx) #OC14042018
         #Consider treating detector here?
 
         arI = None
@@ -1627,7 +1697,7 @@ class SRWLBeamline(object):
         print('Propagation ... ', end='')
         t0 = time.time();
         srwl.PropagElecField(_wfr, self.optics)
-        print('completed (lasted', round(time.time() - t0, 6), 's)')
+        print('completed (lasted', round(time.time() - t0, 2), 's)')
 
         #print('_wfr.Rx=',  _wfr.Rx, '   _wfr.Ry=',  _wfr.Ry)
 
@@ -1655,7 +1725,7 @@ class SRWLBeamline(object):
                 print('Saving Propagation Results ... ', end='')
                 t0 = time.time();
                 srwl_uti_save_intens_ascii(arI, resMeshI, _fname, 0, ['Photon Energy', 'Horizontal Position', 'Vertical Position', ''], _arUnits=['eV', 'm', 'm', sValUnitName])
-                print('completed (lasted', round(time.time() - t0), 's)')
+                print('completed (lasted', round(time.time() - t0, 2), 's)')
 
         #return arI
         return arI, resMeshI #OC06122016
@@ -1664,7 +1734,7 @@ class SRWLBeamline(object):
     #def calc_wfr_emit_prop_me(self, _mesh, _sr_samp_fact=1, _sr_meth=2, _sr_rel_prec=0.01, _mag_type=1, _n_part_tot=100000, _n_part_avg_proc=10, _n_save_per=50, _pres_ang=0, _char=0, _x0=0, _y0=0, _e_ph_integ=0, _rand_meth=1, _fname=None):
     #def calc_wfr_emit_prop_me(self, _mesh, _sr_samp_fact=1, _sr_meth=2, _sr_rel_prec=0.01, _in_wr=0., _mag_type=1, _n_part_tot=100000, _n_part_avg_proc=10, _n_save_per=50, _pres_ang=0, _char=0, _x0=0, _y0=0, _e_ph_integ=0, _rand_meth=1, _fname=None):
     #def calc_wfr_emit_prop_me(self, _mesh, _sr_samp_fact=1, _sr_meth=2, _sr_rel_prec=0.01, _in_wr=0., _mag_type=1, _n_part_tot=100000, _n_part_avg_proc=10, _n_save_per=50, _pres_ang=0, _char=0, _x0=0, _y0=0, _e_ph_integ=0, _rand_meth=1, _fname=None, _det=None): #OC06122016
-    def calc_wfr_emit_prop_me(self, _mesh, _sr_samp_fact=1, _sr_meth=2, _sr_rel_prec=0.01, _in_wr=0., _in_wre=0., _mag_type=1, _n_part_tot=100000, _n_part_avg_proc=10, _n_save_per=50, _pres_ang=0, _char=0, _x0=0, _y0=0, _e_ph_integ=0, _rand_meth=1, _fname=None, _det=None, _multi_e_approx=0): #OC05042017
+    def calc_wfr_emit_prop_me(self, _mesh, _sr_samp_fact=1, _sr_meth=2, _sr_rel_prec=0.01, _in_wr=0., _in_wre=0., _mag_type=1, _n_part_tot=100000, _n_part_avg_proc=10, _n_save_per=50, _pres_ang=0, _char=0, _x0=0, _y0=0, _e_ph_integ=0, _rand_meth=1, _fname=None, _det=None, _me_approx=0): #OC05042017
         """Calculates multi-electron (/ partially coherent) SR emission and wavefront propagation
         :param _mesh: mesh (grid) on which the initial wavefront has to be calculated (SRWLRadMesh instance)
         :param _sr_samp_fact: oversampling factor for calculating of initial wavefront for subsequent propagation (effective if >0)
@@ -1693,6 +1763,8 @@ class SRWLBeamline(object):
             2- Halton sequences
             3- LPtau sequences (to be implemented)
         :param _fname: name of file to save the resulting data to
+        :param _det: detector structure ensuring a given final mesh on which the calculated intensity (or other characteristic) will be interpolated
+        :param _me_approx: multi-electron integration approximation method: 0- no approximation (use the standard 5D integration method), 1- integrate numerically only over e-beam energy spread and use convolution to treat transverse emittance
         :return: 1D array with (C-aligned) resulting intensity data
         """
 
@@ -1734,7 +1806,8 @@ class SRWLBeamline(object):
             _pres_ang = _pres_ang, _char = _char, _x0 = _x0, _y0 = _y0,
             #_e_ph_integ = _e_ph_integ, _rand_meth = _rand_meth)
             #_e_ph_integ = _e_ph_integ, _rand_meth = _rand_meth, _det = _det) #OC06122016
-            _e_ph_integ = _e_ph_integ, _rand_meth = _rand_meth, _det = _det, _me_approx = _multi_e_approx) #OC05042017
+            #_e_ph_integ = _e_ph_integ, _rand_meth = _rand_meth, _det = _det, _me_approx = _multi_e_approx) #OC05042017
+            _e_ph_integ = _e_ph_integ, _rand_meth = _rand_meth, _det = _det, _me_approx = _me_approx) #OC14042018
 
     #------------------------------------------------------------------------
     ##def srwl_uti_parse_optics_par(self, _v):
@@ -1808,7 +1881,7 @@ class SRWLBeamline(object):
                 _sigy=_v.ebm_sigy,
                 _sigyp=_v.ebm_sigyp,
                 _myyp=_v.ebm_myyp)
-
+            
         #print('e-beam was set up')
 
         #---setup magnetic field: undulator, sinusoidal approximation
@@ -2088,7 +2161,10 @@ class SRWLBeamline(object):
                     _mag = _v.sm_mag,
                     _pol = _v.sm_pol,
                     _rand_meth = _v.sm_rm,
-                    _fname = os.path.join(_v.fdir, _v.sm_fn) if(len(_v.sm_fn) > 0) else '')
+                    _fname = os.path.join(_v.fdir, _v.sm_fn) if(len(_v.sm_fn) > 0) else '',
+                    _sr_samp_fact = _v.sm_smpf,
+                    _det = detector,
+                    _me_approx = _v.sm_am) #OC13042018
 
         #---calculate undulator "operation table", i.e. dependence of gap (and phase) on photon energy (for a given polarization)
         if(_v.ut):
@@ -2131,7 +2207,8 @@ class SRWLBeamline(object):
             
         #---calculate single-e and multi-e intensity distributions (before and after wavefront propagation through a beamline)
         if(_v.si or _v.ws or _v.gi or _v.wg or _v.wm):
-            if(_v.ws or _v.wg or _v.wm): self.set_optics(_op)
+            #if(_v.ws or _v.wg or _v.wm): self.set_optics(_op)
+            if(_v.ws or _v.wg or _v.wm): self.set_optics(_op, _v) #OC28042018
             
             ef = _v.w_e
             if(_v.w_ef > 0): ef = _v.w_ef
@@ -2153,52 +2230,79 @@ class SRWLBeamline(object):
                 detForSI = None if((_v.wg is True) or (_v.ws is True)) else detector
                 #print('detForSI=', detForSI)
 
-                #if((_v.gi == False) and (_v.wg == False) and (srCanBeCalc == True)):
-                if((_v.gi != True) and (_v.wg != True) and (srCanBeCalc == True)):
+                #OC05042018
+                wfrWasNotLoaded = True
+                if(len(_v.ws_fnei) > 0):
+                    print('Loading initial wavefront data from file ... ', end='')
+                    t0 = time.time();
+                    fnWfr = os.path.join(_v.fdir, _v.ws_fnei)
+                    in_s = open(fnWfr, 'rb')
+                    _v.w_res = pickle.load(in_s)
+                    in_s.close()
+                    if(_v.w_res is not None):
+                        _v.si_res, mesh_si = self.calc_int_from_wfr(_v.w_res, _v.si_pol, _v.si_type, detForSI, _pr=False)
+                        wfrWasNotLoaded = False
+                        print('completed (lasted', round(time.time() - t0, 2), 's)')
+                    else: print('failed to load wavefront file')
 
-                    #print('Before wfr, int_w0 = self.calc_sr_se')
+                if wfrWasNotLoaded:
+                    #if((_v.gi == False) and (_v.wg == False) and (srCanBeCalc == True)):
+                    if((_v.gi != True) and (_v.wg != True) and (srCanBeCalc == True)):
+
+                        #print('Before wfr, int_w0 = self.calc_sr_se')
                 
-                    #wfr, int_w0 = self.calc_sr_se(
-                    #wfr, int_w0, mesh_si = self.calc_sr_se( #OC06122016
-                    _v.w_res, _v.si_res, mesh_si = self.calc_sr_se( #OC16102017
-                        _mesh = deepcopy(mesh_w),
-                        _samp_fact = _v.w_smpf,
-                        _meth = _v.w_meth,
-                        _rel_prec = _v.w_prec,
-                        _zi = _v.w_zi,
-                        _zf = _v.w_zf,
-                        _pol = _v.si_pol,
-                        _int_type = _v.si_type,
-                        _mag_type = _v.w_mag,
-                        _fname = os.path.join(_v.fdir, _v.si_fn) if(len(_v.si_fn) > 0) else '',
-                        _det = detForSI)
+                        #wfr, int_w0 = self.calc_sr_se(
+                        #wfr, int_w0, mesh_si = self.calc_sr_se( #OC06122016
+                        _v.w_res, _v.si_res, mesh_si = self.calc_sr_se( #OC16102017
+                            _mesh = deepcopy(mesh_w),
+                            _samp_fact = _v.w_smpf,
+                            _meth = _v.w_meth,
+                            _rel_prec = _v.w_prec,
+                            _zi = _v.w_zi,
+                            _zf = _v.w_zf,
+                            _pol = _v.si_pol,
+                            _int_type = _v.si_type,
+                            _mag_type = _v.w_mag,
+                            _fname = os.path.join(_v.fdir, _v.si_fn) if(len(_v.si_fn) > 0) else '',
+                            _det = detForSI)
 
-                #if((_v.gs == True) or ((gsnBeamCanBeCalc == True) and (srCanBeCalc == False))):
-                if((_v.gs == True) or (_v.wg == True) or ((gsnBeamCanBeCalc == True) and (srCanBeCalc == False))): #OC01062016
-                    #wfr, int_w0 = self.calc_rad_gsn(
-                    #wfr, int_w0, mesh_si = self.calc_rad_gsn( #OC06122016
-                    _v.w_res, _v.si_res, mesh_si = self.calc_rad_gsn( #OC16102017
-                        _mesh = deepcopy(mesh_w),
-                        _samp_fact = _v.w_smpf,
-                        _pol = _v.si_pol,
-                        _int_type = _v.si_type,
-                        _presFT = _v.w_ft,
-                        _unitE = _v.w_u,
-                        _fname = os.path.join(_v.fdir, _v.si_fn) if(len(_v.si_fn) > 0) else '',
-                        _det = detForSI)
+                    #if((_v.gs == True) or ((gsnBeamCanBeCalc == True) and (srCanBeCalc == False))):
+                    if((_v.gs == True) or (_v.wg == True) or ((gsnBeamCanBeCalc == True) and (srCanBeCalc == False))): #OC01062016
+                        #wfr, int_w0 = self.calc_rad_gsn(
+                        #wfr, int_w0, mesh_si = self.calc_rad_gsn( #OC06122016
+                        _v.w_res, _v.si_res, mesh_si = self.calc_rad_gsn( #OC16102017
+                            _mesh = deepcopy(mesh_w),
+                            _samp_fact = _v.w_smpf,
+                            _pol = _v.si_pol,
+                            _int_type = _v.si_type,
+                            _presFT = _v.w_ft,
+                            _unitE = _v.w_u,
+                            _fname = os.path.join(_v.fdir, _v.si_fn) if(len(_v.si_fn) > 0) else '',
+                            _det = detForSI)
 
-                if((ptSrcSphWaveCanBeCalc is True) and (gsnBeamCanBeCalc is not True) and (srCanBeCalc is not True)): #OC11102017
-                    #wfr, int_w0, mesh_si = self.calc_rad_pt_src(
-                    _v.w_res, _v.si_res, mesh_si = self.calc_rad_pt_src( #OC16102017
-                        _mesh = deepcopy(mesh_w),
-                        _samp_fact = _v.w_smpf,
-                        _pol = _v.si_pol,
-                        _int_type = _v.si_type,
-                        _presFT = _v.w_ft,
-                        _unitE = _v.w_u,
-                        _fname = os.path.join(_v.fdir, _v.si_fn) if(len(_v.si_fn) > 0) else '',
-                        _det = detForSI)
-                    
+                    if((ptSrcSphWaveCanBeCalc is True) and (gsnBeamCanBeCalc is not True) and (srCanBeCalc is not True)): #OC11102017
+                        #wfr, int_w0, mesh_si = self.calc_rad_pt_src(
+                        _v.w_res, _v.si_res, mesh_si = self.calc_rad_pt_src( #OC16102017
+                            _mesh = deepcopy(mesh_w),
+                            _samp_fact = _v.w_smpf,
+                            _pol = _v.si_pol,
+                            _int_type = _v.si_type,
+                            _presFT = _v.w_ft,
+                            _unitE = _v.w_u,
+                            _fname = os.path.join(_v.fdir, _v.si_fn) if(len(_v.si_fn) > 0) else '',
+                            _det = detForSI)
+
+                    if((len(_v.ws_fne) > 0) and (_v.w_res is not None)): #OC05042018
+                        #Dumping initial wavefront
+                        print('Saving initial wavefront data to a file ... ', end='')
+                        t0 = time.time();
+                        fnWfr = os.path.join(_v.fdir, _v.ws_fne)
+                        out_s = open(fnWfr, 'wb')
+                        pickle.dump(_v.w_res, out_s)
+                        out_s.flush()
+                        out_s.close()
+                        print('completed (lasted', round(time.time() - t0, 2), 's)')
+
                 #mesh_si = deepcopy(wfr.mesh) #OC06122016 (commented-out)
                 #if(detForSI is None): mesh_si = deepcopy(wfr.mesh)
 
@@ -2236,9 +2340,20 @@ class SRWLBeamline(object):
                     #mesh_ws = wfr.mesh #OC06122016 (commented-out)
                     #if(len(_v.ws_fn) > 0): to implement saving single-e (/ fully coherent) wavefront data (wfr) to a file
 
+                    if((len(_v.ws_fnep) > 0) and (_v.w_res is not None)): #OC05042018
+                        #Dumping propagated wavefront
+                        print('Saving propagated wavefront data to a file ... ', end='')
+                        t0 = time.time();
+                        fnWfr = os.path.join(_v.fdir, _v.ws_fnep)
+                        out_s = open(fnWfr, 'wb')
+                        pickle.dump(_v.w_res, out_s)
+                        out_s.flush()
+                        out_s.close()
+                        print('completed (lasted', round(time.time() - t0, 2), 's)')
+
         #---calculate multi-electron (/ partially coherent) wavefront propagation
             if(_v.wm):
-                wmResFileName = os.path.join(_v.fdir, _v.wm_fni) if(len(_v.wm_fni) > 0) else None
+                #wmResFileName = os.path.join(_v.fdir, _v.wm_fni) if(len(_v.wm_fni) > 0) else None
                 #print(wmResFileName)
                 
                 res_ipm = self.calc_wfr_emit_prop_me(
@@ -2260,14 +2375,15 @@ class SRWLBeamline(object):
                     _rand_meth = _v.wm_rm,
                     _fname = os.path.join(_v.fdir, _v.wm_fni) if(len(_v.wm_fni) > 0) else None,
                     _det = detector,
-                    _multi_e_approx = _v.wm_am)
-                #if(len(_v.wp_fn) > 0): to implement saving single-e (/ fully coherent) wavefront data (wfr) to a file
+                    #_multi_e_approx = _v.wm_am)
+                    _me_approx = _v.wm_am) #OC13042018
 
         #---plot results of all calculatiopns here (because the plotting "from the middle of the script" may hang up script execution)
         #uti_plot_init('TkAgg') #make the backend name an input option or move this to uti_plot ?
         plotOK = False
 
-        if (_v.tr == True) and (len(_v.tr_pl) > 0):
+        #if (_v.tr == True) and (len(_v.tr_pl) > 0):
+        if (_v.tr) and (len(_v.tr_pl) > 0): #OC06042018 (to make sure that it starts when _v.tr = 1)
 
             #args = []
             #kwargs = {
@@ -2660,6 +2776,7 @@ def srwl_uti_std_options():
         ['sm_y', 'f', 0., 'vertical center position [m] for multi-e spectrum vs photon energy calculation'],
         ['sm_ry', 'f', 0.001, 'range of vertical position / vertical aperture size [m] for multi-e spectrum vs photon energy calculation'],
         ['sm_ny', 'i', 1, 'number of points vs vertical position for multi-e spectrum vs photon energy calculation'],
+        ['sm_smpf', 'f', -1, 'sampling factor for calculation of intensity distribution vs horizontal and vertical position (active if >0)'],
         ['sm_mag', 'i', 1, 'magnetic field to be used for calculation of multi-e spectrum spectrum or intensity distribution: 1- approximate, 2- accurate'],
         ['sm_hi', 'i', 1, 'initial UR spectral harmonic to be taken into accountfor multi-e spectrum vs photon energy calculation'],
         ['sm_hf', 'i', 15, 'final UR spectral harmonic to be taken into accountfor multi-e spectrum vs photon energy calculation'],
@@ -2673,6 +2790,7 @@ def srwl_uti_std_options():
         ['sm_type', 'i', 1, 'calculate flux (=1) or flux per unit surface (=2)'],
         ['sm_pol', 'i', 6, 'polarization component to extract after calculation of multi-e flux or intensity: 0- Linear Horizontal, 1- Linear Vertical, 2- Linear 45 degrees, 3- Linear 135 degrees, 4- Circular Right, 5- Circular Left, 6- Total'],
         ['sm_rm', 'i', 1, 'method for generation of pseudo-random numbers for e-beam phase-space integration: 1- standard pseudo-random number generator, 2- Halton sequences, 3- LPtau sequences (to be implemented)'],
+        ['sm_am', 'i', 0, 'multi-electron integration approximation method: 0- no approximation (use the standard 5D integration method), 1- integrate numerically only over e-beam energy spread and use convolution to treat transverse emittance'],
         ['sm_fn', 's', 'res_spec_me.dat', 'file name for saving calculated milti-e spectrum vs photon energy'],
         ['sm_pl', 's', 'e', 'plot the resulting spectrum-e spectrum in a graph: ""- dont plot, "e"- show plot vs photon energy'],
 
@@ -2735,7 +2853,15 @@ def srwl_uti_std_options():
         ['si_pol', 'i', 6, 'polarization component to extract after calculation of intensity distribution: 0- Linear Horizontal, 1- Linear Vertical, 2- Linear 45 degrees, 3- Linear 135 degrees, 4- Circular Right, 5- Circular Left, 6- Total'],
         ['si_type', 'i', 0, 'type of a characteristic to be extracted after calculation of intensity distribution: 0- Single-Electron Intensity, 1- Multi-Electron Intensity, 2- Single-Electron Flux, 3- Multi-Electron Flux, 4- Single-Electron Radiation Phase, 5- Re(E): Real part of Single-Electron Electric Field, 6- Im(E): Imaginary part of Single-Electron Electric Field, 7- Single-Electron Intensity, integrated over Time or Photon Energy'],
         ['si_fn', 's', 'res_int_se.dat', 'file name for saving calculated single-e intensity distribution (without wavefront propagation through a beamline) vs horizontal and vertical position'],
+
+        #['mi_pol', 'i', 6, 'polarization component: 0- Linear Horizontal, 1- Linear Vertical, 2- Linear 45 degrees, 3- Linear 135 degrees, 4- Circular Right, 5- Circular Left, 6- Total'],
+        #['mi_fn', 's', 'res_int_me.dat', 'file name for saving calculated multi-e intensity distribution (without wavefront propagation through a beamline) vs horizontal and vertical position, for one or several photon energies'],
+
+        ['ws_fne', 's', '', 'file name for saving initial electric field wavefront (before propagation)'],
+        ['ws_fnep', 's', '', 'file name for saving electric field wavefront after propagation'],
+        ['ws_fnei', 's', '', 'file name for input electric field for further eventual propagation; if this file name is supplied, the initial electric field will not be calculated, but loaded from this file'],
         ['ws_fni', 's', 'res_int_pr_se.dat', 'file name for saving propagated single-e intensity distribution vs horizontal and vertical position'],
+
         ['ws_pl', 's', 'xy', 'plot the propagated radiaiton intensity distributions in graph(s): ""- dont plot, "x"- vs horizontal position, "y"- vs vertical position, "xy"- vs horizontal and vertical position'],
         ['ws_ap', 'i', 0, 'switch specifying representation of the resulting Stokes parameters (/ Intensity distribution): coordinate (0) or angular (1)'],
         ['si_pl', 's', 'xy', 'plot the input intensity distributions in graph(s): ""- dont plot, "x"- vs horizontal position, "y"- vs vertical position, "xy"- vs horizontal and vertical position'],
@@ -2754,6 +2880,10 @@ def srwl_uti_std_options():
 
         #['ws_fn', 's', '', 'file name for saving single-e (/ fully coherent) wavefront data'],
         #['wm_fn', 's', '', 'file name for saving multi-e (/ partially coherent) wavefront data'],
+
+    #Optics parameters
+        ['op_r', 'f', 30., 'longitudinal position of the first optical element [m]'],
+        ['op_dp', 'f', 0., 'length of drift space to be applied after propagation through a beamline [m]'],
 
     #Detector parameters
         ['d_x', 'f', 0., 'central horizontal position [m] of detector active area'],
@@ -2980,7 +3110,10 @@ def srwl_uti_parse_options(_descr, use_sys_argv=True, args=None): #OC08032016 #M
             sType = str
             listOptNamesPostParse.append(curOpt[0])
 
-        curOpt[3] = curOpt[3].replace('%', '%%') # screen special '%' symbol
+        #curOpt[3] = curOpt[3].replace('%', '%%') # screen special '%' symbol
+        if '%%' not in curOpt[3]: #MR14042018 (via GitHub pull req.)
+            curOpt[3] = curOpt[3].replace('%', '%%') # screen special '%' symbol 
+        
         if (len(sTypeShort) <= 0):
             p.add_argument('--' + curOpt[0], default=defVal, help=curOpt[3], action=sAct)
         else:

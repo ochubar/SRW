@@ -2145,7 +2145,8 @@ int srTMirror::PropagateRadiationSimple_LocRayTracing(srTSRWRadStructAccessData*
 								rayLocFrV.Normalize(); //required here?
 
 								//Number of grooves from center to intersection point
-								double dN = xGr*(xGr*(xGr*(xGr*(xGr*0.2*m_grDen3 + 0.25*m_grDen3) + m_grDen2/3.) + 0.5*m_grDen1) + m_grDen);
+								//double dN = xGr*(xGr*(xGr*(xGr*(xGr*0.2*m_grDen3 + 0.25*m_grDen3) + m_grDen2/3.) + 0.5*m_grDen1) + m_grDen);
+								double dN = xGr*(xGr*(xGr*(xGr*(xGr*0.2*m_grDen4 + 0.25*m_grDen3) + m_grDen2/3.) + 0.5*m_grDen1) + m_grDen); //OC08022017
 								phShiftGr = -6.283185307179586*dN*m_grM; //Check the sign!
 
 								ampFact = m_grAuxElecFldAnamorphMagnFact;

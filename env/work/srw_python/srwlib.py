@@ -18,6 +18,7 @@ import uti_math
 import errno
 import tempfile
 import shutil
+import time
 
 from srwl_uti_cryst import * 
 #try:
@@ -894,7 +895,8 @@ class SRWLStokes(object):
 
         nTot = _ne*_nx*_ny
         if _mutual > 0:
-            nTot *= nTot
+            #nTot *= nTot
+            nTot *= (nTot*2) #OC04052018 (since <E(r1)E(r2)*> may be a complex entity)
         nTot *= 4 #array length of all Stokes components
         #eventually allow for storage of less than 4 Stokes components!
 
@@ -921,8 +923,13 @@ class SRWLStokes(object):
         3- add using bi-cubic interpolation (taking into account meshes of the two wavefronts)
         """
 
-        nTot = _n_comp*self.mesh.ne*self.mesh.nx*self.mesh.ny #eventually allow for storage of less than 4 Stokes components!
-        if(self.mutual > 0): nTot *= nTot
+        #nTot = _n_comp*self.mesh.ne*self.mesh.nx*self.mesh.ny #eventually allow for storage of less than 4 Stokes components!
+        nTot = self.mesh.ne*self.mesh.nx*self.mesh.ny 
+        if(self.mutual > 0): 
+            #nTot *= nTot
+            nTot *= (nTot*2) #OC04052018 (since <E(r1)E(r2)*> may be a complex entity)
+
+        nTot *= _n_comp #eventually allow for storage of less than 4 Stokes components!
 
         if(_meth == 0):
             if((self.mesh.ne != _st.mesh.ne) or (self.mesh.nx != _st.mesh.nx) or (self.mesh.ny != _st.mesh.ny)):
@@ -964,7 +971,9 @@ class SRWLStokes(object):
         #nStPt = self.mesh.ne*self.mesh.nx*self.mesh.ny*_n_stokes_comp
         nStPt = self.mesh.ne*self.mesh.nx*self.mesh.ny
         if self.mutual > 0:
-            nStPt *= nStPt
+            #nStPt *= nStPt
+            nStPt *= (nStPt*2) #OC04052018 (since <E(r1)E(r2)*> may be a complex entity)
+
         nStPt *= _n_stokes_comp
         if(_mult == 1.):
             for ir in range(nStPt):
@@ -1210,13 +1219,18 @@ class SRWLStokes(object):
         #nRadWfr = eNpWfr*xNpWfr*yNpWfr
         #nRadWfr *= nRadWfr
 
-        perE = eNpWfr
+        perEp = 2 #OC04052018 (since <E(r1)E(r2)*> may be a complex entity)
+        perE = perEp*eNpWfr #OC04052018 
+        #perE = eNpWfr
         perXp = perE*eNpWfr
         perX = perXp*xNpWfr
         perYp = perX*xNpWfr
         perY = perYp*yNpWfr
         nRadWfr = perY*yNpWfr
         
+        iter_p_1 = _iter + 1 #OC04052018
+        iter_d_iter_p_1 = _iter/iter_p_1
+
         iOfstSt = 0
         ir = 0
         for iSt in range(_n_stokes_comp):
@@ -1341,67 +1355,142 @@ class SRWLStokes(object):
                                     tep = 0
                                     if(eStepWfr > 0): tep = (epMeshRes - (eStartWfr + eStepWfr*iep0))/eStepWfr
 
+                                    iep0_perEp = iep0*perEp #OC04052018 (since <E(r1)E(r2)*> may be a complex entity)
+                                    iep1_perEp = iep1*perEp
+
                                     fInterp = 0
                                     if(not(doZeroFy or doZeroFyp or doZeroFx or doZeroFxp or doZeroFe or doZeroFep)):
-                                        a000000 = _more_stokes.arS[iOfstSt + iep0 + ie0_perE + ixp0_perXp_p_ix0_perX_p_iyp0_perYp_p_iy0_perY]
-                                        f100000 = _more_stokes.arS[iOfstSt + iep1 + ie0_perE + ixp0_perXp_p_ix0_perX_p_iyp0_perYp_p_iy0_perY]
-                                        f010000 = _more_stokes.arS[iOfstSt + iep0 + ie1_perE + ixp0_perXp_p_ix0_perX_p_iyp0_perYp_p_iy0_perY]
-                                        f001000 = _more_stokes.arS[iOfstSt + iep0 + ie0_perE + ixp1_perXp_p_ix0_perX_p_iyp0_perYp_p_iy0_perY]
-                                        f000100 = _more_stokes.arS[iOfstSt + iep0 + ie0_perE + ixp0_perXp_p_ix1_perX_p_iyp0_perYp_p_iy0_perY]
-                                        f000010 = _more_stokes.arS[iOfstSt + iep0 + ie0_perE + ixp0_perXp_p_ix0_perX_p_iyp1_perYp_p_iy0_perY]
-                                        f000001 = _more_stokes.arS[iOfstSt + iep0 + ie0_perE + ixp0_perXp_p_ix0_perX_p_iyp0_perYp_p_iy1_perY]
 
-                                        f110000 = _more_stokes.arS[iOfstSt + iep1 + ie1_perE + ixp0_perXp_p_ix0_perX_p_iyp0_perYp_p_iy0_perY]
-                                        f101000 = _more_stokes.arS[iOfstSt + iep1 + ie0_perE + ixp1_perXp_p_ix0_perX_p_iyp0_perYp_p_iy0_perY]
-                                        f100100 = _more_stokes.arS[iOfstSt + iep1 + ie0_perE + ixp0_perXp_p_ix1_perX_p_iyp0_perYp_p_iy0_perY]
-                                        f100010 = _more_stokes.arS[iOfstSt + iep1 + ie0_perE + ixp0_perXp_p_ix0_perX_p_iyp1_perYp_p_iy0_perY]
-                                        f100001 = _more_stokes.arS[iOfstSt + iep1 + ie0_perE + ixp0_perXp_p_ix0_perX_p_iyp0_perYp_p_iy1_perY]
+                                        iep0_perEp_p_ie0_perE = iep0_perEp + ie0_perE #OC04052018 
+                                        iep1_perEp_p_ie0_perE = iep1_perEp + ie0_perE
+                                        iep0_perEp_p_ie1_perE = iep0_perEp + ie1_perE
+                                        iep1_perEp_p_ie1_perE = iep1_perEp + ie1_perE
 
-                                        f011000 = _more_stokes.arS[iOfstSt + iep0 + ie1_perE + ixp1_perXp_p_ix0_perX_p_iyp0_perYp_p_iy0_perY]
-                                        f010100 = _more_stokes.arS[iOfstSt + iep0 + ie1_perE + ixp0_perXp_p_ix1_perX_p_iyp0_perYp_p_iy0_perY]
-                                        f010010 = _more_stokes.arS[iOfstSt + iep0 + ie1_perE + ixp0_perXp_p_ix0_perX_p_iyp1_perYp_p_iy0_perY]
-                                        f010001 = _more_stokes.arS[iOfstSt + iep0 + ie1_perE + ixp0_perXp_p_ix0_perX_p_iyp0_perYp_p_iy1_perY]
+                                        ofst000000 = iOfstSt + iep0_perEp_p_ie0_perE + ixp0_perXp_p_ix0_perX_p_iyp0_perYp_p_iy0_perY #OC04052018 
+                                        ofst100000 = iOfstSt + iep1_perEp_p_ie0_perE + ixp0_perXp_p_ix0_perX_p_iyp0_perYp_p_iy0_perY
+                                        ofst010000 = iOfstSt + iep0_perEp_p_ie1_perE + ixp0_perXp_p_ix0_perX_p_iyp0_perYp_p_iy0_perY
+                                        ofst001000 = iOfstSt + iep0_perEp_p_ie0_perE + ixp1_perXp_p_ix0_perX_p_iyp0_perYp_p_iy0_perY
+                                        ofst000100 = iOfstSt + iep0_perEp_p_ie0_perE + ixp0_perXp_p_ix1_perX_p_iyp0_perYp_p_iy0_perY
+                                        ofst000010 = iOfstSt + iep0_perEp_p_ie0_perE + ixp0_perXp_p_ix0_perX_p_iyp1_perYp_p_iy0_perY
+                                        ofst000001 = iOfstSt + iep0_perEp_p_ie0_perE + ixp0_perXp_p_ix0_perX_p_iyp0_perYp_p_iy1_perY
+
+                                        ofst110000 = iOfstSt + iep1_perEp_p_ie1_perE + ixp0_perXp_p_ix0_perX_p_iyp0_perYp_p_iy0_perY
+                                        ofst101000 = iOfstSt + iep1_perEp_p_ie0_perE + ixp1_perXp_p_ix0_perX_p_iyp0_perYp_p_iy0_perY
+                                        ofst100100 = iOfstSt + iep1_perEp_p_ie0_perE + ixp0_perXp_p_ix1_perX_p_iyp0_perYp_p_iy0_perY
+                                        ofst100010 = iOfstSt + iep1_perEp_p_ie0_perE + ixp0_perXp_p_ix0_perX_p_iyp1_perYp_p_iy0_perY
+                                        ofst100001 = iOfstSt + iep1_perEp_p_ie0_perE + ixp0_perXp_p_ix0_perX_p_iyp0_perYp_p_iy1_perY
+
+                                        ofst011000 = iOfstSt + iep0_perEp_p_ie1_perE + ixp1_perXp_p_ix0_perX_p_iyp0_perYp_p_iy0_perY
+                                        ofst010100 = iOfstSt + iep0_perEp_p_ie1_perE + ixp0_perXp_p_ix1_perX_p_iyp0_perYp_p_iy0_perY
+                                        ofst010010 = iOfstSt + iep0_perEp_p_ie1_perE + ixp0_perXp_p_ix0_perX_p_iyp1_perYp_p_iy0_perY
+                                        ofst010001 = iOfstSt + iep0_perEp_p_ie1_perE + ixp0_perXp_p_ix0_perX_p_iyp0_perYp_p_iy1_perY
                                    
-                                        f001100 = _more_stokes.arS[iOfstSt + iep0 + ie0_perE + ixp1_perXp_p_ix1_perX_p_iyp0_perYp_p_iy0_perY]
-                                        f001010 = _more_stokes.arS[iOfstSt + iep0 + ie0_perE + ixp1_perXp_p_ix0_perX_p_iyp1_perYp_p_iy0_perY]
-                                        f001001 = _more_stokes.arS[iOfstSt + iep0 + ie0_perE + ixp1_perXp_p_ix0_perX_p_iyp0_perYp_p_iy1_perY]
+                                        ofst001100 = iOfstSt + iep0_perEp_p_ie0_perE + ixp1_perXp_p_ix1_perX_p_iyp0_perYp_p_iy0_perY
+                                        ofst001010 = iOfstSt + iep0_perEp_p_ie0_perE + ixp1_perXp_p_ix0_perX_p_iyp1_perYp_p_iy0_perY
+                                        ofst001001 = iOfstSt + iep0_perEp_p_ie0_perE + ixp1_perXp_p_ix0_perX_p_iyp0_perYp_p_iy1_perY
 
-                                        f000110 = _more_stokes.arS[iOfstSt + iep0 + ie0_perE + ixp0_perXp_p_ix1_perX_p_iyp1_perYp_p_iy0_perY]
-                                        f000101 = _more_stokes.arS[iOfstSt + iep0 + ie0_perE + ixp0_perXp_p_ix1_perX_p_iyp0_perYp_p_iy1_perY]
+                                        ofst000110 = iOfstSt + iep0_perEp_p_ie0_perE + ixp0_perXp_p_ix1_perX_p_iyp1_perYp_p_iy0_perY
+                                        ofst000101 = iOfstSt + iep0_perEp_p_ie0_perE + ixp0_perXp_p_ix1_perX_p_iyp0_perYp_p_iy1_perY
 
-                                        f000011 = _more_stokes.arS[iOfstSt + iep0 + ie0_perE + ixp0_perXp_p_ix0_perX_p_iyp1_perYp_p_iy1_perY]
+                                        ofst000011 = iOfstSt + iep0_perEp_p_ie0_perE + ixp0_perXp_p_ix0_perX_p_iyp1_perYp_p_iy1_perY
 
-                                        a100000 = f100000 - a000000 
-                                        a010000 = f010000 - a000000
-                                        a001000 = f001000 - a000000
-                                        a000100 = f000100 - a000000
-                                        a000010 = f000010 - a000000
-                                        a000001 = f000001 - a000000
-                                        a110000 = a000000 - f010000 - f100000 + f110000
-                                        a101000 = a000000 - f001000 - f100000 + f101000
-                                        a100100 = a000000 - f000100 - f100000 + f100100
-                                        a100010 = a000000 - f000010 - f100000 + f100010
-                                        a100001 = a000000 - f000001 - f100000 + f100001
-                                        a011000 = a000000 - f001000 - f010000 + f011000
-                                        a010100 = a000000 - f000100 - f010000 + f010100
-                                        a010010 = a000000 - f000010 - f010000 + f010010
-                                        a010001 = a000000 - f000001 - f010000 + f010001
-                                        a001100 = a000000 - f000100 - f001000 + f001100
-                                        a001010 = a000000 - f000010 - f001000 + f001010
-                                        a001001 = a000000 - f000001 - f001000 + f001001
-                                        a000110 = a000000 - f000010 - f000100 + f000110
-                                        a000101 = a000000 - f000001 - f000100 + f000101
-                                        a000011 = a000000 - f000001 - f000010 + f000011
+                                        #a000000 = _more_stokes.arS[iOfstSt + iep0 + ie0_perE + ixp0_perXp_p_ix0_perX_p_iyp0_perYp_p_iy0_perY]
+                                        #f100000 = _more_stokes.arS[iOfstSt + iep1 + ie0_perE + ixp0_perXp_p_ix0_perX_p_iyp0_perYp_p_iy0_perY]
+                                        #f010000 = _more_stokes.arS[iOfstSt + iep0 + ie1_perE + ixp0_perXp_p_ix0_perX_p_iyp0_perYp_p_iy0_perY]
+                                        #f001000 = _more_stokes.arS[iOfstSt + iep0 + ie0_perE + ixp1_perXp_p_ix0_perX_p_iyp0_perYp_p_iy0_perY]
+                                        #f000100 = _more_stokes.arS[iOfstSt + iep0 + ie0_perE + ixp0_perXp_p_ix1_perX_p_iyp0_perYp_p_iy0_perY]
+                                        #f000010 = _more_stokes.arS[iOfstSt + iep0 + ie0_perE + ixp0_perXp_p_ix0_perX_p_iyp1_perYp_p_iy0_perY]
+                                        #f000001 = _more_stokes.arS[iOfstSt + iep0 + ie0_perE + ixp0_perXp_p_ix0_perX_p_iyp0_perYp_p_iy1_perY]
 
-                                        fInterp = (a100000 + a110000*te + a101000*txp + a100100*tx + a100010*typ + a100001*ty)*tep
-                                        fInterp += (a010000 + a011000*txp + a010100*tx + a010010*typ + a010001*ty)*te
-                                        fInterp += (a001000 + a001100*tx + a001010*typ + a001001*ty)*txp
-                                        fInterp += (a000100 + a000110*typ + a000101*ty)*tx + (a000010 + a000011*ty)*typ + a000001*ty + a000000
+                                        #f110000 = _more_stokes.arS[iOfstSt + iep1 + ie1_perE + ixp0_perXp_p_ix0_perX_p_iyp0_perYp_p_iy0_perY]
+                                        #f101000 = _more_stokes.arS[iOfstSt + iep1 + ie0_perE + ixp1_perXp_p_ix0_perX_p_iyp0_perYp_p_iy0_perY]
+                                        #f100100 = _more_stokes.arS[iOfstSt + iep1 + ie0_perE + ixp0_perXp_p_ix1_perX_p_iyp0_perYp_p_iy0_perY]
+                                        #f100010 = _more_stokes.arS[iOfstSt + iep1 + ie0_perE + ixp0_perXp_p_ix0_perX_p_iyp1_perYp_p_iy0_perY]
+                                        #f100001 = _more_stokes.arS[iOfstSt + iep1 + ie0_perE + ixp0_perXp_p_ix0_perX_p_iyp0_perYp_p_iy1_perY]
 
-                                    #self.arS[ir] = (self.arS[ir]*_iter + fInterp)/(_iter + 1)
-                                    self.arS[ir] = (self.arS[ir]*_iter + _mult*fInterp)/(_iter + 1)
-                                    
-                                    ir += 1
+                                        #f011000 = _more_stokes.arS[iOfstSt + iep0 + ie1_perE + ixp1_perXp_p_ix0_perX_p_iyp0_perYp_p_iy0_perY]
+                                        #f010100 = _more_stokes.arS[iOfstSt + iep0 + ie1_perE + ixp0_perXp_p_ix1_perX_p_iyp0_perYp_p_iy0_perY]
+                                        #f010010 = _more_stokes.arS[iOfstSt + iep0 + ie1_perE + ixp0_perXp_p_ix0_perX_p_iyp1_perYp_p_iy0_perY]
+                                        #f010001 = _more_stokes.arS[iOfstSt + iep0 + ie1_perE + ixp0_perXp_p_ix0_perX_p_iyp0_perYp_p_iy1_perY]
+                                   
+                                        #f001100 = _more_stokes.arS[iOfstSt + iep0 + ie0_perE + ixp1_perXp_p_ix1_perX_p_iyp0_perYp_p_iy0_perY]
+                                        #f001010 = _more_stokes.arS[iOfstSt + iep0 + ie0_perE + ixp1_perXp_p_ix0_perX_p_iyp1_perYp_p_iy0_perY]
+                                        #f001001 = _more_stokes.arS[iOfstSt + iep0 + ie0_perE + ixp1_perXp_p_ix0_perX_p_iyp0_perYp_p_iy1_perY]
+
+                                        #f000110 = _more_stokes.arS[iOfstSt + iep0 + ie0_perE + ixp0_perXp_p_ix1_perX_p_iyp1_perYp_p_iy0_perY]
+                                        #f000101 = _more_stokes.arS[iOfstSt + iep0 + ie0_perE + ixp0_perXp_p_ix1_perX_p_iyp0_perYp_p_iy1_perY]
+
+                                        #f000011 = _more_stokes.arS[iOfstSt + iep0 + ie0_perE + ixp0_perXp_p_ix0_perX_p_iyp1_perYp_p_iy1_perY]
+
+                                        for ii in range(2): #OC04052018 (since <E(r1)E(r2)*> may be a complex entity)
+
+                                            a000000 = _more_stokes.arS[ofst000000]; ofst000000 += 1
+                                            f100000 = _more_stokes.arS[ofst100000]; ofst100000 += 1
+                                            f010000 = _more_stokes.arS[ofst010000]; ofst010000 += 1
+                                            f001000 = _more_stokes.arS[ofst001000]; ofst001000 += 1
+                                            f000100 = _more_stokes.arS[ofst000100]; ofst000100 += 1
+                                            f000010 = _more_stokes.arS[ofst000010]; ofst000010 += 1
+                                            f000001 = _more_stokes.arS[ofst000001]; ofst000001 += 1
+
+                                            f110000 = _more_stokes.arS[ofst110000]; ofst110000 += 1
+                                            f101000 = _more_stokes.arS[ofst101000]; ofst101000 += 1
+                                            f100100 = _more_stokes.arS[ofst100100]; ofst100100 += 1
+                                            f100010 = _more_stokes.arS[ofst100010]; ofst100010 += 1
+                                            f100001 = _more_stokes.arS[ofst100001]; ofst100001 += 1
+
+                                            f011000 = _more_stokes.arS[ofst011000]; ofst011000 += 1
+                                            f010100 = _more_stokes.arS[ofst010100]; ofst010100 += 1
+                                            f010010 = _more_stokes.arS[ofst010010]; ofst010010 += 1
+                                            f010001 = _more_stokes.arS[ofst010001]; ofst010001 += 1
+
+                                            f001100 = _more_stokes.arS[ofst001100]; ofst001100 += 1
+                                            f001010 = _more_stokes.arS[ofst001010]; ofst001010 += 1
+                                            f001001 = _more_stokes.arS[ofst001001]; ofst001001 += 1
+
+                                            f000110 = _more_stokes.arS[ofst000110]; ofst000110 += 1
+                                            f000101 = _more_stokes.arS[ofst000101]; ofst000101 += 1
+
+                                            f000011 = _more_stokes.arS[ofst000011]; ofst000011 += 1
+
+                                            a100000 = f100000 - a000000 
+                                            a010000 = f010000 - a000000
+                                            a001000 = f001000 - a000000
+                                            a000100 = f000100 - a000000
+                                            a000010 = f000010 - a000000
+                                            a000001 = f000001 - a000000
+                                            a110000 = a000000 - f010000 - f100000 + f110000
+                                            a101000 = a000000 - f001000 - f100000 + f101000
+                                            a100100 = a000000 - f000100 - f100000 + f100100
+                                            a100010 = a000000 - f000010 - f100000 + f100010
+                                            a100001 = a000000 - f000001 - f100000 + f100001
+                                            a011000 = a000000 - f001000 - f010000 + f011000
+                                            a010100 = a000000 - f000100 - f010000 + f010100
+                                            a010010 = a000000 - f000010 - f010000 + f010010
+                                            a010001 = a000000 - f000001 - f010000 + f010001
+                                            a001100 = a000000 - f000100 - f001000 + f001100
+                                            a001010 = a000000 - f000010 - f001000 + f001010
+                                            a001001 = a000000 - f000001 - f001000 + f001001
+                                            a000110 = a000000 - f000010 - f000100 + f000110
+                                            a000101 = a000000 - f000001 - f000100 + f000101
+                                            a000011 = a000000 - f000001 - f000010 + f000011
+
+                                            fInterp = (a100000 + a110000*te + a101000*txp + a100100*tx + a100010*typ + a100001*ty)*tep
+                                            fInterp += (a010000 + a011000*txp + a010100*tx + a010010*typ + a010001*ty)*te
+                                            fInterp += (a001000 + a001100*tx + a001010*typ + a001001*ty)*txp
+                                            fInterp += (a000100 + a000110*typ + a000101*ty)*tx + (a000010 + a000011*ty)*typ + a000001*ty + a000000
+
+                                            #self.arS[ir] = (self.arS[ir]*_iter + _mult*fInterp)/(_iter + 1)
+                                            self.arS[ir] = (self.arS[ir]*_iter + _mult*fInterp)/iter_p_1
+                                            ir += 1
+                                    else: #OC04052018
+                                        #self.arS[ir] = self.arS[ir]*iter_d_iter_p_1; ir += 1
+                                        #self.arS[ir] = self.arS[ir]*iter_d_iter_p_1
+                                        self.arS[ir] *= iter_d_iter_p_1; ir += 1
+                                        self.arS[ir] *= iter_d_iter_p_1; ir += 1
+
+                                    #OC04052018 (commented-out)
+                                    #self.arS[ir] = (self.arS[ir]*_iter + _mult*fInterp)/(_iter + 1)
+                                    #ir += 1
             iOfstSt += nRadWfr        
 
     def to_int(self, _pol=6):
@@ -1438,6 +1527,985 @@ class SRWLStokes(object):
                 elif(_pol == 6): resArI[i] = s0 #Total
         #else: #to add the case of mutual intensity (what to extract: normal or mutual intensity at a given polarization?)
         return resArI
+
+    def to_deg_coh(self, _rel_zer_tol=1.e-04, _rot=True): #05052018
+        """Calculates / "extracts" Degree of Coherence from the Mutual Intensity (first Stokes component, s0)
+        :param _rel_zer_tol: relative zero tolerance to use at normalizing (dividing) by the intensity
+        :param _rot: rotate or not the degree of coherence data
+        :return: 1D array with (C-aligned) resulting degree of coherence data
+        """
+
+        if(self.mutual <= 0): raise Exception("Calculation of Degree of Coherence can not be done from regular Intensity; Mutual Intensity is required.")
+
+        origNe = self.mesh.ne
+        origNx = self.mesh.nx
+        origNy = self.mesh.ny
+
+        origPerEp = 2
+        origPerE = origPerEp*origNe
+        origPerXp = origPerE*origNe
+        origPerX = origPerXp*origNx
+        origPerYp = origPerX*origNx
+        origPerY = origPerYp*origNy
+
+        orig_iec = int(round(0.5*origNe))
+        orig_ixc = int(round(0.5*origNx))
+        orig_iyc = int(round(0.5*origNy))
+        ofstIc = orig_iec*origPerEp + orig_iec*origPerE + orig_ixc*origPerXp + orig_ixc*origPerX + orig_iyc*origPerYp + orig_iyc*origPerY
+        absZerTolI = abs(self.arS[ofstIc])*_rel_zer_tol
+
+        auxNp = origNe*origNx*origNy
+        auxNp *= auxNp
+        resDegCohNonRot = array('f', [0]*auxNp)
+
+        ie2_0_origPerEp_p_ie1_0_origPerE = 0
+        ie1_0_origPerEp_p_ie1_0_origPerE = 0
+        ie2_0_origPerEp_p_ie2_0_origPerE = 0
+
+        ix2_0_origPerXp_p_ix1_0_origPerX = 0
+        ix1_0_origPerXp_p_ix1_0_origPerX = 0
+        ix2_0_origPerXp_p_ix2_0_origPerX = 0
+
+        iy2_0_origPerYp_p_iy1_0_origPerY = 0
+        iy1_0_origPerYp_p_iy1_0_origPerY = 0
+        iy2_0_origPerYp_p_iy2_0_origPerY = 0
+
+        resOfst = 0
+        for iy in range(origNy):
+            for iyp in range(origNy):
+                if(origNy > 1):
+                    iy1_0_origPerY = iy*origPerY
+                    iy2_0_origPerYp = iyp*origPerYp
+                    iy2_0_origPerYp_p_iy1_0_origPerY = iy2_0_origPerYp + iy1_0_origPerY
+                    iy1_0_origPerYp_p_iy1_0_origPerY = iy*origPerYp + iy1_0_origPerY
+                    iy2_0_origPerYp_p_iy2_0_origPerY = iy2_0_origPerYp + iyp*origPerY
+
+                for ix in range(origNx):
+                    for ixp in range(origNx):
+                        if(origNx > 1):
+                            ix1_0_origPerX = ix*origPerX
+                            ix2_0_origPerXp = ixp*origPerXp
+                            ix2_0_origPerXp_p_ix1_0_origPerX = ix2_0_origPerXp + ix1_0_origPerX
+                            ix1_0_origPerXp_p_ix1_0_origPerX = ix*origPerXp + ix1_0_origPerX
+                            ix2_0_origPerXp_p_ix2_0_origPerX = ix2_0_origPerXp + ixp*origPerX
+
+                        if(origNe > 1):
+                            for ie in range(origNe):
+                                for iep in range(origNe):
+                                    ie1_0_origPerE = ie*origPerE
+                                    ie2_0_origPerEp = iep*origPerEp
+                                    ie2_0_origPerEp_p_ie1_0_origPerE = ie2_0_origPerEp + ie1_0_origPerE
+                                    ie1_0_origPerEp_p_ie1_0_origPerE = ie*origPerEp + ie1_0_origPerE
+                                    ie2_0_origPerEp_p_ie2_0_origPerE = ie2_0_origPerEp + iep*origPerE
+
+                                    ofstMI = ie2_0_origPerEp_p_ie1_0_origPerE + ix2_0_origPerXp_p_ix1_0_origPerX + iy2_0_origPerYp_p_iy1_0_origPerY
+                                    ofstI1 = ie1_0_origPerEp_p_ie1_0_origPerE + ix1_0_origPerXp_p_ix1_0_origPerX + iy1_0_origPerYp_p_iy1_0_origPerY
+                                    ofstI2 = ie2_0_origPerEp_p_ie2_0_origPerE + ix2_0_origPerXp_p_ix2_0_origPerX + iy2_0_origPerYp_p_iy2_0_origPerY
+
+                                    reMI = self.arS[ofstMI]; imMI = self.arS[ofstMI + 1]
+                                    absMI = sqrt(reMI*reMI + imMI*imMI)
+                                    reI1 = self.arS[ofstI1]#; imI1 = self.arS[ofstI1 + 1]
+                                    reI2 = self.arS[ofstI2]#; imI2 = self.arS[ofstI2 + 1]
+                                    resDegCohNonRot[resOfst] = absMI/(sqrt(reI1*reI2) + absZerTolI)
+                                    resOfst += 1
+                        else:
+                            ofstMI = ix2_0_origPerXp_p_ix1_0_origPerX + iy2_0_origPerYp_p_iy1_0_origPerY
+                            ofstI1 = ix1_0_origPerXp_p_ix1_0_origPerX + iy1_0_origPerYp_p_iy1_0_origPerY
+                            ofstI2 = ix2_0_origPerXp_p_ix2_0_origPerX + iy2_0_origPerYp_p_iy2_0_origPerY
+
+                            reMI = self.arS[ofstMI]; imMI = self.arS[ofstMI + 1]
+                            absMI = sqrt(reMI*reMI + imMI*imMI)
+                            reI1 = self.arS[ofstI1]#; imI1 = self.arS[ofstI1 + 1]
+                            reI2 = self.arS[ofstI2]#; imI2 = self.arS[ofstI2 + 1]
+                            resDegCohNonRot[resOfst] = absMI/(sqrt(reI1*reI2) + absZerTolI)
+                            resOfst += 1
+
+        if(not _rot): return resDegCohNonRot
+
+        origEstart = self.mesh.eStart
+        origEfin = self.mesh.eFin
+        origXstart = self.mesh.xStart
+        origXfin = self.mesh.xFin
+        origYstart = self.mesh.yStart
+        origYfin = self.mesh.yFin
+
+        origEstep = 0; origEstepInv = 0
+        if(origNe > 1): 
+            origEstep = (origEfin - origEstart)/(origNe - 1)
+            origEstepInv = 1/origEstep
+        origXstep = 0; origXstepInv = 0
+        if(origNx > 1): 
+            origXstep = (origXfin - origXstart)/(origNx - 1)
+            origXstepInv = 1/origXstep
+        origYstep = 0; origYstepInv = 0
+        if(origNy > 1): 
+            origYstep = (origYfin - origYstart)/(origNy - 1)
+            origYstepInv = 1/origYstep
+
+        origNe_m_1 = origNe - 1; origNe_m_2 = origNe - 2
+        origNx_m_1 = origNx - 1; origNx_m_2 = origNx - 2
+        origNy_m_1 = origNy - 1; origNy_m_2 = origNy - 2
+
+        resNe = origNe
+        resNx = origNx
+        resNy = origNy
+        resEstart = origEstart
+        resEfin = origEfin
+        resXstart = origXstart
+        resXfin = origXfin
+        resYstart = origYstart
+        resYfin = origYfin
+
+        #sqrt2 = sqrt(2)
+        #if(resNe > 1): 
+        #    resNe = 2*resNe - 1
+        #    ec = 0.5*(resEstart + resEfin)
+        #    resEstart = ec - sqrt2*(ec - resEstart)
+        #    resEfin = ec + sqrt2*(resEfin - ec)
+        #if(resNx > 1): 
+        #    resNx = 2*resNx - 1
+        #    xc = 0.5*(resXstart + resXfin)
+        #    resXstart = xc - sqrt2*(xc - resXstart)
+        #    resXfin = xc + sqrt2*(resXfin - xc)
+        #if(resNy > 1): 
+        #    resNy = 2*resNy - 1
+        #    yc = 0.5*(resYstart + resYfin)
+        #    resYstart = yc - sqrt2*(yc - resYstart)
+        #    resYfin = yc + sqrt2*(resYfin - yc)
+
+        resNp = resNe*resNx*resNy
+        resNp *= resNp
+        resDegCoh = array('f', [0]*resNp)
+
+        resEstep = 0
+        if(resNe > 1): resEstep = (resEfin - resEstart)/(resNe - 1)
+        resXstep = 0
+        if(resNx > 1): resXstep = (resXfin - resXstart)/(resNx - 1)
+        resYstep = 0
+        if(resNy > 1): resYstep = (resYfin - resYstart)/(resNy - 1)
+
+        perE = origNe
+        perXp = perE*origNe
+        perX = perXp*origNx
+        perYp = perX*origNx
+        perY = perYp*origNy
+
+        resX1 = 0; resX2 = 0 #just declaring these vars
+        resE1 = 0; resE2 = 0 
+
+        ie2_0_p_ie1_0_perE = 0
+        ie2_1_p_ie1_0_perE = 0
+        ie2_0_p_ie1_1_perE = 0
+        ie2_1_p_ie1_1_perE = 0
+
+        ix2_0_perXp_p_ix1_0_perX = 0
+        ix2_1_perXp_p_ix1_0_perX = 0
+        ix2_0_perXp_p_ix1_1_perX = 0
+        ix2_1_perXp_p_ix1_1_perX = 0
+
+        iy2_0_perYp_p_iy1_0_perY = 0
+        iy2_1_perYp_p_iy1_0_perY = 0
+        iy2_0_perYp_p_iy1_1_perY = 0
+        iy2_1_perYp_p_iy1_1_perY = 0
+
+        resOfst = 0
+        resYp = resYstart #resY = resYstart
+        for iyp in range(resNy): #for iy in range(resNy):
+            resY = resYstart #resYp = resYstart
+            for iy in range(resNy): #for iyp in range(resNy):
+                isInRangeY = True
+                if(resNy > 1):
+                    resY1 = resY + resYp
+                    resY2 = resY - resYp
+                    #resY1 = resY - resYp
+                    #resY2 = resY + resYp
+                    if((resY1 < origYstart) or (resY1 > origYfin) or (resY2 < origYstart) or (resY2 > origYfin)): isInRangeY = False
+
+                iy1_0 = 0; iy1_1 = 0; ry1 = 0
+                iy2_0 = 0; iy2_1 = 0; ry2 = 0
+                if((resNy > 1) and isInRangeY):
+                    iy1_0 = int(trunc((resY1 - origYstart)*origYstepInv))
+                    if(iy1_0 >= origNy_m_1): iy1_0 = origNy_m_2
+                    ry1 = (resY1 - (origYstart + iy1_0*origYstep))*origYstepInv
+
+                    iy2_0 = int(trunc((resY2 - origYstart)*origYstepInv))
+                    if(iy2_0 >= origNy_m_1): iy2_0 = origNy_m_2
+                    ry2 = (resY2 - (origYstart + iy2_0*origYstep))*origYstepInv
+
+                    iy1_1 = iy1_0 + 1
+                    if(iy1_1 > origNy_m_1): iy1_1 = origNy_m_1
+                    iy2_1 = iy2_0 + 1
+                    if(iy2_1 > origNy_m_1): iy2_1 = origNy_m_1
+
+                    iy2_0_perYp = iy2_0*perYp
+                    iy2_1_perYp = iy2_1*perYp
+                    iy1_0_perY = iy1_0*perY
+                    iy1_1_perY = iy1_1*perY
+                    iy2_0_perYp_p_iy1_0_perY = iy2_0_perYp + iy1_0_perY
+                    iy2_1_perYp_p_iy1_0_perY = iy2_1_perYp + iy1_0_perY
+                    iy2_0_perYp_p_iy1_1_perY = iy2_0_perYp + iy1_1_perY
+                    iy2_1_perYp_p_iy1_1_perY = iy2_1_perYp + iy1_1_perY
+
+                resXp = resXstart #resX = resXstart
+                for ixp in range(resNx): #for ix in range(resNx):
+                    resX = resXstart #resXp = resXstart
+                    for ix in range(resNx): #for ixp in range(resNx):
+                        isInRangeX = True
+                        if(isInRangeY):
+                            if(resNx > 1):
+                                resX1 = resX + resXp
+                                resX2 = resX - resXp
+                                #resX1 = resX - resXp
+                                #resX2 = resX + resXp
+                                if((resX1 < origXstart) or (resX1 > origXfin) or (resX2 < origXstart) or (resX2 > origXfin)): isInRangeX = False
+                        else:
+                            isInRangeX = False
+
+                        ix1_0 = 0; ix1_1 = 0; rx1 = 0
+                        ix2_0 = 0; ix2_1 = 0; rx2 = 0
+                        if((resNx > 1) and isInRangeX):
+                            ix1_0 = int(trunc((resX1 - origXstart)*origXstepInv))
+                            if(ix1_0 >= origNx_m_1): ix1_0 = origNx_m_2
+                            rx1 = (resX1 - (origXstart + ix1_0*origXstep))*origXstepInv
+
+                            ix2_0 = int(trunc((resX2 - origXstart)*origXstepInv))
+                            if(ix2_0 >= origNx_m_1): ix2_0 = origNx_m_2
+                            rx2 = (resX2 - (origXstart + ix2_0*origXstep))*origXstepInv
+
+                            ix1_1 = ix1_0 + 1
+                            if(ix1_1 > origNx_m_1): ix1_1 = origNx_m_1
+                            ix2_1 = ix2_0 + 1
+                            if(ix2_1 > origNx_m_1): ix2_1 = origNx_m_1
+
+                            ix2_0_perXp = ix2_0*perXp
+                            ix2_1_perXp = ix2_1*perXp
+                            ix1_0_perX = ix1_0*perX
+                            ix1_1_perX = ix1_1*perX
+                            ix2_0_perXp_p_ix1_0_perX = ix2_0_perXp + ix1_0_perX
+                            ix2_1_perXp_p_ix1_0_perX = ix2_1_perXp + ix1_0_perX
+                            ix2_0_perXp_p_ix1_1_perX = ix2_0_perXp + ix1_1_perX
+                            ix2_1_perXp_p_ix1_1_perX = ix2_1_perXp + ix1_1_perX
+
+                        resEp = resEstart #resE = resEstart
+                        for iep in range(resNe): #for ie in range(resNe):
+                            resE = resEstart #resEp = resEstart
+                            for ie in range(resNe): #for iep in range(resNe):
+                                isInRangeE = True
+                                if(isInRangeX):
+                                    if(resNe > 1):
+                                        resE1 = resE + resEp
+                                        resE2 = resE - resEp
+                                        #resE1 = resE - resEp
+                                        #resE2 = resE + resEp
+                                        if((resE1 < origEstart) or (resE1 > origEfin) or (resE2 < origEstart) or (resE2 > origEfin)): isInRangeE = False
+                                else:
+                                    isInRangeE = False
+
+                                ie1_0 = 0; ie1_1 = 0; re1 = 0
+                                ie2_0 = 0; ie2_1 = 0; re2 = 0
+                                if((resNe > 1) and isInRangeE):
+                                    ie1_0 = int(trunc((resE1 - origEstart)*origEstepInv))
+                                    if(ie1_0 >= origNe_m_1): ie1_0 = origNe_m_2
+                                    re1 = (resE1 - (origEstart + ie1_0*origEstep))*origEstepInv
+
+                                    ie2_0 = int(trunc((resE2 - origEstart)*origEstepInv))
+                                    if(ie2_0 >= origNe_m_1): ie2_0 = origNe_m_2
+                                    re2 = (resE2 - (origEstart + ie2_0*origEstep))*origEstepInv
+
+                                    ie1_1 = ie1_0 + 1
+                                    if(ie1_1 > origNe_m_1): ie1_1 = origNe_m_1
+                                    ie2_1 = ie2_0 + 1
+                                    if(ie2_1 > origNe_m_1): ie2_1 = origNe_m_1
+
+                                    ie1_0_perE = ie1_0*perE
+                                    ie1_1_perE = ie1_1*perE
+                                    ie2_0_p_ie1_0_perE = ie2_0 + ie1_0_perE
+                                    ie2_1_p_ie1_0_perE = ie2_1 + ie1_0_perE
+                                    ie2_0_p_ie1_1_perE = ie2_0 + ie1_1_perE
+                                    ie2_1_p_ie1_1_perE = ie2_1 + ie1_1_perE
+
+                                if(isInRangeE):
+                                    a000000 = resDegCohNonRot[ie2_0_p_ie1_0_perE + ix2_0_perXp_p_ix1_0_perX + iy2_0_perYp_p_iy1_0_perY]
+                                    f100000 = resDegCohNonRot[ie2_1_p_ie1_0_perE + ix2_0_perXp_p_ix1_0_perX + iy2_0_perYp_p_iy1_0_perY]
+                                    f010000 = resDegCohNonRot[ie2_0_p_ie1_1_perE + ix2_0_perXp_p_ix1_0_perX + iy2_0_perYp_p_iy1_0_perY]
+                                    f001000 = resDegCohNonRot[ie2_0_p_ie1_0_perE + ix2_1_perXp_p_ix1_0_perX + iy2_0_perYp_p_iy1_0_perY]
+                                    f000100 = resDegCohNonRot[ie2_0_p_ie1_0_perE + ix2_0_perXp_p_ix1_1_perX + iy2_0_perYp_p_iy1_0_perY]
+                                    f000010 = resDegCohNonRot[ie2_0_p_ie1_0_perE + ix2_0_perXp_p_ix1_0_perX + iy2_1_perYp_p_iy1_0_perY]
+                                    f000001 = resDegCohNonRot[ie2_0_p_ie1_0_perE + ix2_0_perXp_p_ix1_0_perX + iy2_0_perYp_p_iy1_1_perY]
+
+                                    f110000 = resDegCohNonRot[ie2_1_p_ie1_1_perE + ix2_0_perXp_p_ix1_0_perX + iy2_0_perYp_p_iy1_0_perY]
+                                    f101000 = resDegCohNonRot[ie2_1_p_ie1_0_perE + ix2_1_perXp_p_ix1_0_perX + iy2_0_perYp_p_iy1_0_perY]
+                                    f100100 = resDegCohNonRot[ie2_1_p_ie1_0_perE + ix2_0_perXp_p_ix1_1_perX + iy2_0_perYp_p_iy1_0_perY]
+                                    f100010 = resDegCohNonRot[ie2_1_p_ie1_0_perE + ix2_0_perXp_p_ix1_0_perX + iy2_1_perYp_p_iy1_0_perY]
+                                    f100001 = resDegCohNonRot[ie2_1_p_ie1_0_perE + ix2_0_perXp_p_ix1_0_perX + iy2_0_perYp_p_iy1_1_perY]
+
+                                    f011000 = resDegCohNonRot[ie2_0_p_ie1_1_perE + ix2_1_perXp_p_ix1_0_perX + iy2_0_perYp_p_iy1_0_perY]
+                                    f010100 = resDegCohNonRot[ie2_0_p_ie1_1_perE + ix2_0_perXp_p_ix1_1_perX + iy2_0_perYp_p_iy1_0_perY]
+                                    f010010 = resDegCohNonRot[ie2_0_p_ie1_1_perE + ix2_0_perXp_p_ix1_0_perX + iy2_1_perYp_p_iy1_0_perY]
+                                    f010001 = resDegCohNonRot[ie2_0_p_ie1_1_perE + ix2_0_perXp_p_ix1_0_perX + iy2_0_perYp_p_iy1_1_perY]
+
+                                    f001100 = resDegCohNonRot[ie2_0_p_ie1_0_perE + ix2_1_perXp_p_ix1_1_perX + iy2_0_perYp_p_iy1_0_perY]
+                                    f001010 = resDegCohNonRot[ie2_0_p_ie1_0_perE + ix2_1_perXp_p_ix1_0_perX + iy2_1_perYp_p_iy1_0_perY]
+                                    f001001 = resDegCohNonRot[ie2_0_p_ie1_0_perE + ix2_1_perXp_p_ix1_0_perX + iy2_0_perYp_p_iy1_1_perY]
+
+                                    f000110 = resDegCohNonRot[ie2_0_p_ie1_0_perE + ix2_0_perXp_p_ix1_1_perX + iy2_1_perYp_p_iy1_0_perY]
+                                    f000101 = resDegCohNonRot[ie2_0_p_ie1_0_perE + ix2_0_perXp_p_ix1_1_perX + iy2_0_perYp_p_iy1_1_perY]
+
+                                    f000011 = resDegCohNonRot[ie2_0_p_ie1_0_perE + ix2_0_perXp_p_ix1_0_perX + iy2_1_perYp_p_iy1_1_perY]
+
+                                    a100000 = f100000 - a000000
+                                    a010000 = f010000 - a000000
+                                    a001000 = f001000 - a000000
+                                    a000100 = f000100 - a000000
+                                    a000010 = f000010 - a000000
+                                    a000001 = f000001 - a000000
+                                    a110000 = a000000 - f010000 - f100000 + f110000
+                                    a101000 = a000000 - f001000 - f100000 + f101000
+                                    a100100 = a000000 - f000100 - f100000 + f100100
+                                    a100010 = a000000 - f000010 - f100000 + f100010
+                                    a100001 = a000000 - f000001 - f100000 + f100001
+                                    a011000 = a000000 - f001000 - f010000 + f011000
+                                    a010100 = a000000 - f000100 - f010000 + f010100
+                                    a010010 = a000000 - f000010 - f010000 + f010010
+                                    a010001 = a000000 - f000001 - f010000 + f010001
+                                    a001100 = a000000 - f000100 - f001000 + f001100
+                                    a001010 = a000000 - f000010 - f001000 + f001010
+                                    a001001 = a000000 - f000001 - f001000 + f001001
+                                    a000110 = a000000 - f000010 - f000100 + f000110
+                                    a000101 = a000000 - f000001 - f000100 + f000101
+                                    a000011 = a000000 - f000001 - f000010 + f000011
+
+                                    rotDegCoh = (a100000 + a110000*re1 + a101000*rx2 + a100100*rx1 + a100010*ry2 + a100001*ry1)*re2
+                                    rotDegCoh += (a010000 + a011000*rx2 + a010100*rx1 + a010010*ry2 + a010001*ry1)*re1
+                                    rotDegCoh += (a001000 + a001100*rx1 + a001010*ry2 + a001001*ry1)*rx2
+                                    rotDegCoh += (a000100 + a000110*ry2 + a000101*ry1)*rx1 + (a000010 + a000011*ry1)*ry2 + a000001*ry1 + a000000
+                                    #OC05052018: Note that this does not include all terms of multi-dim "bi-linear" interpolation!?
+
+                                    resDegCoh[resOfst] = rotDegCoh
+                                else:
+                                    resDegCoh[resOfst] = 0
+
+                                resOfst += 1
+                                resE += resEstep #resEp += resEstep
+                            resEp += resEstep #resE += resEstep
+                        resX += resXstep #resXp += resXstep
+                    resXp += resXstep #resX += resXstep
+                resY += resYstep #resYp += resYstep
+            resYp += resYstep #resY += resYstep
+
+        return resDegCoh
+
+    def to_deg_coh_slow(self, _rel_zer_tol=1.e-04, _rot=True):
+        """Calculates / "extracts" Degree of Coherence from the Mutual Intensity (first Stokes component, s0)
+        :param _rel_zer_tol: relative zero tolerance to use at normalizing (dividing) by the intensity
+        :param _rot: rotate or not the degree of coherence data
+        :param _n_stokes_comp: number of Stokes components to treat (1 to 4)
+        :return: 1D array with (C-aligned) resulting degree of coherence data
+        """
+
+        if(self.mutual <= 0): raise Exception("Calculation of Degree of Coherence can not be done from regular Intensity; Mutual Intensity is required.")
+
+        origNe = self.mesh.ne
+        origNx = self.mesh.nx
+        origNy = self.mesh.ny
+        origEstart = self.mesh.eStart
+        origEfin = self.mesh.eFin
+        origXstart = self.mesh.xStart
+        origXfin = self.mesh.xFin
+        origYstart = self.mesh.yStart
+        origYfin = self.mesh.xFin
+
+        origEstep = 0; origEstepInv = 0
+        if(origNe > 1): 
+            origEstep = (origEfin - origEstart)/(origNe - 1)
+            origEstepInv = 1/origEstep
+        origXstep = 0; origXstepInv = 0
+        if(origNx > 1): 
+            origXstep = (origXfin - origXstart)/(origNx - 1)
+            origXstepInv = 1/origXstep
+        origYstep = 0; origYstepInv = 0
+        if(origNy > 1): 
+            origYstep = (origYfin - origYstart)/(origNy - 1)
+            origYstepInv = 1/origYstep
+
+        origNe_m_1 = origNe - 1; origNe_m_2 = origNe - 2
+        origNx_m_1 = origNx - 1; origNx_m_2 = origNx - 2
+        origNy_m_1 = origNy - 1; origNy_m_2 = origNy - 2
+
+        origPerEp = 2
+        origPerE = origPerEp*origNe
+        origPerXp = origPerE*origNe
+        origPerX = origPerXp*origNx
+        origPerYp = origPerX*origNx
+        origPerY = origPerYp*origNy
+
+        orig_iec = int(round(0.5*origNe))
+        orig_ixc = int(round(0.5*origNx))
+        orig_iyc = int(round(0.5*origNy))
+        ofstIc = orig_iec*origPerEp + orig_iec*origPerE + orig_ixc*origPerXp + orig_ixc*origPerX + orig_iyc*origPerYp + orig_iyc*origPerY
+        absZerTolI = abs(self.arS[ofstIc])*_rel_zer_tol
+
+        resNe = origNe
+        resNx = origNx
+        resNy = origNy
+        resEstart = origEstart
+        resEfin = origEfin
+        resXstart = origXstart
+        resXfin = origXfin
+        resYstart = origYstart
+        resYfin = origYfin
+
+        if(_rot):
+            sqrt2 = sqrt(2)
+
+            if(resNe > 1): 
+                resNe = 2*resNe - 1
+                ec = 0.5*(resEstart + resEfin)
+                resEstart = ec - sqrt2*(ec - resEstart)
+                resEfin = ec + sqrt2*(resEfin - ec)
+
+            if(resNx > 1): 
+                resNx = 2*resNx - 1
+                xc = 0.5*(resXstart + resXfin)
+                resXstart = xc - sqrt2*(xc - resXstart)
+                resXfin = xc + sqrt2*(resXfin - xc)
+
+            if(resNy > 1): 
+                resNy = 2*resNy - 1
+                yc = 0.5*(resYstart + resYfin)
+                resYstart = yc - sqrt2*(yc - resYstart)
+                resYfin = yc + sqrt2*(resYfin - yc)
+
+        resNp = resNe*resNx*resNy
+        resNp *= resNp
+        resDegCoh = array('f', [0]*resNp)
+
+        resEstep = 0
+        if(resNe > 1): resEstep = (resEfin - resEstart)/(resNe - 1)
+        resXstep = 0
+        if(resNx > 1): resXstep = (resXfin - resXstart)/(resNx - 1)
+        resYstep = 0
+        if(resNy > 1): resYstep = (resYfin - resYstart)/(resNy - 1)
+
+        resX1 = 0; resX2 = 0 #just declaring these vars
+        resE1 = 0; resE2 = 0 #just declaring these vars
+
+        ie2_0_origPerEp_p_ie1_0_origPerE = 0
+        ie2_1_origPerEp_p_ie1_0_origPerE = 0
+        ie2_0_origPerEp_p_ie1_1_origPerE = 0
+        ie2_1_origPerEp_p_ie1_1_origPerE = 0
+
+        ie1_0_origPerEp_p_ie1_0_origPerE = 0
+        ie1_1_origPerEp_p_ie1_0_origPerE = 0
+        ie1_0_origPerEp_p_ie1_1_origPerE = 0
+        ie1_1_origPerEp_p_ie1_1_origPerE = 0
+
+        ie2_0_origPerEp_p_ie2_0_origPerE = 0
+        ie2_1_origPerEp_p_ie2_0_origPerE = 0
+        ie2_0_origPerEp_p_ie2_1_origPerE = 0
+        ie2_1_origPerEp_p_ie2_1_origPerE = 0
+
+        ix2_0_origPerXp_p_ix1_0_origPerX = 0
+        ix2_1_origPerXp_p_ix1_0_origPerX = 0
+        ix2_0_origPerXp_p_ix1_1_origPerX = 0
+        ix2_1_origPerXp_p_ix1_1_origPerX = 0
+
+        ix1_0_origPerXp_p_ix1_0_origPerX = 0
+        ix1_1_origPerXp_p_ix1_0_origPerX = 0
+        ix1_0_origPerXp_p_ix1_1_origPerX = 0
+        ix1_1_origPerXp_p_ix1_1_origPerX = 0
+
+        ix2_0_origPerXp_p_ix2_0_origPerX = 0
+        ix2_1_origPerXp_p_ix2_0_origPerX = 0
+        ix2_0_origPerXp_p_ix2_1_origPerX = 0
+        ix2_1_origPerXp_p_ix2_1_origPerX = 0
+
+        iy2_0_origPerYp_p_iy1_0_origPerY = 0
+        iy2_1_origPerYp_p_iy1_0_origPerY = 0
+        iy2_0_origPerYp_p_iy1_1_origPerY = 0
+        iy2_1_origPerYp_p_iy1_1_origPerY = 0
+
+        iy1_0_origPerYp_p_iy1_0_origPerY = 0
+        iy1_1_origPerYp_p_iy1_0_origPerY = 0
+        iy1_0_origPerYp_p_iy1_1_origPerY = 0
+        iy1_1_origPerYp_p_iy1_1_origPerY = 0
+
+        iy2_0_origPerYp_p_iy2_0_origPerY = 0
+        iy2_1_origPerYp_p_iy2_0_origPerY = 0
+        iy2_0_origPerYp_p_iy2_1_origPerY = 0
+        iy2_1_origPerYp_p_iy2_1_origPerY = 0
+
+        resOfst = 0
+        resY = resYstart
+        for iy in range(resNy):
+            resYp = resYstart
+            for iyp in range(resNy):
+                isInRangeY = True
+                if(_rot and (resNy > 1)):
+                    resY1 = resY + resYp
+                    resY2 = resY - resYp
+                    #resY1 = resY - resYp
+                    #resY2 = resY + resYp
+                    if((resY1 < origYstart) or (resY1 > origYfin) or (resY2 < origYstart) or (resY2 > origYfin)): isInRangeY = False
+
+                iy1_0 = 0; iy1_1 = 0; ry1 = 0
+                iy2_0 = 0; iy2_1 = 0; ry2 = 0
+                if(_rot):
+                    if((resNy > 1) and isInRangeY):
+                        iy1_0 = int(trunc((resY1 - origYstart)*origYstepInv))
+                        if(iy1_0 >= origNy_m_1): iy1_0 = origNy_m_2
+                        ry1 = (resY1 - (origYstart + iy1_0*origYstep))*origYstepInv
+
+                        iy2_0 = int(trunc((resY2 - origYstart)*origYstepInv))
+                        if(iy2_0 >= origNy_m_1): iy2_0 = origNy_m_2
+                        ry2 = (resY2 - (origYstart + iy2_0*origYstep))*origYstepInv
+
+                        iy1_1 = iy1_0 + 1
+                        if(iy1_1 > origNy_m_1): iy1_1 = origNy_m_1
+                        iy2_1 = iy2_0 + 1
+                        if(iy2_1 > origNy_m_1): iy2_1 = origNy_m_1
+
+                        iy2_0_origPerYp = iy2_0*origPerYp
+                        iy2_1_origPerYp = iy2_1*origPerYp
+                        iy1_0_origPerY = iy1_0*origPerY
+                        iy1_1_origPerY = iy1_1*origPerY
+                        iy2_0_origPerYp_p_iy1_0_origPerY = iy2_0_origPerYp + iy1_0_origPerY
+                        iy2_1_origPerYp_p_iy1_0_origPerY = iy2_1_origPerYp + iy1_0_origPerY
+                        iy2_0_origPerYp_p_iy1_1_origPerY = iy2_0_origPerYp + iy1_1_origPerY
+                        iy2_1_origPerYp_p_iy1_1_origPerY = iy2_1_origPerYp + iy1_1_origPerY
+                        iy1_0_origPerYp = iy1_0*origPerYp
+                        iy1_1_origPerYp = iy1_1*origPerYp
+                        iy1_0_origPerYp_p_iy1_0_origPerY = iy1_0_origPerYp + iy1_0_origPerY
+                        iy1_1_origPerYp_p_iy1_0_origPerY = iy1_1_origPerYp + iy1_0_origPerY
+                        iy1_0_origPerYp_p_iy1_1_origPerY = iy1_0_origPerYp + iy1_1_origPerY
+                        iy1_1_origPerYp_p_iy1_1_origPerY = iy1_1_origPerYp + iy1_1_origPerY
+                        iy2_0_origPerY = iy2_0*origPerY
+                        iy2_1_origPerY = iy2_1*origPerY
+                        iy2_0_origPerYp_p_iy2_0_origPerY = iy2_0_origPerYp + iy2_0_origPerY
+                        iy2_1_origPerYp_p_iy2_0_origPerY = iy2_1_origPerYp + iy2_0_origPerY
+                        iy2_0_origPerYp_p_iy2_1_origPerY = iy2_0_origPerYp + iy2_1_origPerY
+                        iy2_1_origPerYp_p_iy2_1_origPerY = iy2_1_origPerYp + iy2_1_origPerY
+                else:
+                    iy1_0 = iy
+                    iy2_0 = iyp
+                    iy2_0_origPerYp = iy2_0*origPerYp
+                    iy1_0_origPerY = iy1_0*origPerY
+                    iy2_0_origPerYp_p_iy1_0_origPerY = iy2_0_origPerYp + iy1_0_origPerY
+                    iy1_0_origPerYp_p_iy1_0_origPerY = iy1_0*origPerYp + iy1_0_origPerY
+                    iy2_0_origPerYp_p_iy2_0_origPerY = iy2_0_origPerYp + iy2_0*origPerY
+
+                resX = resXstart
+                for ix in range(resNx):
+                    resXp = resXstart
+                    for ixp in range(resNx):
+                        isInRangeX = True
+                        if(isInRangeY):
+                            if(_rot and (resNx > 1)):
+                                resX1 = resX + resXp
+                                resX2 = resX - resXp
+                                #resX1 = resX - resXp
+                                #resX2 = resX + resXp
+                                if((resX1 < origXstart) or (resX1 > origXfin) or (resX2 < origXstart) or (resX2 > origXfin)): isInRangeX = False
+                        else:
+                            isInRangeX = False
+
+                        ix1_0 = 0; ix1_1 = 0; rx1 = 0
+                        ix2_0 = 0; ix2_1 = 0; rx2 = 0
+                        if(_rot):
+                            if((resNx > 1) and isInRangeX):
+                                ix1_0 = int(trunc((resX1 - origXstart)*origXstepInv))
+                                if(ix1_0 >= origNx_m_1): ix1_0 = origNx_m_2
+                                rx1 = (resX1 - (origXstart + ix1_0*origXstep))*origXstepInv
+
+                                ix2_0 = int(trunc((resX2 - origXstart)*origXstepInv))
+                                if(ix2_0 >= origNx_m_1): ix2_0 = origNx_m_2
+                                rx2 = (resX2 - (origXstart + ix2_0*origXstep))*origXstepInv
+
+                                ix1_1 = ix1_0 + 1
+                                if(ix1_1 > origNx_m_1): ix1_1 = origNx_m_1
+                                ix2_1 = ix2_0 + 1
+                                if(ix2_1 > origNx_m_1): ix2_1 = origNx_m_1
+
+                                ix2_0_origPerXp = ix2_0*origPerXp
+                                ix2_1_origPerXp = ix2_1*origPerXp
+                                ix1_0_origPerX = ix1_0*origPerX
+                                ix1_1_origPerX = ix1_1*origPerX
+                                ix2_0_origPerXp_p_ix1_0_origPerX = ix2_0_origPerXp + ix1_0_origPerX
+                                ix2_1_origPerXp_p_ix1_0_origPerX = ix2_1_origPerXp + ix1_0_origPerX
+                                ix2_0_origPerXp_p_ix1_1_origPerX = ix2_0_origPerXp + ix1_1_origPerX
+                                ix2_1_origPerXp_p_ix1_1_origPerX = ix2_1_origPerXp + ix1_1_origPerX
+                                ix1_0_origPerXp = ix1_0*origPerXp
+                                ix1_1_origPerXp = ix1_1*origPerXp
+                                ix1_0_origPerXp_p_ix1_0_origPerX = ix1_0_origPerXp + ix1_0_origPerX
+                                ix1_1_origPerXp_p_ix1_0_origPerX = ix1_1_origPerXp + ix1_0_origPerX
+                                ix1_0_origPerXp_p_ix1_1_origPerX = ix1_0_origPerXp + ix1_1_origPerX
+                                ix1_1_origPerXp_p_ix1_1_origPerX = ix1_1_origPerXp + ix1_1_origPerX
+                                ix2_0_origPerX = ix2_0*origPerX
+                                ix2_1_origPerX = ix2_1*origPerX
+                                ix2_0_origPerXp_p_ix2_0_origPerX = ix2_0_origPerXp + ix2_0_origPerX
+                                ix2_1_origPerXp_p_ix2_0_origPerX = ix2_1_origPerXp + ix2_0_origPerX
+                                ix2_0_origPerXp_p_ix2_1_origPerX = ix2_0_origPerXp + ix2_1_origPerX
+                                ix2_1_origPerXp_p_ix2_1_origPerX = ix2_1_origPerXp + ix2_1_origPerX
+                        else:
+                            ix1_0 = ix
+                            ix2_0 = ixp
+                            ix2_0_origPerXp = ix2_0*origPerXp
+                            ix1_0_origPerX = ix1_0*origPerX
+                            ix2_0_origPerXp_p_ix1_0_origPerX = ix2_0_origPerXp + ix1_0_origPerX
+                            ix1_0_origPerXp_p_ix1_0_origPerX = ix1_0*origPerXp + ix1_0_origPerX
+                            ix2_0_origPerXp_p_ix2_0_origPerX = ix2_0_origPerXp + ix2_0*origPerX
+
+                        resE = resEstart
+                        for ie in range(resNe):
+                            resEp = resEstart
+                            for iep in range(resNe):
+                                isInRangeE = True
+                                if(isInRangeX):
+                                    if(_rot and (resNe > 1)):
+                                        resE1 = resE + resEp
+                                        resE2 = resE - resEp
+                                        #resE1 = resE - resEp
+                                        #resE2 = resE + resEp
+                                        if((resE1 < origEstart) or (resE1 > origEfin) or (resE2 < origEstart) or (resE2 > origEfin)): isInRangeE = False
+                                else:
+                                    isInRangeE = False
+
+                                ie1_0 = 0; ie1_1 = 0; re1 = 0
+                                ie2_0 = 0; ie2_1 = 0; re2 = 0
+                                if(_rot):
+                                    if((resNe > 1) and isInRangeE):
+                                        ie1_0 = int(trunc((resE1 - origEstart)*origEstepInv))
+                                        if(ie1_0 >= origNe_m_1): ie1_0 = origNe_m_2
+                                        re1 = (resE1 - (origEstart + ie1_0*origEstep))*origEstepInv
+
+                                        ie2_0 = int(trunc((resE2 - origEstart)*origEstepInv))
+                                        if(ie2_0 >= origNe_m_1): ie2_0 = origNe_m_2
+                                        re2 = (resE2 - (origEstart + ie2_0*origEstep))*origEstepInv
+
+                                        ie1_1 = ie1_0 + 1
+                                        if(ie1_1 > origNe_m_1): ie1_1 = origNe_m_1
+                                        ie2_1 = ie2_0 + 1
+                                        if(ie2_1 > origNe_m_1): ie2_1 = origNe_m_1
+
+                                        ie2_0_origPerEp = ie2_0*origPerEp
+                                        ie2_1_origPerEp = ie2_1*origPerEp
+                                        ie1_0_origPerE = ie1_0*origPerE
+                                        ie1_1_origPerE = ie1_1*origPerE
+                                        ie2_0_origPerEp_p_ie1_0_origPerE = ie2_0_origPerEp + ie1_0_origPerE
+                                        ie2_1_origPerEp_p_ie1_0_origPerE = ie2_1_origPerEp + ie1_0_origPerE
+                                        ie2_0_origPerEp_p_ie1_1_origPerE = ie2_0_origPerEp + ie1_1_origPerE
+                                        ie2_1_origPerEp_p_ie1_1_origPerE = ie2_1_origPerEp + ie1_1_origPerE
+                                        ie1_0_origPerEp = ie1_0*origPerEp
+                                        ie1_1_origPerEp = ie1_1*origPerEp
+                                        ie1_0_origPerEp_p_ie1_0_origPerE = ie1_0_origPerEp + ie1_0_origPerE
+                                        ie1_1_origPerEp_p_ie1_0_origPerE = ie1_1_origPerEp + ie1_0_origPerE
+                                        ie1_0_origPerEp_p_ie1_1_origPerE = ie1_0_origPerEp + ie1_1_origPerE
+                                        ie1_1_origPerEp_p_ie1_1_origPerE = ie1_1_origPerEp + ie1_1_origPerE
+                                        ie2_0_origPerE = ie2_0*origPerE
+                                        ie2_1_origPerE = ie2_1*origPerE
+                                        ie2_0_origPerEp_p_ie2_0_origPerE = ie2_0_origPerEp + ie2_0_origPerE
+                                        ie2_1_origPerEp_p_ie2_0_origPerE = ie2_1_origPerEp + ie2_0_origPerE
+                                        ie2_0_origPerEp_p_ie2_1_origPerE = ie2_0_origPerEp + ie2_1_origPerE
+                                        ie2_1_origPerEp_p_ie2_1_origPerE = ie2_1_origPerEp + ie2_1_origPerE
+
+                                    if(isInRangeE):
+                                        #--------------MI
+                                        ofst000000 = ie2_0_origPerEp_p_ie1_0_origPerE + ix2_0_origPerXp_p_ix1_0_origPerX + iy2_0_origPerYp_p_iy1_0_origPerY
+                                        ofst100000 = ie2_1_origPerEp_p_ie1_0_origPerE + ix2_0_origPerXp_p_ix1_0_origPerX + iy2_0_origPerYp_p_iy1_0_origPerY
+                                        ofst010000 = ie2_0_origPerEp_p_ie1_1_origPerE + ix2_0_origPerXp_p_ix1_0_origPerX + iy2_0_origPerYp_p_iy1_0_origPerY
+                                        ofst001000 = ie2_0_origPerEp_p_ie1_0_origPerE + ix2_1_origPerXp_p_ix1_0_origPerX + iy2_0_origPerYp_p_iy1_0_origPerY
+                                        ofst000100 = ie2_0_origPerEp_p_ie1_0_origPerE + ix2_0_origPerXp_p_ix1_1_origPerX + iy2_0_origPerYp_p_iy1_0_origPerY
+                                        ofst000010 = ie2_0_origPerEp_p_ie1_0_origPerE + ix2_0_origPerXp_p_ix1_0_origPerX + iy2_1_origPerYp_p_iy1_0_origPerY
+                                        ofst000001 = ie2_0_origPerEp_p_ie1_0_origPerE + ix2_0_origPerXp_p_ix1_0_origPerX + iy2_0_origPerYp_p_iy1_1_origPerY
+
+                                        ofst110000 = ie2_1_origPerEp_p_ie1_1_origPerE + ix2_0_origPerXp_p_ix1_0_origPerX + iy2_0_origPerYp_p_iy1_0_origPerY
+                                        ofst101000 = ie2_1_origPerEp_p_ie1_0_origPerE + ix2_1_origPerXp_p_ix1_0_origPerX + iy2_0_origPerYp_p_iy1_0_origPerY
+                                        ofst100100 = ie2_1_origPerEp_p_ie1_0_origPerE + ix2_0_origPerXp_p_ix1_1_origPerX + iy2_0_origPerYp_p_iy1_0_origPerY
+                                        ofst100010 = ie2_1_origPerEp_p_ie1_0_origPerE + ix2_0_origPerXp_p_ix1_0_origPerX + iy2_1_origPerYp_p_iy1_0_origPerY
+                                        ofst100001 = ie2_1_origPerEp_p_ie1_0_origPerE + ix2_0_origPerXp_p_ix1_0_origPerX + iy2_0_origPerYp_p_iy1_1_origPerY
+                                    
+                                        ofst011000 = ie2_0_origPerEp_p_ie1_1_origPerE + ix2_1_origPerXp_p_ix1_0_origPerX + iy2_0_origPerYp_p_iy1_0_origPerY
+                                        ofst010100 = ie2_0_origPerEp_p_ie1_1_origPerE + ix2_0_origPerXp_p_ix1_1_origPerX + iy2_0_origPerYp_p_iy1_0_origPerY
+                                        ofst010010 = ie2_0_origPerEp_p_ie1_1_origPerE + ix2_0_origPerXp_p_ix1_0_origPerX + iy2_1_origPerYp_p_iy1_0_origPerY
+                                        ofst010001 = ie2_0_origPerEp_p_ie1_1_origPerE + ix2_0_origPerXp_p_ix1_0_origPerX + iy2_0_origPerYp_p_iy1_1_origPerY
+                                   
+                                        ofst001100 = ie2_0_origPerEp_p_ie1_0_origPerE + ix2_1_origPerXp_p_ix1_1_origPerX + iy2_0_origPerYp_p_iy1_0_origPerY
+                                        ofst001010 = ie2_0_origPerEp_p_ie1_0_origPerE + ix2_1_origPerXp_p_ix1_0_origPerX + iy2_1_origPerYp_p_iy1_0_origPerY
+                                        ofst001001 = ie2_0_origPerEp_p_ie1_0_origPerE + ix2_1_origPerXp_p_ix1_0_origPerX + iy2_0_origPerYp_p_iy1_1_origPerY
+
+                                        ofst000110 = ie2_0_origPerEp_p_ie1_0_origPerE + ix2_0_origPerXp_p_ix1_1_origPerX + iy2_1_origPerYp_p_iy1_0_origPerY
+                                        ofst000101 = ie2_0_origPerEp_p_ie1_0_origPerE + ix2_0_origPerXp_p_ix1_1_origPerX + iy2_0_origPerYp_p_iy1_1_origPerY
+
+                                        ofst000011 = ie2_0_origPerEp_p_ie1_0_origPerE + ix2_0_origPerXp_p_ix1_0_origPerX + iy2_1_origPerYp_p_iy1_1_origPerY
+                                    
+                                        re_a000000 = _more_stokes.arS[ofst000000]; ofst000000 += 1; im_a000000 = _more_stokes.arS[ofst000000]
+                                        re_f100000 = _more_stokes.arS[ofst100000]; ofst100000 += 1; im_f100000 = _more_stokes.arS[ofst100000]
+                                        re_f010000 = _more_stokes.arS[ofst010000]; ofst010000 += 1; im_f010000 = _more_stokes.arS[ofst010000]
+                                        re_f001000 = _more_stokes.arS[ofst001000]; ofst001000 += 1; im_f001000 = _more_stokes.arS[ofst001000]
+                                        re_f000100 = _more_stokes.arS[ofst000100]; ofst000100 += 1; im_f000100 = _more_stokes.arS[ofst000100]
+                                        re_f000010 = _more_stokes.arS[ofst000010]; ofst000010 += 1; im_f000010 = _more_stokes.arS[ofst000010]
+                                        re_f000001 = _more_stokes.arS[ofst000001]; ofst000001 += 1; im_f000001 = _more_stokes.arS[ofst000001]
+
+                                        re_f110000 = _more_stokes.arS[ofst110000]; ofst110000 += 1; im_f110000 = _more_stokes.arS[ofst110000]
+                                        re_f101000 = _more_stokes.arS[ofst101000]; ofst101000 += 1; im_f101000 = _more_stokes.arS[ofst101000]
+                                        re_f100100 = _more_stokes.arS[ofst100100]; ofst100100 += 1; im_f100100 = _more_stokes.arS[ofst100100]
+                                        re_f100010 = _more_stokes.arS[ofst100010]; ofst100010 += 1; im_f100010 = _more_stokes.arS[ofst100010]
+                                        re_f100001 = _more_stokes.arS[ofst100001]; ofst100001 += 1; im_f100001 = _more_stokes.arS[ofst100001]
+
+                                        re_f011000 = _more_stokes.arS[ofst011000]; ofst011000 += 1; im_f011000 = _more_stokes.arS[ofst011000]
+                                        re_f010100 = _more_stokes.arS[ofst010100]; ofst010100 += 1; im_f010100 = _more_stokes.arS[ofst010100]
+                                        re_f010010 = _more_stokes.arS[ofst010010]; ofst010010 += 1; im_f010010 = _more_stokes.arS[ofst010010]
+                                        re_f010001 = _more_stokes.arS[ofst010001]; ofst010001 += 1; im_f010001 = _more_stokes.arS[ofst010001]
+
+                                        re_f001100 = _more_stokes.arS[ofst001100]; ofst001100 += 1; im_f001100 = _more_stokes.arS[ofst001100]
+                                        re_f001010 = _more_stokes.arS[ofst001010]; ofst001010 += 1; im_f001010 = _more_stokes.arS[ofst001010]
+                                        re_f001001 = _more_stokes.arS[ofst001001]; ofst001001 += 1; im_f001001 = _more_stokes.arS[ofst001001]
+
+                                        re_f000110 = _more_stokes.arS[ofst000110]; ofst000110 += 1; im_f000110 = _more_stokes.arS[ofst000110]
+                                        re_f000101 = _more_stokes.arS[ofst000101]; ofst000101 += 1; im_f000101 = _more_stokes.arS[ofst000101]
+                                        
+                                        re_f000011 = _more_stokes.arS[ofst000011]; ofst000011 += 1; im_f000011 = _more_stokes.arS[ofst000011]
+
+                                        re_a100000 = re_f100000 - re_a000000; im_a100000 = im_f100000 - im_a000000
+                                        re_a010000 = re_f010000 - re_a000000; im_a010000 = im_f010000 - im_a000000
+                                        re_a001000 = re_f001000 - re_a000000; im_a001000 = im_f001000 - im_a000000
+                                        re_a000100 = re_f000100 - re_a000000; im_a000100 = im_f000100 - im_a000000
+                                        re_a000010 = re_f000010 - re_a000000; im_a000010 = im_f000010 - im_a000000
+                                        re_a000001 = re_f000001 - re_a000000; im_a000001 = im_f000001 - im_a000000
+                                        re_a110000 = re_a000000 - re_f010000 - re_f100000 + re_f110000; im_a110000 = im_a000000 - im_f010000 - im_f100000 + im_f110000
+                                        re_a101000 = re_a000000 - re_f001000 - re_f100000 + re_f101000; im_a101000 = im_a000000 - im_f001000 - im_f100000 + im_f101000
+                                        re_a100100 = re_a000000 - re_f000100 - re_f100000 + re_f100100; im_a100100 = im_a000000 - im_f000100 - im_f100000 + im_f100100
+                                        re_a100010 = re_a000000 - re_f000010 - re_f100000 + re_f100010; im_a100010 = im_a000000 - im_f000010 - im_f100000 + im_f100010
+                                        re_a100001 = re_a000000 - re_f000001 - re_f100000 + re_f100001; im_a100001 = im_a000000 - im_f000001 - im_f100000 + im_f100001
+                                        re_a011000 = re_a000000 - re_f001000 - re_f010000 + re_f011000; im_a011000 = im_a000000 - im_f001000 - im_f010000 + im_f011000
+                                        re_a010100 = re_a000000 - re_f000100 - re_f010000 + re_f010100; im_a010100 = im_a000000 - im_f000100 - im_f010000 + im_f010100
+                                        re_a010010 = re_a000000 - re_f000010 - re_f010000 + re_f010010; im_a010010 = im_a000000 - im_f000010 - im_f010000 + im_f010010
+                                        re_a010001 = re_a000000 - re_f000001 - re_f010000 + re_f010001; im_a010001 = im_a000000 - im_f000001 - im_f010000 + im_f010001
+                                        re_a001100 = re_a000000 - re_f000100 - re_f001000 + re_f001100; im_a001100 = im_a000000 - im_f000100 - im_f001000 + im_f001100
+                                        re_a001010 = re_a000000 - re_f000010 - re_f001000 + re_f001010; im_a001010 = im_a000000 - im_f000010 - im_f001000 + im_f001010
+                                        re_a001001 = re_a000000 - re_f000001 - re_f001000 + re_f001001; im_a001001 = im_a000000 - im_f000001 - im_f001000 + im_f001001
+                                        re_a000110 = re_a000000 - re_f000010 - re_f000100 + re_f000110; im_a000110 = im_a000000 - im_f000010 - im_f000100 + im_f000110
+                                        re_a000101 = re_a000000 - re_f000001 - re_f000100 + re_f000101; im_a000101 = im_a000000 - im_f000001 - im_f000100 + im_f000101
+                                        re_a000011 = re_a000000 - re_f000001 - re_f000010 + re_f000011; im_a000011 = im_a000000 - im_f000001 - im_f000010 + im_f000011
+
+                                        reMI = (re_a100000 + re_a110000*re1 + re_a101000*rx2 + re_a100100*rx1 + re_a100010*ry2 + re_a100001*ry1)*re2
+                                        reMI += (re_a010000 + re_a011000*rx2 + re_a010100*rx1 + re_a010010*ry2 + re_a010001*ry1)*re1
+                                        reMI += (re_a001000 + re_a001100*rx1 + re_a001010*ry2 + re_a001001*ry1)*rx2
+                                        reMI += (re_a000100 + re_a000110*ry2 + re_a000101*ry1)*rx1 + (re_a000010 + re_a000011*ry1)*ry2 + re_a000001*ry1 + re_a000000
+                                        imMI = (im_a100000 + im_a110000*re1 + im_a101000*rx2 + im_a100100*rx1 + im_a100010*ry2 + im_a100001*ry1)*re2
+                                        imMI += (im_a010000 + im_a011000*rx2 + im_a010100*rx1 + im_a010010*ry2 + im_a010001*ry1)*re1
+                                        imMI += (im_a001000 + im_a001100*rx1 + im_a001010*ry2 + im_a001001*ry1)*rx2
+                                        imMI += (im_a000100 + im_a000110*ry2 + im_a000101*ry1)*rx1 + (im_a000010 + im_a000011*ry1)*ry2 + im_a000001*ry1 + im_a000000
+                                        absMI = sqrt(reMI*reMI + imMI*imMI)
+
+                                        #--------------I1
+                                        ofst000000 = ie1_0_origPerEp_p_ie1_0_origPerE + ix1_0_origPerXp_p_ix1_0_origPerX + iy1_0_origPerYp_p_iy1_0_origPerY
+                                        ofst100000 = ie1_1_origPerEp_p_ie1_0_origPerE + ix1_0_origPerXp_p_ix1_0_origPerX + iy1_0_origPerYp_p_iy1_0_origPerY
+                                        ofst010000 = ie1_0_origPerEp_p_ie1_1_origPerE + ix1_0_origPerXp_p_ix1_0_origPerX + iy1_0_origPerYp_p_iy1_0_origPerY
+                                        ofst001000 = ie1_0_origPerEp_p_ie1_0_origPerE + ix1_1_origPerXp_p_ix1_0_origPerX + iy1_0_origPerYp_p_iy1_0_origPerY
+                                        ofst000100 = ie1_0_origPerEp_p_ie1_0_origPerE + ix1_0_origPerXp_p_ix1_1_origPerX + iy1_0_origPerYp_p_iy1_0_origPerY
+                                        ofst000010 = ie1_0_origPerEp_p_ie1_0_origPerE + ix1_0_origPerXp_p_ix1_0_origPerX + iy1_1_origPerYp_p_iy1_0_origPerY
+                                        ofst000001 = ie1_0_origPerEp_p_ie1_0_origPerE + ix1_0_origPerXp_p_ix1_0_origPerX + iy1_0_origPerYp_p_iy1_1_origPerY
+
+                                        ofst110000 = ie1_1_origPerEp_p_ie1_1_origPerE + ix1_0_origPerXp_p_ix1_0_origPerX + iy1_0_origPerYp_p_iy1_0_origPerY
+                                        ofst101000 = ie1_1_origPerEp_p_ie1_0_origPerE + ix1_1_origPerXp_p_ix1_0_origPerX + iy1_0_origPerYp_p_iy1_0_origPerY
+                                        ofst100100 = ie1_1_origPerEp_p_ie1_0_origPerE + ix1_0_origPerXp_p_ix1_1_origPerX + iy1_0_origPerYp_p_iy1_0_origPerY
+                                        ofst100010 = ie1_1_origPerEp_p_ie1_0_origPerE + ix1_0_origPerXp_p_ix1_0_origPerX + iy1_1_origPerYp_p_iy1_0_origPerY
+                                        ofst100001 = ie1_1_origPerEp_p_ie1_0_origPerE + ix1_0_origPerXp_p_ix1_0_origPerX + iy1_0_origPerYp_p_iy1_1_origPerY
+                                    
+                                        ofst011000 = ie1_0_origPerEp_p_ie1_1_origPerE + ix1_1_origPerXp_p_ix1_0_origPerX + iy1_0_origPerYp_p_iy1_0_origPerY
+                                        ofst010100 = ie1_0_origPerEp_p_ie1_1_origPerE + ix1_0_origPerXp_p_ix1_1_origPerX + iy1_0_origPerYp_p_iy1_0_origPerY
+                                        ofst010010 = ie1_0_origPerEp_p_ie1_1_origPerE + ix1_0_origPerXp_p_ix1_0_origPerX + iy1_1_origPerYp_p_iy1_0_origPerY
+                                        ofst010001 = ie1_0_origPerEp_p_ie1_1_origPerE + ix1_0_origPerXp_p_ix1_0_origPerX + iy1_0_origPerYp_p_iy1_1_origPerY
+                                   
+                                        ofst001100 = ie1_0_origPerEp_p_ie1_0_origPerE + ix1_1_origPerXp_p_ix1_1_origPerX + iy1_0_origPerYp_p_iy1_0_origPerY
+                                        ofst001010 = ie1_0_origPerEp_p_ie1_0_origPerE + ix1_1_origPerXp_p_ix1_0_origPerX + iy1_1_origPerYp_p_iy1_0_origPerY
+                                        ofst001001 = ie1_0_origPerEp_p_ie1_0_origPerE + ix1_1_origPerXp_p_ix1_0_origPerX + iy1_0_origPerYp_p_iy1_1_origPerY
+
+                                        ofst000110 = ie1_0_origPerEp_p_ie1_0_origPerE + ix1_0_origPerXp_p_ix1_1_origPerX + iy1_1_origPerYp_p_iy1_0_origPerY
+                                        ofst000101 = ie1_0_origPerEp_p_ie1_0_origPerE + ix1_0_origPerXp_p_ix1_1_origPerX + iy1_0_origPerYp_p_iy1_1_origPerY
+
+                                        ofst000011 = ie1_0_origPerEp_p_ie1_0_origPerE + ix1_0_origPerXp_p_ix1_0_origPerX + iy1_1_origPerYp_p_iy1_1_origPerY
+                                    
+                                        re_a000000 = _more_stokes.arS[ofst000000]#; ofst000000 += 1; im_a000000 = _more_stokes.arS[ofst000000]
+                                        re_f100000 = _more_stokes.arS[ofst100000]#; ofst100000 += 1; im_f100000 = _more_stokes.arS[ofst100000]
+                                        re_f010000 = _more_stokes.arS[ofst010000]#; ofst010000 += 1; im_f010000 = _more_stokes.arS[ofst010000]
+                                        re_f001000 = _more_stokes.arS[ofst001000]#; ofst001000 += 1; im_f001000 = _more_stokes.arS[ofst001000]
+                                        re_f000100 = _more_stokes.arS[ofst000100]#; ofst000100 += 1; im_f000100 = _more_stokes.arS[ofst000100]
+                                        re_f000010 = _more_stokes.arS[ofst000010]#; ofst000010 += 1; im_f000010 = _more_stokes.arS[ofst000010]
+                                        re_f000001 = _more_stokes.arS[ofst000001]#; ofst000001 += 1; im_f000001 = _more_stokes.arS[ofst000001]
+
+                                        re_f110000 = _more_stokes.arS[ofst110000]#; ofst110000 += 1; im_f110000 = _more_stokes.arS[ofst110000]
+                                        re_f101000 = _more_stokes.arS[ofst101000]#; ofst101000 += 1; im_f101000 = _more_stokes.arS[ofst101000]
+                                        re_f100100 = _more_stokes.arS[ofst100100]#; ofst100100 += 1; im_f100100 = _more_stokes.arS[ofst100100]
+                                        re_f100010 = _more_stokes.arS[ofst100010]#; ofst100010 += 1; im_f100010 = _more_stokes.arS[ofst100010]
+                                        re_f100001 = _more_stokes.arS[ofst100001]#; ofst100001 += 1; im_f100001 = _more_stokes.arS[ofst100001]
+
+                                        re_f011000 = _more_stokes.arS[ofst011000]#; ofst011000 += 1; im_f011000 = _more_stokes.arS[ofst011000]
+                                        re_f010100 = _more_stokes.arS[ofst010100]#; ofst010100 += 1; im_f010100 = _more_stokes.arS[ofst010100]
+                                        re_f010010 = _more_stokes.arS[ofst010010]#; ofst010010 += 1; im_f010010 = _more_stokes.arS[ofst010010]
+                                        re_f010001 = _more_stokes.arS[ofst010001]#; ofst010001 += 1; im_f010001 = _more_stokes.arS[ofst010001]
+
+                                        re_f001100 = _more_stokes.arS[ofst001100]#; ofst001100 += 1; im_f001100 = _more_stokes.arS[ofst001100]
+                                        re_f001010 = _more_stokes.arS[ofst001010]#; ofst001010 += 1; im_f001010 = _more_stokes.arS[ofst001010]
+                                        re_f001001 = _more_stokes.arS[ofst001001]#; ofst001001 += 1; im_f001001 = _more_stokes.arS[ofst001001]
+
+                                        re_f000110 = _more_stokes.arS[ofst000110]#; ofst000110 += 1; im_f000110 = _more_stokes.arS[ofst000110]
+                                        re_f000101 = _more_stokes.arS[ofst000101]#; ofst000101 += 1; im_f000101 = _more_stokes.arS[ofst000101]
+                                        
+                                        re_f000011 = _more_stokes.arS[ofst000011]#; ofst000011 += 1; im_f000011 = _more_stokes.arS[ofst000011]
+
+                                        re_a100000 = re_f100000 - re_a000000#; im_a100000 = im_f100000 - im_a000000
+                                        re_a010000 = re_f010000 - re_a000000#; im_a010000 = im_f010000 - im_a000000
+                                        re_a001000 = re_f001000 - re_a000000#; im_a001000 = im_f001000 - im_a000000
+                                        re_a000100 = re_f000100 - re_a000000#; im_a000100 = im_f000100 - im_a000000
+                                        re_a000010 = re_f000010 - re_a000000#; im_a000010 = im_f000010 - im_a000000
+                                        re_a000001 = re_f000001 - re_a000000#; im_a000001 = im_f000001 - im_a000000
+                                        re_a110000 = re_a000000 - re_f010000 - re_f100000 + re_f110000#; im_a110000 = im_a000000 - im_f010000 - im_f100000 + im_f110000
+                                        re_a101000 = re_a000000 - re_f001000 - re_f100000 + re_f101000#; im_a101000 = im_a000000 - im_f001000 - im_f100000 + im_f101000
+                                        re_a100100 = re_a000000 - re_f000100 - re_f100000 + re_f100100#; im_a100100 = im_a000000 - im_f000100 - im_f100000 + im_f100100
+                                        re_a100010 = re_a000000 - re_f000010 - re_f100000 + re_f100010#; im_a100010 = im_a000000 - im_f000010 - im_f100000 + im_f100010
+                                        re_a100001 = re_a000000 - re_f000001 - re_f100000 + re_f100001#; im_a100001 = im_a000000 - im_f000001 - im_f100000 + im_f100001
+                                        re_a011000 = re_a000000 - re_f001000 - re_f010000 + re_f011000#; im_a011000 = im_a000000 - im_f001000 - im_f010000 + im_f011000
+                                        re_a010100 = re_a000000 - re_f000100 - re_f010000 + re_f010100#; im_a010100 = im_a000000 - im_f000100 - im_f010000 + im_f010100
+                                        re_a010010 = re_a000000 - re_f000010 - re_f010000 + re_f010010#; im_a010010 = im_a000000 - im_f000010 - im_f010000 + im_f010010
+                                        re_a010001 = re_a000000 - re_f000001 - re_f010000 + re_f010001#; im_a010001 = im_a000000 - im_f000001 - im_f010000 + im_f010001
+                                        re_a001100 = re_a000000 - re_f000100 - re_f001000 + re_f001100#; im_a001100 = im_a000000 - im_f000100 - im_f001000 + im_f001100
+                                        re_a001010 = re_a000000 - re_f000010 - re_f001000 + re_f001010#; im_a001010 = im_a000000 - im_f000010 - im_f001000 + im_f001010
+                                        re_a001001 = re_a000000 - re_f000001 - re_f001000 + re_f001001#; im_a001001 = im_a000000 - im_f000001 - im_f001000 + im_f001001
+                                        re_a000110 = re_a000000 - re_f000010 - re_f000100 + re_f000110#; im_a000110 = im_a000000 - im_f000010 - im_f000100 + im_f000110
+                                        re_a000101 = re_a000000 - re_f000001 - re_f000100 + re_f000101#; im_a000101 = im_a000000 - im_f000001 - im_f000100 + im_f000101
+                                        re_a000011 = re_a000000 - re_f000001 - re_f000010 + re_f000011#; im_a000011 = im_a000000 - im_f000001 - im_f000010 + im_f000011
+
+                                        reI1 = (re_a100000 + re_a110000*re1 + (re_a101000 + re_a100100)*rx1 + (re_a100010 + re_a100001)*ry1)*re1
+                                        reI1 += (re_a010000 + (re_a011000 + re_a010100)*rx1 + (re_a010010 + re_a010001)*ry1)*re1
+                                        reI1 += (re_a001000 + re_a001100*rx1 + (re_a001010 + re_a001001)*ry1)*rx1
+                                        reI1 += (re_a000100 + (re_a000110 + re_a000101)*ry1)*rx1 + (re_a000010 + re_a000011*ry1)*ry1 + re_a000001*ry1 + re_a000000
+                                        #imI1 = (im_a100000 + im_a110000*re1 + (im_a101000 + im_a100100)*rx1 + (im_a100010 + im_a100001)*ry1)*re1
+                                        #imI1 += (im_a010000 + (im_a011000 + im_a010100)*rx1 + (im_a010010 + im_a010001)*ry1)*re1
+                                        #imI1 += (im_a001000 + im_a001100*rx1 + (im_a001010 + im_a001001)*ry1)*rx1
+                                        #imI1 += (im_a000100 + (im_a000110 + im_a000101)*ry1)*rx1 + (im_a000010 + im_a000011*ry1)*ry1 + im_a000001*ry1 + im_a000000
+
+                                        #--------------I2
+                                        ofst000000 = ie2_0_origPerEp_p_ie2_0_origPerE + ix2_0_origPerXp_p_ix2_0_origPerX + iy2_0_origPerYp_p_iy2_0_origPerY
+                                        ofst100000 = ie2_1_origPerEp_p_ie2_0_origPerE + ix2_0_origPerXp_p_ix2_0_origPerX + iy2_0_origPerYp_p_iy2_0_origPerY
+                                        ofst010000 = ie2_0_origPerEp_p_ie2_1_origPerE + ix2_0_origPerXp_p_ix2_0_origPerX + iy2_0_origPerYp_p_iy2_0_origPerY
+                                        ofst001000 = ie2_0_origPerEp_p_ie2_0_origPerE + ix2_1_origPerXp_p_ix2_0_origPerX + iy2_0_origPerYp_p_iy2_0_origPerY
+                                        ofst000100 = ie2_0_origPerEp_p_ie2_0_origPerE + ix2_0_origPerXp_p_ix2_1_origPerX + iy2_0_origPerYp_p_iy2_0_origPerY
+                                        ofst000010 = ie2_0_origPerEp_p_ie2_0_origPerE + ix2_0_origPerXp_p_ix2_0_origPerX + iy2_1_origPerYp_p_iy2_0_origPerY
+                                        ofst000001 = ie2_0_origPerEp_p_ie2_0_origPerE + ix2_0_origPerXp_p_ix2_0_origPerX + iy2_0_origPerYp_p_iy2_1_origPerY
+
+                                        ofst110000 = ie2_1_origPerEp_p_ie2_1_origPerE + ix2_0_origPerXp_p_ix2_0_origPerX + iy2_0_origPerYp_p_iy2_0_origPerY
+                                        ofst101000 = ie2_1_origPerEp_p_ie2_0_origPerE + ix2_1_origPerXp_p_ix2_0_origPerX + iy2_0_origPerYp_p_iy2_0_origPerY
+                                        ofst100100 = ie2_1_origPerEp_p_ie2_0_origPerE + ix2_0_origPerXp_p_ix2_1_origPerX + iy2_0_origPerYp_p_iy2_0_origPerY
+                                        ofst100010 = ie2_1_origPerEp_p_ie2_0_origPerE + ix2_0_origPerXp_p_ix2_0_origPerX + iy2_1_origPerYp_p_iy2_0_origPerY
+                                        ofst100001 = ie2_1_origPerEp_p_ie2_0_origPerE + ix2_0_origPerXp_p_ix2_0_origPerX + iy2_0_origPerYp_p_iy2_1_origPerY
+                                    
+                                        ofst011000 = ie2_0_origPerEp_p_ie2_1_origPerE + ix2_1_origPerXp_p_ix2_0_origPerX + iy2_0_origPerYp_p_iy2_0_origPerY
+                                        ofst010100 = ie2_0_origPerEp_p_ie2_1_origPerE + ix2_0_origPerXp_p_ix2_1_origPerX + iy2_0_origPerYp_p_iy2_0_origPerY
+                                        ofst010010 = ie2_0_origPerEp_p_ie2_1_origPerE + ix2_0_origPerXp_p_ix2_0_origPerX + iy2_1_origPerYp_p_iy2_0_origPerY
+                                        ofst010001 = ie2_0_origPerEp_p_ie2_1_origPerE + ix2_0_origPerXp_p_ix2_0_origPerX + iy2_0_origPerYp_p_iy2_1_origPerY
+                                   
+                                        ofst001100 = ie2_0_origPerEp_p_ie2_0_origPerE + ix2_1_origPerXp_p_ix2_1_origPerX + iy2_0_origPerYp_p_iy2_0_origPerY
+                                        ofst001010 = ie2_0_origPerEp_p_ie2_0_origPerE + ix2_1_origPerXp_p_ix2_0_origPerX + iy2_1_origPerYp_p_iy2_0_origPerY
+                                        ofst001001 = ie2_0_origPerEp_p_ie2_0_origPerE + ix2_1_origPerXp_p_ix2_0_origPerX + iy2_0_origPerYp_p_iy2_1_origPerY
+
+                                        ofst000110 = ie2_0_origPerEp_p_ie2_0_origPerE + ix2_0_origPerXp_p_ix2_1_origPerX + iy2_1_origPerYp_p_iy2_0_origPerY
+                                        ofst000101 = ie2_0_origPerEp_p_ie2_0_origPerE + ix2_0_origPerXp_p_ix2_1_origPerX + iy2_0_origPerYp_p_iy2_1_origPerY
+
+                                        ofst000011 = ie2_0_origPerEp_p_ie2_0_origPerE + ix2_0_origPerXp_p_ix2_0_origPerX + iy2_1_origPerYp_p_iy2_1_origPerY
+                                    
+                                        re_a000000 = _more_stokes.arS[ofst000000]#; ofst000000 += 1; im_a000000 = _more_stokes.arS[ofst000000]
+                                        re_f100000 = _more_stokes.arS[ofst100000]#; ofst100000 += 1; im_f100000 = _more_stokes.arS[ofst100000]
+                                        re_f010000 = _more_stokes.arS[ofst010000]#; ofst010000 += 1; im_f010000 = _more_stokes.arS[ofst010000]
+                                        re_f001000 = _more_stokes.arS[ofst001000]#; ofst001000 += 1; im_f001000 = _more_stokes.arS[ofst001000]
+                                        re_f000100 = _more_stokes.arS[ofst000100]#; ofst000100 += 1; im_f000100 = _more_stokes.arS[ofst000100]
+                                        re_f000010 = _more_stokes.arS[ofst000010]#; ofst000010 += 1; im_f000010 = _more_stokes.arS[ofst000010]
+                                        re_f000001 = _more_stokes.arS[ofst000001]#; ofst000001 += 1; im_f000001 = _more_stokes.arS[ofst000001]
+
+                                        re_f110000 = _more_stokes.arS[ofst110000]#; ofst110000 += 1; im_f110000 = _more_stokes.arS[ofst110000]
+                                        re_f101000 = _more_stokes.arS[ofst101000]#; ofst101000 += 1; im_f101000 = _more_stokes.arS[ofst101000]
+                                        re_f100100 = _more_stokes.arS[ofst100100]#; ofst100100 += 1; im_f100100 = _more_stokes.arS[ofst100100]
+                                        re_f100010 = _more_stokes.arS[ofst100010]#; ofst100010 += 1; im_f100010 = _more_stokes.arS[ofst100010]
+                                        re_f100001 = _more_stokes.arS[ofst100001]#; ofst100001 += 1; im_f100001 = _more_stokes.arS[ofst100001]
+
+                                        re_f011000 = _more_stokes.arS[ofst011000]#; ofst011000 += 1; im_f011000 = _more_stokes.arS[ofst011000]
+                                        re_f010100 = _more_stokes.arS[ofst010100]#; ofst010100 += 1; im_f010100 = _more_stokes.arS[ofst010100]
+                                        re_f010010 = _more_stokes.arS[ofst010010]#; ofst010010 += 1; im_f010010 = _more_stokes.arS[ofst010010]
+                                        re_f010001 = _more_stokes.arS[ofst010001]#; ofst010001 += 1; im_f010001 = _more_stokes.arS[ofst010001]
+
+                                        re_f001100 = _more_stokes.arS[ofst001100]#; ofst001100 += 1; im_f001100 = _more_stokes.arS[ofst001100]
+                                        re_f001010 = _more_stokes.arS[ofst001010]#; ofst001010 += 1; im_f001010 = _more_stokes.arS[ofst001010]
+                                        re_f001001 = _more_stokes.arS[ofst001001]#; ofst001001 += 1; im_f001001 = _more_stokes.arS[ofst001001]
+
+                                        re_f000110 = _more_stokes.arS[ofst000110]#; ofst000110 += 1; im_f000110 = _more_stokes.arS[ofst000110]
+                                        re_f000101 = _more_stokes.arS[ofst000101]#; ofst000101 += 1; im_f000101 = _more_stokes.arS[ofst000101]
+                                        
+                                        re_f000011 = _more_stokes.arS[ofst000011]#; ofst000011 += 1; im_f000011 = _more_stokes.arS[ofst000011]
+
+                                        re_a100000 = re_f100000 - re_a000000#; im_a100000 = im_f100000 - im_a000000
+                                        re_a010000 = re_f010000 - re_a000000#; im_a010000 = im_f010000 - im_a000000
+                                        re_a001000 = re_f001000 - re_a000000#; im_a001000 = im_f001000 - im_a000000
+                                        re_a000100 = re_f000100 - re_a000000#; im_a000100 = im_f000100 - im_a000000
+                                        re_a000010 = re_f000010 - re_a000000#; im_a000010 = im_f000010 - im_a000000
+                                        re_a000001 = re_f000001 - re_a000000#; im_a000001 = im_f000001 - im_a000000
+                                        re_a110000 = re_a000000 - re_f010000 - re_f100000 + re_f110000#; im_a110000 = im_a000000 - im_f010000 - im_f100000 + im_f110000
+                                        re_a101000 = re_a000000 - re_f001000 - re_f100000 + re_f101000#; im_a101000 = im_a000000 - im_f001000 - im_f100000 + im_f101000
+                                        re_a100100 = re_a000000 - re_f000100 - re_f100000 + re_f100100#; im_a100100 = im_a000000 - im_f000100 - im_f100000 + im_f100100
+                                        re_a100010 = re_a000000 - re_f000010 - re_f100000 + re_f100010#; im_a100010 = im_a000000 - im_f000010 - im_f100000 + im_f100010
+                                        re_a100001 = re_a000000 - re_f000001 - re_f100000 + re_f100001#; im_a100001 = im_a000000 - im_f000001 - im_f100000 + im_f100001
+                                        re_a011000 = re_a000000 - re_f001000 - re_f010000 + re_f011000#; im_a011000 = im_a000000 - im_f001000 - im_f010000 + im_f011000
+                                        re_a010100 = re_a000000 - re_f000100 - re_f010000 + re_f010100#; im_a010100 = im_a000000 - im_f000100 - im_f010000 + im_f010100
+                                        re_a010010 = re_a000000 - re_f000010 - re_f010000 + re_f010010#; im_a010010 = im_a000000 - im_f000010 - im_f010000 + im_f010010
+                                        re_a010001 = re_a000000 - re_f000001 - re_f010000 + re_f010001#; im_a010001 = im_a000000 - im_f000001 - im_f010000 + im_f010001
+                                        re_a001100 = re_a000000 - re_f000100 - re_f001000 + re_f001100#; im_a001100 = im_a000000 - im_f000100 - im_f001000 + im_f001100
+                                        re_a001010 = re_a000000 - re_f000010 - re_f001000 + re_f001010#; im_a001010 = im_a000000 - im_f000010 - im_f001000 + im_f001010
+                                        re_a001001 = re_a000000 - re_f000001 - re_f001000 + re_f001001#; im_a001001 = im_a000000 - im_f000001 - im_f001000 + im_f001001
+                                        re_a000110 = re_a000000 - re_f000010 - re_f000100 + re_f000110#; im_a000110 = im_a000000 - im_f000010 - im_f000100 + im_f000110
+                                        re_a000101 = re_a000000 - re_f000001 - re_f000100 + re_f000101#; im_a000101 = im_a000000 - im_f000001 - im_f000100 + im_f000101
+                                        re_a000011 = re_a000000 - re_f000001 - re_f000010 + re_f000011#; im_a000011 = im_a000000 - im_f000001 - im_f000010 + im_f000011
+
+                                        reI2 = (re_a100000 + re_a110000*re2 + (re_a101000 + re_a100100)*rx2 + (re_a100010 + re_a100001)*ry2)*re2
+                                        reI2 += (re_a010000 + (re_a011000 + re_a010100)*rx2 + (re_a010010 + re_a010001)*ry2)*re2
+                                        reI2 += (re_a001000 + re_a001100*rx2 + (re_a001010 + re_a001001)*ry2)*rx2
+                                        reI2 += (re_a000100 + (re_a000110 + re_a000101)*ry2)*rx2 + (re_a000010 + re_a000011*ry2)*ry2 + re_a000001*ry2 + re_a000000
+                                        #imI2 = (im_a100000 + im_a110000*re2 + (im_a101000 + im_a100100)*rx2 + (im_a100010 + im_a100001)*ry2)*re2
+                                        #imI2 += (im_a010000 + (im_a011000 + im_a010100)*rx2 + (im_a010010 + im_a010001)*ry2)*re2
+                                        #imI2 += (im_a001000 + im_a001100*rx2 + (im_a001010 + im_a001001)*ry2)*rx2
+                                        #imI2 += (im_a000100 + (im_a000110 + im_a000101)*ry2)*rx2 + (im_a000010 + im_a000011*ry2)*ry2 + im_a000001*ry2 + im_a000000
+                                        #OC05052018: Note that this does not include all terms of multi-dim "bi-linear" interpolation!?
+
+                                        resDegCoh[resOfst] = absMI/(sqrt(reI1*reI2) + absZerTolI)
+                                    else:
+                                        resDegCoh[resOfst] = 0
+                                else:
+                                    ie1_0 = ie
+                                    ie2_0 = iep
+                                    ie1_0_origPerE = ie1_0*origPerE
+                                    ie2_0_origPerEp = ie2_0*origPerEp
+                                    ie2_0_origPerEp_p_ie1_0_origPerE = ie2_0_origPerEp + ie1_0_origPerE
+                                    ie1_0_origPerEp_p_ie1_0_origPerE = ie1_0*origPerEp + ie1_0_origPerE
+                                    ie2_0_origPerEp_p_ie2_0_origPerE = ie2_0_origPerEp + ie2_0*origPerE
+
+                                    ofstMI = ie2_0_origPerEp_p_ie1_0_origPerE + ix2_0*origPerXp + ix1_0*origPerX + iy2_0*origPerYp + iy1_0*origPerY
+                                    ofstI1 = ie1_0_origPerEp_p_ie1_0_origPerE + ix1_0*origPerXp + ix1_0*origPerX + iy1_0*origPerYp + iy1_0*origPerY
+                                    ofstI2 = ie2_0_origPerEp_p_ie2_0_origPerE + ix2_0*origPerXp + ix2_0*origPerX + iy2_0*origPerYp + iy2_0*origPerY
+
+                                    reMI = self.arS[ofstMI]; imMI = self.arS[ofstMI + 1]
+                                    absMI = sqrt(reMI*reMI + imMI*imMI)
+                                    reI1 = self.arS[ofstI1]#; imI1 = self.arS[ofstI1 + 1]
+                                    reI2 = self.arS[ofstI2]#; imI2 = self.arS[ofstI2 + 1]
+                                    resDegCoh[resOfst] = absMI/(sqrt(reI1*reI2) + absZerTolI)
+
+                                resOfst += 1
+                                resEp += resEstep
+                            resE += resEstep
+                        resXp += resXstep
+                    resX += resXstep
+                resYp += resYstep
+            resY += resYstep
+
+        return resDegCoh
 
 #****************************************************************************
 class SRWLWfr(object):
@@ -1659,7 +2727,8 @@ class SRWLWfr(object):
             _stokes.arS[i + nTot3] = self.arEy[i2p1] #imEy
         _stokes.mesh.set_from_other(self.mesh)
 
-    def calc_stokes(self, _stokes):
+    def calc_stokes(self, _stokes, _n_stokes_comp=4): #OC04052018
+    #def calc_stokes(self, _stokes):
         """Calculate Stokes parameters from Electric Field"""
         if(_stokes.mutual <= 0):
             nTot = self.mesh.ne*self.mesh.nx*self.mesh.ny
@@ -1684,9 +2753,12 @@ class SRWLWfr(object):
                 intLinX = reEx*reEx + imEx*imEx
                 intLinY = reEy*reEy + imEy*imEy
                 _stokes.arS[i] = intLinX + intLinY
-                _stokes.arS[i + nTot] = intLinX - intLinY #check sign
-                _stokes.arS[i + nTot2] = -2*(reEx*reEy + imEx*imEy) #check sign
-                _stokes.arS[i + nTot3] = 2*(-reEx*reEy + imEx*imEy) #check sign
+                #_stokes.arS[i + nTot] = intLinX - intLinY
+                if(_n_stokes_comp > 1): _stokes.arS[i + nTot] = intLinX - intLinY #OC04052018
+                #_stokes.arS[i + nTot2] = -2*(reEx*reEy + imEx*imEy) #check sign
+                if(_n_stokes_comp > 2): _stokes.arS[i + nTot2] = 2*(reEx*reEy + imEx*imEy) #OC04052018 #check sign (in SRW for Igor: -2*(ReEX*ReEZ + ImEX*ImEZ))
+                #_stokes.arS[i + nTot3] = 2*(-reEx*reEy + imEx*imEy) #check sign
+                if(_n_stokes_comp > 3): _stokes.arS[i + nTot3] = 2*(reEx*imEy - imEx*reEy) #OC04052018 #check sign (in SRW for Igor: 2*(-ReEX*ImEZ + ImEX*ReEZ))
 
                 #DEBUG
                 #if(isnan(reEx) or isnan(imEx) or isnan(reEy) or isnan(imEy)):
@@ -1694,6 +2766,7 @@ class SRWLWfr(object):
                 #END DEBUG
                 
             _stokes.mesh.set_from_other(self.mesh)
+            #Why this is using self.mesh, whereas if(_stokes.mutual) uses _stokes.mesh? Consider correcting.
             
         else: #calculate Mutual Stokes parameters on the _stokes.mesh
             yNpRes = _stokes.mesh.ny
@@ -1711,8 +2784,11 @@ class SRWLWfr(object):
             eStepRes = 0
             if(eNpRes > 1): eStepRes = (_stokes.mesh.eFin - eStartRes)/(eNpRes - 1)
 
-            nTot = eNpRes*xNpRes*yNpRes
-            nTot1 = nTot*nTot
+            nTot = eNpRes*xNpRes*yNpRes #OC06052018 (uncommented)
+            #nTot = 2*eNpRes*xNpRes*yNpRes #OC04052018 (since <E(r1)E(r2)*> and other Stokes may be complex entities)
+
+            #nTot1 = nTot*nTot
+            nTot1 = 2*nTot*nTot #OC06052018
             nTot2 = nTot1*2
             nTot3 = nTot1*3
 
@@ -1742,8 +2818,11 @@ class SRWLWfr(object):
             perYr = perX*xNpRes
 
             nTotAux = nTot*2
-            auxArEx = array('f', [0]*nTotAux)
+            auxArEx = array('f', [0]*nTotAux) #OC06052018
             auxArEy = array('f', [0]*nTotAux)
+            #auxArEx = array('f', [0]*nTot) #OC04052018 (since <E(r1)E(r2)*> may be a complex entity)
+            #auxArEy = array('f', [0]*nTot)
+
             #print(perE, perX, perY)
 
             #ir = 0
@@ -1889,6 +2968,11 @@ class SRWLWfr(object):
                     xRes += xStepRes
                 yRes += yStepRes
 
+            #DEBUG
+            #print('SRWLWfr::calc_stokes: eNpRes=', eNpRes, ' xNpRes=', xNpRes, ' yNpRes=', yNpRes)
+            #print(' nTot=', nTot, ' nTot1=', nTot1, ' nTot2=', nTot2, ' nTot3=', nTot3)
+            #END DEBUG
+
             perX = perE*eNpRes
             perY = perX*xNpRes
             ir = 0
@@ -1917,13 +3001,37 @@ class SRWLWfr(object):
                                     reEyT = auxArEy[iep_perE_p_ixp_perX_p_iyp_perY]
                                     imEyT = auxArEy[iep_perE_p_ixp_perX_p_iyp_perY + 1]
 
-                                    intLinX = reEx*reExT + imEx*imExT
-                                    intLinY = reEy*reEyT + imEy*imEyT#; print(intLinX, intLinY)
-                                    _stokes.arS[ir] = intLinX + intLinY
-                                    _stokes.arS[ir + nTot1] = intLinX - intLinY #check sign
-                                    _stokes.arS[ir + nTot2] = -reEx*reEyT - reExT*reEy - imEx*imEyT - imExT*imEy #-2*(reEx*reEy + imEx*imEy) #check sign
-                                    _stokes.arS[ir + nTot3] = -reEx*reEyT - reExT*reEy + imEx*imEyT + imExT*imEy #2*(-reEx*reEy + imEx*imEy) #check sign
-                                    ir += 1
+                                    #OC04052018 (commented-out)
+                                    #intLinX = reEx*reExT + imEx*imExT
+                                    #intLinY = reEy*reEyT + imEy*imEyT #; print(intLinX, intLinY)
+                                    #_stokes.arS[ir] = intLinX + intLinY
+                                    #_stokes.arS[ir + nTot1] = intLinX - intLinY #check sign
+                                    #_stokes.arS[ir + nTot2] = -reEx*reEyT - reExT*reEy - imEx*imEyT - imExT*imEy #-2*(reEx*reEy + imEx*imEy) #check sign
+                                    #_stokes.arS[ir + nTot3] = -reEx*reEyT - reExT*reEy + imEx*imEyT + imExT*imEy #2*(-reEx*reEy + imEx*imEy) #check sign
+
+                                    #OC04052018
+                                    reMI_s0_X = reEx*reExT + imEx*imExT
+                                    reMI_s0_Y = reEy*reEyT + imEy*imEyT
+                                    imMI_s0_X = imEx*reExT - reEx*imExT
+                                    imMI_s0_Y = imEy*reEyT - reEy*imEyT
+                                    _stokes.arS[ir] = reMI_s0_X + reMI_s0_Y #Re(s0)
+                                    ir_p_1 = ir + 1
+                                    _stokes.arS[ir_p_1] = imMI_s0_X + imMI_s0_Y #Im(s0)
+                                    if(_n_stokes_comp > 1):
+                                        _stokes.arS[ir + nTot1] = reMI_s0_X - reMI_s0_Y #Re(s1), see MutualStokes.nb and LectureNotes notebook
+                                        _stokes.arS[ir_p_1 + nTot1] = imMI_s0_X - imMI_s0_Y #Im(s1)
+                                    if(_n_stokes_comp > 2):
+                                        #DEBUG
+                                        #print(' ir + nTot2=', ir + nTot2)
+                                        #END DEBUG
+                                        _stokes.arS[ir + nTot2] = imExT*imEy + imEx*imEyT + reExT*reEy + reEx*reEyT #Re(s2)
+                                        _stokes.arS[ir_p_1 + nTot2] = imEy*reExT - imEyT*reEx - imExT*reEy + imEx*reEyT #Im(s2)
+                                    if(_n_stokes_comp > 3):
+                                        _stokes.arS[ir + nTot3] = imEyT*reEx + imEy*reExT - imExT*reEy - imEx*reEyT #Re(s3)
+                                        _stokes.arS[ir_p_1 + nTot3] = imEx*imEyT - imExT*imEy - reExT*reEy + reEx*reEyT #Im(s3)
+
+                                    #ir += 1
+                                    ir += 2 #OC04052018 (since <E(r1)E(r2)*> and other Stokes are complex entities)
             del auxArEx
             del auxArEy
         
@@ -2764,14 +3872,41 @@ class SRWLOptC(SRWLOpt):
             
     def allocate(self, _nElem):
         self.arOpt = [SRWLOpt()]*_nElem
-        self.arProp = [[0]*17]*_nElem  
+        self.arProp = [[0]*17]*_nElem
+
+    def append_drift(self, _len): #OC28042018
+        """Appends drift space to the end of the Container
+        :param _len: length [m]
+        """
+
+        if(_len == 0.): return
+
+        nOE = len(self.arOpt)
+        lastOptEl = self.arOpt[nOE - 1]
+
+        if(isinstance(lastOptEl, SRWLOptD)): #just change the length of the last drift
+            lastOptEl.L += _len
+            #print('Drift length updated to:', lastOptEl.L)
+        else:
+            self.arOpt.append(SRWLOptD(_len))
+            ppDr = [0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0] #to improve
+            nPP = len(self.arProp)
+            nOE += 1
+            if(nOE == nPP):
+                ppPost = copy(self.arProp[nPP - 1])
+                self.arProp[nPP - 1] = ppDr
+                self.arProp.append(ppPost)
+            elif(nOE > nPP):
+                self.arProp.append(ppDr)
+
 
 #****************************************************************************
 #****************************************************************************
 #Setup some transmission-type optical elements
 #****************************************************************************
 #****************************************************************************
-def srwl_opt_setup_CRL(_foc_plane, _delta, _atten_len, _shape, _apert_h, _apert_v, _r_min, _n, _wall_thick, _xc, _yc, _void_cen_rad=None, _e_start=0, _e_fin=0, _nx=1001, _ny=1001):
+#def srwl_opt_setup_CRL(_foc_plane, _delta, _atten_len, _shape, _apert_h, _apert_v, _r_min, _n, _wall_thick, _xc, _yc, _void_cen_rad=None, _e_start=0, _e_fin=0, _nx=1001, _ny=1001):
+def srwl_opt_setup_CRL(_foc_plane, _delta, _atten_len, _shape, _apert_h, _apert_v, _r_min, _n, _wall_thick, _xc, _yc, _void_cen_rad=None, _e_start=0, _e_fin=0, _nx=1001, _ny=1001, _ang_rot_ex=0, _ang_rot_ey=0): #, _ang_rot_ez=0): #OC15042018
     """
     Setup Transmission type Optical Element which simulates Compound Refractive Lens (CRL)
     :param _foc_plane: plane of focusing: 1- horizontal, 2- vertical, 3- both
@@ -2790,6 +3925,9 @@ def srwl_opt_setup_CRL(_foc_plane, _delta, _atten_len, _shape, _apert_h, _apert_
     :param _e_fin: final photon energy
     :param _nx: number of points vs horizontal position to represent the transmission element
     :param _ny: number of points vs vertical position to represent the transmission element
+    :param _ang_rot_ex: angle [rad] of CRL rotation about horizontal axis
+    :param _ang_rot_ey: angle [rad] of CRL rotation about vertical axis
+    :param _ang_rot_ez: angle [rad] of CRL rotation about longitudinal axis
     :return: transmission (SRWLOptT) type optical element which simulates CRL
     """
 
@@ -2834,10 +3972,71 @@ def srwl_opt_setup_CRL(_foc_plane, _delta, _atten_len, _shape, _apert_h, _apert_
             if(_half_apert < _r_min):
                 sectLen = _wall_thick + 2*(_r_min - sqrt(radE2 - halfApE2))
                 if(rE2 < halfApE2):
-                    return sectLen - 2*sqrt(radE2 - rE2)
+                    #return sectLen - 2*sqrt(radE2 - rE2)
+                    return _wall_thick + 2*(_r_min - sqrt(radE2 - rE2)) #OC22042018
             elif(rE2 < radE2):
                 return sectLen - 2*sqrt(radE2 - rE2)
+
         return sectLen
+
+    #OC20042018
+    def ray_path_in_one_CRL_rot(_x, _y, _foc_plane, _shape, _half_apert, _r_min, _wall_thick, _kx, _ky): #CRL is centered, but rotated about vert. / hor  axes
+        rE2 = 0
+        if((_foc_plane == 1) or (_foc_plane == 3)): #focusing in horizontal plane
+            rE2 += _x*_x
+        if((_foc_plane == 2) or (_foc_plane == 3)): #focusing in vertical or in both planes
+            rE2 += _y*_y
+            
+        halfApE2 = _half_apert*_half_apert
+
+        kx2 = _kx*_kx
+        ky2 = _ky*_ky
+        tiltFact = sqrt(1. + kx2 + ky2)
+        sectLen = 0
+        if(_shape == 1): #parabolic
+            a = 1./_r_min
+            sectLen = (_wall_thick + a*halfApE2)*tiltFact
+            if(rE2 < halfApE2):
+                if(_foc_plane == 1):
+                    if(_kx == 0): return (_wall_thick + a*rE2)*tiltFact
+                    else:
+                        a_kx = a*_kx
+                        a_kx2 = a_kx*_kx
+                        a_kx2_w = a_kx2*_wall_thick
+                        two_a_kx_x = 2*a_kx*_x
+                        return tiltFact*(2 - sqrt(1 - a_kx2_w + two_a_kx_x) - sqrt(1 - a_kx2_w - two_a_kx_x))/a_kx2
+                elif(_foc_plane == 2):
+                    if(_ky == 0): return (_wall_thick + a*rE2)*tiltFact
+                    else:
+                        a_ky = a*_ky
+                        a_ky2 = a_ky*_ky
+                        a_ky2_w = a_ky2*_wall_thick
+                        two_a_ky_y = 2*a_ky*_y
+                        return tiltFact*(2 - sqrt(1 - a_ky2_w + two_a_ky_y) - sqrt(1 - a_ky2_w - two_a_ky_y))/a_ky2
+                else:
+                    a_k2 = a*(kx2 + ky2)
+                    buf0 = _ky*_x - _kx*_y
+                    buf1 = 1 - a*a*buf0*buf0 - w*a_k2
+                    buf2 = 2*a*(_kx*_x + _ky*_y)
+                    return tiltFact*(2 - sqrt(buf1 - buf2) - sqrt(buf1 + buf2))/a_k2
+
+        elif(_shape == 2): #circular (or spherical)
+
+            #This takes into account circular CRL tilt / rotation only approximately!
+            radE2 = _r_min*_r_min
+            sectLen = (_wall_thick + 2*_r_min)*tiltFact
+            
+            if(_half_apert < _r_min):
+                sectLen = _wall_thick + 2*(_r_min - sqrt(radE2 - halfApE2))
+                if(rE2 < halfApE2):
+                    #return sectLen - 2*sqrt(radE2 - rE2)
+                    return (_wall_thick + 2*(_r_min - sqrt(radE2 - rE2)))*tiltFact #OC22042018
+                    
+            elif(rE2 < radE2):
+                return (sectLen - 2*sqrt(radE2 - rE2))*tiltFact
+
+        #return sectLen
+        return sectLen*tiltFact
 
     def ray_path_in_spheres(_x, _y, _void_cen_rad):
         n = int(round(len(_void_cen_rad)/3))
@@ -2884,7 +4083,37 @@ def srwl_opt_setup_CRL(_foc_plane, _delta, _atten_len, _shape, _apert_h, _apert_
         arDelta[0] = _delta
         arAttenLen[0] = _atten_len
 
-    foc_len = 0.5*_r_min/(_n*arDelta[int(0.5*ne)])
+    trM = None #OC15042018
+    vZero = [0,0,0]
+    if(_ang_rot_ex != 0):
+        trRot = uti_math.trf_rotation([1,0,0], _ang_rot_ex, vZero)
+        trM = trRot[0]
+    if(_ang_rot_ey != 0):
+        trRot = uti_math.trf_rotation([0,1,0], _ang_rot_ey, vZero)
+        if(trM is not None): trM = uti_math.matr_prod(trRot[0], trM)
+        else: trM = trRot[0]
+        
+    kxRay = 0; kyRay = 0
+    #cosecAngX = 1; cosecAngY = 1
+    #fact_f = 1
+    fact_opt_path = 1
+    kTol = 1.e-07 #to tune
+    if(trM is not None):
+        trMi = uti_math.matr_3x3_inv(trM)
+        vRay = uti_math.matr_prod(trMi, [0,0,1])
+        kxRay = vRay[0]/vRay[2]
+        if(abs(kxRay) < kTol): kxRay = 0
+        kyRay = vRay[1]/vRay[2]
+        if(abs(kyRay) < kTol): kyRay = 0
+
+        fact_opt_path = sqrt(1. + kxRay*kxRay + kyRay*kyRay) #optical path factor (due to CRL rotations)
+
+        #if(kxRay != 0): cosecAngX = 1/vRay[0]
+        #if(kyRay != 0): cosecAngY = 1/vRay[1]
+        #fact_f = 1./sqrt(1. + kxRay*kxRay + kyRay*kyRay) #focal length factor (due to CRL rotations)
+
+    #foc_len = 0.5*_r_min/(_n*arDelta[int(0.5*ne)])
+    foc_len = 0.5*_r_min/(_n*arDelta[int(0.5*ne)]*fact_opt_path) #OC19042018
     print('Optical Element Setup: CRL Focal Length:', foc_len, 'm')
 
     fx = 1e+23
@@ -2908,13 +4137,24 @@ def srwl_opt_setup_CRL(_foc_plane, _delta, _atten_len, _shape, _apert_h, _apert_
     hx = rx/(nx - 1)
     hy = ry/(ny - 1)
 
+    fact_opt_path_n = _n #OC19042018
+    complexRotCase = False
+    if((kxRay != 0) or (kyRay != 0)):
+        if(((kxRay != 0) and (_foc_plane == 2)) or ((kyRay != 0) and (_foc_plane == 1))): fact_opt_path_n = fact_opt_path*_n
+        else: complexRotCase = True
+    
     #Same data alignment as for wavefront: outmost loop vs y, inmost loop vs e
     ofst = 0
     y = -0.5*ry #CRL is always centered on the grid, however grid can be shifted
     for iy in range(ny):
         x = -0.5*rx
         for ix in range(nx):
-            pathInBody = _n*ray_path_in_one_CRL(x, y, _foc_plane, _shape, halfApert, _r_min, _wall_thick)
+            #pathInBody = _n*ray_path_in_one_CRL(x, y, _foc_plane, _shape, halfApert, _r_min, _wall_thick)
+            #OC20042018
+            if complexRotCase:
+                pathInBody = fact_opt_path_n*ray_path_in_one_CRL_rot(x, y, _foc_plane, _shape, halfApert, _r_min, _wall_thick, kxRay, kyRay)
+            else:
+                pathInBody = fact_opt_path_n*ray_path_in_one_CRL(x, y, _foc_plane, _shape, halfApert, _r_min, _wall_thick)
     
             if(_void_cen_rad is not None): #eventually subtract path in voids
                 pathInBody -= ray_path_in_spheres(x, y, _void_cen_rad)
@@ -3181,8 +4421,7 @@ def srwl_opt_setup_mask(_delta, _atten_len, _thick,
                 # Give values to OpT.arTr
                 # Make final judgement.
                 if phase_shift:
-                    trans_opt.arTr[pointer] = exp(
-                        -0.5 * _thick / _atten_len)  # amplitude transmission.
+                    trans_opt.arTr[pointer] = exp(-0.5 * _thick / _atten_len)  # amplitude transmission.
                     trans_opt.arTr[pointer + 1] = -_delta * _thick  # optical path difference.
                 else:
                     trans_opt.arTr[pointer] = 1  # amplitude transmission.
@@ -3204,7 +4443,139 @@ def srwl_opt_setup_mask(_delta, _atten_len, _thick,
     return trans_opt
 
 #****************************************************************************
-def srwl_opt_setup_surf_height_1d(_height_prof_data, _dim, _ang, _ang_r=0, _amp_coef=1, _ar_arg_long=None, _nx=0, _ny=0, _size_x=0, _size_y=0, _xc=0, _yc=0):
+def srwl_opt_setup_surf_height_1d(_height_prof_data, _dim, _ang, _ang_r=0, _amp_coef=1, _ar_arg_long=None, _nx=0, _ny=0, _size_x=0, _size_y=0, _xc=0, _yc=0): #OC19072018
+    """
+    Setup Transmission type optical element with 1D (mirror or grating) surface Heght Profile data
+    :param _height_prof_data: two- or one-column table containing, in case of two columns: longitudinal position in [m] (1st column) and the Height Profile in [m] (2nd column) data; in case of one column, it contains the Height Profile data
+    :param _dim: orientation of the reflection (deflection) plane; can be 'x' or 'y'
+    :param _ang: grazing angle (between input optical axis and mirror/grating plane)
+    :param _ang_r: reflection angle (between output optical axis and mirror/grating plane)
+    :param _amp_coef: height profile "amplification coefficient"
+    :param _ar_arg_long: optional array of longitudinal position (along mirror/grating) in [m]; if _ar_arg_long is not None, any longitudinal position contained in _height_prof_data is ignored
+    :param _nx: optional number of points in horizontal dimension of the output transmission optical element
+    :param _ny: optional number of points in vertical dimension of the output transmission optical element
+    :param _size_x: optional horizontal transverse size of the output transmission optical element (if <=0: _height_prof_data, _dim, _ar_arg_long, _ar_arg_tr data is used)
+    :param _size_y: optional vertical transverse size of the output transmission optical element (if <=0: _height_prof_data, _dim, _ar_arg_long, _ar_arg_tr data is used)
+    :param _xc: optional horizontal center position of the output transmission optical element
+    :param _yc: optional vertical center position of the output transmission optical element
+    :return: transmission (SRWLOptT) type optical element which simulates the effect of surface height error
+    """
+    #To test all options!
+
+    input_parms = { #MR26022016: Added all input parameters to include in return object:
+        "type": "mirror",
+        "heightProfileFile": "",
+        "orientation": _dim,
+        "grazingAngle": _ang,
+        "reflectionAngle": _ang_r,
+        "heightAmplification": _amp_coef,
+        "longitudinalPosition": _ar_arg_long,
+        "horizontalPoints": _nx,
+        "verticalPoints": _ny,
+        "horizontalTransverseSize": _size_x,
+        "verticalTransverseSize": _size_y,
+        "horizontalCenterPosition": _xc,
+        "verticalCenterPosition": _yc,
+    }
+
+    if((_dim != 'x') and (_dim != 'y')): raise Exception('The orientation of the deflection plane can be either horizontal (\'x\') or vertical (\'y\')')
+
+    if(_ang_r == 0): _ang_r = _ang
+    sinAng = sin(_ang)
+    sinAngR = sin(_ang_r)
+
+    if _ar_arg_long is None:
+        argHeightProfData = _height_prof_data[0]
+        valHeightProfData = _height_prof_data[1]
+    else:
+        argHeightProfData = _ar_arg_long
+        if len(_height_prof_data) >= 2:
+            valHeightProfData = _height_prof_data[1]
+        else: valHeightProfData = _height_prof_data[0]
+
+    npData = len(valHeightProfData)
+    npDataTr = 100 #default value
+    sizeLongProj = (argHeightProfData[npData - 1] - argHeightProfData[0])*sinAngR
+    sizeTr = 1 #default value
+
+    nx = _nx
+    if nx <= 0:
+        if('x' in _dim): nx = npData
+        else: nx = npDataTr
+    ny = _ny
+    if ny <= 0:
+        if('y' in _dim): ny = npData
+        else: ny = npDataTr
+
+    if _size_x > 0: sizeX = _size_x
+    else:
+        sizeX = sizeLongProj
+        if('y' in _dim): sizeX = sizeTr
+
+    if _size_y > 0: sizeY = _size_y
+    else:
+        sizeY = sizeTr
+        if('y' in _dim): sizeY = sizeLongProj
+
+    optSlopeErr = SRWLOptT(nx, ny, sizeX, sizeY, _x=_xc, _y=_yc)
+
+    auxMesh = optSlopeErr.mesh
+    xStep = (auxMesh.xFin - auxMesh.xStart)/(auxMesh.nx - 1)
+    yStep = (auxMesh.yFin - auxMesh.yStart)/(auxMesh.ny - 1)
+
+    perX = 2
+    perY = 2*auxMesh.nx
+
+    hApprox = 0
+    ipStart = 0
+
+    #OCTEST
+    #print('Heigh profile: nx=', auxMesh.nx, ' ny=', auxMesh.ny)
+
+    #if('y' in _dim):
+    arg1Start = auxMesh.yStart - _yc
+    arg2Start = auxMesh.xStart - _xc
+    n1 = auxMesh.ny; n2 = auxMesh.nx
+    per1 = perY; per2 = perX
+    arg1Step = yStep; arg2Step = xStep
+    
+    if('x' in _dim):
+        arg1Start = auxMesh.xStart - _xc
+        arg2Start = auxMesh.yStart - _yc
+        n1 = auxMesh.nx; n2 = auxMesh.ny
+        per1 = perX; per2 = perY
+        arg1Step = xStep; arg2Step = yStep
+
+    arg1 = arg1Start #to make sure that only the mesh moves
+    for i1 in range(n1):
+        hApprox = 0
+        arg1_1 = argHeightProfData[ipStart]*sinAngR
+        for i in range(ipStart + 1, npData):
+            arg1_2 = argHeightProfData[i]*sinAngR
+            if((arg1_1 <= arg1) and (arg1 < arg1_2)):
+                hApprox = ((valHeightProfData[i] - valHeightProfData[i-1])/((argHeightProfData[i] - argHeightProfData[i-1])*sinAngR))*(arg1 - arg1_1) + valHeightProfData[i-1]
+                ipStart = i - 1
+                break
+            arg1_1 = arg1_2
+
+        per1_i1 = per1*i1
+        arg2 = arg2Start #to make sure that only the mesh moves
+        for i2 in range(n2):
+            ofst = per2*i2 + per1_i1
+            optSlopeErr.arTr[ofst] = 1. #Amplitude Transmission #consider taking into account reflectivity
+            optSlopeErr.arTr[ofst + 1] = 0. #Optical Path Difference
+            if(hApprox != 0):
+                optSlopeErr.arTr[ofst + 1] = -(sinAng + sinAngR)*hApprox*_amp_coef #Optical Path Difference (to check sign!)
+
+            arg2 += arg2Step
+        arg1 += arg1Step
+
+    optSlopeErr.input_parms = input_parms  #MR16022016
+    return optSlopeErr
+
+#****************************************************************************
+def srwl_opt_setup_surf_height_1d_old(_height_prof_data, _dim, _ang, _ang_r=0, _amp_coef=1, _ar_arg_long=None, _nx=0, _ny=0, _size_x=0, _size_y=0, _xc=0, _yc=0):
+    #OC19072018: This version is very slow for _dim = 'x' with Py 2.7
     """
     Setup Transmission type optical element with 1D (mirror or grating) surface Heght Profile data
     :param _height_prof_data: two- or one-column table containing, in case of two columns: longitudinal position in [m] (1st column) and the Height Profile in [m] (2nd column) data; in case of one column, it contains the Height Profile data
@@ -3287,6 +4658,10 @@ def srwl_opt_setup_surf_height_1d(_height_prof_data, _dim, _ang, _ang_r=0, _amp_
     y = auxMesh.yStart - _yc #to make sure that only the mesh moves
     hApprox = 0
     ipStart = 0
+
+    #OCTEST
+    #print('Heigh profile: nx=', auxMesh.nx, ' ny=', auxMesh.ny)
+    
     #for iy in range(optSlopeErr.ny):
     for iy in range(auxMesh.ny):
         if('y' in _dim):
@@ -3889,7 +5264,8 @@ def srwl_uti_proc_is_master():
         return True
 
 #**********************Auxiliary function to write tabulated resulting Intensity data to an ASCII file:
-def srwl_uti_save_intens_ascii(_ar_intens, _mesh, _file_path, _n_stokes=1, _arLabels=['Photon Energy', 'Horizontal Position', 'Vertical Position', 'Intensity'], _arUnits=['eV', 'm', 'm', 'ph/s/.1%bw/mm^2'], _mutual=0):
+def srwl_uti_save_intens_ascii(_ar_intens, _mesh, _file_path, _n_stokes=1, _arLabels=['Photon Energy', 'Horizontal Position', 'Vertical Position', 'Intensity'], _arUnits=['eV', 'm', 'm', 'ph/s/.1%bw/mm^2'], _mutual=0, _cmplx=0): #OC06052018
+#def srwl_uti_save_intens_ascii(_ar_intens, _mesh, _file_path, _n_stokes=1, _arLabels=['Photon Energy', 'Horizontal Position', 'Vertical Position', 'Intensity'], _arUnits=['eV', 'm', 'm', 'ph/s/.1%bw/mm^2'], _mutual=0):
     f = open(_file_path, 'w')
     arLabelUnit = [_arLabels[i] + ' [' + _arUnits[i] + ']' for i in range(4)]
 
@@ -3903,6 +5279,7 @@ def srwl_uti_save_intens_ascii(_ar_intens, _mesh, _file_path, _n_stokes=1, _arLa
         sUnitEntTest = sUnitEntTest.replace(' ', '')
         if(sUnitEntTest.lower != 'mutual'):
             sPrefix = 'Mutual' #this prefix is a switch meaning eventual special processing in viewing utilities
+            if(_cmplx != 0): sPrefix = 'Complex Mutual' #OC06052018
             if(sUnitEnt.startswith(' ') == False): sPrefix += ' '
             sUnitEnt = sPrefix + sUnitEnt
 
@@ -3939,6 +5316,8 @@ def srwl_uti_save_intens_ascii(_ar_intens, _mesh, _file_path, _n_stokes=1, _arLa
     if(_mutual > 0): nRadPt *= nRadPt
     
     nVal = nRadPt*nComp #_mesh.ne*_mesh.nx*_mesh.ny*nComp
+    if(_cmplx != 0): nVal *= 2 #OC06052018
+
     for i in range(nVal): #write all data into one column using "C-alignment" as a "flat" 1D array
         f.write(' ' + repr(_ar_intens[i]) + '\n')
         #strOut += ' ' + repr(_ar_intens[i]) + '\n'
@@ -4264,6 +5643,120 @@ def srwl_uti_math_seq_halton(i, base=2):
 #****************************************************************************
 #****************************************************************************
 
+#**********************Auxiliary function to propagate wavefront over free space in a number of steps and extract resulting intensity cuts
+def srwl_wfr_prop_drifts(_wfr, _dz, _nz, _pp, _do3d=False, _nx=-1, _ny=-1, _rx=0, _ry=0, _xc=0, _yc=0, _pol=6, _type=0, _ord_interp=1):
+    """
+    Propagates wavefront over free space in a number of steps and generates intensity distributions vs (z,x) and (z,y) and possibly (z,x,y)
+    :param _wfr: input/output wavefront
+    :param _dz: longitudinal step size for the drifts
+    :param _nz: number of drift steps to be made
+    :param _pp: list of propagation parameters to be used for each drift step
+    :param _do3d: generate intensity vs (z,x,y) in addition to the cuts (z,x) and (z,y)
+    :param _nx: number of points vs horizontal position (is taken into account if >0)
+    :param _ny: number of points vs vertical position (is taken into account if >0)
+    :param _rx: number of points vs horizontal position (is taken into account if >0)
+    :param _ry: number of points vs vertical position(is taken into account if >0)
+    :param _xc: horizontal position for vertical cut of intensity
+    :param _yc: vertical position for horizontal cut of intensity
+    :param _pol: switch specifying polarization component to be extracted:
+            =0 -Linear Horizontal; 
+            =1 -Linear Vertical; 
+            =2 -Linear 45 degrees; 
+            =3 -Linear 135 degrees;
+            =4 -Circular Right; 
+            =5 -Circular Left; 
+            =6 -Total
+    :param _type: switch specifying "type" of a characteristic to be extracted:
+            =0 -"Single-Electron" Intensity; 
+            =1 -"Multi-Electron" Intensity; 
+            =2 -"Single-Electron" Flux; 
+            =3 -"Multi-Electron" Flux; 
+            =4 -"Single-Electron" Radiation Phase; 
+            =5 -Re(E): Real part of Single-Electron Electric Field;
+            =6 -Im(E): Imaginary part of Single-Electron Electric Field;
+            =7 -"Single-Electron" Intensity, integrated over Time or Photon Energy (i.e. Fluence)
+    :param _ord_interp: interpolation order for final intensity calc.
+    :return resulting intensity distributions
+    """
+
+    if(_nx <= 0): _nx = _wfr.mesh.nx
+    if(_ny <= 0): _ny = _wfr.mesh.ny
+
+    nzp1 = _nz + 1
+
+    resIntVsZX = array('f', [0]*(nzp1*_nx)) #array to store the final intensity
+    resIntVsZY = array('f', [0]*(nzp1*_ny)) #array to store the final intensity
+    resIntVsZXY = None
+    if(_do3d): resIntVsZXY = array('f', [0]*(nzp1*_nx*_ny)) #array to store the final intensity
+
+    ec = _wfr.mesh.eStart
+    if(_wfr.mesh.ne > 1): ec = 0.5*(_wfr.mesh.eStart + _wfr.mesh.eFin)
+
+    cntDrift = SRWLOptC([SRWLOptD(_dz)], [_pp])
+
+    xStart = _wfr.mesh.xStart
+    xFin = _wfr.mesh.xFin
+    if(_rx > 0):
+        halfRx = 0.5*_rx
+        xStart = _xc - halfRx
+        xFin = _xc + halfRx
+    xStep = (xFin - xStart)/(_nx - 1) if _nx > 1 else 0
+
+    yStart = _wfr.mesh.yStart
+    yFin = _wfr.mesh.yFin
+    if(_ry > 0):
+        halfRy = 0.5*_ry
+        yStart = _yc - halfRy
+        yFin = _yc + halfRy
+    yStep = (yFin - yStart)/(_ny - 1) if _ny > 1 else 0
+    
+    for iz in range(0, nzp1):
+
+        if(iz > 0):
+            print('Propagation (step # ' + repr(iz) + ') ... ', end='')
+            t0 = time.time();
+            srwl.PropagElecField(_wfr, cntDrift)
+            print('completed (lasted', round(time.time() - t0, 6), 's)')
+
+        curMesh = _wfr.mesh
+        xStepCurMesh = (curMesh.xFin - curMesh.xStart)/(curMesh.nx - 1)
+        yStepCurMesh = (curMesh.yFin - curMesh.yStart)/(curMesh.ny - 1)
+        curIntVsX = array('f', [0]*_wfr.mesh.nx)
+        curIntVsY = array('f', [0]*_wfr.mesh.ny)
+        
+        srwl.CalcIntFromElecField(curIntVsX, _wfr, _pol, _type, 1, ec, _xc, _yc) #int. vs X
+
+        x = xStart
+        for ix in range(_nx): #interpolation
+            resIntVsZX[iz + ix*nzp1] = uti_math.interp_1d(x, curMesh.xStart, xStepCurMesh, curMesh.nx, curIntVsX, _ord_interp)
+            x += xStep
+        
+        srwl.CalcIntFromElecField(curIntVsY, _wfr, _pol, _type, 2, ec, _xc, _yc) #int. vs Y
+
+        y = yStart
+        for iy in range(_ny): #interpolation
+            resIntVsZY[iz + iy*nzp1] = uti_math.interp_1d(y, curMesh.yStart, yStepCurMesh, curMesh.ny, curIntVsY, _ord_interp)
+            y += yStep
+
+        if(_do3d):
+            curIntVsXY = array('f', [0]*_wfr.mesh.nx*_wfr.mesh.ny)
+            srwl.CalcIntFromElecField(curIntVsXY, _wfr, _pol, _type, 3, ec, _xc, _yc) #int. vs XY
+
+            nxny = _nx*_ny
+            y = yStart
+            for iy in range(_ny):
+                x = xStart
+                for ix in range(_nx):
+                    resIntVsZXY[ix + iy*_nx + iz*nxny] = uti_math.interp_2d(x, y, curMesh.xStart, xStepCurMesh, curMesh.nx, curMesh.yStart, yStepCurMesh, curMesh.ny, curIntVsXY, _ord_interp)
+                    x += xStep
+                y += yStep
+
+    resMesh = SRWLRadMesh(ec, ec, 1, xStart, xFin, _nx, yStart, yFin, _ny, 0.)
+    resMesh.zFin = _dz*_nz #adding long. mesh params (note: these may not propagate further!)
+    resMesh.nz = nzp1 #adding long. mesh params (may not propagate further!)
+
+    return resIntVsZX, resIntVsZY, resIntVsZXY, resMesh
+
 #**********************Auxiliary function to setup Coherent Wavefront from Intensity (assuming spherical or astigmatic wave)
 def srwl_wfr_from_intens(_ar_int, _mesh, _part_beam, _Rx, _Ry, _xc=0, _yc=0):
     """
@@ -4372,13 +5865,14 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
     :param _opt_bl: optical beamline (container) to propagate the radiation through (SRWLOptC type)
     :param _pres_ang: switch specifying presentation of the resulting Stokes parameters: coordinate (0) or angular (1)
     :param _char: radiation characteristic to calculate:
-        0- Total Intensity (s0);
-        1- Four Stokes components;
+        0- Total Intensity, i.e. Flux per Unit Surface Area (s0);
+        1- Four Stokes components of Flux per Unit Surface Area;
         2- Mutual Intensity Cut vs X;
         3- Mutual Intensity Cut vs Y;
-        4- Mutual Intensity Cuts vs X & Y;
+        4- Mutual Intensity Cuts and Degree of Coherence vs X & Y;
         10- Flux
-        20- Electric Field (sum of fields from all macro-electrons)
+        20- Electric Field (sum of fields from all macro-electrons, assuming CSR)
+        40- Total Intensity, i.e. Flux per Unit Surface Area (s0), Mutual Intensity Cuts and Degree of Coherence vs X & Y;
     :param _x0: horizontal center position for mutual intensity calculation
     :param _y0: vertical center position for mutual intensity calculation
     :param _e_ph_integ: integration over photon energy is required (1) or not (0); if the integration is required, the limits are taken from _mesh
@@ -4451,11 +5945,17 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
 
     file_path1 = copy(_file_path) #OC30052017
     file_path2 = None
-    meshRes2 = None #OC30052017
-    if(_char == 4): #Mutual Intensity Cuts vs X & Y are required
-        meshRes2 = copy(meshRes)
+    file_path_deg_coh1 = None #07052018
+    file_path_deg_coh2 = None
+    meshRes2 = None #OC30052017 
+    #if(_char == 4): #Mutual Intensity Cuts vs X & Y are required
+    if((_char == 4) or (_char == 40)): #OC02052018 #Mutual Intensity Cuts vs X & Y are required
+        #meshRes2 = copy(meshRes)
+        if(_char == 4): meshRes2 = copy(meshRes) #OC02052018
         file_path1 += '.1'
         file_path2 = copy(_file_path) + '.2'
+        file_path_deg_coh1 = copy(_file_path) + '.dc.1'
+        file_path_deg_coh2 = copy(_file_path) + '.dc.2'
 
     wfr = SRWLWfr() #Wavefronts to be used in each process
     wfr2 = None #OC30052017
@@ -4597,6 +6097,12 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
     workStokes2 = None
     arAuxResSt12 = None #OC31052017
     arAuxWorkSt12 = None #OC31052017
+
+    resStokes3 = None #OC03052018
+    workStokes3 = None
+    arAuxResSt123 = None #OC03052018
+    arAuxWorkSt123 = None #OC03052018
+
     iAvgProc = 0
     iSave = 0
 
@@ -4623,18 +6129,23 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
     resEntityName = 'Intensity' #OC26042016
     resEntityUnits = 'ph/s/.1%bw/mm^2'
     resLabelsToSave = ['Photon Energy', 'Horizontal Position', 'Vertical Position', resEntityName] #OC26042016
-    resUnitsToSave=['eV', 'm', 'm', resEntityUnits] #OC26042016
+    resUnitsToSave = ['eV', 'm', 'm', resEntityUnits] #OC26042016
     
     if(_pres_ang > 0): #OC20112017
         resEntityName = 'Ang. Intensity Distr.'
         resEntityUnits = 'ph/s/.1%bw/mrad^2'
         resLabelsToSave = ['Photon Energy', 'Horizontal Angle', 'Vertical Angle', resEntityName]
-        resUnitsToSave=['eV', 'rad', 'rad', resEntityUnits]
+        resUnitsToSave = ['eV', 'rad', 'rad', resEntityUnits]
 
     if(calcSpecFluxSrc == True):
         resEntityName = 'Flux'
         resEntityUnits = 'ph/s/.1%bw'
+        resLabelsToSave[3] = resEntityName #OC27032018
+        resUnitsToSave[3] = resEntityUnits #OC27032018
     
+    #resLabelsToSaveMutualHorCut = [resLabelsToSave[0], resLabelsToSave[1], 'Conj. ' + resLabelsToSave[1], 'Mutual ' + resLabelsToSave[3]] #OC03052018
+    #resLabelsToSaveMutualVerCut = [resLabelsToSave[0], resLabelsToSave[2], 'Conj. ' + resLabelsToSave[2], 'Mutual ' + resLabelsToSave[3]]
+
     #if(((rank == 0) or (nProc == 1)) and (_opt_bl != None)): #calculate once the central wavefront in the master process (this has to be done only if propagation is required)
     if(((rank == 0) or (nProc == 1)) and (_det is None)): #12/01/2017 
 
@@ -4650,8 +6161,12 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
             #print('Single-electron SR calculation ... ', end='') #DEBUG
             #t0 = time.time(); #DEBUG
 
+            #print('DEBUG: wfr.mesh:', wfr.mesh)
             srwl.CalcElecFieldSR(wfr, 0, _mag, arPrecParSR)
-            if(wfr2 is not None): srwl.CalcElecFieldSR(wfr2, 0, _mag, arPrecParSR) #OC30052017
+
+            if(wfr2 is not None):
+                #print('DEBUG: wfr2.mesh:', wfr2.mesh)
+                srwl.CalcElecFieldSR(wfr2, 0, _mag, arPrecParSR) #OC30052017
             
             #print('completed (lasted', round(time.time() - t0, 6), 's)') #DEBUG
             #print('DEBUG MESSAGE: CalcElecFieldSR called (rank:', rank,')')
@@ -4763,6 +6278,12 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
             lenArSt12 = len(resStokes.arS) + len(resStokes2.arS)
             arAuxResSt12 = array('f', [0]*lenArSt12)
 
+        if(_char == 40): #OC03052018 #Intensity and Cuts of Mutual Intensity vs X & Y
+            resStokes2 = SRWLStokes(1, 'f', meshRes.eStart, meshRes.eFin, meshRes.ne, meshRes.xStart, meshRes.xFin, meshRes.nx, _y0, _y0, 1, _mutual=1)
+            resStokes3 = SRWLStokes(1, 'f', meshRes.eStart, meshRes.eFin, meshRes.ne, _x0, _x0, 1, meshRes.yStart, meshRes.yFin, meshRes.ny, _mutual=1)
+            lenArSt123 = len(resStokes.arS) + len(resStokes2.arS) + len(resStokes3.arS)
+            arAuxResSt123 = array('f', [0]*lenArSt123)
+
         #iAvgProc += 1 #OC190414 (commented-out)
         #iSave += 1
 
@@ -4825,7 +6346,18 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
         nStPt2 = None
         if(_char == 4): #Cuts of Mutual Intensity vs X & Y
             nRadPt2 = meshRes2.ne*meshRes2.nx*meshRes2.ny
+            if(doMutual > 0): nRadPt2 *= nRadPt2 #OC03052018
             nStPt2 = nRadPt2*4
+
+        nRadPt3 = None #OC03052018
+        nStPt3 = None
+        if(_char == 40): #Intensity and Cuts of Mutual Intensity vs X & Y
+            nRadPt2 = meshRes.ne*meshRes.nx
+            nRadPt2 *= nRadPt2
+            nStPt2 = nRadPt2*4
+            nRadPt3 = meshRes.ne*meshRes.ny
+            nRadPt3 *= nRadPt3
+            nStPt3 = nRadPt3*4
         
         randAr = array('d', [0]*6) #for random Gaussian numbers
 
@@ -5143,6 +6675,10 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
             if(_char == 4): #Cuts of Mutual Intensity vs X & Y
                 workStokes2 = SRWLStokes(1, 'f', meshWork2.eStart, meshWork2.eFin, meshWork2.ne, meshWork2.xStart, meshWork2.xFin, meshWork2.nx, meshWork2.yStart, meshWork2.yFin, meshWork2.ny, doMutual)
                      
+            if(_char == 40): #OC03052018 #Intensity and Cuts of Mutual Intensity vs X & Y
+                workStokes2 = SRWLStokes(1, 'f', meshWork.eStart, meshWork.eFin, meshWork.ne, meshWork.xStart, meshWork.xFin, meshWork.nx, _y0, _y0, 1, _mutual=1)
+                workStokes3 = SRWLStokes(1, 'f', meshWork.eStart, meshWork.eFin, meshWork.ne, _x0, _x0, 1, meshWork.yStart, meshWork.yFin, meshWork.ny, _mutual=1)
+
             if(_me_approx == 0): #OC05042017 #General case of numerical integration over 5D phase space of electron beam
                 
                 if(_char == 20): 
@@ -5150,10 +6686,13 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
                 elif(_char == 0): #OC15092017
                     srwl.CalcIntFromElecField(workStokes.arS, wfr, 6, 0, depTypeInt, phEnInt, 0., 0.)
                 else: 
-                    wfr.calc_stokes(workStokes) #calculate Stokes parameters from Electric Field
+                    wfr.calc_stokes(workStokes, _n_stokes_comp=numComp) #calculate Stokes parameters from Electric Field
                     if(workStokes2 is not None): #OC30052017
-                        if(wfr2 is None): wfr.calc_stokes(workStokes2)
-                        else: wfr2.calc_stokes(workStokes2)
+                        if(wfr2 is None): wfr.calc_stokes(workStokes2, _n_stokes_comp=numComp)
+                        else: wfr2.calc_stokes(workStokes2, _n_stokes_comp=numComp)
+
+                    if(workStokes3 is not None): #OC03052018
+                        wfr.calc_stokes(workStokes3, _n_stokes_comp=numComp)
 
             elif(_me_approx == 1): #OC05042017 #Numerical integration only over electron energy, convolution over transverse phase space
 
@@ -5198,13 +6737,22 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
                 #DEBUG
                 #print('resStokes #2: ne=', resStokes.mesh.ne, 'eStart=', resStokes.mesh.eStart, 'eFin=', resStokes.mesh.eFin)
                 #END DEBUG
+
             if(_char == 4): #OC31052017 #Cuts of Mutual Intensity vs X & Y
                 if(resStokes2 is None):
                     resStokes2 = SRWLStokes(1, 'f', meshRes2.eStart, meshRes2.eFin, meshRes2.ne, meshRes2.xStart, meshRes2.xFin, meshRes2.nx, meshRes2.yStart, meshRes2.yFin, meshRes2.ny, doMutual)
-
                 if(arAuxResSt12 is None):
                     lenArSt12 = len(resStokes.arS) + len(resStokes2.arS)
                     arAuxResSt12 = array('f', [0]*lenArSt12)
+
+            if(_char == 40): #OC03052018 #Intensity and Cuts of Mutual Intensity vs X & Y
+                if(resStokes2 is None):
+                    resStokes2 = SRWLStokes(1, 'f', meshRes.eStart, meshRes.eFin, meshRes.ne, meshRes.xStart, meshRes.xFin, meshRes.nx, _y0, _y0, 1, _mutual=1)
+                if(resStokes3 is None):
+                    resStokes3 = SRWLStokes(1, 'f', meshRes.eStart, meshRes.eFin, meshRes.ne, _x0, _x0, 1, meshRes.yStart, meshRes.yFin, meshRes.ny, _mutual=1)
+                if(arAuxResSt123 is None):
+                    lenArSt123 = len(resStokes.arS) + len(resStokes2.arS) + len(resStokes3.arS)
+                    arAuxResSt123 = array('f', [0]*lenArSt123)
 
             #DEBUG
             #print('workStokes.mesh: nx=', workStokes.mesh.nx, 'xStart=', workStokes.mesh.xStart, 'xFin=', workStokes.mesh.xFin)
@@ -5225,6 +6773,9 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
                 if((resStokes2 is not None) and (workStokes2 is not None)): #OC30052017
                     resStokes2.avg_update_same_mesh(workStokes2, iAvgProc, numComp, ePhIntegMult)
 
+                if((resStokes3 is not None) and (workStokes3 is not None)): #OC03052018
+                    resStokes3.avg_update_same_mesh(workStokes3, iAvgProc, numComp, ePhIntegMult)
+
                 #print('completed (lasted', round(time.time() - t0, 6), 's)') #DEBUG
                 #DEBUG
                 #srwl_uti_save_intens_ascii(workStokes.arS, workStokes.mesh, _file_path, 1)
@@ -5244,12 +6795,23 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
                 #END DEBUG
 
                 #if(doMutual <= 0): resStokes.avg_update_interp(workStokes, iAvgProc, 1, 1, ePhIntegMult) #to treat all Stokes components / Polarization in the future
-                if(doMutual == 0): resStokes.avg_update_interp(workStokes, iAvgProc, 1, numComp, ePhIntegMult) #OC16012017 #to treat all Stokes components / Polarization in the future
-                else:
-                    resStokes.avg_update_interp_mutual(workStokes, iAvgProc, 1, ePhIntegMult)
 
-                    if((resStokes2 is not None) and (workStokes2 is not None)): #OC30052017
+                if(_char == 40): #OC03052018
+                    resStokes.avg_update_interp(workStokes, iAvgProc, 1, numComp, ePhIntegMult)
+
+                    if((resStokes2 is not None) and (workStokes2 is not None)): 
                         resStokes2.avg_update_interp_mutual(workStokes2, iAvgProc, 1, ePhIntegMult)
+
+                    if((resStokes3 is not None) and (workStokes3 is not None)):
+                        resStokes3.avg_update_interp_mutual(workStokes3, iAvgProc, 1, ePhIntegMult)
+
+                else:
+                    if(doMutual == 0): resStokes.avg_update_interp(workStokes, iAvgProc, 1, numComp, ePhIntegMult) #OC16012017 #to treat all Stokes components / Polarization in the future
+                    else:
+                        resStokes.avg_update_interp_mutual(workStokes, iAvgProc, 1, ePhIntegMult)
+
+                        if((resStokes2 is not None) and (workStokes2 is not None)): #OC30052017
+                            resStokes2.avg_update_interp_mutual(workStokes2, iAvgProc, 1, ePhIntegMult)
 
                 #print('completed (lasted', round(time.time() - t0, 6), 's)') #DEBUG
                 #print('DEBUG MESSAGE: Finished interpolation of current wavefront on resulting mesh')
@@ -5269,12 +6831,22 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
 
                     #comMPI.Send([resStokes.arS, MPI.FLOAT], dest=0)
                     if(resStokes2 is None): comMPI.Send([resStokes.arS, MPI.FLOAT], dest=0)
-                    else: #OC31052017
+                    #else: #OC31052017
+                    elif(resStokes3 is None): #OC03052018
                         lenArSt1 = len(resStokes.arS)
                         lenArSt2 = len(resStokes2.arS)
                         for i1 in range(lenArSt1): arAuxResSt12[i1] = resStokes.arS[i1]
                         for i2 in range(lenArSt2): arAuxResSt12[i2 + lenArSt1] = resStokes2.arS[i2]
                         comMPI.Send([arAuxResSt12, MPI.FLOAT], dest=0)
+                    else: #OC03052018
+                        lenArSt1 = len(resStokes.arS)
+                        lenArSt2 = len(resStokes2.arS)
+                        lenArSt3 = len(resStokes3.arS)
+                        for i1 in range(lenArSt1): arAuxResSt123[i1] = resStokes.arS[i1]
+                        for i2 in range(lenArSt2): arAuxResSt123[i2 + lenArSt1] = resStokes2.arS[i2]
+                        lenArSt12 = lenArSt1 + lenArSt2
+                        for i3 in range(lenArSt3): arAuxResSt123[i3 + lenArSt12] = resStokes3.arS[i3]
+                        comMPI.Send([arAuxResSt123, MPI.FLOAT], dest=0)
 
                     #if(resStokes2 is not None): comMPI.Send([resStokes2.arS, MPI.FLOAT], dest=0) #OC30052017
 
@@ -5290,6 +6862,10 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
                     if(resStokes2 is not None): #OC30052017
                         for ir in range(nStPt2):
                             resStokes2.arS[ir] = 0
+
+                    if(resStokes3 is not None): #OC03052018
+                        for ir in range(nStPt3):
+                            resStokes3.arS[ir] = 0
 
                     #DEBUG
                     #srwl_uti_save_intens_ascii(resStokes.arS, resStokes.mesh, _file_path, 1)
@@ -5312,12 +6888,30 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
                     
                     #srwl_uti_save_intens_ascii(resStokes.arS, meshRes, _file_path, 1, _mutual = doMutual)
                     #srwl_uti_save_intens_ascii(resStokes.arS, meshRes, _file_path, 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual) #OC26042016
-                   
                     #srwl_uti_save_intens_ascii(resStokes.arS, meshRes, _file_path, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual) #OC16012017
-                    srwl_uti_save_intens_ascii(resStokes.arS, meshRes, file_path1, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual) #OC16012017
 
-                    if((resStokes2 is not None) and (meshRes2 is not None)): #OC30052017
-                        srwl_uti_save_intens_ascii(resStokes2.arS, meshRes2, file_path2, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual)
+                    if(_char == 40): #OC03052018
+                        srwl_uti_save_intens_ascii(resStokes.arS, meshRes, _file_path, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 0)
+                        if(resStokes2 is not None):
+                            #srwl_uti_save_intens_ascii(resStokes2.arS, resStokes2.mesh, file_path1, numComp, _arLabels = resLabelsToSaveMutualHorCut, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 1)
+                            srwl_uti_save_intens_ascii(resStokes2.arS, resStokes2.mesh, file_path1, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 1) #OC06052018
+                            srwl_uti_save_intens_ascii(resStokes2.to_deg_coh(), resStokes2.mesh, file_path_deg_coh1, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 0) #OC06052018
+                        if(resStokes3 is not None):
+                            #srwl_uti_save_intens_ascii(resStokes3.arS, resStokes3.mesh, file_path2, numComp, _arLabels = resLabelsToSaveMutualVerCut, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 1)
+                            srwl_uti_save_intens_ascii(resStokes3.arS, resStokes3.mesh, file_path2, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 1) #OC06052018
+                            srwl_uti_save_intens_ascii(resStokes3.to_deg_coh(), resStokes3.mesh, file_path_deg_coh2, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 0) #OC06052018
+                    elif(_char == 4): #OC03052018
+                        #srwl_uti_save_intens_ascii(resStokes.arS, meshRes, file_path1, numComp, _arLabels = resLabelsToSaveMutualHorCut, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = (1 if doMutual else 0))
+                        srwl_uti_save_intens_ascii(resStokes.arS, meshRes, file_path1, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = (1 if doMutual else 0)) #OC06052018
+                        srwl_uti_save_intens_ascii(resStokes.to_deg_coh(), meshRes, file_path_deg_coh1, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 0) #OC06052018
+                        if((resStokes2 is not None) and (meshRes2 is not None)): #OC30052017
+                            #srwl_uti_save_intens_ascii(resStokes2.arS, meshRes2, file_path2, numComp, _arLabels = resLabelsToSaveMutualVerCut, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = (1 if doMutual else 0))
+                            srwl_uti_save_intens_ascii(resStokes2.arS, meshRes2, file_path2, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = (1 if doMutual else 0)) #OC06052018
+                            srwl_uti_save_intens_ascii(resStokes2.to_deg_coh(), meshRes2, file_path_deg_coh2, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = 0) #OC06052018
+                    else:
+                        srwl_uti_save_intens_ascii(resStokes.arS, meshRes, file_path1, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = (1 if doMutual else 0))
+                        if((resStokes2 is not None) and (meshRes2 is not None)): #OC30052017
+                            srwl_uti_save_intens_ascii(resStokes2.arS, meshRes2, file_path2, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = (1 if doMutual else 0))
 
                     #DEBUG
                     #srwl_uti_save_intens_ascii(workStokes.arS, workStokes.mesh, _file_path, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual)
@@ -5360,6 +6954,23 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
                 lenArWorkSt12 = len(workStokes.arS) + len(workStokes2.arS)
                 arAuxWorkSt12 = array('f', [0]*lenArWorkSt12)
 
+        if(_char == 40): #OC03052018 #Intensity and Cuts of Mutual Intensity vs X & Y
+            if(resStokes2 is None):
+                resStokes2 = SRWLStokes(1, 'f', meshRes.eStart, meshRes.eFin, meshRes.ne, meshRes.xStart, meshRes.xFin, meshRes.nx, _y0, _y0, 1, _mutual=1)
+            if(resStokes3 is None):
+                resStokes3 = SRWLStokes(1, 'f', meshRes.eStart, meshRes.eFin, meshRes.ne, _x0, _x0, 1, meshRes.yStart, meshRes.yFin, meshRes.ny, _mutual=1)
+            if(arAuxResSt123 is None):
+                lenArResSt123 = len(resStokes.arS) + len(resStokes2.arS) + len(resStokes3.arS)
+                arAuxResSt123 = array('f', [0]*lenArResSt123)
+
+            if(workStokes2 is None):
+                workStokes2 = SRWLStokes(1, 'f', meshRes.eStart, meshRes.eFin, meshRes.ne, meshRes.xStart, meshRes.xFin, meshRes.nx, _y0, _y0, 1, _mutual=1)
+            if(workStokes3 is None):
+                workStokes3 = SRWLStokes(1, 'f', meshRes.eStart, meshRes.eFin, meshRes.ne, _x0, _x0, 1, meshRes.yStart, meshRes.yFin, meshRes.ny, _mutual=1)
+            if(arAuxWorkSt123 is None):
+                lenArWorkSt123 = len(workStokes.arS) + len(workStokes2.arS) + len(workStokes3.arS)
+                arAuxWorkSt123 = array('f', [0]*lenArWorkSt123)
+
         for i in range(nRecv): #loop over messages from workers
 
             #DEBUG
@@ -5369,13 +6980,25 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
             #comMPI.Recv([workStokes.arS, MPI.FLOAT], source=MPI.ANY_SOURCE) #receive 
             if(workStokes2 is None): #OC31052017
                 comMPI.Recv([workStokes.arS, MPI.FLOAT], source=MPI.ANY_SOURCE) #receive 
-            else:
+            #else:
+            elif(workStokes3 is None): #OC03052018
                 comMPI.Recv([arAuxWorkSt12, MPI.FLOAT], source=MPI.ANY_SOURCE) #receive 
 
                 lenArWorkSt1 = len(workStokes.arS)
                 for i1 in range(lenArWorkSt1): workStokes.arS[i1] = arAuxWorkSt12[i1]
                 lenArWorkSt2 = len(workStokes2.arS)
                 for i2 in range(lenArWorkSt2): workStokes2.arS[i2] = arAuxWorkSt12[i2 + lenArWorkSt1]
+
+            else: #OC03052018
+                comMPI.Recv([arAuxWorkSt123, MPI.FLOAT], source=MPI.ANY_SOURCE) #receive 
+
+                lenArWorkSt1 = len(workStokes.arS)
+                for i1 in range(lenArWorkSt1): workStokes.arS[i1] = arAuxWorkSt123[i1]
+                lenArWorkSt2 = len(workStokes2.arS)
+                for i2 in range(lenArWorkSt2): workStokes2.arS[i2] = arAuxWorkSt123[i2 + lenArWorkSt1]
+                lenArWorkSt3 = len(workStokes3.arS)
+                lenArWorkSt12 = lenArWorkSt1 + lenArWorkSt2
+                for i3 in range(lenArWorkSt3): workStokes3.arS[i3] = arAuxWorkSt123[i3 + lenArWorkSt12]
 
             #if((_char == 4) and (workStokes2 is not None)): #OC30052017 #Cuts of Mutual Intensity vs X & Y
             #    comMPI.Recv([workStokes2.arS, MPI.FLOAT], source=MPI.ANY_SOURCE) #receive 
@@ -5408,6 +7031,9 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
             if((resStokes2 is not None) and (workStokes2 is not None)):
                 resStokes2.avg_update_same_mesh(workStokes2, i, numComp, multFinAvg) #OC30052017 #in the future treat all Stokes components / Polarization, not just s0!
 
+            if((resStokes3 is not None) and (workStokes3 is not None)):
+                resStokes3.avg_update_same_mesh(workStokes3, i, numComp, multFinAvg) #OC03052018 #in the future treat all Stokes components / Polarization, not just s0!
+
             #print('completed (lasted', round(time.time() - t0, 6), 's)') #DEBUG
             #DEBUG
             #srwl_uti_save_text("Updated Stokes after receiving intensity # " + str(i), _file_path + "." + str(i) + "er.dbg")
@@ -5422,17 +7048,34 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
                 
                 #srwl_uti_save_intens_ascii(resStokes.arS, meshRes, _file_path, 1, _mutual = doMutual)
                 #srwl_uti_save_intens_ascii(resStokes.arS, meshRes, _file_path, 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual) #OC26042016
-                
                 #srwl_uti_save_intens_ascii(resStokes.arS, meshRes, _file_path, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual) #OC16012017
-                srwl_uti_save_intens_ascii(resStokes.arS, meshRes, file_path1, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual) #OC30052017
 
-                if((resStokes2 is not None) and (meshRes2 is not None)): #OC30052017
-                    srwl_uti_save_intens_ascii(resStokes2.arS, meshRes2, file_path2, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual) 
+                if(_char == 40): #OC03052018
+                    srwl_uti_save_intens_ascii(resStokes.arS, meshRes, _file_path, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 0)
+                    if(resStokes2 is not None):
+                        #srwl_uti_save_intens_ascii(resStokes2.arS, resStokes2.mesh, file_path1, numComp, _arLabels = resLabelsToSaveMutualHorCut, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 1) 
+                        srwl_uti_save_intens_ascii(resStokes2.arS, resStokes2.mesh, file_path1, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 1) #OC060502018
+                        srwl_uti_save_intens_ascii(resStokes2.to_deg_coh(), resStokes2.mesh, file_path_deg_coh1, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 0)
+                    if(resStokes3 is not None):
+                        #srwl_uti_save_intens_ascii(resStokes3.arS, resStokes3.mesh, file_path2, numComp, _arLabels = resLabelsToSaveMutualVerCut, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 1) 
+                        srwl_uti_save_intens_ascii(resStokes3.arS, resStokes3.mesh, file_path2, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 1) #OC060502018
+                        srwl_uti_save_intens_ascii(resStokes3.to_deg_coh(), resStokes3.mesh, file_path_deg_coh2, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 0)
+                elif(_char == 4): #OC03052018
+                    #srwl_uti_save_intens_ascii(resStokes.arS, meshRes, file_path1, numComp, _arLabels = resLabelsToSaveMutualHorCut, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = (1 if doMutual else 0))
+                    srwl_uti_save_intens_ascii(resStokes.arS, meshRes, file_path1, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = (1 if doMutual else 0)) #OC060502018
+                    srwl_uti_save_intens_ascii(resStokes.to_deg_coh(), meshRes, file_path_deg_coh1, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 0)
+                    if((resStokes2 is not None) and (meshRes2 is not None)):
+                        #srwl_uti_save_intens_ascii(resStokes2.arS, meshRes2, file_path2, numComp, _arLabels = resLabelsToSaveMutualVerCut, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = (1 if doMutual else 0)) 
+                        srwl_uti_save_intens_ascii(resStokes2.arS, meshRes2, file_path2, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = (1 if doMutual else 0)) #OC060502018
+                        srwl_uti_save_intens_ascii(resStokes2.to_deg_coh(), meshRes2, file_path_deg_coh2, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = 0)
+                else:
+                    srwl_uti_save_intens_ascii(resStokes.arS, meshRes, file_path1, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = (1 if doMutual else 0)) #OC30052017
+                    if((resStokes2 is not None) and (meshRes2 is not None)): #OC30052017
+                        srwl_uti_save_intens_ascii(resStokes2.arS, meshRes2, file_path2, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = (1 if doMutual else 0)) 
 
                 #DEBUG
                 #srwl_uti_save_intens_ascii(workStokes.arS, meshRes, _file_path, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual) #OC16012017
                 #END DEBUG
-
                 #print('completed (lasted', round(time.time() - t0, 6), 's)') #DEBUG
                 
                 iSave = 0
@@ -5443,26 +7086,47 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
     if((rank == 0) or (nProc == 1)):
         #Saving final results:
         #if(_file_path != None):
-        if(file_path1 is not None): #OC30052017
+        #if(file_path1 is not None): #OC30052017
 
-            #print('srwl_uti_save_intens_ascii ... ', end='') #DEBUG
-            #t0 = time.time(); #DEBUG
+        #print('srwl_uti_save_intens_ascii ... ', end='') #DEBUG
+        #t0 = time.time(); #DEBUG
             
-            #srwl_uti_save_intens_ascii(resStokes.arS, meshRes, _file_path, 1, _mutual = doMutual)
-            #srwl_uti_save_intens_ascii(resStokes.arS, meshRes, _file_path, 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual) #OC26042016
-            #srwl_uti_save_intens_ascii(resStokes.arS, meshRes, _file_path, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual) #OC16012017
-            srwl_uti_save_intens_ascii(resStokes.arS, meshRes, file_path1, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual) #OC16012017
+        #srwl_uti_save_intens_ascii(resStokes.arS, meshRes, _file_path, 1, _mutual = doMutual)
+        #srwl_uti_save_intens_ascii(resStokes.arS, meshRes, _file_path, 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual) #OC26042016
+        #srwl_uti_save_intens_ascii(resStokes.arS, meshRes, _file_path, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual) #OC16012017
 
-            #print('completed (lasted', round(time.time() - t0, 6), 's)') #DEBUG
-            
-        if((file_path2 is not None) and (resStokes2 is not None) and (meshRes2 is not None)): #OC30052017
-            srwl_uti_save_intens_ascii(resStokes2.arS, meshRes2, file_path2, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual) #OC16012017
+        if(_char == 40): #OC03052018
+            srwl_uti_save_intens_ascii(resStokes.arS, meshRes, _file_path, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 0)
+            if(resStokes2 is not None):
+                #srwl_uti_save_intens_ascii(resStokes2.arS, resStokes2.mesh, file_path1, numComp, _arLabels = resLabelsToSaveMutualHorCut, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 1)
+                srwl_uti_save_intens_ascii(resStokes2.arS, resStokes2.mesh, file_path1, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 1) #OC06052018
+                srwl_uti_save_intens_ascii(resStokes2.to_deg_coh(), resStokes2.mesh, file_path_deg_coh1, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 0)
+            if(resStokes3 is not None):
+                #srwl_uti_save_intens_ascii(resStokes3.arS, resStokes3.mesh, file_path2, numComp, _arLabels = resLabelsToSaveMutualVerCut, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 1)
+                srwl_uti_save_intens_ascii(resStokes3.arS, resStokes3.mesh, file_path2, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 1) #OC06052018
+                srwl_uti_save_intens_ascii(resStokes3.to_deg_coh(), resStokes3.mesh, file_path_deg_coh2, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 0)
+        elif(_char == 4): #OC03052018
+            #srwl_uti_save_intens_ascii(resStokes.arS, meshRes, file_path1, numComp, _arLabels = resLabelsToSaveMutualHorCut, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = (1 if doMutual else 0))
+            srwl_uti_save_intens_ascii(resStokes.arS, meshRes, file_path1, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = (1 if doMutual else 0)) #OC06052018
+            srwl_uti_save_intens_ascii(resStokes.to_deg_coh(), meshRes, file_path_deg_coh1, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 0)
+            if((resStokes2 is not None) and (meshRes2 is not None)):
+                #srwl_uti_save_intens_ascii(resStokes2.arS, meshRes2, file_path2, numComp, _arLabels = resLabelsToSaveMutualVerCut, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = (1 if doMutual else 0))
+                srwl_uti_save_intens_ascii(resStokes2.arS, meshRes2, file_path2, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = (1 if doMutual else 0)) #OC06052018
+                srwl_uti_save_intens_ascii(resStokes2.to_deg_coh(), meshRes2, file_path_deg_coh2, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = 0)
+        else:
+            srwl_uti_save_intens_ascii(resStokes.arS, meshRes, file_path1, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = (1 if doMutual else 0)) #OC16012017
+            if((resStokes2 is not None) and (meshRes2 is not None)): #OC03052018
+                srwl_uti_save_intens_ascii(resStokes2.arS, meshRes2, file_path2, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = (1 if doMutual else 0)) #OC16012017
 
+        #print('completed (lasted', round(time.time() - t0, 6), 's)') #DEBUG
         #return resStokes
         if(resStokes2 is None): #OC30052017
             return resStokes
-        else:
+        #else:
+        elif(resStokes3 is None): #OC03052018
             return resStokes, resStokes2
+        else:
+            return resStokes, resStokes2, resStokes3
     else:
         return None
 
@@ -5499,7 +7163,7 @@ function calculates charged particle trajectory in external 3D magnetic field (i
 :param _inMagFldC: input magnetic field container structure (instance of SRWLMagFldC)
 :param _inPrec: input list of calculation method ID and precision parameters;
        _inPrec[0]: integration method ID:
-                   =1 -use the fourth-order Runge-Kutta (R-K), wit hthe precision driven by number of points
+                   =1 -use the fourth-order Runge-Kutta (R-K), with the precision driven by number of points
                    =2 -use the fifth-order R-K
        _inPrec[1],[2],[3],[4],[5]: optional absolute precision values for X[m],X'[rad],Y[m],Y'[rad],Z[m] 
                    to be taken into account only for R-K fifth order or higher (yet to be tested!!)

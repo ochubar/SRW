@@ -183,6 +183,8 @@ public:
 
 	void RotateDataAfter2DFFT(FFTW_COMPLEX* pAfterFFT)
 	{// Assumes Nx, Ny even !
+	 //OC281117: Make it work for odd Nx, Ny as well!
+	 //OC281117: Consider combining RotateDataAfter2DFFT, RepairSignAfter2DFFT, NormalizeDataAfter2DFFT
 		//long HalfNyNx = HalfNy*Nx;
 		long long HalfNyNx = ((long long)HalfNy)*((long long)Nx);
 		FFTW_COMPLEX *t1 = pAfterFFT, *t2 = pAfterFFT + (HalfNyNx + HalfNx);
@@ -201,6 +203,7 @@ public:
 
 	void RepairSignAfter2DFFT(FFTW_COMPLEX* pAfterFFT)
 	{// Assumes Nx, Ny even !
+	 //OC281117: Make it work for odd Nx, Ny as well!
 		FFTW_COMPLEX *t = pAfterFFT;
 		FFTW_REAL sx0 = 1., sy0 = 1., s;
 		for(long iy=0; iy<Ny; iy++)
@@ -216,6 +219,7 @@ public:
 
 	void NormalizeDataAfter2DFFT(FFTW_COMPLEX* pAfterFFT, double Mult)
 	{// Assumes Nx, Ny even !
+	 //OC281117: Make it work for odd Nx, Ny as well!
 		//long NxNy = Nx*Ny;
 		long long NxNy = ((long long)Nx)*((long long)Ny);
 		FFTW_COMPLEX *t = pAfterFFT;

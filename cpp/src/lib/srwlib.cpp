@@ -228,10 +228,16 @@ bool TryToCopyMagFldInsteadOfInterp(SRWLMagFldC* pDispMagFld, SRWLMagFldC* pMagF
 		double *tBxIn = pInFld3D->arBx, *tBxOut = pOutFld3D->arBx;
 		double *tByIn = pInFld3D->arBy, *tByOut = pOutFld3D->arBy;
 		double *tBzIn = pInFld3D->arBz, *tBzOut = pOutFld3D->arBz;
+
+		double cx = 1., cy = 1.; //OC25012018
+		if(pMagFld->arPar3 != 0) cx = pMagFld->arPar3[0]; 
+		if(pMagFld->arPar4 != 0) cy = pMagFld->arPar4[0];
 		for(long long i = 0; i < nTot; i++)
 		{
-			if(BxIsDef) *(tBxOut++) = *(tBxIn++);
-			if(ByIsDef) *(tByOut++) = *(tByIn++);
+			//if(BxIsDef) *(tBxOut++) = *(tBxIn++);
+			if(BxIsDef) *(tBxOut++) = (*(tBxIn++))*cx; //OC25012018
+			//if(ByIsDef) *(tByOut++) = *(tByIn++);
+			if(ByIsDef) *(tByOut++) = (*(tByIn++))*cy; //OC25012018
 			if(BzIsDef) *(tBzOut++) = *(tBzIn++);
 		}
 		return true;

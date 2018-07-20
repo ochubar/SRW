@@ -571,7 +571,7 @@ def srwl_uti_und_gen_file_names_for_conv(_ifln, _ofn_core=None, _pref_gap=None, 
     numGapPref = len(prefGap[0]); numGapPost = len(prefGap[1])
     numModePref = len(prefMode[0]); numModePost = len(prefMode[1])
     numPhasePref = len(prefPhase[0]); numPhasePost = len(prefPhase[1])
-    #print(prefGap[0], prefGap[1])
+    print(prefGap[0], prefGap[1])
     
     lstRes = []
     for root, dirs, files in os.walk(_ifln):
@@ -583,7 +583,8 @@ def srwl_uti_und_gen_file_names_for_conv(_ifln, _ofn_core=None, _pref_gap=None, 
             iGapStart = -1
             for j in range(numGapPref):
                 iGapStart0 = fnOrig.find(prefGap[0][j])
-                if(iGapStart0 >= 0): iGapStart = iGapStart0 + len(prefGap[0][j])                
+                if(iGapStart0 >= 0): iGapStart = iGapStart0 + len(prefGap[0][j])
+                #print(iGapStart0)
                 if(iGapStart >= 0): break
             if((iGapStart < 0) or (iGapStart > lenFnOrigMi1)): raise Exception(strErrNoGapFound)
 
@@ -593,71 +594,101 @@ def srwl_uti_und_gen_file_names_for_conv(_ifln, _ofn_core=None, _pref_gap=None, 
             if((iGapEnd < 0) or (iGapEnd > lenFnOrigMi1)): raise Exception(strErrNoGapFound)
             
             gap = float(fnOrig[iGapStart:iGapEnd])
+            #print(gap)
 
-            iModeStart = -1
-            iModeStartSearch = 0
-            if(_order_gmp == 'gmp'): iModeStartSearch = iGapEnd
-            #print(iModeStartSearch)
+            modeFin = ''
+            iTestModeIsThere = _order_gmp.find('m')
+            if((iTestModeIsThere >= 0) and (iTestModeIsThere < 3)):
+
+                iModeStart = -1
+                iModeStartSearch = 0
+                if(_order_gmp == 'gmp'): iModeStartSearch = iGapEnd
+                #print(iModeStartSearch)
             
-            for j in range(numModePref):
-                #print(prefMode[0][j])
-                iModeStart0 = fnOrig.find(prefMode[0][j], iModeStartSearch)
-                if(iModeStart0 >= 0): iModeStart = iModeStart0 + len(prefMode[0][j])
-                if(iModeStart >= 0): break
-                #if((iModeStart >= 0) and (not ((iGapStart <= iModeStart) and (iModeStart <= iGapEnd)))):
-                #    print(iModeStart)
-                #    break
+                for j in range(numModePref):
+                    #print(prefMode[0][j])
+                    iModeStart0 = fnOrig.find(prefMode[0][j], iModeStartSearch)
+                    if(iModeStart0 >= 0): iModeStart = iModeStart0 + len(prefMode[0][j])
+                    if(iModeStart >= 0): break
+                    #if((iModeStart >= 0) and (not ((iGapStart <= iModeStart) and (iModeStart <= iGapEnd)))):
+                    #    print(iModeStart)
+                    #    break
                 
-            if((iModeStart < 0) or (iModeStart > lenFnOrigMi1)): raise Exception(strErrNoModeFound)
-            #if((iGapStart <= iModeStart) and (iModeStart <= iGapEnd)):
+                if((iModeStart < 0) or (iModeStart > lenFnOrigMi1)): raise Exception(strErrNoModeFound)
+                #if((iGapStart <= iModeStart) and (iModeStart <= iGapEnd)):
 
-            for j in range(numModePost):
-                iModeEnd = fnOrig.find(prefMode[1][j], iModeStart + 1)
-                if(iModeEnd >= 0): break
-            if((iModeEnd < 0) or (iModeEnd > lenFnOrigMi1)): raise Exception(strErrNoModeFound)
+                for j in range(numModePost):
+                    iModeEnd = fnOrig.find(prefMode[1][j], iModeStart + 1)
+                    if(iModeEnd >= 0): break
+                if((iModeEnd < 0) or (iModeEnd > lenFnOrigMi1)): raise Exception(strErrNoModeFound)
                 
-            modeOrig = fnOrig[iModeStart:iModeEnd]
-            modeFin = modeOrig
-            for k in range(len(lstDictMode)):
-                if(modeOrig == lstDictMode[k][0]):
-                    modeFin = lstDictMode[k][1]
-                    break
+                modeOrig = fnOrig[iModeStart:iModeEnd]
+                modeFin = modeOrig
+                for k in range(len(lstDictMode)):
+                    if(modeOrig == lstDictMode[k][0]):
+                        modeFin = lstDictMode[k][1]
+                        break
 
             #print(modeOrig, modeFin)
 
-            iPhaseStart = -1
-            iPhaseStartSearch = 0
-            if(_order_gmp == 'gmp'): iModeStartSearch = iModeEnd
-            elif(_order_gmp == 'gpm'): iModeStartSearch = iGapEnd
+            phase = ''
+            iTestPhaseIsThere = _order_gmp.find('p')
+            if((iTestPhaseIsThere >= 0) and (iTestPhaseIsThere < 3)):
             
-            for j in range(numPhasePref):
-                iPhaseStart0 = fnOrig.find(prefPhase[0][j], iPhaseStartSearch)
-                if(iPhaseStart0 >= 0): iPhaseStart = iPhaseStart0 + len(prefPhase[0][j])
-                if(iPhaseStart >= 0): break
-            if((iPhaseStart < 0) or (iPhaseStart > lenFnOrigMi1)): raise Exception(strErrNoPhaseFound)
+                iPhaseStart = -1
+                iPhaseStartSearch = 0
+                if(_order_gmp == 'gmp'): iModeStartSearch = iModeEnd
+                elif(_order_gmp == 'gpm'): iModeStartSearch = iGapEnd
+            
+                for j in range(numPhasePref):
+                    iPhaseStart0 = fnOrig.find(prefPhase[0][j], iPhaseStartSearch)
+                    if(iPhaseStart0 >= 0): iPhaseStart = iPhaseStart0 + len(prefPhase[0][j])
+                    if(iPhaseStart >= 0): break
+                if((iPhaseStart < 0) or (iPhaseStart > lenFnOrigMi1)): raise Exception(strErrNoPhaseFound)
 
-            for j in range(numPhasePost):
-                iPhaseEnd = fnOrig.find(prefPhase[1][j], iPhaseStart + 1)
-                if(iPhaseEnd >= 0): break
-            if((iPhaseEnd < 0) or (iPhaseEnd > lenFnOrigMi1)): raise Exception(strErrNoPhaseFound)
+                for j in range(numPhasePost):
+                    iPhaseEnd = fnOrig.find(prefPhase[1][j], iPhaseStart + 1)
+                    if(iPhaseEnd >= 0): break
+                if((iPhaseEnd < 0) or (iPhaseEnd > lenFnOrigMi1)): raise Exception(strErrNoPhaseFound)
                 
-            phase = float(fnOrig[iPhaseStart:iPhaseEnd])
+                phase = float(fnOrig[iPhaseStart:iPhaseEnd])
 
-            fnRes = resFileNameCore + '_g' + str(gap) + '_m' + modeFin + '_ph' + str(phase)
+            fnRes = resFileNameCore + '_g' + str(gap) #+ '_m' + modeFin + '_ph' + str(phase)
+
+            listVal = [fnOrig, fnRes, gap]
+
+            if(modeFin is not ''):
+                fnRes += '_m' + modeFin
+                listVal.append(modeFin)
+                
+            if(phase is not ''):
+                fnRes += '_ph' + str(phase)
+                listVal.append(phase)
+            
             fnRes = fnRes.replace('.', '_')
             fnRes += '.dat'
 
+            listVal[1] = fnRes
+            #print(fnRes)
+
             #print('gap=', gap, ' mode=', modeFin, ' phase=', phase, fnOrig, fnRes)
             #lstRes.append([gap, modeFin, phase, fnOrig, fnRes])
-            lstRes.append([fnOrig, fnRes, gap, modeFin, phase])
+            #lstRes.append([fnOrig, fnRes, gap, modeFin, phase])
+            lstRes.append(listVal)
                 
     #lstRes = sorted(lstRes, key=lambda elem: elem[0])
     from operator import itemgetter #, attrgetter, methodcaller
     #lstRes = sorted(lstRes, key=itemgetter(0, 1, 2))
     #lstRes = sorted(lstRes, key=itemgetter(2, 3, 4))
 
-    lstRes = sorted(lstRes, key=itemgetter(4))
-    lstRes = sorted(lstRes, key=itemgetter(3))
+    iTestPhaseIsThere = _order_gmp.find('p')
+    if((iTestPhaseIsThere >= 0) and (iTestPhaseIsThere < 3)):
+        lstRes = sorted(lstRes, key=itemgetter(4))
+
+    iTestModeIsThere = _order_gmp.find('m')
+    if((iTestModeIsThere >= 0) and (iTestModeIsThere < 3)):
+        lstRes = sorted(lstRes, key=itemgetter(3))
+        
     lstRes = sorted(lstRes, key=itemgetter(2))
 
     for i in range(len(lstRes)):
@@ -803,7 +834,13 @@ def srwl_uti_und_make_sum_file(_lst_fn_par, _odn, _sum_fn_core='und'):
     resText = ''
     for i in range(len(_lst_fn_par)):
         curFileInf = _lst_fn_par[i]
-        resText += str(curFileInf[2]) + '\t' + curFileInf[3] + '\t' + str(curFileInf[4]) + '\t' + curFileInf[1] + '\t1\t1\n'
+
+        #print(len(curFileInf))
+        lenCurFileInf = len(curFileInf)
+        if(lenCurFileInf == 5):
+            resText += str(curFileInf[2]) + '\t' + curFileInf[3] + '\t' + str(curFileInf[4]) + '\t' + curFileInf[1] + '\t1\t1\n'
+        elif(lenCurFileInf == 3):
+            resText += str(curFileInf[2]) + '\tp1\t0\t' + curFileInf[1] + '\t1\t1\n'
 
     uti_io.write_text(resText, resFilePath)
 
@@ -992,7 +1029,8 @@ if __name__=="__main__":
     if(opt.do_conv_many_files):
     #Example of this processing:
     #python srwl_uti_und.py --cnvm --ifn="Y:\Processed Data to share\EPU105 ESM\HP\Processed Data" --ofn="C:\SoftwareDevelopments\SRW_Dev\env\work\srw_python\data_ESM\magn_meas_epu105" --ofnc="epu105_esm" --cor --ozc=-0.036 --zk=0. --dbwk=2.7
-
+    #or, for planar undulators:
+    #python srwl_uti_und.py --cnvm --ifn="data_ISR\FieldC" --ofn="data_ISR\magn_meas" --ofnc="ivu23_isr" --cor --ozc=0 --zk=0 --dbwk=2.7 --prfg=X0_Y0_gap --psfg=.txt --igmp=g
     #In this case opt.ifn, opt.ofn are used for folder names!
 
         lstPrefPostfGap = uti_parse.str_to_pair_of_lists(opt.pref_gap, opt.postf_gap)
@@ -1002,6 +1040,7 @@ if __name__=="__main__":
         #print(lstPrefPostfGap, lstPrefPostfMode, lstPrefPostfPhase, lstModeDict)
 
         lstParamFileNames = srwl_uti_und_gen_file_names_for_conv(opt.ifn, _ofn_core=opt.out_file_name_core, _pref_gap=lstPrefPostfGap, _pref_mode=lstPrefPostfMode, _pref_phase=lstPrefPostfPhase, _dict_mode=lstModeDict, _order_gmp=opt.ord_gmp_inp)
+        #print(lstParamFileNames)
         srwl_uti_und_conv_proc_fld_file_list(lstParamFileNames, opt)
         srwl_uti_und_make_sum_file(lstParamFileNames, opt.ofn, opt.out_file_name_core)
 

@@ -2236,8 +2236,11 @@ int srTRadInt::RadIntegrationAuto2(double& OutIntXRe, double& OutIntXIm, double&
 {
 // Streering Parameters Section
 	const int NpOnZeroLev = 5; // Must be non-even!
+	
 	//const double DelPhiSwitchToNum = 100.; // To switch to purely numerical method
 	int AmOfLoops = 7;
+	//int AmOfLoops = 8; //OCTEST //7;
+
 	double RelTolForAn = sIntegRelPrec*0.45;
 
 	double DeltaPhCrit = 0.5; // To prefer Num
