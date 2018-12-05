@@ -24,6 +24,10 @@
 #include <vector>
 #include <map>
 #include <sstream> //OCTEST_161214
+
+//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
+//#include <time.h>
+
 using namespace std;
 
 //Without the following Python.h will enforce usage of python**_d.lib in dbug mode, which may not be always existing
@@ -73,7 +77,11 @@ static const char strEr_BadOptG[] = "Incorrect Optical Grating structure";
 static const char strEr_BadOptT[] = "Incorrect Optical Generic Transmission structure";
 static const char strEr_BadOptMir[] = "Incorrect Optical Mirror structure";
 static const char strEr_BadOptCryst[] = "Incorrect Optical Crystal structure";
+static const char strEr_BadListIntProp[] = "Incorrect list structure defining intensity distributions to be plotted after propagation";
 static const char strEr_FloatArrayRequired[] = "This function can be executed for float array(s) only";
+static const char strEr_FailedAllocPyArray[] = "Failed to allocate Python array from C";
+static const char strEr_FailedUpdateInt[] = "Failed to update intensity data after propagation";
+static const char strEr_FailedCreateList[] = "Failed to create resulting data list";
 
 static const char strEr_BadArg_CalcMagnField[] = "Incorrect arguments for magnetic field calculation/tabulation function";
 static const char strEr_BadArg_CalcPartTraj[] = "Incorrect arguments for trajectory calculation function";
@@ -92,6 +100,8 @@ static const char strEr_BadArg_UtiFFT[] = "Incorrect arguments for FFT function"
 static const char strEr_BadArg_UtiConvWithGaussian[] = "Incorrect arguments for convolution function";
 static const char strEr_BadArg_UtiUndFromMagFldTab[] = "Incorrect arguments for magnetic field conversion to periodic function";
 static const char strEr_BadArg_UtiUndFindMagFldInterpInds[] = "Incorrect arguments for magnetic field interpolaton index search function";
+static const char strEr_BadArg_UtiIntInf[] = "Incorrect arguments for function analyzing intensity distributions";
+static const char strEr_BadArg_UtiIntProc[] = "Incorrect arguments for function performing misc. operations on intensity distributions";
 
 /************************************************************************//**
  * Global objects to be used across different function calls
@@ -104,6 +114,7 @@ struct AuxStructPyObjectPtrs {
 };
 
 static map<SRWLWfr*, AuxStructPyObjectPtrs> gmWfrPyPtr;
+static map<char*, PyObject*> gmBufPyObjPtr; //OC16082018 (was added to enable allocation of intensity arrays in Py at propagation)
 
 /************************************************************************//**
  * Auxiliary function dedicated to process errors reported by Library
@@ -369,6 +380,50 @@ PyObject* Py_BuildValueChar(char inC)
 #else
 	return Py_BuildValue("c", inC);
 #endif
+}
+
+/************************************************************************//**
+ * Sets up output list (eventually of lists) data from an array
+ ***************************************************************************/
+template<class T> static PyObject* SetPyListOfLists(T* arB, int nB, int nP, char* cType="d") //OC13092018
+{
+	if((arB == 0) || (nB <= 0) || (nP <= 0)) return 0;
+		
+	int nElem = 0, nSubElem = 0;
+	if(nP == 1)
+	{
+		nElem = nB;
+	}
+	else
+	{
+		nElem = nP;
+		nSubElem = (int)round(nB/nP);
+	}
+
+	PyObject *oResB = PyList_New(nElem);
+	T *t_arB = arB; //OC13092018
+	//double *t_arB = arB;
+	for(int i=0; i<nElem; i++)
+	{
+		PyObject *oElem = 0;
+		if(nSubElem > 1)
+		{
+			oElem = PyList_New(nSubElem);
+			for(int j=0; j<nSubElem; j++)
+			{
+				PyObject *oNum = Py_BuildValue(cType, *(t_arB++)); //OC13092018
+				//PyObject *oNum = Py_BuildValue("d", *(t_arB++));
+				if(PyList_SetItem(oElem, (Py_ssize_t)j, oNum)) throw strEr_FailedCreateList;
+			}
+		}
+		else
+		{
+			oElem = Py_BuildValue(cType, *(t_arB++)); //OC13092018
+			//oElem = Py_BuildValue("d", *(t_arB++));
+		}
+		if(PyList_SetItem(oResB, (Py_ssize_t)i, oElem)) throw strEr_FailedCreateList;
+	}
+	return oResB;
 }
 
 /************************************************************************//**
@@ -1785,11 +1840,20 @@ void ParseSructSRWLOptT(SRWLOptT* pOpt, PyObject* oOpt, vector<Py_buffer>* pvBuf
 void ParseSructSRWLOptMir(SRWLOptMir* pOpt, PyObject* oOpt, vector<Py_buffer>* pvBuf) //throw(...) 
 {
 	if((pOpt == 0) || (oOpt == 0)) throw strEr_NoObj;
-	
+
+	//PyObject *o_tmp = PyObject_GetAttrString(oOpt, "arRefl");
+	//pOpt->arRefl = (double*)GetPyArrayBuf(o_tmp, pvBuf, 0);
+	//if(pOpt->arRefl == 0) throw strEr_BadOptMir;
+	//Py_DECREF(o_tmp);
+
+	//OC12082018
+	pOpt->arRefl = 0; //To allow not to process reflectivity if it is not defined
 	PyObject *o_tmp = PyObject_GetAttrString(oOpt, "arRefl");
-	pOpt->arRefl = (double*)GetPyArrayBuf(o_tmp, pvBuf, 0);
-	if(pOpt->arRefl == 0) throw strEr_BadOptMir;
-	Py_DECREF(o_tmp);
+	if(o_tmp != 0)
+	{
+		pOpt->arRefl = (double*)GetPyArrayBuf(o_tmp, pvBuf, 0);
+		Py_DECREF(o_tmp);
+	}
 
 	o_tmp = PyObject_GetAttrString(oOpt, "reflNumPhEn");
 	if(o_tmp == 0) throw strEr_BadOptMir;
@@ -2456,6 +2520,137 @@ void ParseSructSRWLOptC(SRWLOptC* pOpt, PyObject* oOpt, vector<Py_buffer>* pvBuf
 }
 
 /************************************************************************//**
+ * Parses PyObject* to auxiliary arrays defining after which opt. elements
+ * and what type of intensity distributions have to be calculated.
+ * ATTENTION: it allocates arrays.
+ ***************************************************************************/
+int ParseSructSRWLPropIntDef(char** arIntDescr, SRWLRadMesh*& arIntMesh, PyObject* oInt)
+{
+	if(oInt == 0) throw strEr_NoObj;
+
+	const int numIntDescr = 5;
+
+	if(!PyList_Check(oInt)) throw strEr_BadList;
+	int nElem = (int)PyList_Size(oInt);
+	if(nElem <= 0) throw strEr_BadListIntProp;
+
+	PyObject *o = PyList_GetItem(oInt, (Py_ssize_t)0);
+	if(o == 0) throw strEr_BadListIntProp;
+
+	PyObject *oSub = 0; //, *oSubListPrev = 0;
+	bool assumeFlatListFormat = false;
+
+	int nInt = 1;
+	bool elemsMeanLists = false;
+	if(PyList_Check(o)) 
+	{
+		nInt = (int)PyList_Size(o);
+		if(nInt < 0) throw strEr_BadListIntProp;
+
+		if(nInt == (numIntDescr + 1)) 
+		{
+			oSub = PyList_GetItem(o, (Py_ssize_t)numIntDescr);
+			if(strcmp(oSub->ob_type->tp_name, "SRWLRadMesh") == 0) assumeFlatListFormat = true;
+		}
+
+		elemsMeanLists = true;
+	}
+
+	if(assumeFlatListFormat)
+	{//Parses this format:
+	 //[[4, 6, 0, 3, 0, SRWLRadMesh(_xStart=0, _yStart=0)],
+     //[11, 6, 0, 3, 0, SRWLRadMesh(_xStart=0, _yStart=0)],
+     //[11, 6, 5, 3, 0, SRWLRadMesh(_xStart=0, _yStart=0)],
+     //[11, 6, 6, 3, 0, SRWLRadMesh(_xStart=0, _yStart=0)]]
+
+		for(int j=0; j<numIntDescr; j++) arIntDescr[j] = new char[nElem];
+		arIntMesh = new SRWLRadMesh[nElem];
+
+		for(int i=0; i<nElem; i++)
+		{
+			o = PyList_GetItem(oInt, (Py_ssize_t)i);
+			if(o == 0) throw strEr_BadListIntProp;
+
+			for(int j=0; j<=numIntDescr; j++)
+			{
+				oSub = PyList_GetItem(o, (Py_ssize_t)j);
+				if(oSub == 0) throw strEr_BadListIntProp;
+
+				if(j < numIntDescr)
+				{
+					if(!PyNumber_Check(oSub)) throw strEr_BadListIntProp;
+					char *pIntDescr = arIntDescr[j];
+					pIntDescr[i] = (char)PyLong_AsLong(oSub);
+				}
+				else
+				{
+					ParseSructSRWLRadMesh(arIntMesh + i, oSub);
+  				}
+			}
+		}
+		return nElem;
+	}
+		
+	for(int j=0; j<numIntDescr; j++) arIntDescr[j] = new char[nInt];
+	arIntMesh = new SRWLRadMesh[nInt];
+
+	//SRWLRadMesh *tMesh = arIntMesh;
+
+	for(int j=0; j<=numIntDescr; j++)
+	{
+		char *pIntDescr = arIntDescr[j];
+		o = PyList_GetItem(oInt, (Py_ssize_t)j);
+		if(o == 0) throw strEr_BadListIntProp;
+
+		bool curElemIsList = elemsMeanLists;
+		if(elemsMeanLists)
+		{
+			if(!PyList_Check(o)) 
+			{
+				if(j == 0) throw strEr_BadListIntProp;
+				else curElemIsList = false;
+			}
+		}
+		if(curElemIsList)
+		{
+			for(int i=0; i<nInt; i++)
+			{
+				oSub = PyList_GetItem(o, (Py_ssize_t)i);
+				if(j < numIntDescr)
+				{
+					pIntDescr[i] = (char)PyLong_AsLong(oSub);
+				}
+				else
+				{
+					ParseSructSRWLRadMesh(arIntMesh + i, oSub);
+  				}
+			}
+		}
+		else
+		{
+			if(j < numIntDescr)
+			{
+				if(!PyNumber_Check(o)) throw strEr_BadListIntProp;
+				*pIntDescr = (char)PyLong_AsLong(o);
+				if(nInt > 1)
+				{
+					*(pIntDescr + 1) = -1; //to mark that only the first element of the array is defined
+				}
+			}
+			else
+			{
+				ParseSructSRWLRadMesh(arIntMesh, o);
+				if(nInt > 1)
+				{
+					(arIntMesh + 1)->ne = -1; //to mark that only the first element of the array is defined
+				}
+  			}
+		}
+	}
+	return nInt;
+}
+
+/************************************************************************//**
  * Parses PyObject* to SRWLGsnBm*
  ***************************************************************************/
 void ParseSructSRWLGsnBm(SRWLGsnBm* pGsnBm, PyObject* oGsnBm) //throw(...) 
@@ -3013,6 +3208,26 @@ template<class T> void UpdatePyListNum(PyObject* oList, const T* ar, int n) //OC
 /************************************************************************//**
  * Updates Electric Field Wavefront structure in Py (excluding buffers)
  ***************************************************************************/
+void UpdatePyRadMesh(PyObject* oRadMesh, SRWLRadMesh* pMesh)
+{//OC19082018
+	if((pMesh == 0) || (oRadMesh == 0)) throw strEr_NoObj;
+
+	if(PyObject_SetAttrString(oRadMesh, "eStart", Py_BuildValue("d", pMesh->eStart))) throw strEr_BadRadMesh;
+	if(PyObject_SetAttrString(oRadMesh, "eFin", Py_BuildValue("d", pMesh->eFin))) throw strEr_BadRadMesh;
+	if(PyObject_SetAttrString(oRadMesh, "xStart", Py_BuildValue("d", pMesh->xStart))) throw strEr_BadRadMesh;
+	if(PyObject_SetAttrString(oRadMesh, "xFin", Py_BuildValue("d", pMesh->xFin))) throw strEr_BadRadMesh;
+	if(PyObject_SetAttrString(oRadMesh, "yStart", Py_BuildValue("d", pMesh->yStart))) throw strEr_BadRadMesh;
+	if(PyObject_SetAttrString(oRadMesh, "yFin", Py_BuildValue("d", pMesh->yFin))) throw strEr_BadRadMesh;
+	if(PyObject_SetAttrString(oRadMesh, "zStart", Py_BuildValue("d", pMesh->zStart))) throw strEr_BadRadMesh;
+	if(PyObject_SetAttrString(oRadMesh, "ne", Py_BuildValue("i", pMesh->ne))) throw strEr_BadRadMesh;
+	if(PyObject_SetAttrString(oRadMesh, "nx", Py_BuildValue("i", pMesh->nx))) throw strEr_BadRadMesh;
+	if(PyObject_SetAttrString(oRadMesh, "ny", Py_BuildValue("i", pMesh->ny))) throw strEr_BadRadMesh;
+	//Add more member updates if necessary
+}
+
+/************************************************************************//**
+ * Updates Electric Field Wavefront structure in Py (excluding buffers)
+ ***************************************************************************/
 void UpdatePyWfr(PyObject* oWfr, SRWLWfr* pWfr)
 {
 	if((pWfr == 0) || (oWfr == 0)) throw strEr_NoObj;
@@ -3030,17 +3245,18 @@ void UpdatePyWfr(PyObject* oWfr, SRWLWfr* pWfr)
 
 	PyObject *oRadMesh = PyObject_GetAttrString(oWfr, "mesh");
 	if(oRadMesh == 0) throw strEr_BadWfr;
-	SRWLRadMesh &mesh = pWfr->mesh;
-	if(PyObject_SetAttrString(oRadMesh, "eStart", Py_BuildValue("d", mesh.eStart))) throw strEr_BadWfr;
-	if(PyObject_SetAttrString(oRadMesh, "eFin", Py_BuildValue("d", mesh.eFin))) throw strEr_BadWfr;
-	if(PyObject_SetAttrString(oRadMesh, "xStart", Py_BuildValue("d", mesh.xStart))) throw strEr_BadWfr;
-	if(PyObject_SetAttrString(oRadMesh, "xFin", Py_BuildValue("d", mesh.xFin))) throw strEr_BadWfr;
-	if(PyObject_SetAttrString(oRadMesh, "yStart", Py_BuildValue("d", mesh.yStart))) throw strEr_BadWfr;
-	if(PyObject_SetAttrString(oRadMesh, "yFin", Py_BuildValue("d", mesh.yFin))) throw strEr_BadWfr;
-	if(PyObject_SetAttrString(oRadMesh, "zStart", Py_BuildValue("d", mesh.zStart))) throw strEr_BadWfr;
-	if(PyObject_SetAttrString(oRadMesh, "ne", Py_BuildValue("i", mesh.ne))) throw strEr_BadWfr;
-	if(PyObject_SetAttrString(oRadMesh, "nx", Py_BuildValue("i", mesh.nx))) throw strEr_BadWfr;
-	if(PyObject_SetAttrString(oRadMesh, "ny", Py_BuildValue("i", mesh.ny))) throw strEr_BadWfr;
+	//SRWLRadMesh &mesh = pWfr->mesh;
+	//if(PyObject_SetAttrString(oRadMesh, "eStart", Py_BuildValue("d", mesh.eStart))) throw strEr_BadWfr;
+	//if(PyObject_SetAttrString(oRadMesh, "eFin", Py_BuildValue("d", mesh.eFin))) throw strEr_BadWfr;
+	//if(PyObject_SetAttrString(oRadMesh, "xStart", Py_BuildValue("d", mesh.xStart))) throw strEr_BadWfr;
+	//if(PyObject_SetAttrString(oRadMesh, "xFin", Py_BuildValue("d", mesh.xFin))) throw strEr_BadWfr;
+	//if(PyObject_SetAttrString(oRadMesh, "yStart", Py_BuildValue("d", mesh.yStart))) throw strEr_BadWfr;
+	//if(PyObject_SetAttrString(oRadMesh, "yFin", Py_BuildValue("d", mesh.yFin))) throw strEr_BadWfr;
+	//if(PyObject_SetAttrString(oRadMesh, "zStart", Py_BuildValue("d", mesh.zStart))) throw strEr_BadWfr;
+	//if(PyObject_SetAttrString(oRadMesh, "ne", Py_BuildValue("i", mesh.ne))) throw strEr_BadWfr;
+	//if(PyObject_SetAttrString(oRadMesh, "nx", Py_BuildValue("i", mesh.nx))) throw strEr_BadWfr;
+	//if(PyObject_SetAttrString(oRadMesh, "ny", Py_BuildValue("i", mesh.ny))) throw strEr_BadWfr;
+	UpdatePyRadMesh(oRadMesh, &(pWfr->mesh)); //OC19082018
 	Py_DECREF(oRadMesh);
 
 	if(PyObject_SetAttrString(oWfr, "Rx", Py_BuildValue("d", pWfr->Rx))) throw strEr_BadWfr;
@@ -3077,17 +3293,18 @@ void UpdatePyStokes(PyObject* oStk, SRWLStokes* pStk)
 
 	PyObject *oRadMesh = PyObject_GetAttrString(oStk, "mesh");
 	if(oRadMesh == 0) throw strEr_BadStokes;
-	SRWLRadMesh &mesh = pStk->mesh;
-	if(PyObject_SetAttrString(oRadMesh, "eStart", Py_BuildValue("d", mesh.eStart))) throw strEr_BadStokes;
-	if(PyObject_SetAttrString(oRadMesh, "eFin", Py_BuildValue("d", mesh.eFin))) throw strEr_BadStokes;
-	if(PyObject_SetAttrString(oRadMesh, "xStart", Py_BuildValue("d", mesh.xStart))) throw strEr_BadStokes;
-	if(PyObject_SetAttrString(oRadMesh, "xFin", Py_BuildValue("d", mesh.xFin))) throw strEr_BadStokes;
-	if(PyObject_SetAttrString(oRadMesh, "yStart", Py_BuildValue("d", mesh.yStart))) throw strEr_BadStokes;
-	if(PyObject_SetAttrString(oRadMesh, "yFin", Py_BuildValue("d", mesh.yFin))) throw strEr_BadStokes;
-	if(PyObject_SetAttrString(oRadMesh, "zStart", Py_BuildValue("d", mesh.zStart))) throw strEr_BadStokes;
-	if(PyObject_SetAttrString(oRadMesh, "ne", Py_BuildValue("i", mesh.ne))) throw strEr_BadStokes;
-	if(PyObject_SetAttrString(oRadMesh, "nx", Py_BuildValue("i", mesh.nx))) throw strEr_BadStokes;
-	if(PyObject_SetAttrString(oRadMesh, "ny", Py_BuildValue("i", mesh.ny))) throw strEr_BadStokes;
+	//SRWLRadMesh &mesh = pStk->mesh;
+	//if(PyObject_SetAttrString(oRadMesh, "eStart", Py_BuildValue("d", mesh.eStart))) throw strEr_BadStokes;
+	//if(PyObject_SetAttrString(oRadMesh, "eFin", Py_BuildValue("d", mesh.eFin))) throw strEr_BadStokes;
+	//if(PyObject_SetAttrString(oRadMesh, "xStart", Py_BuildValue("d", mesh.xStart))) throw strEr_BadStokes;
+	//if(PyObject_SetAttrString(oRadMesh, "xFin", Py_BuildValue("d", mesh.xFin))) throw strEr_BadStokes;
+	//if(PyObject_SetAttrString(oRadMesh, "yStart", Py_BuildValue("d", mesh.yStart))) throw strEr_BadStokes;
+	//if(PyObject_SetAttrString(oRadMesh, "yFin", Py_BuildValue("d", mesh.yFin))) throw strEr_BadStokes;
+	//if(PyObject_SetAttrString(oRadMesh, "zStart", Py_BuildValue("d", mesh.zStart))) throw strEr_BadStokes;
+	//if(PyObject_SetAttrString(oRadMesh, "ne", Py_BuildValue("i", mesh.ne))) throw strEr_BadStokes;
+	//if(PyObject_SetAttrString(oRadMesh, "nx", Py_BuildValue("i", mesh.nx))) throw strEr_BadStokes;
+	//if(PyObject_SetAttrString(oRadMesh, "ny", Py_BuildValue("i", mesh.ny))) throw strEr_BadStokes;
+	UpdatePyRadMesh(oRadMesh, &(pStk->mesh)); //OC19082018
 	Py_DECREF(oRadMesh);
 
 	if(PyObject_SetAttrString(oStk, "avgPhotEn", Py_BuildValue("d", pStk->avgPhotEn))) throw strEr_BadStokes;
@@ -3216,6 +3433,212 @@ void UpdatePyMagFldC(PyObject* oMagFldC, SRWLMagFldC* pMagFldC)
 		//to add more magnetic elements
 	}
 	Py_DECREF(o_List);
+}
+
+/************************************************************************//**
+ * Updates propagated intensity and corresponding meshes in Py 
+ ***************************************************************************/
+void UpdatePyPropInt(PyObject* oInt, SRWLRadMesh* arIntMesh, char** arInts, int nInt) //OC19082018
+{
+	if((oInt == 0) || (arIntMesh == 0) || (arInts == 0)) return;
+
+	const int indMesh = 5; //keep updated
+	const int indInt = indMesh + 1; //keep updated
+
+	if(!PyList_Check(oInt)) throw strEr_BadListIntProp;
+	int nElem = (int)PyList_Size(oInt);
+	//if(nElem <= indMesh) throw strEr_BadListIntProp;
+	if(nElem <= 0) throw strEr_BadListIntProp; //29082018
+
+	PyObject *o = PyList_GetItem(oInt, (Py_ssize_t)0);
+	if(o == 0) throw strEr_BadListIntProp;
+
+	PyObject *oMesh=0, *oAr=0;
+	SRWLRadMesh *t_arIntMesh = arIntMesh;
+
+	bool assumeFlatListFormat = false;
+	int nSub = 0;
+	if(PyList_Check(o)) 
+	{
+		nSub = (int)PyList_Size(o);
+		if(nSub < 0) throw strEr_BadListIntProp;
+		if(nSub >= indInt) 
+		{
+			PyObject *oSub = PyList_GetItem(o, (Py_ssize_t)indMesh);
+			if(strcmp(oSub->ob_type->tp_name, "SRWLRadMesh") == 0) assumeFlatListFormat = true;
+		}
+	}
+
+	if(assumeFlatListFormat)
+	{//Returnes this format:
+	 //[[4, 6, 0, 3, 0, SRWLRadMesh(..), arI],
+     //[11, 6, 0, 3, 0, SRWLRadMesh(..), arI],
+     //[11, 6, 5, 3, 0, SRWLRadMesh(..), arI],
+     //[11, 6, 6, 3, 0, SRWLRadMesh(..), arI]]
+
+		for(int i=0; i<nElem; i++)
+		{
+			o = PyList_GetItem(oInt, (Py_ssize_t)i);
+			if(o == 0) throw strEr_BadListIntProp;
+
+			oMesh = PyList_GetItem(o, (Py_ssize_t)indMesh);
+			if(oMesh == 0) throw strEr_BadListIntProp;
+
+			UpdatePyRadMesh(oMesh, t_arIntMesh++);
+
+			//Updating Intensity data
+			char *pCurInt = arInts[i];
+			if(pCurInt != 0)
+			{
+				map<char*, PyObject*>::iterator it = gmBufPyObjPtr.find(pCurInt);
+				if(it == gmBufPyObjPtr.end()) throw strEr_FailedUpdateInt;
+				oAr = it->second;
+				if(oAr == 0) throw strEr_FailedUpdateInt;
+			}
+			if(oAr != 0)
+			{
+				if(nSub > indInt)
+				{
+					if(PyList_SetItem(o, (Py_ssize_t)indInt, oAr)) throw strEr_FailedUpdateInt;
+				}
+				else
+				{
+					if(PyList_Append(o, oAr)) throw strEr_FailedUpdateInt;
+				}
+			}
+		}
+		return;
+	}
+
+	oMesh = PyList_GetItem(oInt, (Py_ssize_t)indMesh);
+	if(oMesh == 0) throw strEr_BadListIntProp;
+
+	PyObject *oMeshTrue=0; 
+	PyObject *oNewListMesh = 0;
+	bool elemsAreLists = false;
+	bool meshNeedsToBeCopied = false;
+	bool meshListNeedsToBeSet = false;
+	if(nInt > 1)
+	{
+		if(!PyList_Check(oMesh)) 
+		{
+			oNewListMesh = PyList_New((Py_ssize_t)nInt);
+			if(oNewListMesh == 0) throw strEr_FailedUpdateInt;
+
+			if(PyList_SetItem(oNewListMesh, (Py_ssize_t)0, oMesh)) throw strEr_FailedUpdateInt;
+			oMeshTrue = oMesh;
+			oMesh = oNewListMesh;
+
+			meshNeedsToBeCopied = true;
+			meshListNeedsToBeSet = true;
+		}
+
+		//if((int)PyList_Size(oMesh) < nInt) throw strEr_BadListIntProp;
+		elemsAreLists = true;
+	}
+	else
+	{
+		if(PyList_Check(oMesh)) elemsAreLists = true;
+		//else if(!PyNumber_Check(oMesh)) throw strEr_BadListIntProp;
+	}
+
+	PyObject *oM=0, *oIntAr=0;
+	PyObject *oFunc=0, *argList=0;
+
+	if(elemsAreLists)
+	{
+		oIntAr = PyList_New((Py_ssize_t)nInt);
+	}
+	for(int i=0; i<nInt; i++)
+	{
+		if(elemsAreLists)
+		{
+			if(!(meshNeedsToBeCopied && (i > 0)))
+			{
+				oM = PyList_GetItem(oMesh, (Py_ssize_t)i);
+				if(oM == 0) throw strEr_FailedUpdateInt;
+				
+				if(oMeshTrue == 0) oMeshTrue = oM;
+				else
+				{
+					if(oM == oMeshTrue)
+					{//Request to copy the mesh object in Py (because it appeared to be the same as the the previous one - this happens e.g. 
+					 //when the list of meshes is created as: [SRWLRadMesh(_eStart=wfr.mesh.eStart, _xStart=0, _yStart=0)]*3)
+						meshNeedsToBeCopied = true;
+					}
+				}
+			}
+			if(meshNeedsToBeCopied && (i > 0))
+			{
+				if(oFunc == 0) 
+				{
+					oFunc = PyObject_GetAttrString(oMeshTrue, "copy");
+					if(oFunc == 0) throw strEr_FailedUpdateInt;
+				}
+				if(argList == 0) 
+				{
+					argList = Py_BuildValue("()");
+					if(argList == 0) throw strEr_FailedUpdateInt;
+				}
+
+				oM = PyObject_CallObject(oFunc, argList); 
+				if(oM == 0) throw strEr_FailedUpdateInt;
+			}
+
+			if(oM == 0) throw strEr_FailedUpdateInt;
+
+			//This copies Mesh element in Py:
+			//PyObject *oFunc = PyObject_GetAttrString(oMesh, "copy");
+			//PyObject *argList = Py_BuildValue("()");
+			//PyObject *newMesh = PyObject_CallObject(oFunc, argList); 
+		}
+		else
+		{
+			oM = oMesh;
+		}
+
+		UpdatePyRadMesh(oM, t_arIntMesh++);
+
+		if(elemsAreLists && meshNeedsToBeCopied && (i > 0))
+		{
+			if(PyList_SetItem(oMesh, (Py_ssize_t)i, oM)) throw strEr_FailedUpdateInt;
+		}
+
+		char *pCurInt = arInts[i];
+		if(pCurInt != 0)
+		{
+			map<char*, PyObject*>::iterator it = gmBufPyObjPtr.find(pCurInt);
+			if(it == gmBufPyObjPtr.end()) throw strEr_FailedUpdateInt;
+			oAr = it->second;
+			if(oAr == 0) throw strEr_FailedUpdateInt;
+		}
+		if(oAr != 0)
+		{
+			if(elemsAreLists)
+			{
+				if(PyList_SetItem(oIntAr, (Py_ssize_t)i, oAr)) throw strEr_FailedUpdateInt;
+			}
+			else
+			{
+				oIntAr = oAr;
+			}
+		}
+	}
+
+	if(meshListNeedsToBeSet)
+	//if(meshNeedsToBeCopied)
+	{
+		if(PyList_SetItem(oInt, (Py_ssize_t)indMesh, oMesh)) throw strEr_FailedUpdateInt;
+	}
+
+	if(nElem > indInt)
+	{
+		if(PyList_SetItem(oInt, (Py_ssize_t)indInt, oIntAr)) throw strEr_FailedUpdateInt;
+	}
+	else
+	{
+		if(PyList_Append(oInt, oIntAr)) throw strEr_FailedUpdateInt;
+	}
 }
 
 /************************************************************************//**
@@ -3349,12 +3772,19 @@ void DeallocOptCntArrays(SRWLOptC* pOptCnt)
  ***************************************************************************/
 int ModifySRWLWfr(int action, SRWLWfr* pWfr, char pol)
 {
+	//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
+	//double start;
+	//get_walltime (&start);
+
 	if(pWfr == 0) return -1; //returning non-zero means Wfr modification did not succeed; no throwing allowed here
 	//if((action < 0) || (action > 2)) return -1;
 	if(action < 0) return -1; //OC151115
 
 	map<SRWLWfr*, AuxStructPyObjectPtrs>::iterator it = gmWfrPyPtr.find(pWfr);
 	//map<SRWLWfr*, AuxStructPyObjectPtrs>::const_iterator it = gmWfrPyPtr.find(pWfr);
+
+	//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
+	//srwlPrintTime(":ModifySRWLWfr : find",&start);
 
 	if(it == gmWfrPyPtr.end()) return -1;
 	PyObject *oWfr = it->second.o_wfr;
@@ -3426,8 +3856,14 @@ int ModifySRWLWfr(int action, SRWLWfr* pWfr, char pol)
 	if(oFunc == 0) return -1; //OC151115
 	if(!PyCallable_Check(oFunc)) return -1;
 
+	//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
+	//srwlPrintTime("::ModifySRWLWfr : before PyObject_CallObject",&start);
+
 	PyObject *res = PyObject_CallObject(oFunc, argList); //re-allocate in Py
 	Py_DECREF(argList);
+
+	//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
+	//srwlPrintTime("::ModifySRWLWfr : PyObject_CallObject",&start);
 
 	Py_DECREF(oFunc);
 	if(res == 0) return -1;
@@ -3452,6 +3888,9 @@ int ModifySRWLWfr(int action, SRWLWfr* pWfr, char pol)
 	if((int)it->second.pv_buf->size() > sizeVectBuf) it->second.pbEx = (*it->second.pv_buf)[sizeVectBuf];
 	Py_DECREF(o_tmp);
 
+	//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
+	//srwlPrintTime("::ModifySRWLWfr : arEx",&start);
+
 	o_tmp = PyObject_GetAttrString(oWfr, "arEy");
 	if(o_tmp == 0) return -1;
 	//if(PyObject_CheckBuffer(o_tmp))
@@ -3466,6 +3905,9 @@ int ModifySRWLWfr(int action, SRWLWfr* pWfr, char pol)
 	if(!(pWfr->arEy = GetPyArrayBuf(o_tmp, it->second.pv_buf, 0))) return -1;
 	if((int)it->second.pv_buf->size() > sizeVectBuf) it->second.pbEy = (*it->second.pv_buf)[sizeVectBuf];
 	Py_DECREF(o_tmp);
+
+	//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
+	//srwlPrintTime("::ModifySRWLWfr : arEy",&start);
 
 	pWfr->arExAux = 0; //OC151115
 	if(PyObject_HasAttrString(oWfr, "arExAux"))
@@ -3484,6 +3926,10 @@ int ModifySRWLWfr(int action, SRWLWfr* pWfr, char pol)
 			}
 		}
 	}
+
+	//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
+	//srwlPrintTime("::ModifySRWLWfr : arExAux",&start);
+
 	//if(pWfr->arExAux == 0)
 	//{//This creates problems
 	//	if((action == 20) && ExNeeded) PyBuffer_Release(&(it->second.pbExAux));
@@ -3506,6 +3952,10 @@ int ModifySRWLWfr(int action, SRWLWfr* pWfr, char pol)
 			}
 		}
 	}
+
+	//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
+	//srwlPrintTime("::ModifySRWLWfr : arEyAux",&start);
+
 	//if(pWfr->arEyAux == 0)
 	//{//This creates problems
 	//	if((action == 20) && EyNeeded) PyBuffer_Release(&(it->second.pbEyAux));
@@ -3526,6 +3976,9 @@ int ModifySRWLWfr(int action, SRWLWfr* pWfr, char pol)
 	if((int)it->second.pv_buf->size() > sizeVectBuf) it->second.pbMomX = (*it->second.pv_buf)[sizeVectBuf];
 	Py_DECREF(o_tmp);
 
+	//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
+	//srwlPrintTime("::ModifySRWLWfr : arMomX",&start);
+
 	o_tmp = PyObject_GetAttrString(oWfr, "arMomY");
 	if(o_tmp == 0) return -1;
 	//if(PyObject_CheckBuffer(o_tmp))
@@ -3540,7 +3993,43 @@ int ModifySRWLWfr(int action, SRWLWfr* pWfr, char pol)
 	if(!(pWfr->arMomY = (double*)GetPyArrayBuf(o_tmp, it->second.pv_buf, 0))) return -1;
 	if((int)it->second.pv_buf->size() > sizeVectBuf) it->second.pbMomY = (*it->second.pv_buf)[sizeVectBuf];
 	Py_DECREF(o_tmp);
+
+	//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
+	//srwlPrintTime("::ModifySRWLWfr : arMomY",&start);
+
 	return 0;
+}
+
+//void* (*pExtFunc)(char type, long long len)
+/************************************************************************//**
+ * Array allocation function; to be called by pointer from SRWLIB
+ ***************************************************************************/
+char* AllocPyArrayGetBuf(char type, long long len)
+{
+	if(!((type == 'd') || (type == 'f') || (type == 'i'))) return 0; //returning 0 means allocation did not succeed; no throwing allowed here
+	if(len <= 0) return 0;
+
+	PyObject *oSRWLIB = PyImport_AddModule("srwlib");
+	PyObject *oFunc = PyObject_GetAttrString(oSRWLIB, "srwl_uti_array_alloc");
+	if((oFunc == 0) || (!PyCallable_Check(oFunc))) throw strEr_FailedAllocPyArray;
+
+#if PY_MAJOR_VERSION >= 3
+	PyObject *oArgList = Py_BuildValue("(C,l)", type, len);
+#else
+	PyObject *oArgList = Py_BuildValue("(c,l)", type, len);
+#endif
+
+	PyObject *oAr = PyObject_CallObject(oFunc, oArgList); //allocate array in Py
+	Py_DECREF(oArgList);
+
+	if(oAr == 0) throw strEr_FailedAllocPyArray;
+
+	Py_ssize_t sizeBuf=0;
+	char *resBuf = GetPyArrayBuf(oAr, 0, &sizeBuf);
+	if((resBuf == 0) || (sizeBuf <= 0)) throw strEr_FailedAllocPyArray;
+
+	gmBufPyObjPtr[resBuf] = oAr; //to be able to manipulate with Py objects corresponding to arrays
+	return resBuf;
 }
 
 /************************************************************************//**
@@ -4068,16 +4557,30 @@ static PyObject* srwlpy_ResizeElecField(PyObject *self, PyObject *args)
  ***************************************************************************/
 static PyObject* srwlpy_SetRepresElecField(PyObject *self, PyObject *args)
 {
+	//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
+	//double start;
+	//get_walltime (&start);
+
 	PyObject *oWfr=0, *oRepr;
 	vector<Py_buffer> vBuf;
 	SRWLWfr wfr;
 
 	try
 	{
+		//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
+		//srwlPrintTime(":srwlpy_SetRepresElecField : begin",&start);
+
 		if(!PyArg_ParseTuple(args, "OO:SetRepresElecField", &oWfr, &oRepr)) throw strEr_BadArg_SetRepresElecField;
+
+		//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
+		//srwlPrintTime(":srwlpy_SetRepresElecField : PyArg_ParseTuple",&start);
+
 		if((oWfr == 0) || (oRepr == 0)) throw strEr_BadArg_SetRepresElecField;
 
 		ParseSructSRWLWfr(&wfr, oWfr, &vBuf, gmWfrPyPtr);
+
+		//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
+		//srwlPrintTime(":srwlpy_SetRepresElecField : ParseSructSRWLWfr",&start);
 
 		//PyObject *o_str = PyUnicode_AsUTF8String(oRepr);
 		//if(!PyBytes_Check(o_str)) throw strEr_BadArg_SetRepresElecField;
@@ -4087,7 +4590,14 @@ static PyObject* srwlpy_SetRepresElecField(PyObject *self, PyObject *args)
 		CopyPyStringToC(oRepr, cRepr, 1);
 
 		ProcRes(srwlSetRepresElecField(&wfr, *cRepr));
+
+		//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
+		//srwlPrintTime(":srwlpy_SetRepresElecField : srwlSetRepresElecField",&start);
+
 		UpdatePyWfr(oWfr, &wfr);
+
+		//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
+		//srwlPrintTime(":srwlpy_SetRepresElecField : UpdatePyWfr",&start);
 	}
 	catch(const char* erText) 
 	{
@@ -4099,7 +4609,14 @@ static PyObject* srwlpy_SetRepresElecField(PyObject *self, PyObject *args)
 	ReleasePyBuffers(vBuf);
 	EraseElementFromMap(&wfr, gmWfrPyPtr);
 
+	//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
+	//srwlPrintTime(":srwlpy_SetRepresElecField : EraseElementFromMap",&start);
+
 	if(oWfr) Py_XINCREF(oWfr);
+
+	//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
+	//srwlPrintTime(":srwlpy_SetRepresElecField : Py_XINCREF",&start);
+
 	return oWfr;
 }
 
@@ -4109,21 +4626,70 @@ static PyObject* srwlpy_SetRepresElecField(PyObject *self, PyObject *args)
  ***************************************************************************/
 static PyObject* srwlpy_PropagElecField(PyObject *self, PyObject *args)
 {
-	PyObject *oWfr=0, *oOptCnt=0;
+	//PyObject *oWfr=0, *oOptCnt=0;
+	PyObject *oWfr=0, *oOptCnt=0, *oInt=0; //OC14082018
+
 	vector<Py_buffer> vBuf;
 	SRWLWfr wfr;
 	SRWLOptC optCnt = {0,0,0,0,0}; //since SRWL structures are definied in C (no constructors)
+	
+	//char *arIndsInt=0, *arIntType=0, *arPol=0, *arDepType=0; //OC14082018
+	//double *arE=0, *arX=0, *arY=0;
+	char *arIntDescr[] = {0,0,0,0,0}; //OC14082018
+	SRWLRadMesh *arIntMesh=0;
+	//float **arInts=0;
+	char **arInts=0;
 
 	try
 	{
-		if(!PyArg_ParseTuple(args, "OO:PropagElecField", &oWfr, &oOptCnt)) throw strEr_BadArg_PropagElecField;
+		//if(!PyArg_ParseTuple(args, "OO:PropagElecField", &oWfr, &oOptCnt)) throw strEr_BadArg_PropagElecField;
+		if(!PyArg_ParseTuple(args, "OO|O:PropagElecField", &oWfr, &oOptCnt, &oInt)) throw strEr_BadArg_PropagElecField; //OC14082018
 		if((oWfr == 0) || (oOptCnt == 0)) throw strEr_BadArg_PropagElecField;
 
+		//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
+		//double start;
+		//get_walltime(&start);
+
 		ParseSructSRWLWfr(&wfr, oWfr, &vBuf, gmWfrPyPtr);
+
+		//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
+		//srwlPrintTime(":srwlpy_PropagElecField : ParseSructSRWLWfr", &start);
+
 		ParseSructSRWLOptC(&optCnt, oOptCnt, &vBuf);
 
-		ProcRes(srwlPropagElecField(&wfr, &optCnt));
+		//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
+		//srwlPrintTime(":srwlpy_PropagElecField :ParseSructSRWLOptC", &start);
+
+		int nInt = 0;
+		if(oInt != 0) //OC14082018
+		{
+			nInt = ParseSructSRWLPropIntDef(arIntDescr, arIntMesh, oInt);
+			if(nInt > 0)
+			{
+				//arInts = new float*[nInt];
+				arInts = new char*[nInt];
+				for(int i=0; i<nInt; i++) arInts[i] = 0;
+			}
+		}
+		//OCTEST
+		//char *pRes = AllocPyArrayGetBuf('d', 1000);
+		//END OCTEST
+
+		//ProcRes(srwlPropagElecField(&wfr, &optCnt));
+		ProcRes(srwlPropagElecField(&wfr, &optCnt, nInt, arIntDescr, arIntMesh, arInts)); //OC15082018
+
+		//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
+		//srwlPrintTime(":srwlpy_PropagElecField :srwlPropagElecField", &start);
+
+		if((oInt != 0) && (nInt > 0)) //OC14082018
+		{//Find and add objects corresponding to different intensity distributions to the oInt list
+			UpdatePyPropInt(oInt, arIntMesh, arInts, nInt);
+		}
+
 		UpdatePyWfr(oWfr, &wfr);
+
+		//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
+		//srwlPrintTime(":srwlpy_PropagElecField :UpdatePyWfr", &start);
 	}
 	catch(const char* erText) 
 	{
@@ -4135,6 +4701,11 @@ static PyObject* srwlpy_PropagElecField(PyObject *self, PyObject *args)
 	DeallocOptCntArrays(&optCnt);
 	ReleasePyBuffers(vBuf);
 	EraseElementFromMap(&wfr, gmWfrPyPtr);
+
+	for(int i=0; i<4; i++) if(arIntDescr[i] != 0) delete[] arIntDescr[i];
+	if(arIntMesh != 0) delete[] arIntMesh;
+	if(arInts != 0) delete[] arInts;
+	//arInts[i] should not be deleted, because these should be available in Py
 
 	if(oWfr) Py_XINCREF(oWfr);
 	return oWfr;
@@ -4276,7 +4847,108 @@ static PyObject* srwlpy_UtiConvWithGaussian(PyObject *self, PyObject *args)
 }
 
 /************************************************************************//**
- * Attempts to deduce parameters of peridic undulator magnetic field from tabulated field
+ * Calculates basic statistical characteristics of intensity distribution
+ ***************************************************************************/
+static PyObject* srwlpy_UtiIntInf(PyObject *self, PyObject *args)
+{
+	PyObject *oData=0, *oMesh=0, *oRes=0;
+	vector<Py_buffer> vBuf;
+
+	try
+	{
+		if(!PyArg_ParseTuple(args, "OO:UtiIntInf", &oData, &oMesh)) throw strEr_BadArg_UtiIntInf;
+		if((oData == 0) || (oMesh == 0)) throw strEr_BadArg_UtiIntInf;
+
+		char *pcData=0;
+		Py_ssize_t sizeBuf;
+		if(!(pcData = GetPyArrayBuf(oData, &vBuf, &sizeBuf))) throw strEr_BadArg_UtiIntInf;
+
+		SRWLRadMesh mesh;
+		ParseSructSRWLRadMesh(&mesh, oMesh);
+
+		//Py_buffer curBuf = vBuf[vBuf.size() - 1]; //Not compatible with old buffer enterf.
+		//Py_ssize_t dataItemSize = curBuf.itemsize;
+
+		Py_ssize_t dataItemSize = (Py_ssize_t)round((sizeBuf/(mesh.ne*mesh.nx*mesh.ny)));
+		char typeData = 0;
+		if(dataItemSize == (Py_ssize_t)sizeof(float)) typeData = 'f';
+		else if(dataItemSize == (Py_ssize_t)sizeof(double)) typeData = 'd';
+		else throw strEr_BadArg_UtiIntInf;
+
+		const int nInf = 7;
+		double resInf[nInf];
+		ProcRes(srwlUtiIntInf(resInf, pcData, typeData, &mesh));
+
+		oRes = SetPyListOfLists(resInf, nInf, 1, (char*)"d");
+	}
+	catch(const char* erText) 
+	{
+		PyErr_SetString(PyExc_RuntimeError, erText);
+	}
+
+	ReleasePyBuffers(vBuf);
+
+	if(oRes) Py_XINCREF(oRes);
+	return oRes;
+}
+
+/************************************************************************//**
+ * Performs misc. operations on input 
+ ***************************************************************************/
+static PyObject* srwlpy_UtiIntProc(PyObject *self, PyObject *args)
+{
+	PyObject *oInt1=0, *oMesh1=0, *oInt2=0, *oMesh2=0, *oPar=0;
+	vector<Py_buffer> vBuf;
+	double *arPar=0;
+
+	try
+	{
+		if(!PyArg_ParseTuple(args, "OOOOO:UtiIntProc", &oInt1, &oMesh1, &oInt2, &oMesh2, &oPar)) throw strEr_BadArg_UtiIntProc;
+		if((oInt1 == 0) || (oMesh1 == 0) || (oInt2 == 0) || (oMesh2 == 0) || (oPar == 0)) throw strEr_BadArg_UtiIntProc;
+
+		SRWLRadMesh mesh1, mesh2;
+		ParseSructSRWLRadMesh(&mesh1, oMesh1);
+		ParseSructSRWLRadMesh(&mesh2, oMesh2);
+
+		Py_ssize_t sizeBuf;
+		char *pcInt1=0;
+		if(!(pcInt1 = GetPyArrayBuf(oInt1, &vBuf, &sizeBuf))) throw strEr_BadArg_UtiIntProc;
+		
+		char typeInt1=0;
+		Py_ssize_t intItemSize = (Py_ssize_t)round((sizeBuf/(mesh1.ne*mesh1.nx*mesh1.ny)));
+		if(intItemSize == (Py_ssize_t)sizeof(float)) typeInt1 = 'f';
+		else if(intItemSize == (Py_ssize_t)sizeof(double)) typeInt1 = 'd';
+		else throw strEr_BadArg_UtiIntProc;
+		
+		char *pcInt2=0;
+		if(!(pcInt2 = GetPyArrayBuf(oInt2, &vBuf, &sizeBuf))) throw strEr_BadArg_UtiIntProc;
+
+		char typeInt2=0;
+		intItemSize = (Py_ssize_t)round((sizeBuf/(mesh2.ne*mesh2.nx*mesh2.ny)));
+		if(intItemSize == (Py_ssize_t)sizeof(float)) typeInt2 = 'f';
+		else if(intItemSize == (Py_ssize_t)sizeof(double)) typeInt2 = 'd';
+		else throw strEr_BadArg_UtiIntProc;
+
+		int nPar=0;
+		CopyPyListElemsToNumArray(oPar, 'd', arPar, nPar);
+		if(nPar < 1) throw strEr_BadArg_UtiIntProc;
+
+		ProcRes(srwlUtiIntProc(pcInt1, typeInt1, &mesh1, pcInt2, typeInt2, &mesh2, arPar));
+	}
+	catch(const char* erText) 
+	{
+		PyErr_SetString(PyExc_RuntimeError, erText);
+	}
+
+	ReleasePyBuffers(vBuf);
+	if(arPar) delete[] arPar;
+
+	if(oInt2) Py_XINCREF(oInt2);
+	return oInt2;
+}
+
+/************************************************************************//**
+ * Attempts to deduce parameters of periodic undulator magnetic field from tabulated field
  ***************************************************************************/
 static PyObject* srwlpy_UtiUndFromMagFldTab(PyObject *self, PyObject *args)
 {
@@ -4425,6 +5097,8 @@ static PyMethodDef srwlpy_methods[] = {
 	{"PropagElecField", srwlpy_PropagElecField, METH_VARARGS, "PropagElecField() \"Propagates\" Electric Field Wavefront through Optical Elements and free space"},
 	{"UtiFFT", srwlpy_UtiFFT, METH_VARARGS, "UtiFFT() Performs 1D or 2D FFT (as defined by arguments)"},
 	{"UtiConvWithGaussian", srwlpy_UtiConvWithGaussian, METH_VARARGS, "UtiConvWithGaussian() Performs convolution of 1D or 2D data wave with 1D or 2D Gaussian (as defined by arguments)"},
+	{"UtiIntInf", srwlpy_UtiIntInf, METH_VARARGS, "UtiIntInf() Calculates basic statistical characteristics of intensity distribution"},
+	{"UtiIntProc", srwlpy_UtiIntProc, METH_VARARGS, "UtiIntProc() Performs misc. operations on one or two intensity distributions"},
 	{"UtiUndFromMagFldTab", srwlpy_UtiUndFromMagFldTab, METH_VARARGS, "UtiUndFromMagFldTab() Attempts to create periodic undulator structure from tabulated magnetic field"},
 	{"UtiUndFindMagFldInterpInds", srwlpy_UtiUndFindMagFldInterpInds, METH_VARARGS, "UtiUndFindMagFldInterpInds() Finds indexes of undulator gap and phase values and associated magnetic fields requiired to be used in field interpolation based on gap and phase"},
 	{NULL, NULL}
@@ -4448,6 +5122,7 @@ PyMODINIT_FUNC PyInit_srwlpy(void)
 { 
 	//setting pointer to function to be eventually called from SRWLIB
 	srwlUtiSetWfrModifFunc(&ModifySRWLWfr);
+	srwlUtiSetAllocArrayFunc(&AllocPyArrayGetBuf); //OC15082018
 
     return PyModule_Create(&srwlpymodule);
 }
@@ -4458,6 +5133,7 @@ PyMODINIT_FUNC initsrwlpy(void)
 {
 	//setting pointer to function to be eventually called from SRWLIB
 	srwlUtiSetWfrModifFunc(&ModifySRWLWfr);
+	srwlUtiSetAllocArrayFunc(&AllocPyArrayGetBuf); //OC15082018
 
 	Py_InitModule("srwlpy", srwlpy_methods);
 }

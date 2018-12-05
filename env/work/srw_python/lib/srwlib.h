@@ -241,6 +241,7 @@ struct SRWLStructRadMesh {
 	long ne, nx, ny; /* numbers of points vs photon energy, horizontal and vertical positions */
 	double nvx, nvy, nvz, hvx, hvy, hvz; /* lab-frame coordinate of the inner normal to observation plane (/ surface in its center) and horizontal base vector of the observation plane (/ surface in its center) */
 	double *arSurf; /* array defining the observation surface (as function of 2 variables - x & y - on the mesh given by _xStart, _xFin, _nx, _yStart, _yFin, _ny; to be used in case this surface differs from plane) */
+	char type; /* type of data: 0- standard intensity, 'm'- mutual intensity //OC13112018 */
 };
 typedef struct SRWLStructRadMesh SRWLRadMesh;
 
@@ -514,6 +515,13 @@ typedef struct SRWLStructOpticsContainer SRWLOptC;
 EXP void CALL srwlUtiSetWfrModifFunc(int (*pExtFunc)(int action, SRWLWfr* pWfrIn, char pol));
 
 /** 
+ * Sets pointer to external function which allocates an array (continious memory block) in client environment.  
+ * @param [in] pExtFunc pointer to the external function
+ * @see ... 
+ */
+EXP void CALL srwlUtiSetAllocArrayFunc(char* (*pExtFunc)(char type, long long len)); //OC15082018
+
+/** 
  * Sets pointer to external function to show progress of computation process
  * @param [in] pExtFunc pointer to the external function
  * @see ... 
@@ -732,7 +740,8 @@ EXP int CALL srwlSetRepresElecField(SRWLWfr* pWfr, char repr);
  * @return	integer error (>0) or warnig (<0) code
  * @see ...
  */
-EXP int CALL srwlPropagElecField(SRWLWfr* pWfr, SRWLOptC* pOpt);
+EXP int CALL srwlPropagElecField(SRWLWfr* pWfr, SRWLOptC* pOpt, int nInt=0, char** arID=0, SRWLRadMesh* arIM=0, char** arI=0); //OC15082018
+//EXP int CALL srwlPropagElecField(SRWLWfr* pWfr, SRWLOptC* pOpt);
 
 /** TEST
  * "Propagates" multple Electric Field Wavefronts from different electrons through Optical Elements and free spaces
@@ -787,6 +796,39 @@ EXP int CALL srwlUtiFFT(char* pcData, char typeData, double* arMesh, int nMesh, 
 EXP int CALL srwlUtiConvWithGaussian(char* pcData, char typeData, double* arMesh, int nMesh, double* arSig);
 
 /** 
+ * Calculates basic statistical characteristics of intensity distribution
+ * @param [in, out] arInf (double) array of characteristics to be extracted:
+ *                  arInf[0]: peak (max.) intensity
+ *                  arInf[1]: position of peak intensity vs 1st dimension
+ *                  arInf[2]: position of peak intensity vs 2nd dimension
+ *                  arInf[3]: position of peak intensity vs 3rd dimension (reserved for future use)
+ *                  arInf[4]: FWHM value of intensity distribution vs 1st dimension
+ *                  arInf[5]: FWHM value of intensity distribution vs 2nd dimension
+ *                  arInf[6]: FWHM value of intensity distribution vs 3rd dimension (reserved for future use)
+ * @param [in] pcData (char) pointer to intensity distribution data to be analyzed
+ * @param [in] typeData character specifying data type ('f' for float, 'd' for double)
+ * @param [in] pMesh (pointer to SRWLRadMesh) mesh of intensity data to be analyzed
+ * @return	integer error (>0) or warnig (<0) code
+ * @see ...
+ */
+EXP int CALL srwlUtiIntInf(double* arInf, char* pcData, char typeData, SRWLRadMesh* pMesh);
+
+/** 
+ * Performs misc. operations on intensity distribution (or similar C-aligned) arrays
+ * @param [in, out] pcI1 (char) pointer to intensity distribution data #1
+ * @param [in] typeI1 character specifying intensity #1 data type ('f' for float, 'd' for double)
+ * @param [in] pMesh1 (pointer to SRWLRadMesh) mesh of intensity data #1
+ * @param [in] pcI2 (char) pointer to intensity distribution data #2
+ * @param [in] typeI2 character specifying intensity #2 data type ('f' for float, 'd' for double)
+ * @param [in] pMesh2 (pointer to SRWLRadMesh) mesh of intensity data #2
+ * @param [in] arPar array of parameters defining operation to be performed:
+ *			   arPar[0] defines type of the operation, with the meaning of other elements dependent on it
+ * @return	integer error (>0) or warnig (<0) code
+ * @see ...
+ */
+EXP int CALL srwlUtiIntProc(char* pcI1, char typeI1, SRWLRadMesh* pMesh1, char* pcI2, char typeI2, SRWLRadMesh* pMesh2, double* arPar);
+
+/** 
  * Attempts to deduce parameters of peridic undulator magnetic field from tabulated field and set up Undulator structure
  * @param [in, out] pUndCnt pointer to magnetic field container structure with undulator structure to be set up
  * @param [in] pMagCnt pointer to magnetic field container structure with tabulated field structure to be analyzed
@@ -816,6 +858,12 @@ EXP int CALL srwlUtiUndFromMagFldTab(SRWLMagFldC* pUndCnt, SRWLMagFldC* pMagCnt,
  * @see ...
  */
 EXP int CALL srwlUtiUndFindMagFldInterpInds(int* arResInds, int* pnResInds, double* arGaps, double* arPhases, int nVals, double arPrecPar[5]);
+
+/**
+ * These functions were added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP
+EXP void CALL srwlPrintTime(const char* str, double* start);
+EXP void CALL get_walltime(double* wcTime);
+ */
 
 /***************************************************************************/
 

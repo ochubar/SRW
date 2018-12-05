@@ -28,6 +28,10 @@
 #include "gmobj.h"
 #endif
 
+#ifdef _WITH_OMP //OC31102018: Pre-processor definition for compiling SRW with OpenMP library
+#include "omp.h"
+#endif
+
 #ifndef MEMORY_ALLOCATION_FAILURE
 #define MEMORY_ALLOCATION_FAILURE 8 + 10000 //in line with SRW
 #endif
@@ -137,7 +141,10 @@ public:
 		NeedsShiftBeforeX = NeedsShiftBeforeY = NeedsShiftAfterX = NeedsShiftAfterY = 0;
 	}
 
-	int Make2DFFT(CGenMathFFT2DInfo&);
+	//int Make2DFFT(CGenMathFFT2DInfo&);
+	//Modification by S.Yakubov for parallelizing SRW via OpenMP:
+	int Make2DFFT(CGenMathFFT2DInfo&, fftwnd_plan* pPrecreatedPlan2DFFT=0); //OC27102018
+
 	int AuxDebug_TestFFT_Plans();
 
 	void SetupLimitsTr(CGenMathFFT2DInfo& FFT2DInfo)
@@ -411,25 +418,43 @@ public:
 
 	void RepairSignAfter1DFFT(FFTW_COMPLEX* pAfterFFT, long HowMany)
 	{// Assumes Nx even !
-		FFTW_COMPLEX *t = pAfterFFT;
-		int s = 1;
-		for(long ix=0; ix<Nx; ix++)
+		//FFTW_COMPLEX *t = pAfterFFT;
+		//int s = 1;
+		//for(long ix=0; ix<Nx; ix++)
+		//{
+		//	if(s < 0)
+		//	{
+		//		FFTW_COMPLEX *tMany = t;
+		//		for(long k=0; k<HowMany; k++)
+		//		{
+		//			tMany->re = -tMany->re; tMany->im = -tMany->im;
+		//			tMany += Nx;
+		//		}
+		//	}
+		//	t++; s = -s;
+		//}
+		//OC27102018
+		//SY: optimized, adopt for OpenMP
+#ifdef _WITH_OMP
+		#pragma omp parallel for
+#endif
+		for(long ix=1; ix<Nx; ix+=2)
 		{
-			if(s < 0)
+			//FFTW_COMPLEX *t = pAfterFFT + ix;
+			//FFTW_COMPLEX *tMany = t;
+			//OC27102018
+			FFTW_COMPLEX *tMany = pAfterFFT + ix;
+			for(long k=0; k<HowMany; k++)
 			{
-				FFTW_COMPLEX *tMany = t;
-				for(long k=0; k<HowMany; k++)
-				{
-					tMany->re = -tMany->re; tMany->im = -tMany->im;
-					tMany += Nx;
-				}
+				tMany->re = -tMany->re; tMany->im = -tMany->im;
+				tMany += Nx;
 			}
-			t++; s = -s;
 		}
 	}
 
 	void RotateDataAfter1DFFT(FFTW_COMPLEX* pAfterFFT, long HowMany)
 	{// Assumes Nx even !
+#ifndef _WITH_OMP //OC27102018
 		FFTW_COMPLEX *t1 = pAfterFFT, *t2 = pAfterFFT + HalfNx;
 		FFTW_COMPLEX Buf;
 		for(long ix=0; ix<HalfNx; ix++)
@@ -441,10 +466,26 @@ public:
 				t1Many += Nx; t2Many += Nx; 
 			}
 		}
+#else //OC27102018
+		//SY: adopted for OpenMP
+		#pragma omp parallel for
+		for(long ix=0; ix<HalfNx; ix++)
+		{
+			FFTW_COMPLEX *t1Many = pAfterFFT + ix;
+			FFTW_COMPLEX *t2Many = pAfterFFT + HalfNx + ix;
+			FFTW_COMPLEX Buf;
+			for(long k=0; k<HowMany; k++)
+			{
+				Buf = *t1Many; *t1Many = *t2Many; *t2Many = Buf;
+				t1Many += Nx; t2Many += Nx; 
+			}
+		}
+#endif
 	}
 
 	void NormalizeDataAfter1DFFT(FFTW_COMPLEX* pAfterFFT, long HowMany, double Mult)
 	{// Assumes Nx even !
+#ifndef _WITH_OMP //OC27102018
 		FFTW_COMPLEX *t = pAfterFFT;
 		for(long ix=0; ix<Nx; ix++)
 		{
@@ -455,6 +496,19 @@ public:
 				tMany += Nx;
 			}
 		}
+#else //OC27102018
+		//SY: adopted for OpenMP
+		#pragma omp parallel for
+		for(long ix=0; ix<Nx; ix++)
+		{
+			FFTW_COMPLEX *tMany = pAfterFFT + ix;
+			for(long k=0; k<HowMany; k++)
+			{
+				tMany->re *= (FFTW_REAL)Mult; tMany->im *= (FFTW_REAL)Mult;
+				tMany += Nx;
+			}
+		}
+#endif
 	}
 
 	int SetupAuxDataForSharpEdgeCorr(CGenMathFFT1DInfo&, CGenMathAuxDataForSharpEdgeCorr1D&);

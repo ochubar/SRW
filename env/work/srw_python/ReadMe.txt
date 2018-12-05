@@ -4,8 +4,8 @@ Comments to "SRWLIB" for Python (November 2017)
 Basic content and installation of the SRWLIB package:
 ----------------------------------------------------
 
-- srwlpy.pyd, srwlpy.so are SRW Python bindings (shared libraries) compiled for Windows and Linux respectively. Note that there is no guarantee that these files, located in ../srw_python/, are compatible with the versions of operating system and Python that you are using.
-The compiled shared library files for Python 3.x and 2.7 for 64- and 32-bit Windows and Linux are available in ../srw_python/lib/. The file names of the compiled shared libraries are self-explanatory: e.g. srwlpy3_6_x64.pyd is a version for Python 3.6 for Windows 64 bit; srwlpy2_7_x86_64.so is for Python 2.7 for Linux 64 bit. Copy the compiled shared library file corresponding to your operating system and Python versions from ../srw_python/lib/ to ../srw_python/ and change its name to srwlpy.pyd (on Windows) or srwlpy.so (on Linux) e.g.:
+- srwlpy.pyd, srwlpy.so are SRW Python bindings (shared libraries) compiled for Windows and Linux respectively. Note that there is no guarantee that these files, located in ../srw_python/, are compatible with the versions of operating system and Python that you are using. NOTE: if these files are not compatible with the versions of system libraries or Python that you are using, you can always re-compile these, following the guidelines given in the README.txt file located in the main directory of the SRW repository.
+Several pre-compiled shared library files for Python 3.x and 2.7 for 64- and 32-bit Windows and Linux are available in ../srw_python/lib/. The file names of the compiled shared libraries are self-explanatory: e.g. srwlpy3_6_x64.pyd is a version for Python 3.6 for Windows 64 bit; srwlpy2_7_x86_64.so is for Python 2.7 for Linux 64 bit. Copy the compiled shared library file corresponding to your operating system and Python versions from ../srw_python/lib/ to ../srw_python/ and change its name to srwlpy.pyd (on Windows) or srwlpy.so (on Linux) e.g.:
 on Windows:
 copy ..\srw_python\lib\srwlpy3_6_x64.pyd ..\srw_python\srwlpy.pyd
 on Linux:
@@ -35,8 +35,8 @@ Optional configuring of Python and SRWLIB on Linux:
 
 Make sure that path to Python 3.6 (or 2.7) is added to the PATH variable and "srw_python" directory to PYTHONPATH variable:
 export PATH="$PATH:<absolute path to Python 3.6>" #this is not necessary if you install python using the distro's package manager
-export PYTHONPATH="$PYTHONPATH:SRW_Dev/work/srw_python/" #temporarely solution
+export PYTHONPATH="$PYTHONPATH:SRW_Dev/work/srw_python/" #temporary solution
 	or:
-echo "export PYTHONPATH=$PYTHONPATH:SRW_Dev/work/srw_python/" >> ~/.bashrc # permanent solution for a single user
+echo "export PYTHONPATH=$PYTHONPATH:SRW_Dev/work/srw_python/" >> ~/.bashrc #permanent solution for a single user
 Setting up PYTHONPATH allows to import srwlpy module from any directory.
 

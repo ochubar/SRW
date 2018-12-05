@@ -119,6 +119,7 @@ struct SRWLStructMagneticFieldMultipole {
 	char n_or_s; /* normal ('n') or skew ('s') */	
 	double Leff; /* effective length [m] */
 	double Ledge; /* "soft" edge length for field variation from 10% to 90% [m]; G/(1 + ((z-zc)/d)^2)^2 fringe field dependence is assumed */
+	double R; /* radius of curvature of central trajectory [m] (for simulating e.g. quadrupole component integrated to a bending magnet; effective if > 0) */
 };
 typedef struct SRWLStructMagneticFieldMultipole SRWLMagFldM;
 
@@ -165,9 +166,17 @@ typedef struct SRWLStructMagneticFieldUndulator SRWLMagFldU;
 struct SRWLStructMagneticFieldContainer {
 	void **arMagFld; /* array of pointers to magnetic field elements */
 	char *arMagFldTypes; /* types of magnetic field elements in arMagFld array */
-	double *arXc; /* horizontal center positions of magnetic field elements in arMagFld array */
-	double *arYc; /* vertical center positions of magnetic field elements in arMagFld array */
-	double *arZc; /* longitudinal center positions of magnetic field elements in arMagFld array */
+	double *arXc; /* horizontal center positions of magnetic field elements in arMagFld array [m] */
+	double *arYc; /* vertical center positions of magnetic field elements in arMagFld array [m] */
+	double *arZc; /* longitudinal center positions of magnetic field elements in arMagFld array [m] */
+	double *arVx; /* horizontal components of axis vectors of magnetic field elements in arMagFld array [rad] */
+	double *arVy; /* vertical components of axis vectors of magnetic field elements in arMagFld array [rad] */
+	double *arVz; /* longitudinal components of axis vectors of magnetic field elements in arMagFld array [rad] */
+	double *arAng; /* rotation angles of magnetic field elements about their axes [rad] */
+	double *arPar1; /* optional array of parameter values the elements of the magnet array correspond to (to be used e.g. for finding undulator magnetic field for a particular gap/phase value by interpolation) */
+	double *arPar2; /* optional array of parameter values the elements of the magnet array correspond to (to be used e.g. for finding undulator magnetic field for a particular gap/phase value by interpolation) */
+	double *arPar3; /* optional array of parameter values the elements of the magnet array correspond to */
+	double *arPar4; /* optional array of parameter values the elements of the magnet array correspond to */
 	int nElem; /* number of magnetic field elements in arMagFld array */
 };
 typedef struct SRWLStructMagneticFieldContainer SRWLMagFldC;
@@ -177,7 +186,8 @@ typedef struct SRWLStructMagneticFieldContainer SRWLMagFldC;
  */
 struct SRWLStructParticleTrajectory {
 	double *arX, *arXp, *arY, *arYp, *arZ, *arZp; /* arrays of horizontal, vertical and longitudinal positions and relative velocities */
-	int np; /* number of trajectory points */
+	double *arBx, *arBy, *arBz; /* arrays of horizontal, vertical and longitudinal magnetic field components 'seen' by particle (along trajectory) */
+	long long np; /* int np; number of trajectory points */
 	double ctStart, ctEnd; /* start and end values of independent variable (c*t) for which the trajectory should be (/is) calculated (is constant step enough?) */
 	SRWLParticle partInitCond; /* particle type and initial conditions for which the trajectory should be (/is) calculated */
 };
@@ -212,12 +222,25 @@ struct SRWLStructGaussianBeam {
 typedef struct SRWLStructGaussianBeam SRWLGsnBm;
 
 /**
+ * Coherent Gaussian Beam
+ */
+struct SRWLStructPointSource {
+	double x, y, z; /* coordinates [m] */
+	double flux; /* spectral flux */
+	char unitFlux; /* spectral flux units: 1- ph/s/.1%bw, 2- W/eV */
+	char polar; /* polarization: 1- lin. hor., 2- lin. vert., 3- lin. 45 deg., 4- lin.135 deg., 5- circ. right, 6- circ. left, 7- radial */
+};
+typedef struct SRWLStructPointSource SRWLPtSrc;
+
+/**
  * Radiation Mesh (for Electric Field, Stokes params, etc.)
  * TENTATIVE VERSION !
  */
 struct SRWLStructRadMesh {
 	double eStart, eFin, xStart, xFin, yStart, yFin, zStart; /* initial and final values of photon energy (/time), horizontal, vertical and longitudinal positions */
 	long ne, nx, ny; /* numbers of points vs photon energy, horizontal and vertical positions */
+	double nvx, nvy, nvz, hvx, hvy, hvz; /* lab-frame coordinate of the inner normal to observation plane (/ surface in its center) and horizontal base vector of the observation plane (/ surface in its center) */
+	double *arSurf; /* array defining the observation surface (as function of 2 variables - x & y - on the mesh given by _xStart, _xFin, _nx, _yStart, _yFin, _ny; to be used in case this surface differs from plane) */
 };
 typedef struct SRWLStructRadMesh SRWLRadMesh;
 
@@ -227,6 +250,7 @@ typedef struct SRWLStructRadMesh SRWLRadMesh;
  */
 struct SRWLStructWaveFront {
 	char *arEx, *arEy; /* horizontal and vertical electric field component arrays */
+	char *arExAux, *arEyAux; /* auxiliary horizontal and vertical electric field component arrays (to be used e.g. at resizing) */
 	//double eStart, eFin, xStart, xFin, yStart, yFin, zStart; /* initial and final values of photon energy (/time), horizontal, vertical and longitudinal positions */
 	//long ne, nx, ny; /* numbers of points vs photon energy, horizontal and vertical positions */
 	SRWLRadMesh mesh;
@@ -240,7 +264,8 @@ struct SRWLStructWaveFront {
 	char presCA; /* presentation/domain: 0- coordinates, 1- angles */
 	char presFT; /* presentation/domain: 0- frequency (photon energy), 1- time */
 	char numTypeElFld; /* electric field numerical type: 'f' (float) or 'd' (double) */
-	char unitElFld; /* electric field units: 0- arbitrary, 1- sqrt(Phot/s/0.1%bw/mm^2) ? */
+	char unitElFld; /* electric field units: 0- arbitrary, 1- sqrt(Phot/s/0.1%bw/mm^2), 2- sqrt(J/eV/mm^2) or sqrt(W/mm^2), depending on representation (freq. or time) ? */
+	char unitElFldAng; /* electric field units in angular representation: 0- sqrt(Wavelength[m]*Phot/s/0.1%bw/mrad^2) vs rad/Wavelength[m], 1- sqrt(Phot/s/0.1%bw/mrad^2) vs rad; [Phot/s/0.1%bw] can be replaced by [J/eV] or [W], depending on unitElFld, presFT and presCA */
 
 	SRWLPartBeam partBeam; /* particle beam source; strictly speaking, it should be just SRWLParticle; however, "multi-electron" information can appear useful for those cases when "multi-electron intensity" can be deduced from the "single-electron" one by convolution */
 	double *arElecPropMatr; /* effective 1st order "propagation matrix" for electron beam parameters */
@@ -274,6 +299,7 @@ typedef struct SRWLStructStokes SRWLStokes;
  */
 struct SRWLStructOpticsDrift {
 	double L; /* length [m] */
+	char treat; /* switch specifying whether the absolute optical path should be taken into account in radiation phase (=1) or not (=0, default) */
 };
 typedef struct SRWLStructOpticsDrift SRWLOptD;
 
@@ -298,6 +324,24 @@ struct SRWLStructOpticsLens {
 	double x, y; /* transverse coordinates of center [m] */
 };
 typedef struct SRWLStructOpticsLens SRWLOptL;
+
+/**
+ * Optical Element:
+ * Angle ("angle" type)
+ */
+struct SRWLStructOpticsAngle {
+	double AngX, AngY; /* horizontal and vertical angles [rad] */
+};
+typedef struct SRWLStructOpticsAngle SRWLOptAng;
+
+/**
+ * Optical Element:
+ * Shift ("shift" type)
+ */
+struct SRWLStructOpticsShift {
+	double ShiftX, ShiftY; /* horizontal and vertical shifts [m] */
+};
+typedef struct SRWLStructOpticsShift SRWLOptShift;
 
 /**
  * Optical Element:
@@ -326,28 +370,18 @@ typedef struct SRWLStructOpticsWaveguide SRWLOptWG;
 
 /**
  * Optical Element:
- * Grating (plane) ("grating" type)
- */
-struct SRWLStructOpticsGrating {
-	double grDen; /* groove density [lines/mm] */
-	char disPl; /* dispersion plane: 'x' ('h') or 'y' ('v') */
-	double ang; /* angle between optical axis and grating plane [rad] */
-	int m; /* output order to be used */
-	double refl; /* average reflectivity (with resp. to intensity) */
-};
-typedef struct SRWLStructOpticsGrating SRWLOptG;
-
-/**
- * Optical Element:
  * Transmission ("transmission" type)
  */
 struct SRWLStructOpticsTransmission {
 	double *arTr; /* complex C-aligned data array (of 2*nx*ny length) storing amplitude transmission and optical path difference as function of transverse position */ 
-	int nx, ny; /* numbers of transmission data points in the horizontal and vertical directions */
-	double rx, ry; /* ranges of horizontal and vertical coordinates [m] for which the transmission is defined */
+	
+	SRWLStructRadMesh mesh; //mesh vs photon energy, horizontal and vertical positions
+	
+	//int nx, ny; /* numbers of transmission data points in the horizontal and vertical directions */
+	//double rx, ry; /* ranges of horizontal and vertical coordinates [m] for which the transmission is defined */
 	char extTr; /* 0- transmission outside the grid/mesh is zero; 1- it is same as on boundary */
 	double Fx, Fy; /* estimated focal lengths [m] */
-	double x, y; /* transverse coordinates of center [m] */
+	//double x, y; /* transverse coordinates of center [m] */
 };
 typedef struct SRWLStructOpticsTransmission SRWLOptT;
 
@@ -374,15 +408,24 @@ struct SRWLStructOpticsMirror {
 	double reflAngStart, reflAngFin; /* initial and final grazing angle values for which the reflectivity coefficient is specified */
 	char reflPhEnScaleType[4], reflAngScaleType[4]; /* photon energy and angle sampling type (1 for linear, 2 for logarithmic) */
 
-	double nvx, nvy, nvz; /* horizontal, vertical and longitudinal coordinates of central normal vector [m] in the frame of incident beam */
-	double tvx, tvy; /* horizontal and vertical coordinates of central tangential vector [m] in the frame of incident beam */
+	double nvx, nvy, nvz; /* horizontal, vertical and longitudinal coordinates of central normal vector in the frame of incident beam */
+	double tvx, tvy; /* horizontal and vertical coordinates of central tangential vector in the frame of incident beam */
 	double x, y; /* transverse coordinates of center [m] */
 };
 typedef struct SRWLStructOpticsMirror SRWLOptMir;
 
 /**
  * Optical Element:
- * Ellipsoidal Mirror
+ * Plane Mirror ("mirror: plane" type)
+ */
+struct SRWLStructOpticsMirrorPlane {
+	SRWLOptMir baseMir; /* general information about the mirror */
+};
+typedef struct SRWLStructOpticsMirrorPlane SRWLOptMirPl;
+
+/**
+ * Optical Element:
+ * Ellipsoidal Mirror ("mirror: ellipsoid" type)
  */
 struct SRWLStructOpticsMirrorEllipsoid {
 	double p, q; /* distance [m] from first focus ('source') to mirror center, and from center to second focus ('image') */
@@ -394,13 +437,56 @@ typedef struct SRWLStructOpticsMirrorEllipsoid SRWLOptMirEl;
 
 /**
  * Optical Element:
- * Toroidal Mirror
+ * Toroidal Mirror ("mirror: toroid" type)
  */
 struct SRWLStructOpticsMirrorToroid {
 	double radTan, radSag; /* tangential and sagital radii of the torus [m] */
 	SRWLOptMir baseMir; /* general information about the mirror */
 };
 typedef struct SRWLStructOpticsMirrorToroid SRWLOptMirTor;
+
+/**
+* Optical Element:
+* Spherical Mirror ("mirror: sphere" type)
+*/
+struct SRWLStructOpticsMirrorSphere {
+	double rad; /* radius of the sphere [m] */
+	SRWLOptMir baseMir; /* general information about the mirror */
+};
+typedef struct SRWLStructOpticsMirrorSphere SRWLOptMirSph;
+
+/**
+ * Optical Element:
+ * Grating ("grating" type)
+ */
+struct SRWLStructOpticsGrating {
+	void *mirSub; /* pointer to a mirror object defining the grating substrate */
+	char mirSubType[256]; /* array of types of optical elements (C strings) in arOpt array */
+	int m; /* output (diffraction) order to be used */
+	double grDen; /* grove density [lines/mm] (coefficient a0 in the polynomial groove density: a0 + a1*y + a2*y^2 + a3*y^3 + a4*y^4) */
+	double grDen1, grDen2, grDen3, grDen4; /* groove density polynomial coefficients a1 [lines/mm^2], a2 [lines/mm^3], a3 [lines/mm^4], a4 [lines/mm^5]*/ 
+	double grAng; /* angle between the grove direction and the saggital direction of the substrate [rad] */
+};
+typedef struct SRWLStructOpticsGrating SRWLOptG;
+
+/**
+ * Optical Element:
+ * Ideal Crystal
+ */
+struct SRWLStructOpticsCrystal {
+	double dSp; /* crystal reflecting planes d-spacing (units?) */
+	double psi0r, psi0i; /* real and imaginary parts of 0-th Fourier component of crystal polarizability (units?) */
+	double psiHr, psiHi; /* real and imaginary parts of H-th Fourier component of crystal polarizability (units?) */
+	double psiHbr, psiHbi; /* real and imaginary parts of -H-th Fourier component of crystal polarizability (units?) */
+	//double h1, h2, h3; /* 1st, 2nd and 3rd  indexes of diffraction vector (Miller indices) */
+	//OC180314: the Miller indices are removed after discussion with A. Suvorov (because these are only required for the dSp, and it is used as input parameter)
+	double tc; /* crystal thickness [m] */
+	double angAs; /* asymmetry angle [rad] */
+	double nvx, nvy, nvz; /* horizontal, vertical and longitudinal coordinates of outward normal to crystal surface in the frame of incident beam */
+	double tvx, tvy; /* horizontal and vertical coordinates of central tangential vector [m] in the frame of incident beam */
+	char uc; /* crystal use case: 1- Bragg Reflection, 2- Bragg Transmission (Laue cases to be added) */
+};
+typedef struct SRWLStructOpticsCrystal SRWLOptCryst;
 
 /**
  * Optical Element:
@@ -411,6 +497,7 @@ struct SRWLStructOpticsContainer {
 	char **arOptTypes; /* array of types of optical elements (C strings) in arOpt array */
 	int nElem; /* number of magnetic field elements in arMagFld array */
 	double **arProp; /* array of arrays of propagation parameters to be used for individual optical elements */
+	char *arPropN; /* array of numbers of propagation parameters for each optical element */
 	int nProp; /* number of propagation instructions (length of arProp array); 
 			      can be nProp <= (nElem + 1); if nProp == (nElem + 1), last resizing is applied after the propagation */
 };
@@ -452,14 +539,30 @@ EXP int CALL srwlUtiVerNo(char* verNoStr, int code);
 EXP int CALL srwlUtiGetErrText(char* t, int erNo);
 
 /** 
+ * Calculates (tabulates) 3D magnetic field created by multiple elements
+ * @param [in, out] pDispMagFld pointer to resulting magnetic field container with one element - 3D magnetic field structure to keep the tabulated field data (all arrays should be allocated in a calling function/application)
+ * @param [in] pMagFld pointer to input magnetic field (container) structure
+ * @param [in] precPar optional array of precision parameters
+ *             precPar[0] defines the type of calculation: =0 -standard calculation, =1 -interpolation vs one parameter, =2 -interpolation vs two parameters
+ *             [1]: first parameter value the field has to be interpolated for
+ *             [2]: second parameter value the field has to be interpolated for
+ *             [3]: specifies type (order) of interpolation: =1 -(bi-)linear, =2 -(bi-)quadratic, =3 -(bi-)cubic 
+ *             [4]: specifies whether mesh for the interpolation is rectangular (1) or not (0)
+ *             [5]: specifies whether pMagFld contains just the field required for the interpolation (1) or the required fields have to be found from the general list (0)
+ * @return	integer error (>0) or warnig (<0) code
+ * @see ...
+ */
+EXP int CALL srwlCalcMagFld(SRWLMagFldC* pDispMagFld, SRWLMagFldC* pMagFld, double* precPar =0);
+
+/** 
  * Calculates charged particle trajectory in external 3D magnetic field (in Cartesian laboratory frame) 
  * @param [in, out] pTrj pointer to resulting trajectory structure (all data arrays should be allocated in a calling function/application); the initial conditions and particle type must be specified in pTrj->partInitCond; the initial conditions are assumed to be defined for ct = 0, however the trajectory will be calculated for the mesh defined by pTrj->np, pTrj->ctStart, pTrj->ctEnd
  * @param [in] pMagFld pointer to input magnetic field (container) structure
  * @param [in] precPar (optional) method ID and precision parameters; 
  *             if(precPar == 0) default 4th-order Runge-Kutta method is used; otherwise:
  *             precPar[0] is number of precision parameters that will follow
- *             [1] method number: 1- 4th-order Runge-Kutta; 2- 5th-order Runge-Kutta;
- *             [2] interpolation method to use for tabulated magnetic field: 1- simple bi-linear (3D); 2- bi-quadratic (3D); 3- bi-cubic (3D); 4- 1D cubic spline + 2D bi-cubic
+ *             [1]: method number: 1- 4th-order Runge-Kutta; 2- 5th-order Runge-Kutta;
+ *             [2]: interpolation method to use for tabulated magnetic field: 1- simple bi-linear (3D); 2- bi-quadratic (3D); 3- bi-cubic (3D); 4- 1D cubic spline + 2D bi-cubic
  *             [3],[4],[5],[6],[7]: absolute precision values for X[m],X'[rad],Y[m],Y'[rad],Z[m] (yet to be tested!!) - to be taken into account only for R-K fifth order or higher
  *             [8]: rel. tolerance for R-K fifth order or higher (default = 1) 
  *             [9]: max. number of auto-steps for R-K fifth order or higher (default = 5000)
@@ -486,17 +589,19 @@ EXP int CALL srwlCalcPartTrajFromKickMatr(SRWLPrtTrj* pTrj, SRWLKickM* arKickM, 
  * @param [in] pTrj pointer to pre-calculated particle trajectory structure; the initial conditions and particle type must be specified in pTrj->partInitCond; if the trajectory data arrays (pTrj->arX, pTrj->arXp, pTrj->arY, pTrj->arYp) are defined, the SR will be calculated from these data; if these arrays are not supplied (pointers are zero), the function will attempt to calculate the SR from the magnetic field data (pMagFld) which has to be supplied
  * @param [in] pMagFld optional pointer to input magnetic field (container) structure; to be taken into account only if particle trajectroy arrays (pTrj->arX, pTrj->arXp, pTrj->arY, pTrj->arYp) are not supplied
  * @param [in] precPar precision parameters: 
- *			   precPar[0]: method ID (0- "manual", 1- "auto-undulator", 2- "auto-wiggler")
- *			  [1]: step size or relative precision
- *			  [2]: longitudinal position to start integration
- *			  [3]: longitudinal position to finish integration
- *			  [4]: number of points to use for trajectory calculation 
- *			  [5]:...
- *			  [6]: sampling factor (for propagation, effective if > 0)
+ *	   precPar[0]: method ID (0- "manual", 1- "auto-undulator", 2- "auto-wiggler")
+ *            [1]: step size or relative precision
+ *            [2]: longitudinal position to start integration
+ *            [3]: longitudinal position to finish integration
+ *            [4]: number of points to use for trajectory calculation 
+ *            [5]: calculate terminating terms or not: 0- don't calculate two terms, 1- do calculate two terms, 2- calculate only upstream term, 3- calculate only downstream term 
+ *            [6]: sampling factor (for propagation, effective if > 0)
+ *            [7]: ... 
+ * @param [in] nPrecPar number of precision parameters 
  * @return	integer error (>0) or warnig (<0) code
  * @see ...
  */
-EXP int CALL srwlCalcElecFieldSR(SRWLWfr* pWfr, SRWLPrtTrj* pTrj, SRWLMagFldC* pMagFld, double* precPar =0);
+EXP int CALL srwlCalcElecFieldSR(SRWLWfr* pWfr, SRWLPrtTrj* pTrj, SRWLMagFldC* pMagFld, double* precPar =0, int nPrecPar =0);
 
 /** 
  * Calculates Electric Field (Wavefront) of a coherent Gaussian Beam
@@ -509,10 +614,20 @@ EXP int CALL srwlCalcElecFieldSR(SRWLWfr* pWfr, SRWLPrtTrj* pTrj, SRWLMagFldC* p
 EXP int CALL srwlCalcElecFieldGaussian(SRWLWfr* pWfr, SRWLGsnBm* pGsnBm, double* precPar =0);
 
 /** 
+ * Calculates Electric Field (Wavefront) of a Pont Source (i.e. spherical wave)
+ * @param [in, out] pWfr pointer to resulting Wavefront structure; all data arrays should be allocated in a calling function/application; the mesh, presentation, etc., should be specified in this structure at input
+ * @param [in] pPtSrc pointer to a Point Source parameters structure
+ * @param [in] precPar precision parameters: [0]- sampling factor (for propagation, effective if > 0), 
+ * @return	integer error (>0) or warnig (<0) code
+ * @see ...
+ */
+EXP int CALL srwlCalcElecFieldPointSrc(SRWLWfr* pWfr, SRWLPtSrc* pPtSrc, double* precPar =0);
+
+/** 
  * Calculates Spectral Flux (Stokes components) of Synchrotron Radiation by a relativistic finite-emittance electron beam traveling in periodic magnetic field of an Undulator
  * @param [in, out] pStokes pointer to the resulting Stokes structure; all data arrays should be allocated in a calling function/application; the mesh, presentation, etc., should be specified in this structure at input
- * @param [in] pElBeam  pointer to input electron beam structure
- * @param [in] pUnd  pointer to input undulator (periodic magnetic field) structure
+ * @param [in] pElBeam pointer to input electron beam structure
+ * @param [in] pUnd pointer to input undulator (periodic magnetic field) structure
  * @param [in] precPar precision parameters: 
  *             precPar[0]: initial harmonic
  *             [1]: final harmonic
@@ -549,26 +664,27 @@ EXP int CALL srwlCalcPowDenSR(SRWLStokes* pStokes, SRWLPartBeam* pElBeam, SRWLPr
  *             0- Linear Horizontal; 
  *             1- Linear Vertical; 
  *             2- Linear 45 degrees; 
- *             3- Linear 135 degrees; 
+ *             3- Linear 135 degrees;
  *             4- Circular Right; 
  *             5- Circular Left; 
  *             6- Total
  * @param [in] intType "type" of a characteristic to be extracted: 
- *             0- Single-Electron Intensity; 
- *             1- Multi-Electron Intensity; 
- *             2- Single-Electron Flux; 
- *             3- Multi-Electron Flux; 
- *             4- Single-Electron Radiation Phase; 
+ *             0- "Single-Electron" Intensity; 
+ *             1- "Multi-Electron" Intensity; 
+ *             2- "Single-Electron" Flux; 
+ *             3- "Multi-Electron" Flux; 
+ *             4- "Single-Electron" Radiation Phase; 
  *             5- Re(E): Real part of Single-Electron Electric Field;
- *             6- Im(E): Imaginary part of Single-Electron Electric Field
+ *             6- Im(E): Imaginary part of Single-Electron Electric Field;
+ *             7- "Single-Electron" Intensity, integrated over Time or Photon Energy (i.e. Fluence);
  * @param [in] depType type of dependence to extract: 
- *             0- vs e (photon energy or time); 
- *             1- vs x (horizontal position or angle); 
- *             2- vs y (vertical position or angle); 
- *             3- vs x&y; (horizontal and vertical positions or angles);
- *             4- vs e&x; 
- *             5- e&y; 
- *             6- vs e&x&y 
+ *             0- vs e (photon energy or time);
+ *             1- vs x (horizontal position or angle);
+ *             2- vs y (vertical position or angle);
+ *             3- vs x&y (horizontal and vertical positions or angles);
+ *             4- vs e&x (photon energy or time and horizontal position or angle);
+ *             5- vs e&y (photon energy or time and vertical position or angle);
+ *             6- vs e&x&y (photon energy or time, horizontal and vertical positions or angles);
  * @param [in] e photon energy (to keep fixed)
  * @param [in] x horizontal position (to keep fixed)
  * @param [in] y vertical position (to keep fixed)
@@ -582,11 +698,19 @@ EXP int CALL srwlCalcIntFromElecField(char* pInt, SRWLWfr* pWfr, char pol, char 
  * @param [in, out] pWfr pointer to pre-calculated Wavefront structure
  * @param [in] type character specifying whether the resizing should be done vs coordinates/angles ('c') or vs photon energy/time ('f') 
  * @param [in] par array of parameters: 
- *             [0]- method (0- regular method, without FFT, 1- "special" method involving FFT),
- *             [1]- range resizing factor for horizontal poosition / angle (if type == 'c') or for photon energy / time (if type == 'f')
- *             [2]- resolution resizing factor for horizontal poosition / angle (if type == 'c') or for photon energy / time (if type == 'f')
- *             [3]- range resizing factor for vertical poosition / angle (effective only if type == 'c')
- *             [4]- resolution resizing factor for vertical poosition / angle (effective only if type == 'c')
+ *			if(type == 'c'):
+ *             [0]- method (0- regular method, without FFT, 1- "special" method involving FFT)
+ *             [1]- range resizing factor for horizontal position / angle
+ *             [2]- resolution resizing factor for horizontal position / angle
+ *             [3]- range resizing factor for vertical position / angle
+ *             [4]- resolution resizing factor for vertical position / angle
+ *			   [5]- relative horizontal wavefront center position / angle at resizing (default is 0.5)
+ *			   [6]- relative vertical wavefront center position / angle at resizing (default is 0.5)
+ *			if(type == 'f'):
+ *             [0]- method (0- regular method, without FFT, 1- "special" method involving FFT)
+ *             [1]- range resizing factor for photon energy / time
+ *             [2]- resolution resizing factor for photon energy / time
+ *			   [3]- relative photon energy / time center position at resizing (default is 0.5)
  * @return	integer error (>0) or warnig (<0) code
  * @see ...
  */
@@ -623,6 +747,75 @@ EXP int CALL srwlPropagElecField(SRWLWfr* pWfr, SRWLOptC* pOpt);
  * @see ...
  */
 EXP int CALL srwlPropagRadMultiE(SRWLStokes* pStokes, SRWLWfr* pWfr0, SRWLOptC* pOpt, double* precPar, int (*pExtFunc)(int action, SRWLStokes* pStokesInst));
+
+/** 
+ * Performs FFT (1D or 2D, depending on arguments)
+ * @param [in, out] pcData (char) pointer to data to be FFT-ed
+ * @param [in] typeData character specifying data type ('f' for float, 'd' for double)
+ * @param [in] arMesh array describing mesh parameters of the data to be FFT-ed:
+ *             arMesh[0]: start value of the first argument
+ *             arMesh[1]: step value of the first argument
+ *             arMesh[2]: number of points of the first argument
+ *             arMesh[3]: (optional) start value of the second argument
+ *             arMesh[4]: (optional) step value of the second argument
+ *             arMesh[5]: (optional) number of points of the second argument
+ * @param [in] nMesh length of arMesh array (3 or 6 elements)
+ * @param [in] dir direction for the FFT (>0 means forward, <0 means backward)
+ * @return	integer error (>0) or warnig (<0) code
+ * @see ...
+ */
+EXP int CALL srwlUtiFFT(char* pcData, char typeData, double* arMesh, int nMesh, int dir);
+
+/** 
+ * Convolves real data with 1D or 2D Gaussian (depending on arguments)
+ * @param [in, out] pcData (char) pointer to data to be convolved
+ * @param [in] typeData character specifying data type ('f' for float, 'd' for double)
+ * @param [in] arMesh array describing mesh parameters of the data to be convolved:
+ *             arMesh[0]: start value of the first argument
+ *             arMesh[1]: step value of the first argument
+ *             arMesh[2]: number of points of the first argument
+ *             arMesh[3]: (optional) start value of the second argument
+ *             arMesh[4]: (optional) step value of the second argument
+ *             arMesh[5]: (optional) number of points of the second argument
+ * @param [in] nMesh length of arMesh array (3 or 6 elements)
+ * @param [in] arSig array of RMS values of the 2D Gaussian and, possibly, coefficient before cross-term;
+			   i.e. arSig[] = {SigX, SigY, Alp} defines a 'tilted' 2D Gaussian (normalized to 1): 
+			   (sqrt(1 - (Alp*SigX*SigY)^2)/(2*Pi*SigX*SigY))*Exp[-x^2/(2*SigX^2) - y^2/(2*SigY^2) - Alp*x*y]
+ * @return	integer error (>0) or warnig (<0) code
+ * @see ...
+ */
+EXP int CALL srwlUtiConvWithGaussian(char* pcData, char typeData, double* arMesh, int nMesh, double* arSig);
+
+/** 
+ * Attempts to deduce parameters of peridic undulator magnetic field from tabulated field and set up Undulator structure
+ * @param [in, out] pUndCnt pointer to magnetic field container structure with undulator structure to be set up
+ * @param [in] pMagCnt pointer to magnetic field container structure with tabulated field structure to be analyzed
+ * @param [in] arPrecPar array of precision parameters:
+ *             arPrecPar[0]: relative accuracy threshold
+ *             arPrecPar[1]: maximal number of magnetic field harmonics to attempt to create
+ *             arPrecPar[2]: maximal magnetic period length
+ * @return	integer error (>0) or warnig (<0) code
+ * @see ...
+ */
+EXP int CALL srwlUtiUndFromMagFldTab(SRWLMagFldC* pUndCnt, SRWLMagFldC* pMagCnt, double* arPrecPar);
+
+/** 
+ * Attempts to find indexes of undulator gap and phase values and associated magnetic fields requiired to be used in field interpolation based on gap and phase
+ * @param [in, out] arResInds array of indexes to be found
+ * @param [in, out] pnResInds pointer to number of indexes found
+ * @param [in] arGaps array of undulator gap values
+ * @param [in] arPhases array of undulator phase values
+ * @param [in] nVals number of undulator gap and phase values
+ * @param [in] arPrecPar array of precision parameters:
+ *             arPrecPar[0]: number of dimensions (1 if only gaps should be considered; 2 if both gaps and phases should be considered)
+ *             arPrecPar[1]: gap value for which interpolation should be done
+ *             arPrecPar[2]: phase value for which interpolation should be done
+ *             arPrecPar[3]: order of interpolation (1 to 3)
+ *             arPrecPar[4]: mesh is rectangular (0 for no, 1 for yes)
+ * @return	integer error (>0) or warnig (<0) code
+ * @see ...
+ */
+EXP int CALL srwlUtiUndFindMagFldInterpInds(int* arResInds, int* pnResInds, double* arGaps, double* arPhases, int nVals, double arPrecPar[5]);
 
 /***************************************************************************/
 

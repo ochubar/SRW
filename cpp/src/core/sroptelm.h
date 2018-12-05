@@ -219,7 +219,10 @@ public:
 
 	int SetupNewRadStructFromSliceConstE(srTSRWRadStructAccessData* pRadAccessData, long, srTSRWRadStructAccessData*& pRadDataSingleE);
 	//int UpdateGenRadStructFromSlicesConstE(srTSRWRadStructAccessData*, srTSRWRadStructAccessData*);
-	int UpdateGenRadStructSliceConstE_Meth_0(srTSRWRadStructAccessData*, int, srTSRWRadStructAccessData*);
+	//int UpdateGenRadStructSliceConstE_Meth_0(srTSRWRadStructAccessData*, int, srTSRWRadStructAccessData*);
+	//OC28102018: modified by S.Yakubov to adopt the code for OpenMP parallelization
+	int UpdateGenRadStructSliceConstE_Meth_0(srTSRWRadStructAccessData*, int, srTSRWRadStructAccessData*, int update_mode=0);
+
 	int UpdateGenRadStructSliceConstE_Meth_2(srTSRWRadStructAccessData*, int, srTSRWRadStructAccessData*);
 	int RemoveSliceConstE_FromGenRadStruct(srTSRWRadStructAccessData*, long);
 

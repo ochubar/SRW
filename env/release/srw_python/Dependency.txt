@@ -1,0 +1,21 @@
+SRW for Python requires:
+- Python 2.7 or 3.2/3.3/3.5/3.6 (64-bit or 32-bit)
+- numpy
+- matplotlib
+
+On Debian like (using Python 2.7):
+sudo apt-get install python python-numpy python-matplotlib
+
+On Mac, install macports from http://www.macports.org/install.php then:
+port install py27 py27-numpy py27-matplotlib
+
+Remeber to use the installed Python, which may be not the default python of the system.
+
+On Windows install Python MS Windows Installer from http://www.python.org/getit/ 
+and numpy and matplotlib from the binary files http://www.lfd.uci.edu/~gohlke/pythonlibs/
+Follow the instructions on the website to correctly install all the necessary dependencies.
+On Windows, Python can be also installed together with Visual Studio 2017.
+
+The dependencies (numpy and matplotlib) can also installed using "pip" (at least for Python 3.4 or later)..
+The use of 64-bit versions is preferable.
+

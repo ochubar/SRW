@@ -1,10 +1,11 @@
 #############################################################################
 # SRWLIB Example#1: Calculating electron trajectory in 3D magnetic field of an APPLE-II undulator
-# v 0.03
+# v 0.06
 #############################################################################
 
 from __future__ import print_function #Python 2.7 compatibility
 from srwlib import *
+from uti_plot import *
 import os
 
 print('SRWLIB Python Example # 1:')
@@ -123,19 +124,6 @@ def AuxReadInMagFld3D(filePath, sCom):
     if zNp > 1: zRange = (zNp - 1)*zStep
     return SRWLMagFld3D(locArBx, locArBy, locArBz, xNp, yNp, zNp, xStep*(xNp - 1), yStep*(yNp - 1), zStep*(zNp - 1), 1)
 
-#**********************Auxiliary function to write tabulated resulting Trajectory data to ASCII file:
-def AuxSaveTrajData(traj, filePath):
-    f = open(filePath, 'w')
-    f.write('#ct [m], X [m], BetaX [rad], Y [m], BetaY [rad], Z [m], BetaZ [rad]\n')
-    ctStep = 0
-    if traj.np > 0:
-        ctStep = (traj.ctEnd - traj.ctStart)/(traj.np - 1)
-    ct = traj.ctStart
-    for i in range(traj.np):
-        f.write(str(ct) + '\t' + repr(traj.arX[i]) + '\t' + repr(traj.arXp[i]) + '\t' + repr(traj.arY[i]) + '\t' + repr(traj.arYp[i]) + '\t' + repr(traj.arZ[i]) + '\t' + repr(traj.arZp[i]) + '\n')        
-        ct += ctStep
-    f.close()
-
 #**********************Input Parameters and Input/Output structures:
 partTraj = SRWLPrtTrj() #Central Trajectory
 partTraj.partInitCond.x = 0 #Initial Transverse Coordinates (initial Longitudinal Coordinate will be defined later on) [m]
@@ -190,14 +178,30 @@ kickMatr = AuxReadInKickM(filePath, '#')
 print('   Performing calculation ... ', end='')
 
 srwl.CalcPartTraj(partTraj, magFldCnt, arPrecTrajFromField) #First Calculate Central Trajectory
-AuxSaveTrajData(partTraj, os.path.join(os.getcwd(), strExDataFolderName, strCenTrajOutFileName))
+partTraj.save_ascii(os.path.join(os.getcwd(), strExDataFolderName, strCenTrajOutFileName))
 
 partTraj.partInitCond.x = newInitCondX
 partTraj.partInitCond.y = newInitCondY
 srwl.CalcPartTrajFromKickMatr(partTraj, kickMatr, arPrecTrajFromKickM)#Calculate Off-Axis Trajectory using Kick-Matrix method
-AuxSaveTrajData(partTraj, os.path.join(os.getcwd(), strExDataFolderName, strOffKickTrajOutFileName))
+partTraj.save_ascii(os.path.join(os.getcwd(), strExDataFolderName, strOffKickTrajOutFileName))
 
 srwl.CalcPartTraj(partTraj, magFldCnt, arPrecTrajFromField) #Calculate same Off-Axis Trajectory by Runge-Kutta integration in 3D Magnetic Field 
-AuxSaveTrajData(partTraj, os.path.join(os.getcwd(), strExDataFolderName, strOffTrajOutFileName))
+partTraj.save_ascii(os.path.join(os.getcwd(), strExDataFolderName, strOffTrajOutFileName))
 
+print('done')
+
+#**********************Plotting results
+print('   Plotting the results (close all graph windows to proceed with the script execution) ... ', end='')
+ctMesh = [partTraj.ctStart, partTraj.ctEnd, partTraj.np]
+for i in range(partTraj.np): #converting from [m] to [mm] and from [rad] to [mrad]
+    partTraj.arX[i] *= 1000
+    partTraj.arXp[i] *= 1000
+    partTraj.arY[i] *= 1000
+    partTraj.arYp[i] *= 1000
+
+uti_plot1d(partTraj.arX, ctMesh, ['ct [m]', 'Horizontal Position [m]m'])
+uti_plot1d(partTraj.arXp, ctMesh, ['ct [m]', 'Horizontal Angle [mrad]'])
+uti_plot1d(partTraj.arY, ctMesh, ['ct [m]', 'Vertical Position [mm]'])
+uti_plot1d(partTraj.arYp, ctMesh, ['ct [m]', 'Vertical Angle [mrad]'])
+uti_plot_show()
 print('done')

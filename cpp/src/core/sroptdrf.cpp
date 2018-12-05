@@ -477,11 +477,25 @@ int srTDriftSpace::PropagateRadiationSimple_AnalytTreatQuadPhaseTerm(srTSRWRadSt
 {// e in eV; Length in m !!!
 	int result = 0;
 
+	//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
+	//double start;
+	//get_walltime(&start);
+
 	SetupPropBufVars_AnalytTreatQuadPhaseTerm(pRadAccessData);
+
+	//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
+	//srwlPrintTime(":PropagateRadiationSimple_AnalytTreatQuadPhaseTerm:SetupPropBufVars_AnalytTreatQuadPhaseTerm",&start);
+
 	if(pRadAccessData->Pres != 0) if(result = SetRadRepres(pRadAccessData, 0)) return result;
-		
+
+	//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
+	//srwlPrintTime(":PropagateRadiationSimple_AnalytTreatQuadPhaseTerm:SetRadRepres 1",&start);
+
 	PropBufVars.PassNo = 1; //Remove quadratic term from the Phase in coord. repres.
 	if(result = TraverseRadZXE(pRadAccessData)) return result;
+
+	//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
+	//srwlPrintTime(":PropagateRadiationSimple_AnalytTreatQuadPhaseTerm:TraverseRadZXE 1",&start);
 
 		//testOC09302011
 		//if(Length == 34.63) return 0;
@@ -498,8 +512,15 @@ int srTDriftSpace::PropagateRadiationSimple_AnalytTreatQuadPhaseTerm(srTSRWRadSt
 
 	if(result = SetRadRepres(pRadAccessData, 1)) return result; //To angular repres.
 
+	//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
+	//srwlPrintTime(":PropagateRadiationSimple_AnalytTreatQuadPhaseTerm:SetRadRepres 2",&start);
+
 	PropBufVars.PassNo = 2; //Loop in angular repres.
 	if(result = TraverseRadZXE(pRadAccessData)) return result;
+
+	//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
+	//srwlPrintTime(":PropagateRadiationSimple_AnalytTreatQuadPhaseTerm:TraverseRadZXE 2",&start);
+
 		if(pRadAccessData->UseStartTrToShiftAtChangingRepresToCoord)
 		{
 			pRadAccessData->xStartTr += xShift;
@@ -507,6 +528,9 @@ int srTDriftSpace::PropagateRadiationSimple_AnalytTreatQuadPhaseTerm(srTSRWRadSt
 		}
 
 	if(result = SetRadRepres(pRadAccessData, 0)) return result; //Back to coord. repres.
+
+	//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
+	//srwlPrintTime(":PropagateRadiationSimple_AnalytTreatQuadPhaseTerm:SetRadRepres 3",&start);
 
 	pRadAccessData->xStart = xStartOld; pRadAccessData->zStart = zStartOld;
 		if(pRadAccessData->UseStartTrToShiftAtChangingRepresToCoord)
@@ -531,8 +555,15 @@ int srTDriftSpace::PropagateRadiationSimple_AnalytTreatQuadPhaseTerm(srTSRWRadSt
 	PropBufVars.PassNo = 3; //Add new quadratic term to the Phase in coord. repres.
 	if(result = TraverseRadZXE(pRadAccessData)) return result;
 
+	//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
+	//srwlPrintTime(":PropagateRadiationSimple_AnalytTreatQuadPhaseTerm:TraverseRadZXE 3",&start);
+
 	//pRadAccessData->MirrorFieldData(sign(kx), sign(kz));
 	pRadAccessData->MirrorFieldData((int)sign(PropBufVars.kx_AnalytTreatQuadPhaseTerm), (int)sign(PropBufVars.kz_AnalytTreatQuadPhaseTerm));
+
+	//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
+	//srwlPrintTime(":PropagateRadiationSimple_AnalytTreatQuadPhaseTerm:MirrorFieldData",&start);
+
 	//if(kx < 0)
 	if(PropBufVars.kx_AnalytTreatQuadPhaseTerm < 0)
 	{
@@ -556,6 +587,10 @@ int srTDriftSpace::PropagateRadiationSimple_AnalytTreatQuadPhaseTerm(srTSRWRadSt
 
 void srTDriftSpace::SetupPropBufVars_AnalytTreatQuadPhaseTerm(srTSRWRadStructAccessData* pRadAccessData)
 {// Compute any necessary buf. vars
+
+	//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
+	//double start;
+	//get_walltime(&start);
 
 	PropBufVars.xc = pRadAccessData->xc;
 	PropBufVars.zc = pRadAccessData->zc;
@@ -585,9 +620,21 @@ void srTDriftSpace::SetupPropBufVars_AnalytTreatQuadPhaseTerm(srTSRWRadStructAcc
 	//testOC30092011
 	if(!PropBufVars.UseExactRxRzForAnalytTreatQuadPhaseTerm)
 	{
-		if(PropBufVars.AnalytTreatSubType == 1) EstimateWfrRadToSub_AnalytTreatQuadPhaseTerm(pRadAccessData, trueRx, trueRz);
+		if(PropBufVars.AnalytTreatSubType == 1) 
+		{
+			EstimateWfrRadToSub_AnalytTreatQuadPhaseTerm(pRadAccessData, trueRx, trueRz);
+
+			//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
+			//srwlPrintTime(":SetupPropBufVars_AnalytTreatQuadPhaseTerm:EstimateWfrRadToSub_AnalytTreatQuadPhaseTerm",&start);
+		}
 		//OC15102011 -- under testing (disadvantage of the previous version is the dependence of "trueR" on statistical moments)
-		else if(PropBufVars.AnalytTreatSubType == 2) EstimateWfrRadToSub2_AnalytTreatQuadPhaseTerm(pRadAccessData, trueRx, trueRz); //OC22042013 (uncommented)
+		else if(PropBufVars.AnalytTreatSubType == 2) 
+		{
+			EstimateWfrRadToSub2_AnalytTreatQuadPhaseTerm(pRadAccessData, trueRx, trueRz); //OC22042013 (uncommented)
+		
+			//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
+			//srwlPrintTime(":SetupPropBufVars_AnalytTreatQuadPhaseTerm:EstimateWfrRadToSub2_AnalytTreatQuadPhaseTerm",&start);
+		}
 	}
 
 	//if(pRadAccessData->RobsX != 0) 
@@ -729,6 +776,10 @@ void srTDriftSpace::EstimateWfrRadToSub_AnalytTreatQuadPhaseTerm(srTSRWRadStruct
 {
 	if(pRadAccessData == 0) return;
 
+	//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
+	//double start;
+	//get_walltime(&start);
+
 	const double infLarge = 1E+23;
 	const double coefAngRange = 0.2; //0.5; //0.6; //0.1; //to tune
 	//const double coefCoordRange = 0.1;
@@ -764,7 +815,13 @@ void srTDriftSpace::EstimateWfrRadToSub_AnalytTreatQuadPhaseTerm(srTSRWRadStruct
 	double SigXp=0, SigZp=0;
 	//double SigX=0, SigZ=0; //OC13112010
 
+	//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
+	//srwlPrintTime(":EstimateWfrRadToSub_AnalytTreatQuadPhaseTerm:setup",&start);
+
 	if((*(MomX.pTotPhot) == 0) && (*(MomZ.pTotPhot) == 0)) ComputeRadMoments(pRadAccessData); //OC14092011
+
+	//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
+	//srwlPrintTime(":EstimateWfrRadToSub_AnalytTreatQuadPhaseTerm:ComputeRadMoments 1",&start);
 
 	char TreatExOrEz = (*(MomX.pTotPhot) >= *(MomZ.pTotPhot))? 'x' : 'z';
 
@@ -774,7 +831,14 @@ void srTDriftSpace::EstimateWfrRadToSub_AnalytTreatQuadPhaseTerm(srTSRWRadStruct
 		//if((!MomX.precCenMomIsOK) || (MomX.SqrtMxpxp == 0) || (MomX.SqrtMzpzp == 0) || ((abs_s1X <= pRadAccessData->RobsXAbsErr) && (!pRadAccessData->MomWereCalcNum)))
 		{//OC13112010: uncommented
 			ComputeRadMoments(pRadAccessData);
+
+			//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
+			//srwlPrintTime(":EstimateWfrRadToSub_AnalytTreatQuadPhaseTerm:ComputeRadMoments 2",&start);
+
 			MomX.ComputeCentralMoments();
+
+			//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
+			//srwlPrintTime(":EstimateWfrRadToSub_AnalytTreatQuadPhaseTerm:ComputeCentralMoments 1",&start);
 		}
 		//SigX = MomX.SqrtMxx;
 		SigXp = MomX.SqrtMxpxp;
@@ -787,7 +851,14 @@ void srTDriftSpace::EstimateWfrRadToSub_AnalytTreatQuadPhaseTerm(srTSRWRadStruct
 		//if((!MomZ.precCenMomIsOK) || (MomZ.SqrtMxpxp == 0) || (MomZ.SqrtMzpzp == 0) || ((abs_s1Z <= pRadAccessData->RobsZAbsErr) && (!pRadAccessData->MomWereCalcNum)))
 		{//OC13112010: uncommented
 			ComputeRadMoments(pRadAccessData);
+
+			//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
+			//srwlPrintTime(":EstimateWfrRadToSub_AnalytTreatQuadPhaseTerm:ComputeRadMoments 3",&start);
+
 			MomZ.ComputeCentralMoments();
+
+			//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
+			//srwlPrintTime(":EstimateWfrRadToSub_AnalytTreatQuadPhaseTerm:ComputeCentralMoments 2",&start);
 		}
 		//SigX = MomZ.SqrtMxx;
 		SigXp = MomZ.SqrtMxpxp;
@@ -958,6 +1029,8 @@ void srTDriftSpace::EstimateWfrRadToSub_AnalytTreatQuadPhaseTerm(srTSRWRadStruct
 			}
 		}
 	}
+	//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
+	//srwlPrintTime(":EstimateWfrRadToSub_AnalytTreatQuadPhaseTerm:rest",&start);
 }
 
 //*************************************************************************

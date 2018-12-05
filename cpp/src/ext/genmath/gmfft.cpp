@@ -14,6 +14,13 @@
 
 #include "gmfft.h"
 
+//#include "srwlib.h" //Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP
+
+#ifdef _WITH_OMP //OC27102018
+//SY: adopted for OpenMP
+#include "omp.h"
+#endif
+
 //*************************************************************************
 
 long CGenMathFFT::GoodNumbers[] = {
@@ -214,7 +221,10 @@ int CGenMathFFT2D::AuxDebug_TestFFT_Plans()
 //*************************************************************************
 //Forward FFT (FFT2DInfo.Dir = 1?): Int f(x,y)*exp(-i*2*Pi*(qx*x + qy*y)) dx dy
 //Backward FFT (FFT2DInfo.Dir = -1?): Int f(qx,qy)*exp(i*2*Pi*(qx*x + qy*y)) dqx dqy
-int CGenMathFFT2D::Make2DFFT(CGenMathFFT2DInfo& FFT2DInfo)
+//int CGenMathFFT2D::Make2DFFT(CGenMathFFT2DInfo& FFT2DInfo)
+//Modification by S.Yakubov for parallelizing SRW via OpenMP:
+// SY: creation (and deletion) of FFTW plans is not thread-safe. Therefore added option to use precreated plans
+int CGenMathFFT2D::Make2DFFT(CGenMathFFT2DInfo& FFT2DInfo, fftwnd_plan* pPrecreatedPlan2DFFT) //OC27102018
 {// Assumes Nx, Ny even !
 	const double RelShiftTol = 1.E-06;
 
@@ -270,7 +280,12 @@ int CGenMathFFT2D::Make2DFFT(CGenMathFFT2DInfo& FFT2DInfo)
 
 	if(FFT2DInfo.Dir > 0)
 	{
-		Plan2DFFT = fftw2d_create_plan(Ny, Nx, FFTW_FORWARD, FFTW_IN_PLACE);
+		//Plan2DFFT = fftw2d_create_plan(Ny, Nx, FFTW_FORWARD, FFTW_IN_PLACE);
+		//OC27102018
+		//SY: adopted for OpenMP
+		if(pPrecreatedPlan2DFFT == 0) Plan2DFFT = fftw2d_create_plan(Ny, Nx, FFTW_FORWARD, FFTW_IN_PLACE);
+		else Plan2DFFT = *pPrecreatedPlan2DFFT;
+
 		if(Plan2DFFT == 0) return ERROR_IN_FFT;
 		fftwnd(Plan2DFFT, 1, DataToFFT, 1, 0, DataToFFT, 1, 0);
 		RepairSignAfter2DFFT(DataToFFT);
@@ -278,7 +293,12 @@ int CGenMathFFT2D::Make2DFFT(CGenMathFFT2DInfo& FFT2DInfo)
 	}
 	else
 	{
-		Plan2DFFT = fftw2d_create_plan(Ny, Nx, FFTW_BACKWARD, FFTW_IN_PLACE);
+		//Plan2DFFT = fftw2d_create_plan(Ny, Nx, FFTW_BACKWARD, FFTW_IN_PLACE);
+		//OC27102018
+		//SY: adopted for OpenMP
+		if(pPrecreatedPlan2DFFT == 0) Plan2DFFT = fftw2d_create_plan(Ny, Nx, FFTW_BACKWARD, FFTW_IN_PLACE);
+		else Plan2DFFT = *pPrecreatedPlan2DFFT;
+
 		if(Plan2DFFT == 0) return ERROR_IN_FFT;
 		RotateDataAfter2DFFT(DataToFFT);
 		RepairSignAfter2DFFT(DataToFFT);
@@ -295,7 +315,10 @@ int CGenMathFFT2D::Make2DFFT(CGenMathFFT2DInfo& FFT2DInfo)
 	if(NeedsShiftAfterX || NeedsShiftAfterY) TreatShifts(DataToFFT);
 
 	//OC_NERSC: to comment-out the following line for NERSC (to avoid crash with "python-mpi")
-	fftwnd_destroy_plan(Plan2DFFT);
+	//fftwnd_destroy_plan(Plan2DFFT);
+	//OC27102018
+	//SY: adopted for OpenMP
+	if(pPrecreatedPlan2DFFT == 0) fftwnd_destroy_plan(Plan2DFFT);
 
 	if(ArrayShiftX != 0) 
 	{
@@ -313,6 +336,10 @@ int CGenMathFFT2D::Make2DFFT(CGenMathFFT2DInfo& FFT2DInfo)
 //Backward FFT: Int f(qx)*exp(i*2*Pi*qx*x)dqx
 int CGenMathFFT1D::Make1DFFT(CGenMathFFT1DInfo& FFT1DInfo)
 {// Assumes Nx, Ny even !
+	//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
+	//double start;
+	//get_walltime (&start);
+
 	const double RelShiftTol = 1.E-06;
 
 	SetupLimitsTr(FFT1DInfo);
@@ -365,6 +392,9 @@ int CGenMathFFT1D::Make1DFFT(CGenMathFFT1DInfo& FFT1DInfo)
 		TreatShift(DataToFFT, FFT1DInfo.HowMany);
 	}
 
+	//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
+	//srwlPrintTime("::Make1DFFT : before fft",&start);
+
 	if(FFT1DInfo.Dir > 0)
 	{
 		int flags = FFTW_ESTIMATE;
@@ -374,13 +404,31 @@ int CGenMathFFT1D::Make1DFFT(CGenMathFFT1DInfo& FFT1DInfo)
 			pOutDataFFT = 0; //OC03092016 (see FFTW 2.1.5 doc clause above)
 		}
 		Plan1DFFT = fftw_create_plan(Nx, FFTW_FORWARD, flags);
+
+		//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
+		//srwlPrintTime("::Make1DFFT : fft create plan dir>0",&start);
+
 		if(Plan1DFFT == 0) return ERROR_IN_FFT;
 
+#ifndef _WITH_OMP //OC27102018
 		//fftw(Plan1DFFT, FFT1DInfo.HowMany, DataToFFT, 1, Nx, OutDataFFT, 1, Nx);
 		fftw(Plan1DFFT, FFT1DInfo.HowMany, DataToFFT, 1, Nx, pOutDataFFT, 1, Nx); //OC03092016
-
+#else //OC27102018
+		//SY: split one call into many (for OpenMP)
+		#pragma omp parallel for if (omp_get_num_threads()==1) // to avoid nested multi-threading (just in case)
+		for(int i=0; i<FFT1DInfo.HowMany; i++)
+		{
+			//SY: do not use OutDataFFT as scratch space if in-place
+			if(DataToFFT == OutDataFFT) fftw_one(Plan1DFFT, DataToFFT + i*Nx, 0);
+			else fftw_one(Plan1DFFT, DataToFFT + i*Nx, OutDataFFT + i*Nx);
+		}
+#endif
+		//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
+		//srwlPrintTime("::Make1DFFT : fft  dir>0",&start);
 		RepairSignAfter1DFFT(OutDataFFT, FFT1DInfo.HowMany);
+		//srwlPrintTime("::Make1DFFT : repair dir>0",&start);
 		RotateDataAfter1DFFT(OutDataFFT, FFT1DInfo.HowMany);
+		//srwlPrintTime("::Make1DFFT : rotate dir>0",&start);
 	}
 	else
 	{
@@ -391,17 +439,39 @@ int CGenMathFFT1D::Make1DFFT(CGenMathFFT1DInfo& FFT1DInfo)
 			pOutDataFFT = 0; //OC03092016 (see FFTW 2.1.5 doc clause above)
 		}
 		Plan1DFFT = fftw_create_plan(Nx, FFTW_BACKWARD, flags);
+
+		//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
+		//srwlPrintTime("::Make1DFFT : fft create plan dir<0",&start);
+
 		if(Plan1DFFT == 0) return ERROR_IN_FFT;
 
 		RotateDataAfter1DFFT(DataToFFT, FFT1DInfo.HowMany);
-		RepairSignAfter1DFFT(DataToFFT, FFT1DInfo.HowMany);
+		//srwlPrintTime("::Make1DFFT : rotate dir<0",&start);
 
+		RepairSignAfter1DFFT(DataToFFT, FFT1DInfo.HowMany);
+		//srwlPrintTime("::Make1DFFT : repair dir<0",&start);
+
+#ifndef _WITH_OMP //OC27102018
 		//fftw(Plan1DFFT, FFT1DInfo.HowMany, DataToFFT, 1, Nx, OutDataFFT, 1, Nx);
 		fftw(Plan1DFFT, FFT1DInfo.HowMany, DataToFFT, 1, Nx, pOutDataFFT, 1, Nx); //OC03092016
+#else //OC27102018
+		//SY: split one call into many (for OpenMP)
+		#pragma omp parallel for if (omp_get_num_threads()==1) // to avoid nested multi-threading (just in case)
+		for(int i=0; i<FFT1DInfo.HowMany; i++)
+		{
+			if(DataToFFT == OutDataFFT) fftw_one(Plan1DFFT, DataToFFT + i*Nx, 0);
+			else fftw_one(Plan1DFFT, DataToFFT + i*Nx, OutDataFFT + i*Nx);
+		}
+#endif
+		//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
+		//srwlPrintTime("::Make1DFFT : fft  dir<0",&start);
 	}
 	//double Mult = FFT1DInfo.xStep;
 	double Mult = FFT1DInfo.xStep*FFT1DInfo.MultExtra;
 	NormalizeDataAfter1DFFT(OutDataFFT, FFT1DInfo.HowMany, Mult);
+
+	//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
+	//srwlPrintTime("::Make1DFFT : NormalizeDataAfter1DFFT",&start);
 
 	if(NeedsShiftAfterX)
 	{
@@ -409,19 +479,29 @@ int CGenMathFFT1D::Make1DFFT(CGenMathFFT1DInfo& FFT1DInfo)
 		TreatShift(OutDataFFT, FFT1DInfo.HowMany);
 	}
 
+	//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
+	//srwlPrintTime("::Make1DFFT : TreatShift",&start);
+
 	if(FFT1DInfo.TreatSharpEdges)
 	{
 		int result = ProcessSharpEdges(FFT1DInfo);
 		if(result) return result;
 	}
 
+	//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
+	//srwlPrintTime("::Make1DFFT : ProcessSharpEdges",&start);
+
 	//OC_NERSC: to comment-out the following line for NERSC (to avoid crash with "python-mpi")
+	//OC27102018: thread safety issue?
 	fftw_destroy_plan(Plan1DFFT);
 
 	if(m_ArrayShiftX != 0) 
 	{
 		delete[] m_ArrayShiftX; m_ArrayShiftX = 0;
 	}
+
+	//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
+	//srwlPrintTime("::Make1DFFT : after fft ",&start);
 	return 0;
 }
 

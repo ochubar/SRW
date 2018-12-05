@@ -243,6 +243,10 @@ CErrWarn::CErrWarn()
 	error.push_back("Incorrect or insufficient parameters for spherical wave electric field calculation.\0"); //#186
 	
 	error.push_back("Failed to determine array element index for interpolation.\0"); //#187
+	error.push_back("Failed to allocate array in front-end / client environment.\0"); //#188
+	error.push_back("Mutual intensity can not be extracted for these input parameters.\0"); //#189
+	error.push_back("Incorrect input parameters for calculation of statistical characteristics of intensity.\0"); //#190
+	error.push_back("Incorrect input parameters for processing intensity distributions.\0"); //#191
 
 //};
 

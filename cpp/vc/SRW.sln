@@ -43,8 +43,8 @@ Global
 		{B04ABD04-7AC6-4516-B8A7-E2CBC18B4333}.Debug|x64.Build.0 = Debug_Py3_6|x64
 		{B04ABD04-7AC6-4516-B8A7-E2CBC18B4333}.Release|Mixed Platforms.ActiveCfg = Release_Py3_3|Win32
 		{B04ABD04-7AC6-4516-B8A7-E2CBC18B4333}.Release|Mixed Platforms.Build.0 = Release_Py3_3|Win32
-		{B04ABD04-7AC6-4516-B8A7-E2CBC18B4333}.Release|Win32.ActiveCfg = Release_Py2x|Win32
-		{B04ABD04-7AC6-4516-B8A7-E2CBC18B4333}.Release|Win32.Build.0 = Release_Py2x|Win32
+		{B04ABD04-7AC6-4516-B8A7-E2CBC18B4333}.Release|Win32.ActiveCfg = Release_Py3_6|Win32
+		{B04ABD04-7AC6-4516-B8A7-E2CBC18B4333}.Release|Win32.Build.0 = Release_Py3_6|Win32
 		{B04ABD04-7AC6-4516-B8A7-E2CBC18B4333}.Release|x64.ActiveCfg = Release_Py3_6|x64
 		{B04ABD04-7AC6-4516-B8A7-E2CBC18B4333}.Release|x64.Build.0 = Release_Py3_6|x64
 		{0D473386-2B3E-4586-8516-DD4DCF6D4E1E}.Debug|Mixed Platforms.ActiveCfg = Debug|Win32

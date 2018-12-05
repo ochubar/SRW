@@ -21,6 +21,10 @@
 #include "srerror.h"
 #endif
 
+//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
+//#include <stdio.h>
+//#include "srwlib.h"
+
 //*************************************************************************
 
 struct srTDriftPropBufVars {
@@ -81,6 +85,10 @@ public:
 	//int PropagateRadiation(srTSRWRadStructAccessData* pRadAccessData, int MethNo, srTRadResizeVect& ResizeBeforeAndAfterVect)
 	int PropagateRadiation(srTSRWRadStructAccessData* pRadAccessData, srTParPrecWfrPropag& ParPrecWfrPropag, srTRadResizeVect& ResizeBeforeAndAfterVect)
 	{
+		//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
+		//double start;
+		//get_walltime(&start);
+
 		int result = 0;
 		
 		ChooseLocalPropMode(pRadAccessData, ParPrecWfrPropag);
@@ -98,7 +106,10 @@ public:
 				CErrWarn::AddWarningMessage(&gVectWarnNos, PROPAG_PREC_REDUCED_DUE_TO_MEMORY_LIMIT);
 			}
 		}
-		
+
+		//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
+		//srwlPrintTime(":PropagateRadiation : LocalPropMode == -1",&start);
+
 		//if(ParPrecWfrPropag.AnalTreatment == 1)
 		//{// Treating linear terms analytically
 		//OC25102010: commented-out because of errors in case of partially-coherent emission and B fiber
@@ -242,6 +253,10 @@ public:
 	}
 	int PropagateRadiationSimple_AngRepres(srTSRWRadStructAccessData* pRadAccessData)
 	{
+		//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
+		//double start;
+		//get_walltime(&start);
+
 		int result;
 		double xStartOld = pRadAccessData->xStart, zStartOld = pRadAccessData->zStart;
 		pRadAccessData->xStart = -(pRadAccessData->nx >> 1)*pRadAccessData->xStep;
@@ -251,13 +266,23 @@ public:
 		pRadAccessData->xWfrMin += xShift; pRadAccessData->xWfrMax += xShift;
 		pRadAccessData->zWfrMin += zShift; pRadAccessData->zWfrMax += zShift;
 
-			pRadAccessData->WfrEdgeCorrShouldBeDone = 0;	
+			pRadAccessData->WfrEdgeCorrShouldBeDone = 0;
+
+		//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
+		//srwlPrintTime(":PropagateRadiationSimple_AngRepres:setup",&start);
 
 		if(pRadAccessData->Pres != 1) 
 		{
 			if(result = SetRadRepres(pRadAccessData, 1)) return result;
 		}
+
+		//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
+		//srwlPrintTime(":PropagateRadiationSimple_AngRepres:SetRadRepres 1",&start);
+
 		if(result = TraverseRadZXE(pRadAccessData)) return result;
+
+		//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
+		//srwlPrintTime(":PropagateRadiationSimple_AngRepres:TraverseRadZXE",&start);
 
 			if(pRadAccessData->UseStartTrToShiftAtChangingRepresToCoord)
 			{
@@ -266,6 +291,9 @@ public:
 			}
 
 		if(result = SetRadRepres(pRadAccessData, 0)) return result;
+
+		//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
+		//srwlPrintTime(":PropagateRadiationSimple_AngRepres:SetRadRepres 2",&start);
 
 		pRadAccessData->xStart = xStartOld; pRadAccessData->zStart = zStartOld;
 
@@ -276,6 +304,10 @@ public:
 			}
 
 		pRadAccessData->SetNonZeroWavefrontLimitsToFullRange();
+
+		//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
+		//srwlPrintTime(":PropagateRadiationSimple_AngRepres:SetNonZeroWavefrontLimitsToFullRange 2",&start);
+
 		return 0;
 	}
 	int PropagateRadiationSimple_PropToWaist(srTSRWRadStructAccessData* pRadAccessData);

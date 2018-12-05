@@ -1,13 +1,12 @@
 # -*- coding: utf-8 -*-
 #############################################################################
-# SRWLIB Example#8: Simulating partially-coherent UR focusing with CRL
-# v 0.02
+# SRWLIB Example#8: Simulating partially-coherent UR focusing with a CRL
+# v 0.07
 #############################################################################
 
 from __future__ import print_function #Python 2.7 compatibility
 from srwlib import *
 import os
-import sys
 
 print('SRWLIB Python Example # 8:')
 print('Simulating emission and propagation of undulator radiation (UR) wavefront through a simple optical scheme including CRL')
@@ -16,60 +15,21 @@ print('First, single-electron UR (on-axis spectrum and a wavefront at a fixed ph
 print('After this, calculation of partially-coherent UR from entire electron beam is started as a loop over "macro-electrons", using "srwl_wfr_emit_prop_multi_e" function. ', end='')
 print('This function can run either in "normal" sequential mode, or in parallel mode under "mpi4py".', end='')
 print('For this, an MPI2 package and the "mpi4py" Python package have to be installed and configured, and this example has to be started e.g. as:')
-print('    mpiexec -n 5 python3 SRWLIB_Example08.py')
+print('    mpiexec -n 5 python SRWLIB_Example08.py')
 print('For more information on parallel calculations under "mpi4py" please see documentation to the "mpi4py" and MPI.')
 print('Note that the long-lasting partially-coherent UR calculation saves from time to time instant average intensity to an ASCII file, ', end='')
 print('so the execution of the long loop over "macro-electrons" can be aborted after some time without the danger that all results will be lost.')
 print('')
 
-#**********************Auxiliary function to write tabulated resulting Intensity data to ASCII file:
-def AuxSaveIntData(arI, mesh, filePath):
-    f = open(filePath, 'w')
-    f.write('#C-aligned Intensity (inner loop is vs photon energy, outer loop vs vertical position)\n')
-    f.write('#' + repr(mesh.eStart) + ' #Initial Photon Energy [eV]\n')
-    f.write('#' + repr(mesh.eFin) + ' #Final Photon Energy [eV]\n')
-    f.write('#' + repr(mesh.ne) + ' #Number of points vs Photon Energy\n')
-    f.write('#' + repr(mesh.xStart) + ' #Initial Horizontal Position [m]\n')
-    f.write('#' + repr(mesh.xFin) + ' #Final Horizontal Position [m]\n')
-    f.write('#' + repr(mesh.nx) + ' #Number of points vs Horizontal Position\n')
-    f.write('#' + repr(mesh.yStart) + ' #Initial Vertical Position [m]\n')
-    f.write('#' + repr(mesh.yFin) + ' #Final Vertical Position [m]\n')
-    f.write('#' + repr(mesh.ny) + ' #Number of points vs Vertical Position\n')
-    for i in range(mesh.ne*mesh.nx*mesh.ny): #write all data into one column using "C-alignment" as a "flat" 1D array
-        f.write(' ' + repr(arI[i]) + '\n')
-    f.close()
-
-#**********************Auxiliary function to write Optical Transmission characteristic data to ASCII file:
-def AuxSaveOpTransmData(optTr, t, filePath):
-    f = open(filePath, 'w')
-    f.write('#C-aligned optical Transmission characteristic (inner loop is vs horizontal position, outer loop vs vertical position)\n')
-    f.write('#' + repr(1) + ' #Reserved for Initial Photon Energy [eV]\n')
-    f.write('#' + repr(1) + ' #Reserved for Final Photon Energy [eV]\n')
-    f.write('#' + repr(1) + ' #Reserved for Number of points vs Photon Energy\n')
-    f.write('#' + repr(optTr.x - 0.5*optTr.rx) + ' #Initial Horizontal Position [m]\n')
-    f.write('#' + repr(optTr.x + 0.5*optTr.rx) + ' #Final Horizontal Position [m]\n')
-    f.write('#' + repr(optTr.nx) + ' #Number of points vs Horizontal Position\n')
-    f.write('#' + repr(optTr.y - 0.5*optTr.ry) + ' #Initial Vertical Position [m]\n')
-    f.write('#' + repr(optTr.y + 0.5*optTr.ry) + ' #Final Vertical Position [m]\n')
-    f.write('#' + repr(optTr.ny) + ' #Number of points vs Vertical Position\n')
-    for i in range(optTr.nx*optTr.ny): #write all data into one column using "C-alignment" as a "flat" 1D array
-        tr = 0
-        if((t == 1) or (t == 2)): #amplitude or intensity transmission
-            tr = optTr.arTr[i*2]
-            if(t == 2): #intensity transmission
-                tr *= tr
-        else: #optical path difference
-            tr = optTr.arTr[i*2 + 1]
-        f.write(' ' + repr(tr) + '\n')
-    f.close()
-
-#**********************Input Parameters:
+#****************************Input Parameters:
 strExDataFolderName = 'data_example_08' #example data sub-folder name
-strTrajOutFileName = 'wfr_res_traj.dat' #file name for output trajectory data
-strIntOutFileName1 = 'wfr_res_crl_int1.dat' #file name for output SR intensity data
-strIntOutFileName2 = 'wfr_res_crl_int2.dat' #file name for output SR intensity data
-strIntOutFileName3 = 'wfr_res_crl_int3.dat' #file name for output SR intensity data
-strIntOutFileNamePartCoh = 'wfr_res_crl_int_part_coh1.dat' #file name for output SR intensity data
+strTrajOutFileName = 'ex08_res_traj.dat' #file name for output trajectory data
+strIntOutFileName1 = 'ex08_res_int1.dat' #file name for output SR intensity data
+strIntOutFileName2 = 'ex08_res_int2.dat' #file name for output SR intensity data
+strIntOutFileName3 = 'ex08_res_int3.dat' #file name for output SR intensity data
+strIntOutFileNamePartCoh = 'ex08_res_int_part_coh1.dat' #file name for output SR intensity data
+strOpTrFileName = 'ex08_res_op_tr_crl.dat' #file name for output optical transmission data
+strOpPathDifFileName = 'ex08_res_op_path_dif_crl.dat' #file name for optical path difference data
 
 #***********Undulator
 numPer = 72.5 #Number of ID Periods (without counting for terminations
@@ -110,11 +70,12 @@ meth = 1 #SR calculation method: 0- "manual", 1- "auto-undulator", 2- "auto-wigg
 relPrec = 0.01 #relative precision
 zStartInteg = 0 #longitudinal position to start integration (effective if < zEndInteg)
 zEndInteg = 0 #longitudinal position to finish integration (effective if > zStartInteg)
-npTraj = 20000
+npTraj = 20000 #Number of points for trajectory calculation 
+useTermin = 0 #1 #Use "terminating terms" (i.e. asymptotic expansions at zStartInteg and zEndInteg) or not (1 or 0 respectively)
 sampFactNxNyForProp = 0.25 #sampling factor for adjusting nx, ny (effective if > 0)
-arPrecPar = [meth, relPrec, zStartInteg, zEndInteg, npTraj, 0, 0]
+arPrecPar = [meth, relPrec, zStartInteg, zEndInteg, npTraj, useTermin, 0]
 
-#*********** Spectrum
+#***********Spectrum data placeholder
 wfr1 = SRWLWfr() #For spectrum vs photon energy
 wfr1.allocate(10000, 1, 1) #Numbers of points vs Photon Energy, Horizontal and Vertical Positions
 wfr1.mesh.zStart = 36.25 + 1.25 #Longitudinal Position [m] from Center of Straight Section at which SR has to be calculated
@@ -126,7 +87,7 @@ wfr1.mesh.yStart = 0 #Initial Vertical Position [m]
 wfr1.mesh.yFin = 0 #Final Vertical Position [m]
 wfr1.partBeam = elecBeam
 
-#****************** Initial Wavefront
+#***********Initial Wavefront data placeholder
 wfr2 = SRWLWfr() #For intensity distribution at fixed photon energy
 wfr2.allocate(1, 101, 101) #Numbers of points vs Photon Energy, Horizontal and Vertical Positions
 wfr2.mesh.zStart = 36.25 + 1.25 #Longitudinal Position [m] from Center of Straight Section at which SR has to be calculated
@@ -140,9 +101,9 @@ meshInitPartCoh = deepcopy(wfr2.mesh)
 
 wfr2.partBeam = elecBeam
 
-#***************** Optical Elements and Propagation Parameters
-fx = 1e+23 #Focal length in Horizontal plane
-fy = 19.0939 #Focal length in Horizontal plane
+#***********Optical Elements and Propagation Parameters
+fx = 1e+23 #Focal Length in Horizontal plane
+fy = 19.0939 #Focal Length in Vertical plane
 optLens = SRWLOptL(fx, fy) #Ideal Lens
 
 delta = 4.3712962E-06 #Refractive index decrement of Be at 8830 eV
@@ -154,18 +115,22 @@ nCRL = 3
 wallThick = 50E-06 #[m] wall thickness of CRL
 
 optCRL = srwl_opt_setup_CRL(2, delta, attenLen, 1, geomApertNF, geomApertF, rMin, nCRL, wallThick, 0, 0) #1D CRL
-#print('   Saving CRL transmission data to files (for viewing/debugging)...', end='')
-#AuxSaveOpTransmData(optCRL, 2, os.path.join(os.getcwd(), strExDataFolderName, 'wfr_res_op_transm_CRL.dat'))
-#AuxSaveOpTransmData(optCRL, 3, os.path.join(os.getcwd(), strExDataFolderName, 'wfr_res_op_path_dif_CRL.dat'))
-#print('done')
+print('Saving CRL transmission data to files (for viewing/debugging)...', end='')
+optTrIntCRL = optCRL.get_data(2, 3)
+srwl_uti_save_intens_ascii(optTrIntCRL, optCRL.mesh, os.path.join(os.getcwd(), strExDataFolderName, strOpTrFileName), 0, ['', 'Horizontal Position', 'Vertical Position', 'Intensity Transmission'], _arUnits=['', 'm', 'm', 'r.u.'])
+
+optPathDifCRL = optCRL.get_data(3, 3)
+srwl_uti_save_intens_ascii(optPathDifCRL, optCRL.mesh, os.path.join(os.getcwd(), strExDataFolderName, strOpPathDifFileName), 0, ['', 'Horizontal Position', 'Vertical Position', 'Opt. Path Diff.'], _arUnits=['', 'm', 'm', 'm'])
+print('done')
 
 optApert = SRWLOptA('r', 'a', geomApertNF, geomApertF) #Aperture
 
 optDrift = SRWLOptD(38.73) #Drift space
 
-propagParApert = [0, 0, 1., 0, 0, 1.5, 1., 1.1, 8., 0, 0, 0]
-propagParLens = [0, 0, 1., 0, 0, 1., 1., 1., 1., 0, 0, 0]
-propagParDrift = [0, 0, 1., 1, 0, 1., 1.2, 1., 1., 0, 0, 0]
+#propagParApert = [0, 0, 1., 0, 0, 1.5, 1.0, 1.1, 8., 0, 0, 0]
+propagParApert = [0, 0, 1., 0, 0, 1.5, 1.0, 1.1, 6., 0, 0, 0]
+propagParLens =  [0, 0, 1., 0, 0, 1.0, 1.0, 1.0, 1., 0, 0, 0]
+propagParDrift = [0, 0, 1., 1, 0, 1.0, 1.2, 1.0, 1., 0, 0, 0]
 
 #Wavefront Propagation Parameters:
 #[0]: Auto-Resize (1) or not (0) Before propagation
@@ -183,46 +148,51 @@ propagParDrift = [0, 0, 1., 1, 0, 1., 1.2, 1., 1., 0, 0, 0]
 optBL = SRWLOptC([optApert, optCRL, optDrift], [propagParApert, propagParLens, propagParDrift]) #"Beamline" - Container of Optical Elements (together with the corresponding wavefront propagation instructions)
 #optBL = SRWLOptC([optApert, optLens, optDrift], [propagParApert, propagParLens, propagParDrift]) #"Beamline" - Container of Optical Elements (together with the corresponding wavefront propagation instructions)
 
-#**********************Calculation (SRWLIB function calls)
+#****************************Calculation (SRWLIB function calls)
 if(srwl_uti_proc_is_master()):
-    print('   Performing Electric Field Wavefront calculation ... ', end='')
+    print('Performing Electric Field Wavefront calculation ... ', end='')
     srwl.CalcElecFieldSR(wfr1, 0, magFldCnt, arPrecPar)
     print('done')
-    print('   Extracting Intensity from the Calculated Electric Field ... ', end='')
+    print('Extracting Intensity from the Calculated Electric Field ... ', end='')
     arI1 = array('f', [0]*wfr1.mesh.ne)
     srwl.CalcIntFromElecField(arI1, wfr1, 6, 0, 0, wfr1.mesh.eStart, wfr1.mesh.xStart, wfr1.mesh.yStart)
     print('done')
-    print('   Saving the radiation spectrum data to a file ... ', end='')
-    AuxSaveIntData(arI1, wfr1.mesh, os.path.join(os.getcwd(), strExDataFolderName, strIntOutFileName1))
+    print('Saving the radiation spectrum data to a file ... ', end='')
+    #AuxSaveIntData(arI1, wfr1.mesh, os.path.join(os.getcwd(), strExDataFolderName, strIntOutFileName1))
+    srwl_uti_save_intens_ascii(arI1, wfr1.mesh, os.path.join(os.getcwd(), strExDataFolderName, strIntOutFileName1), 0)
     print('done')
 
-    print('   Performing Initial Electric Field calculation ... ', end='')
+    print('Performing Initial Electric Field calculation ... ', end='')
     arPrecPar[6] = sampFactNxNyForProp #sampling factor for adjusting nx, ny (effective if > 0)
     srwl.CalcElecFieldSR(wfr2, 0, magFldCnt, arPrecPar)
     print('done')
-    print('   Extracting Intensity from the Calculated Initial Electric Field ... ', end='')
+    print('Extracting Intensity from the Calculated Initial Electric Field ... ', end='')
     arI2 = array('f', [0]*wfr2.mesh.nx*wfr2.mesh.ny) #"flat" array to take 2D intensity data
     srwl.CalcIntFromElecField(arI2, wfr2, 6, 0, 3, wfr2.mesh.eStart, 0, 0)
     print('done')
-    print('   Saving the Initial Electric Field into a file ... ', end='')
-    AuxSaveIntData(arI2, wfr2.mesh, os.path.join(os.getcwd(), strExDataFolderName, strIntOutFileName2))
+    print('Saving the Initial Electric Field into a file ... ', end='')
+    #AuxSaveIntData(arI2, wfr2.mesh, os.path.join(os.getcwd(), strExDataFolderName, strIntOutFileName2))
+    srwl_uti_save_intens_ascii(arI2, wfr2.mesh, os.path.join(os.getcwd(), strExDataFolderName, strIntOutFileName2), 0)
     print('done')
 
-    print('   Simulating Electric Field Wavefront Propagation ... ', end='')
+    print('Simulating Electric Field Wavefront Propagation ... ', end='')
     srwl.PropagElecField(wfr2, optBL)
     print('done')
-    print('   Extracting Intensity from the Propagated Electric Field  ... ', end='')
+    print('Extracting Intensity from the Propagated Electric Field  ... ', end='')
     arI3 = array('f', [0]*wfr2.mesh.nx*wfr2.mesh.ny) #"flat" 2D array to take intensity data
     srwl.CalcIntFromElecField(arI3, wfr2, 6, 0, 3, wfr2.mesh.eStart, 0, 0)
     print('done')
-    print('   Saving the Propagated Wavefront Intensity data to a file ... ', end='')
-    AuxSaveIntData(arI3, wfr2.mesh, os.path.join(os.getcwd(), strExDataFolderName, strIntOutFileName3))
+    print('Saving the Propagated Wavefront Intensity data to a file ... ', end='')
+    #AuxSaveIntData(arI3, wfr2.mesh, os.path.join(os.getcwd(), strExDataFolderName, strIntOutFileName3))
+    srwl_uti_save_intens_ascii(arI3, wfr2.mesh, os.path.join(os.getcwd(), strExDataFolderName, strIntOutFileName3), 0)
     print('done')
 
-#sys.exit(0)
-
-print('   Simulating Partially-Coherent Wavefront Propagation by summing-up contributions of SR from individual electrons (takes time)... ')
-nMacroElec = 50000
-radStokesProp = srwl_wfr_emit_prop_multi_e(elecBeam, magFldCnt, meshInitPartCoh, 1, 0.01, nMacroElec, 5, 10, os.path.join(os.getcwd(), strExDataFolderName, strIntOutFileNamePartCoh), sampFactNxNyForProp, optBL)
+print('Simulating Partially-Coherent Wavefront Propagation by summing-up contributions of SR from individual electrons (takes time)... ')
+nMacroElec = 50000 #total number of macro-electrons
+nMacroElecAvgPerProc = 5 #number of macro-electrons / wavefront to average on worker processes before sending data to master (for parallel calculation only)
+nMacroElecSavePer = 10 #intermediate data saving periodicity (in macro-electrons)
+srCalcMeth = 1 #SR calculation method
+srCalcPrec = 0.01 #SR calculation rel. accuracy
+radStokesProp = srwl_wfr_emit_prop_multi_e(elecBeam, magFldCnt, meshInitPartCoh, srCalcMeth, srCalcPrec, nMacroElec, nMacroElecAvgPerProc, nMacroElecSavePer, os.path.join(os.getcwd(), strExDataFolderName, strIntOutFileNamePartCoh), sampFactNxNyForProp, optBL)
 print('done')
 

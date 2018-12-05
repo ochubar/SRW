@@ -31,6 +31,7 @@
 
 extern int (*pgWfrExtModifFunc)(int Action, srTSRWRadInData* pWfrIn, char PolComp);
 extern int (*gpWfrModifFunc)(int action, SRWLWfr* pWfrIn, char pol); //SRWLIB
+extern char* (*gpAllocArrayFunc)(char type, long long len); //OC15082018
 
 //*************************************************************************
 
@@ -756,8 +757,8 @@ void srTSRWRadStructAccessData::OutSRWRadPtrs(SRWLWfr& srwlWfr)
 //*************************************************************************
 
 //int srTSRWRadStructAccessData::ModifyWfrNeNxNz(char PolarizComp)
-int srTSRWRadStructAccessData::ModifyWfrNeNxNz(char PolarizComp, bool backupIsReq) //OC131115
-{
+int srTSRWRadStructAccessData::ModifyWfrNeNxNz(char PolarizComp, bool backupIsReq) 
+{//OC131115
 #if defined(_SRWDLL) || defined(SRWLIB_STATIC) || defined(SRWLIB_SHARED) 
 	int res = 0;
 	if(BaseRadWasEmulated) return ReAllocBaseRadAccordingToNeNxNz(PolarizComp);
@@ -791,6 +792,30 @@ int srTSRWRadStructAccessData::ModifyWfrNeNxNz(char PolarizComp, bool backupIsRe
 	srTSend Send;
 	return Send.ModifyRadNeNxNz(*this, PolarizComp);
 #endif
+}
+
+//*************************************************************************
+
+int srTSRWRadStructAccessData::AllocExtIntArray(char type, char dep, char*& pcAlloc) 
+{//OC18082018
+#if defined(SRWLIB_STATIC) || defined(SRWLIB_SHARED) 
+	
+	pcAlloc = 0;
+	if(gpAllocArrayFunc != 0)
+	{
+		char typeAr = 'f';
+		if(type == 4) typeAr = 'd'; //single-e rad. phase
+	
+		long long np = GetIntNumPts(dep);
+		if(np > 0)
+		{
+			pcAlloc = (*gpAllocArrayFunc)(typeAr, np);
+			if(pcAlloc == 0) return SRWL_EXT_ARRAY_ALLOC_FAILED;
+		}
+	}
+
+#endif
+	return 0;
 }
 
 //*************************************************************************
@@ -3998,6 +4023,76 @@ bool srTSRWRadStructAccessData::CheckIfQuadTermTreatIsBenefit(char cutX_or_Z, ch
 	}
 	
 	return (numDerE_SignChangeAfter <= numDerE_SignChange);
+}
+
+//*************************************************************************
+
+void srTSRWRadStructAccessData::GetIntMesh(char dep, SRWLRadMesh& mesh) //OC23082018
+{//This assumes center values for the intensity distribution are defined in mesh.eStart, mesh.xStart, mesh.yStart at input
+	mesh.ne = mesh.nx = mesh.ny = 1;
+	if(dep == 0) 
+	{
+		mesh.ne = ne;
+		mesh.eStart = eStart; 
+		mesh.eFin = eStart + eStep*(ne - 1);
+		//Keep mesh.xStart, mesh.yStart as they define "central" values of the intensity distribution
+	}
+	else if(dep == 1) 
+	{
+		mesh.nx = nx;
+		mesh.xStart = xStart; 
+		mesh.xFin = xStart + xStep*(nx - 1);
+		//Keep mesh.eStart, mesh.yStart as they define "central" values of the intensity distribution
+	}
+	else if(dep == 2) 
+	{
+		mesh.ny = nz;
+		mesh.yStart = zStart; 
+		mesh.yFin = zStart + zStep*(nz - 1);
+		//Keep mesh.eStart, mesh.xStart as they define "central" values of the intensity distribution
+	}
+	else if(dep == 3) 
+	{
+		mesh.nx = nx;
+		mesh.xStart = xStart; 
+		mesh.xFin = xStart + xStep*(nx - 1);
+		mesh.ny = nz;
+		mesh.yStart = zStart; 
+		mesh.yFin = zStart + zStep*(nz - 1);
+		//Keep mesh.eStart as it defines "central" value of the intensity distribution
+	}
+	else if(dep == 4) 
+	{
+		mesh.ne = ne;
+		mesh.eStart = eStart; 
+		mesh.eFin = eStart + eStep*(ne - 1);
+		mesh.nx = nx;
+		mesh.xStart = xStart; 
+		mesh.xFin = xStart + xStep*(nx - 1);
+		//Keep mesh.yStart as it defines "central" value of the intensity distribution
+	}
+	else if(dep == 5) 
+	{
+		mesh.ne = ne;
+		mesh.eStart = eStart; 
+		mesh.eFin = eStart + eStep*(ne - 1);
+		mesh.ny = nz;
+		mesh.yStart = zStart; 
+		mesh.yFin = zStart + zStep*(nz - 1);
+		//Keep mesh.xStart as it defines "central" value of the intensity distribution
+	}
+	else if(dep == 6) 
+	{
+		mesh.ne = ne;
+		mesh.eStart = eStart; 
+		mesh.eFin = eStart + eStep*(ne - 1);
+		mesh.nx = nx;
+		mesh.xStart = xStart; 
+		mesh.xFin = xStart + xStep*(nx - 1);
+		mesh.ny = nz;
+		mesh.yStart = zStart; 
+		mesh.yFin = zStart + zStep*(nz - 1);
+	}
 }
 
 //*************************************************************************

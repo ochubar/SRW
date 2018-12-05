@@ -16,6 +16,9 @@
 
 #include "sroptfoc.h"
 
+//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
+//#include <stdio.h>
+
 struct SRWLStructOpticsTransmission;
 typedef struct SRWLStructOpticsTransmission SRWLOptT;
 

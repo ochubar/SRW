@@ -14,7 +14,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug_Py3_6|x64'">
     <LocalDebuggerCommand>C:\SoftwareDevelopments\Python36_x64\python.exe</LocalDebuggerCommand>
-    <LocalDebuggerCommandArguments>cox_test_02.py</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>chx_small_beam_saxs_texture_oc.py</LocalDebuggerCommandArguments>
     <LocalDebuggerWorkingDirectory>..\..\env\work\srw_python</LocalDebuggerWorkingDirectory>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
@@ -33,13 +33,13 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release_Py3_6|x64'">
     <LocalDebuggerCommand>C:\SoftwareDevelopments\Python36_x64\python.exe</LocalDebuggerCommand>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
-    <LocalDebuggerCommandArguments>SRWLIB_Example14.py</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>cdi-first-mirrors-close-10-um.py</LocalDebuggerCommandArguments>
     <LocalDebuggerWorkingDirectory>..\..\env\work\srw_python</LocalDebuggerWorkingDirectory>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug_Py2x|x64'">
     <LocalDebuggerCommand>C:\SoftwareDevelopments\Python27_x64\python.exe</LocalDebuggerCommand>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
-    <LocalDebuggerCommandArguments>tabulated_undulator_example.py</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>cdi_optim_test_01.py</LocalDebuggerCommandArguments>
     <LocalDebuggerWorkingDirectory>..\..\env\work\srw_python</LocalDebuggerWorkingDirectory>
   </PropertyGroup>
 </Project>

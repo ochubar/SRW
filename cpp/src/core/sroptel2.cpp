@@ -16,6 +16,14 @@
 #include "srmlttsk.h"
 #include "srerror.h"
 
+//OC31102018: added by SY at parallelizing SRW via OpenMP
+//#include "srwlib.h"
+//#include "stdio.h"
+
+#ifdef _WITH_OMP //OC31102018: added by SY at parallelizing SRW via OpenMP
+#include "omp.h"
+#endif
+
 extern srTYield srYield;
 
 //*************************************************************************
@@ -35,9 +43,15 @@ int srTGenOptElem::PropagateRadiationMeth_0(srTSRWRadStructAccessData* pRadAcces
  //in the "slices".
  //It is virtual ("standard" processing). Known re-definitions: in srTDriftSpace
 
-	srTSRWRadStructAccessData *pRadDataSingleE = 0, *pPrevRadDataSingleE = 0;
-	
+	//OC31102018: added by SY at parallelizing SRW via OpenMP
+	//double start;
+	//get_walltime (&start);
+
 	int result=0;
+
+#ifndef _WITH_OMP //OC31102018
+
+	srTSRWRadStructAccessData *pRadDataSingleE = 0, *pPrevRadDataSingleE = 0;
 	if(pRadAccessData->ne == 1)
 	{
 		pRadDataSingleE = pRadAccessData;
@@ -125,6 +139,149 @@ int srTGenOptElem::PropagateRadiationMeth_0(srTSRWRadStructAccessData* pRadAcces
 
 	if((pRadDataSingleE != 0) && (pRadDataSingleE != pRadAccessData)) delete pRadDataSingleE;
 	if((pPrevRadDataSingleE != 0) && (pPrevRadDataSingleE != pRadAccessData)) delete pPrevRadDataSingleE;
+
+#else //OC31102018: modified by SY at parallelizing SRW via OpenMP
+
+	if(pRadAccessData->ne == 1)
+	{
+		//SY: nothing more is actually needed in this case
+		return PropagateRadiationSingleE_Meth_0(pRadAccessData, 0); //from derived classes
+
+		//OC31102018: added by SY (for profiling?) at parallelizing SRW via OpenMP
+		//srwlPrintTime(": PropagateRadiationMeth_0 : PropagateRadiationSingleE_Meth_0 - single",&start);
+	}
+
+	srTSRWRadStructAccessData *pPrevRadDataSingleE = 0;
+
+	if(!m_PropWfrInPlace)
+	{
+		if(result = SetupNewRadStructFromSliceConstE(pRadAccessData, -1, pPrevRadDataSingleE)) return result;
+	}
+
+	//separate processing of wavefront radius is necessary
+	double origRobsX = pRadAccessData->RobsX, origRobsXAbsErr = pRadAccessData->RobsXAbsErr;
+	double origRobsZ = pRadAccessData->RobsZ, origRobsZAbsErr = pRadAccessData->RobsZAbsErr;
+	double origXc = pRadAccessData->xc; //OC180813
+	double origZc = pRadAccessData->zc;
+
+	const int AmOfMoments = 11;
+	int neOrig = pRadAccessData->ne;
+
+	vector<srTSRWRadStructAccessData> vRadSlices; //to keep grid parameters of slices for eventual change of the main 3D grid and re-interpolation at the end
+	srTSRWRadStructAccessData** pRadSlices= new srTSRWRadStructAccessData* [neOrig];
+
+	bool gridParamWereModifInSlices = false;
+	bool* gridParamWereModif = new bool[neOrig];
+
+	//SY: return outside of parallel regions is not allowed - we do it outside
+
+	int* results = new int[neOrig];
+	if(results == 0) return MEMORY_ALLOCATION_FAILURE;
+	for(int ie = 0; ie < neOrig; ie++) results[ie] = 0;
+
+	//OC31102018: added by SY (for profiling?) at parallelizing SRW via OpenMP
+	//srwlPrintTime(": PropagateRadiationMeth_0 : before cycle",&start);
+
+	//SY: we cannot do it in parallel if previous field is needed (which is not the case in the current version of SRW)
+	#pragma omp parallel if (pPrevRadDataSingleE == 0)
+	{
+		int threadNum = omp_get_thread_num();
+		srTSRWRadStructAccessData *pRadDataSingleE = 0;
+		results[threadNum] = SetupNewRadStructFromSliceConstE(pRadAccessData, -1, pRadDataSingleE);
+		//allocates new pRadDataSingleE !
+		if(!results[threadNum])
+		{
+			#pragma omp for
+			for(int ie=0; ie<neOrig; ie++)
+			{
+				gridParamWereModif[ie] = false;
+				if(results[ie] = ExtractRadSliceConstE(pRadAccessData, ie, pRadDataSingleE->pBaseRadX, pRadDataSingleE->pBaseRadZ)) continue;
+				pRadDataSingleE->eStart = pRadAccessData->eStart + ie*pRadAccessData->eStep;
+				long OffsetMom = AmOfMoments*ie;
+				pRadDataSingleE->pMomX = pRadAccessData->pMomX + OffsetMom;
+				pRadDataSingleE->pMomZ = pRadAccessData->pMomZ + OffsetMom;
+				pRadDataSingleE->RobsX = origRobsX; pRadDataSingleE->RobsXAbsErr = origRobsXAbsErr;
+				pRadDataSingleE->RobsZ = origRobsZ; pRadDataSingleE->RobsZAbsErr = origRobsZAbsErr;
+
+				pRadDataSingleE->xc = origXc; //OC180813
+				pRadDataSingleE->zc = origZc;
+
+				//if(pRadAccessData->xStart != pRadDataSingleE->xStart) pRadDataSingleE->xStart = pRadAccessData->xStart;
+				//if(pRadAccessData->xStep != pRadDataSingleE->xStep) pRadDataSingleE->xStep = pRadAccessData->xStep;
+				//if(pRadAccessData->zStart != pRadDataSingleE->zStart) pRadDataSingleE->zStart = pRadAccessData->zStart;
+				//if(pRadAccessData->zStep != pRadDataSingleE->zStep) pRadDataSingleE->zStep = pRadAccessData->zStep;
+				pRadDataSingleE->xStart = pRadAccessData->xStart;
+				pRadDataSingleE->xStep = pRadAccessData->xStep;
+				pRadDataSingleE->zStart = pRadAccessData->zStart;
+				pRadDataSingleE->zStep = pRadAccessData->zStep;
+
+				if(pPrevRadDataSingleE != 0)
+				{
+					if(results[ie] = ExtractRadSliceConstE(pRadAccessData, ie, pPrevRadDataSingleE->pBaseRadX, pPrevRadDataSingleE->pBaseRadZ, true)) continue; //OC120908
+					pPrevRadDataSingleE->eStart = pRadDataSingleE->eStart;
+					pPrevRadDataSingleE->pMomX = pRadDataSingleE->pMomX;
+					pPrevRadDataSingleE->pMomZ = pRadDataSingleE->pMomZ;
+				}
+				if(results[ie] = PropagateRadiationSingleE_Meth_0(pRadDataSingleE, pPrevRadDataSingleE)) continue; //from derived classes
+
+				if(results[ie] = UpdateGenRadStructSliceConstE_Meth_0(pRadDataSingleE, ie, pRadAccessData,1)) continue;
+				//the above doesn't change the transverse grid parameters in *pRadAccessData
+
+				//vRadSlices.push_back(*pRadDataSingleE); //this automatically calls destructor, which can eventually delete "emulated" structs!
+				//srTSRWRadStructAccessData copyRadDataSingleE(*pRadDataSingleE); //this doesn't assume to copy pBaseRadX, pBaseRadZ
+				//srTSRWRadStructAccessData copyRadDataSingleE(*pRadDataSingleE, false); //OC290813 fixing memory leak(?) //this doesn't assume to copy pBaseRadX, pBaseRadZ
+				//SY: we cannot use push here, so use normal array instead (probably using of vector would be still possible, but just to be sure)
+
+				pRadSlices[ie] = new srTSRWRadStructAccessData(*pRadDataSingleE, false);
+				pRadSlices[ie]->pBaseRadX = pRadSlices[ie]->pBaseRadZ = 0; pRadSlices[ie]->BaseRadWasEmulated = false;
+
+				if((pRadDataSingleE->nx != pRadAccessData->nx) || (pRadDataSingleE->xStart != pRadAccessData->xStart) || (pRadDataSingleE->xStep != pRadAccessData->xStep)) gridParamWereModif[ie] = true;
+				if((pRadDataSingleE->nz != pRadAccessData->nz) || (pRadDataSingleE->zStart != pRadAccessData->zStart) || (pRadDataSingleE->zStep != pRadAccessData->zStep)) gridParamWereModif[ie] = true;
+			}
+		}
+		if(pRadDataSingleE != 0) delete pRadDataSingleE;
+	}
+
+	for(int ie = 0; ie < neOrig; ie++) if(results[ie]) return results[ie];
+	delete[]  results;
+
+	//OC31102018: added by SY (for profiling?) at parallelizing SRW via OpenMP
+	//char str[256];
+	//sprintf(str,"%s %d",":PropagateRadiationMeth_0 : PropagateRadiationSingleE_Meth_0 - cycles:",neOrig);
+	//srwlPrintTime(str,&start);
+
+	//SY: update limits and Radii (cannot be done in parallel)
+	for(int ie = 0; ie < neOrig; ie++) if(result = UpdateGenRadStructSliceConstE_Meth_0(pRadSlices[ie], ie, pRadAccessData,2)) return result;
+
+	//OC31102018: added by SY (for profiling?) at parallelizing SRW via OpenMP
+	//srwlPrintTime(":PropagateRadiationMeth_0 : UpdateGenRadStructSliceConstE_Meth_0:",&start);
+
+	if((pRadAccessData->RobsX != 0) && (pRadAccessData->RobsXAbsErr == 0)) pRadAccessData->RobsXAbsErr = ::fabs(0.1*pRadAccessData->RobsX);
+	if((pRadAccessData->RobsZ != 0) && (pRadAccessData->RobsZAbsErr == 0)) pRadAccessData->RobsZAbsErr = ::fabs(0.1*pRadAccessData->RobsZ);
+
+	for(int i=0;i<neOrig;i++) if(gridParamWereModif[i]) gridParamWereModifInSlices = true;
+
+	if(gridParamWereModifInSlices)
+	{//to test!
+		for(int ie = 0; ie < neOrig; ie++)
+		{
+			vRadSlices.push_back(*pRadSlices[ie]);
+			delete pRadSlices[ie];
+		}
+		// SY: instead of using pRadDataSingleE (which is not accessible here) we create an auxiliary structure
+		srTSRWRadStructAccessData *pAuxRadData = 0;
+		if(result = SetupNewRadStructFromSliceConstE(pRadAccessData, -1, pAuxRadData)) return result;
+		if(result = ReInterpolateWfrDataOnNewTransvMesh(vRadSlices, pAuxRadData, pRadAccessData)) return result;
+		if(pAuxRadData != 0) delete pAuxRadData;
+	}
+
+	delete[] pRadSlices;
+	delete[] gridParamWereModif;
+
+	if(pPrevRadDataSingleE != 0) delete pPrevRadDataSingleE;
+
+#endif
+
 	return result;
 }
 

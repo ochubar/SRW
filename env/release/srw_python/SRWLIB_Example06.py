@@ -2,15 +2,16 @@
 # SRWLIB Example#6: Calculating spectral flux of undulator radiation 
 # by finite-emittance electron beam collected through a finite aperture
 # and power density distribution of this radiation (integrated over all photon energies)
-# v 0.02
+# v 0.03
 #############################################################################
 
 from __future__ import print_function #Python 2.7 compatibility
 from srwlib import *
+from uti_plot import *
 import os
 import sys
 
-print('SRWLIB Python Example # 6:')
+print('SRWLIB Extended Example # 6:')
 print('Calculating spectral flux of undulator radiation by finite-emittance electron beam collected through a finite aperture and power density distribution of this radiation (integrated over all photon energies)')
 
 #**********************Input Parameters:
@@ -86,6 +87,22 @@ stkP.mesh.xFin = 0.02 #final horizontal position [m]
 stkP.mesh.yStart = -0.015 #initial vertical position [m]
 stkP.mesh.yFin = 0.015 #final vertical position [m]
 
+#stkPx = SRWLStokes() #for power density
+#stkPx.allocate(1, 101, 1) #numbers of points vs horizontal and vertical positions (photon energy is not taken into account)
+#stkPx.mesh.zStart = stkP.mesh.zStart #longitudinal position [m] at which power density has to be calculated
+#stkPx.mesh.xStart = stkP.mesh.xStart #initial horizontal position [m]
+#stkPx.mesh.xFin = stkP.mesh.xFin #final horizontal position [m]
+#stkPx.mesh.yStart = 0 #initial vertical position [m]
+#stkPx.mesh.yFin = 0 #final vertical position [m]
+
+#stkPy = SRWLStokes() #for power density
+#stkPy.allocate(1, 1, 101) #numbers of points vs horizontal and vertical positions (photon energy is not taken into account)
+#stkPy.mesh.zStart = stkP.mesh.zStart #longitudinal position [m] at which power density has to be calculated
+#stkPy.mesh.xStart = 0 #initial horizontal position [m]
+#stkPy.mesh.xFin = 0 #final horizontal position [m]
+#stkPy.mesh.yStart = stkP.mesh.yStart #initial vertical position [m]
+#stkPy.mesh.yFin = stkP.mesh.yFin #final vertical position [m]
+
 #sys.exit(0)
 
 #**********************Calculation (SRWLIB function calls)
@@ -106,44 +123,38 @@ print('done')
 
 print('   Performing Power Density calculation (from field) ... ', end='')
 srwl.CalcPowDenSR(stkP, eBeam, 0, magFldCnt, arPrecP)
+#srwl.CalcPowDenSR(stkPx, eBeam, 0, magFldCnt, arPrecP)
+#srwl.CalcPowDenSR(stkPy, eBeam, 0, magFldCnt, arPrecP)
 print('done')
 
 #**********************Saving results
-#Auxiliary function to write tabulated resulting Intensity data to ASCII file:
-def AuxSaveS0Data(stk, filePath):
-    f = open(filePath, 'w')
-    f.write('#C-aligned Intensity (inner loop is vs photon energy, outer loop vs vertical position)\n')
-    f.write('#' + repr(stk.mesh.eStart) + ' #Initial Photon Energy [eV]\n')
-    f.write('#' + repr(stk.mesh.eFin) + ' #Final Photon Energy [eV]\n')
-    f.write('#' + repr(stk.mesh.ne) + ' #Number of points vs Photon Energy\n')
-    f.write('#' + repr(stk.mesh.xStart) + ' #Initial Horizontal Position [m]\n')
-    f.write('#' + repr(stk.mesh.xFin) + ' #Final Horizontal Position [m]\n')
-    f.write('#' + repr(stk.mesh.nx) + ' #Number of points vs Horizontal Position\n')
-    f.write('#' + repr(stk.mesh.yStart) + ' #Initial Vertical Position [m]\n')
-    f.write('#' + repr(stk.mesh.yFin) + ' #Final Vertical Position [m]\n')
-    f.write('#' + repr(stk.mesh.ny) + ' #Number of points vs Vertical Position\n')
-    for i in range(stk.mesh.ne*stk.mesh.nx*stk.mesh.ny): #write all data into one column using "C-alignment" as a "flat" 1D array
-        f.write(' ' + repr(stk.arS[i]) + '\n')
-    f.close()
-
-#Auxiliary function to write tabulated Trajectory data to ASCII file:
-def AuxSaveTrajData(traj, filePath):
-    f = open(filePath, 'w')
-    f.write('#ct [m], X [m], BetaX [rad], Y [m], BetaY [rad], Z [m], BetaZ [m]\n')
-    ctStep = 0
-    if traj.np > 0:
-        ctStep = (traj.ctEnd - traj.ctStart)/(traj.np - 1)
-    ct = traj.ctStart
-    for i in range(traj.np):
-        f.write(str(ct) + '\t' + repr(traj.arX[i]) + '\t' + repr(traj.arXp[i]) + '\t' + repr(traj.arY[i]) + '\t' + repr(traj.arYp[i]) + '\t' + repr(traj.arZ[i]) + '\t' + repr(traj.arZp[i]) + '\n')        
-        ct += ctStep
-    f.close()
-
 #print('   Saving trajectory data to file ... ', end='')
-#AuxSaveTrajData(partTraj, os.path.join(os.getcwd(), strExDataFolderName, strTrjOutFileName))
+#partTraj.save_ascii(os.path.join(os.getcwd(), strExDataFolderName, strTrjOutFileName))
 #print('done')
 
 print('   Saving intensity data to file ... ', end='')
-AuxSaveS0Data(stkF, os.path.join(os.getcwd(), strExDataFolderName, strFluxOutFileName))
-AuxSaveS0Data(stkP, os.path.join(os.getcwd(), strExDataFolderName, strPowOutFileName))
+srwl_uti_save_intens_ascii(stkF.arS, stkF.mesh, os.path.join(os.getcwd(), strExDataFolderName, strFluxOutFileName), 0, ['Photon Energy', '', '', 'Flux'], _arUnits=['eV', '', '', 'ph/s/.1%bw'])
+srwl_uti_save_intens_ascii(stkP.arS, stkP.mesh, os.path.join(os.getcwd(), strExDataFolderName, strPowOutFileName), 0, ['', 'Horizontal Position', 'Vertical Position', 'Power Density'], _arUnits=['', 'm', 'm', 'W/mm^2'])
+print('done')
+
+#**********************Plotting results (requires 3rd party graphics package)
+print('   Plotting the results (blocks script execution; close any graph windows to proceed) ... ', end='')
+
+uti_plot1d(stkF.arS, [stkF.mesh.eStart, stkF.mesh.eFin, stkF.mesh.ne], ['Photon Energy [eV]', 'Flux [ph/s/.1%bw]', 'Flux through Finite Aperture'])
+
+plotMeshX = [1000*stkP.mesh.xStart, 1000*stkP.mesh.xFin, stkP.mesh.nx]
+plotMeshY = [1000*stkP.mesh.yStart, 1000*stkP.mesh.yFin, stkP.mesh.ny]
+uti_plot2d(stkP.arS, plotMeshX, plotMeshY, ['Horizontal Position [mm]', 'Vertical Position [mm]', 'Power Density'])
+#uti_plot1d(stkPx.arS, plotMeshX, ['Horizontal Position [mm]', 'Power Density [W/mm^2]', 'Power Density cut at y = 0'])
+#uti_plot1d(stkPy.arS, plotMeshY, ['Vertical Position [mm]', 'Power Density [W/mm^2]', 'Power Density cut at x = 0'])
+
+powDenVsX = array('f', [0]*stkP.mesh.nx)
+for i in range(stkP.mesh.nx): powDenVsX[i] = stkP.arS[stkP.mesh.nx*int(stkP.mesh.ny*0.5) + i]
+uti_plot1d(powDenVsX, plotMeshX, ['Horizontal Position [mm]', 'Power Density [W/mm^2]', 'Power Density\n(horizontal cut at y = 0)'])
+
+powDenVsY = array('f', [0]*stkP.mesh.ny)
+for i in range(stkP.mesh.ny): powDenVsY[i] = stkP.arS[int(stkP.mesh.nx*0.5) + i*stkP.mesh.ny]
+uti_plot1d(powDenVsY, plotMeshY, ['Vertical Position [mm]', 'Power Density [W/mm^2]', 'Power Density\n(vertical cut at x = 0)'])
+
+uti_plot_show() #show all graphs (blocks script execution; close all graph windows to proceed)
 print('done')

@@ -1,5 +1,0 @@
-on Mac install macports and get the whole gcc toolchain:
-sudo port install gcc47
-modify the Makefile so that CC=/path/to/macports/gcc
-and CXX=/path/to/macports/g++
-

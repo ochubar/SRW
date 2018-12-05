@@ -19,6 +19,9 @@
 #include "gmmeth.h"
 #include "srwlib.h"
 
+//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
+//#include <stdio.h>
+
 //*************************************************************************
 
 //class srTOptThickElem : public srTFocusingElem {
@@ -91,7 +94,8 @@ public:
 	//int WfrInterpolOnOrigGrid(srTSRWRadStructAccessData* pWfr, float* arRayTrCoord, float* arEX, float* arEY, float xRelOutMin, float xRelOutMax, float yRelOutMin, float yRelOutMax);
 	int WfrInterpolOnOrigGrid(srTSRWRadStructAccessData* pWfr, double* arRayTrCoord, float* arEX, float* arEY, double xRelOutMin, double xRelOutMax, double yRelOutMin, double yRelOutMax);
 	//int WfrInterpolOnOrigGrid2(srTSRWRadStructAccessData* pWfr, double* arRayTrCoord, long* arIndRayTrCoord, float* arEX, float* arEZ, double xMin, double xMax, double zMin, double zMax);
-	int WfrInterpolOnOrigGrid2(srTSRWRadStructAccessData* pWfr, double* arRayTrCoord, long long* arIndRayTrCoord, float* arEX, float* arEZ, double xMin, double xMax, double zMin, double zMax);
+	//int WfrInterpolOnOrigGrid2(srTSRWRadStructAccessData* pWfr, double* arRayTrCoord, long long* arIndRayTrCoord, float* arEX, float* arEZ, double xMin, double xMax, double zMin, double zMax);
+	int WfrInterpolOnOrigGrid2(srTSRWRadStructAccessData* pWfr, double* arRayTrCoord, long long* arIndRayTrCoord, float* arEX, float* arEZ, double xMin, double xMax, double zMin, double zMax, double dxMax, double dzMax); //OC20082018
 
 	virtual void FindSurfNormalInLocFrame(double x, double y, TVector3d& vN) {}
 	virtual double SurfHeightInLocFrame(double x, double y) { return 0;}
@@ -513,11 +517,11 @@ public:
 		//double t0 = (m_p < m_q)? -(a + ax_ay_az*sqrt(argRoot))/b : -(a - ax_ay_az*sqrt(argRoot))/b; //to check
 		//OC06072017: it looks like the second option of t0 should be used at any m_p,  m_q
 
-			double testTerm = ax_ay_az*sqrt(argRoot); //OCTEST
-			if(fabs(a - testTerm) < fabs(testTerm)*1e-13)
-			{
-				int aha = 1;
-			}
+			//double testTerm = ax_ay_az*sqrt(argRoot); //OCTEST
+			//if(fabs(a - testTerm) < fabs(testTerm)*1e-13)
+			//{
+			//	int aha = 1;
+			//}
 
 		double t0 = -(a - ax_ay_az*sqrt(argRoot))/b; //OC06072017
 

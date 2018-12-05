@@ -22,6 +22,7 @@
 #include "srinterf.h"
 #include "cmplxd.h"
 #include "srercode.h"
+#include "srwlib.h"
 
 #include <vector>
 
@@ -1307,6 +1308,96 @@ struct srTWaveAccessData {
 
 	srTWaveAccessData()
 	{
+		Init(); //OC13112018
+
+		//pWaveData = 0;
+		//*WaveType = '\0';
+		//AmOfDims = -1;
+		//for(int i=0; i<10; i++) 
+		//{
+		//	DimSizes[i] = -1;
+		//	DimStartValues[i] = 1.E+23;
+		//	DimSteps[i] = 1.E+23;
+		//	*(DimUnits[i]) = '\0';
+		//}
+		//*NameOfWave = '\0';
+		//*DataUnits = '\0';
+	}
+
+	srTWaveAccessData(char* pcData, char typeData, SRWLRadMesh* pMesh)
+	{//OC13112018
+		Init();
+
+		pWaveData = pcData;
+		WaveType[0] = typeData; WaveType[1] = '\0';
+	
+		int nDims = 0;
+		int n1 = 0, n2 = 0, n3 = 0;
+		double start1 = 0, start2 = 0, start3 = 0;
+		double step1 = 0, step2 = 0, step3 = 0;
+		if(pMesh->ne > 1) 
+		{
+			nDims++; 
+			n1 = pMesh->ne;
+			start1 = pMesh->eStart;
+			step1 = (pMesh->eFin - start1)/(n1 - 1);
+		}
+		if(pMesh->nx > 1) 
+		{
+			nDims++;
+			if(n1 == 0) 
+			{
+				n1 = pMesh->nx;
+				start1 = pMesh->xStart;
+				step1 = (pMesh->xFin - start1)/(n1 - 1);
+			}
+			else 
+			{
+				n2 = pMesh->nx;
+				start2 = pMesh->xStart;
+				step2 = (pMesh->xFin - start2)/(n2 - 1);
+			}
+		}
+		if(pMesh->ny > 1) 
+		{
+			nDims++;
+			if(n1 == 0) 
+			{
+				n1 = pMesh->ny;
+				start1 = pMesh->yStart;
+				step1 = (pMesh->yFin - start1)/(n1 - 1);
+			}
+			else if(n2 == 0) 
+			{
+				n2 = pMesh->ny;
+				start2 = pMesh->yStart;
+				step2 = (pMesh->yFin - start2)/(n2 - 1);
+			}
+			else 
+			{
+				n3 = pMesh->ny;
+				start3 = pMesh->yStart;
+				step3 = (pMesh->yFin - start3)/(n3 - 1);
+			}
+		}
+
+		AmOfDims = nDims;
+
+		DimSizes[0] = n1;
+		DimSizes[1] = n2;
+		DimSizes[2] = n3;
+		DimStartValues[0] = start1;
+		DimStartValues[1] = start2;
+		DimStartValues[2] = start3;
+		DimSteps[0] = step1;
+		DimSteps[1] = step2;
+		DimSteps[2] = step3;
+
+		//To process Mutual Intensity case: pMesh->type == 'm' !
+	}
+
+	void Init()
+	{//OC13112018
 		pWaveData = 0;
 		*WaveType = '\0';
 		AmOfDims = -1;

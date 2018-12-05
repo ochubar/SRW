@@ -55,6 +55,8 @@ struct SRWLStructWaveFront;
 typedef struct SRWLStructWaveFront SRWLWfr;
 struct SRWLStructParticleBeam;
 typedef struct SRWLStructParticleBeam SRWLPartBeam;
+struct SRWLStructRadMesh;
+typedef struct SRWLStructRadMesh SRWLRadMesh;
 
 //*************************************************************************
 
@@ -217,6 +219,7 @@ public:
 	//int ModifyWfrNeNxNz(char PolarizComp = 0);
 	int ModifyWfrNeNxNz(char PolarizComp = 0, bool backupIsReq = false); //OC131115
 	int DeleteWfrBackupData(char PolarizComp = 0); //OC151115
+	int AllocExtIntArray(char type, char dep, char*& pcAlloc); //OC18082018
 
 	int GetWfrStructNames(srTSRWRadStructWaveNames& RadStructNames);
 	int CreateNewWfrStruct(srTSRWRadStructWaveNames& Names);
@@ -248,6 +251,7 @@ public:
 
 	//void EstimWfrRadCen(double& resR, double& resCen, char cutX_or_Z, char fldX_or_Z=0, double relArgRange=0.2, double relArgCenOther=0.5);
 	bool CheckIfQuadTermTreatIsBenefit(char cutX_or_Z, char fldX_or_Z=0);
+	void GetIntMesh(char dep, SRWLRadMesh& mesh); //OC23082018
 
 	void SetupSrwWfrAuxData()
 	{
@@ -977,6 +981,19 @@ public:
 	{
 		if((pBaseRadX == 0) && (pBaseRadZ == 0)) return false;
 		else return true;
+	}
+
+	long long GetIntNumPts(char dep) //OC18082018
+	{//To add dependence on type of intensity when/if it is extended to mutual intensity and related charact.
+		long long resNp = 0;
+		if(dep == 0) resNp = ne;
+		else if(dep == 1) resNp = nx;
+		else if(dep == 2) resNp = nz;
+		else if(dep == 3) resNp = ((long long)nx)*((long long)nz);
+		else if(dep == 4) resNp = ((long long)ne)*((long long)nx);
+		else if(dep == 5) resNp = ((long long)ne)*((long long)nz);
+		else if(dep == 6) resNp = ((long long)ne)*((long long)nx)*((long long)nz);
+		return resNp;
 	}
 
 	void DeleteElecFieldArrays()

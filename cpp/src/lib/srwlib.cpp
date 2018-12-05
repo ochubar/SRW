@@ -26,6 +26,9 @@
 #include "srpersto.h"
 #include "srpowden.h"
 #include "srisosrc.h"
+#include "srmatsta.h"
+
+//#include <time.h> //Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP
 
 //-------------------------------------------------------------------------
 // Global Variables (used in SRW/SRWLIB, some may be obsolete)
@@ -47,6 +50,7 @@ int (*pgOptElemGetInfByNameFunc)(const char* sNameOptElem, char** pDescrStr, int
 //-------------------------------------------------------------------------
 
 int (*gpWfrModifFunc)(int action, SRWLWfr* pWfrIn, char pol) = 0;
+char* (*gpAllocArrayFunc)(char type, long long len) = 0; //OC15082018
 int (*gpCompProgressIndicFunc)(double curVal) = 0;
 
 //-------------------------------------------------------------------------
@@ -92,6 +96,13 @@ EXP void CALL srwlUtiSetWfrModifFunc(int (*pExtFunc)(int action, SRWLWfr* pWfrIn
 {
 	//if(pExtFunc != 0) gpWfrModifFunc = pExtFunc;
 	gpWfrModifFunc = pExtFunc;
+}
+
+//-------------------------------------------------------------------------
+
+EXP void CALL srwlUtiSetAllocArrayFunc(char* (*pExtFunc)(char type, long long len)) //OC15082018
+{
+	gpAllocArrayFunc = pExtFunc;
 }
 
 //-------------------------------------------------------------------------
@@ -690,6 +701,9 @@ EXP int CALL srwlCalcPowDenSR(SRWLStokes* pStokes, SRWLPartBeam* pElBeam, SRWLPr
 
 EXP int CALL srwlCalcIntFromElecField(char* pInt, SRWLWfr* pWfr, char polar, char intType, char depType, double e, double x, double y)
 {
+	//double start; //Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP
+	//get_walltime (&start);
+
 	if((pWfr == 0) || (pInt == 0)) return SRWL_INCORRECT_PARAM_FOR_INT_EXTR;
 
 	try 
@@ -698,15 +712,23 @@ EXP int CALL srwlCalcIntFromElecField(char* pInt, SRWLWfr* pWfr, char polar, cha
 		CHGenObj hWfr(&wfr, true);
 		srTRadGenManip radGenManip(hWfr);
 		
-		//Re-defining intType
-		//from SRWL convention: 0- Single-Elec. Intensity; 1- Multi-Elec. Intensity; 2- Single-Elec. Flux; 3- Multi-Elec. Flux; 4- Single-Elec. Rad. Phase; 5- Re(E); 6- Im(E); 7- Time or Photon Energy Integrated Intensity
-		//to old SRW convention: 0- Single-Elec. Intensity; 1- Multi-Elec. Intensity; 2- Single-Elec. Rad. Phase; 3- Re(E); 4- Single-Elec. Flux; 5- Multi-Elec. Flux; 6- Im(E); 7- Time or Photon Energy Integrated Intensity
-		if(intType == 2) intType = 4;
-		else if(intType == 3) intType = 5;
-		else if(intType == 4) intType = 2;
-		else if(intType == 5) intType = 3;
+		////Re-defining intType
+		////from SRWL convention: 0- Single-Elec. Intensity; 1- Multi-Elec. Intensity; 2- Single-Elec. Flux; 3- Multi-Elec. Flux; 4- Single-Elec. Rad. Phase; 5- Re(E); 6- Im(E); 7- Time or Photon Energy Integrated Intensity
+		////to old SRW convention: 0- Single-Elec. Intensity; 1- Multi-Elec. Intensity; 2- Single-Elec. Rad. Phase; 3- Re(E); 4- Single-Elec. Flux; 5- Multi-Elec. Flux; 6- Im(E); 7- Time or Photon Energy Integrated Intensity
+		//if(intType == 2) intType = 4;
+		//else if(intType == 3) intType = 5;
+		//else if(intType == 4) intType = 2;
+		//else if(intType == 5) intType = 3;
+		//radGenManip.ExtractRadiation((int)polar, (int)intType, (int)depType, wfr.Pres, e, x, y, pInt);
 
-		radGenManip.ExtractRadiation((int)polar, (int)intType, (int)depType, wfr.Pres, e, x, y, pInt);
+		//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
+		//srwlPrintTime(":srwlCalcIntFromElecField : before ExtractRadiation",&start);
+
+		radGenManip.ExtractRadiationSRWL(polar, intType, depType, wfr.Pres, e, x, y, pInt); //OC19082018
+
+		//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
+		//srwlPrintTime(":srwlCalcIntFromElecField : ExtractRadiation",&start);
+
 		//wfr.OutSRWRadPtrs(*pWfr); //not necessary?
 		UtiWarnCheck();
 	}
@@ -775,6 +797,10 @@ EXP int CALL srwlResizeElecField(SRWLWfr* pWfr, char type, double* par)
 
 EXP int CALL srwlSetRepresElecField(SRWLWfr* pWfr, char repr)
 {
+	//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
+	//double start;
+	//get_walltime (&start);
+
 	if(pWfr == 0) return SRWL_INCORRECT_PARAM_FOR_CHANGE_REP;
 	
 	char reprCoordOrAng=0, reprFreqOrTime=0;
@@ -787,8 +813,16 @@ EXP int CALL srwlSetRepresElecField(SRWLWfr* pWfr, char repr)
 		srTSRWRadStructAccessData wfr(pWfr);
 
 		int locErNo = 0;
+
+		//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
+		//srwlPrintTime(":srwlSetRepresElecField : before fft",&start);
+
 		if(reprCoordOrAng) locErNo = wfr.SetRepresCA(reprCoordOrAng); //set Coordinate or Angular representation
 		else if(reprFreqOrTime) locErNo = wfr.SetRepresFT(reprFreqOrTime); //set Frequency or Time representation
+		
+		//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
+		//srwlPrintTime(":srwlSetRepresElecField : wfr.SetRepresFT",&start);
+		
 		if(locErNo) return locErNo;
 
 		wfr.OutSRWRadPtrs(*pWfr);
@@ -804,19 +838,35 @@ EXP int CALL srwlSetRepresElecField(SRWLWfr* pWfr, char repr)
 
 //-------------------------------------------------------------------------
 
-EXP int CALL srwlPropagElecField(SRWLWfr* pWfr, SRWLOptC* pOpt)
+EXP int CALL srwlPropagElecField(SRWLWfr* pWfr, SRWLOptC* pOpt, int nInt, char** arID, SRWLRadMesh* arIM, char** arI) //OC15082018
+//EXP int CALL srwlPropagElecField(SRWLWfr* pWfr, SRWLOptC* pOpt)
 {
 	if((pWfr == 0) || (pOpt == 0)) return SRWL_INCORRECT_PARAM_FOR_WFR_PROP;
 	int locErNo = 0;
+
+	//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
+	//double start;
+	//get_walltime (&start);
+
 	try 
 	{
 		srTCompositeOptElem optCont(*pOpt);
 		srTSRWRadStructAccessData wfr(pWfr);
 		if(locErNo = optCont.CheckRadStructForPropagation(&wfr)) return locErNo;
 
-		if(locErNo = optCont.PropagateRadiationGuided(wfr)) return locErNo;
+		//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
+		//srwlPrintTime("srwlPropagElecField: CheckRadStructForPropagation",&start);
+
+		//if(locErNo = optCont.PropagateRadiationGuided(wfr)) return locErNo;
+		if(locErNo = optCont.PropagateRadiationGuided(wfr, nInt, arID, arIM, arI)) return locErNo; //OC15082018
+
+		//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
+		//srwlPrintTime("srwlPropagElecField: PropagateRadiationGuided",&start);
 
 		wfr.OutSRWRadPtrs(*pWfr);
+
+		//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
+		//srwlPrintTime("srwlPropagElecField: PropagateRadiationGuided",&start);
 
 		UtiWarnCheck();
 	}
@@ -1074,6 +1124,131 @@ EXP int CALL srwlUtiConvWithGaussian(char* pcData, char typeData, double* arMesh
 
 //-------------------------------------------------------------------------
 
+EXP int CALL srwlUtiIntInf(double* arInf, char* pcData, char typeData, SRWLRadMesh* pMesh)
+{//OC24092018
+	if((arInf == 0) || (pcData == 0) || ((typeData != 'f') && (typeData != 'd')) || (pMesh == 0)) return SRWL_INCORRECT_PARAM_FOR_INT_STAT;
+	try 
+	{
+		srTWaveAccessData InData(pcData, typeData, pMesh); //OC13112018
+		if(InData.AmOfDims > 2) throw SRWL_INCORRECT_PARAM_FOR_INT_STAT; //to update in the future
+
+/**
+		srTWaveAccessData InData;
+		InData.pWaveData = pcData;
+		InData.WaveType[0] = typeData; InData.WaveType[1] = '\0';
+
+		int nDims = 0;
+		int n1 = 0, n2 = 0, n3 = 0;
+		double start1 = 0, start2 = 0, start3 = 0;
+		double step1 = 0, step2 = 0, step3 = 0;
+		if(pMesh->ne > 1) 
+		{
+			nDims++; 
+			n1 = pMesh->ne;
+			start1 = pMesh->eStart;
+			step1 = (pMesh->eFin - start1)/(n1 - 1);
+		}
+		if(pMesh->nx > 1) 
+		{
+			nDims++;
+			if(n1 == 0) 
+			{
+				n1 = pMesh->nx;
+				start1 = pMesh->xStart;
+				step1 = (pMesh->xFin - start1)/(n1 - 1);
+			}
+			else 
+			{
+				n2 = pMesh->nx;
+				start2 = pMesh->xStart;
+				step2 = (pMesh->xFin - start2)/(n2 - 1);
+			}
+		}
+		if(pMesh->ny > 1) 
+		{
+			nDims++;
+			if(n1 == 0) 
+			{
+				n1 = pMesh->ny;
+				start1 = pMesh->yStart;
+				step1 = (pMesh->yFin - start1)/(n1 - 1);
+			}
+			else if(n2 == 0) 
+			{
+				n2 = pMesh->ny;
+				start2 = pMesh->yStart;
+				step2 = (pMesh->yFin - start2)/(n2 - 1);
+			}
+			else 
+			{
+				n3 = pMesh->ny;
+				start3 = pMesh->yStart;
+				step3 = (pMesh->yFin - start3)/(n3 - 1);
+			}
+		}
+		if(nDims > 2) throw SRWL_INCORRECT_PARAM_FOR_INT_STAT; //to update in the future
+		InData.AmOfDims = nDims;
+
+		InData.DimSizes[0] = n1;
+		InData.DimSizes[1] = n2;
+		InData.DimSizes[2] = n3;
+		InData.DimStartValues[0] = start1;
+		InData.DimStartValues[1] = start2;
+		InData.DimStartValues[2] = start3;
+		InData.DimSteps[0] = step1;
+		InData.DimSteps[1] = step2;
+		InData.DimSteps[2] = step3;
+**/
+
+		float arInfAux[5];
+		srTWaveAccessData OutData;
+		OutData.pWaveData = (char*)arInfAux;
+		OutData.WaveType[0] = 'f';
+		OutData.AmOfDims = 1;
+		OutData.DimSizes[0] = 5; //to update to 3D data case in the future
+		OutData.DimSizes[1] = 0;
+		OutData.DimStartValues[0] = 0;
+		OutData.DimSteps[0] = 1;
+
+		srTAuxMatStat AuxMatStat;
+		int res = 0;
+		if(res = AuxMatStat.FindSimplestStat(InData, OutData)) throw res;
+
+		//re-arranging res. data for eventual 3D case
+		for(int i=0; i<3; i++) arInf[i] = arInfAux[i];
+		arInf[3] = 0;
+		arInf[4] = arInfAux[3];
+		arInf[5] = arInfAux[4];
+		arInf[6] = 0;
+	}
+	catch(int erNo)
+	{
+		return erNo;
+	}
+	return 0;
+}
+
+//-------------------------------------------------------------------------
+
+EXP int CALL srwlUtiIntProc(char* pcI1, char typeI1, SRWLRadMesh* pMesh1, char* pcI2, char typeI2, SRWLRadMesh* pMesh2, double* arPar)
+{//OC13112018
+	if((pcI1 == 0) || ((typeI1 != 'f') && (typeI1 != 'd')) || (pMesh1 == 0) || 
+	   (pcI2 == 0) || ((typeI2 != 'f') && (typeI2 != 'd')) || (pMesh2 == 0) || (arPar == 0)) return SRWL_INCORRECT_PARAM_FOR_INT_PROC;
+
+	try 
+	{
+		srTWaveAccessData wI1(pcI1, typeI1, pMesh1), wI2(pcI2, typeI2, pMesh2);
+		srTRadGenManip::IntProc(&wI1, &wI2, arPar);
+	}
+	catch(int erNo)
+	{
+		return erNo;
+	}
+	return 0;
+}
+
+//-------------------------------------------------------------------------
+
 EXP int CALL srwlUtiUndFromMagFldTab(SRWLMagFldC* pUndCnt, SRWLMagFldC* pMagCnt, double* arPrecPar)
 {
 	if((pUndCnt == 0) || (pMagCnt == 0) || (arPrecPar == 0)) return SRWL_INCORRECT_PARAM_FOR_CONV_MAG_2_PER;
@@ -1147,4 +1322,36 @@ EXP int CALL srwlPropagRadMultiE(SRWLStokes* pStokes, SRWLWfr* pWfr0, SRWLOptC* 
 	return 0;
 }
 
+//-------------------------------------------------------------------------
+//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
+/*
+void get_walltime_(double* wcTime) {
+    clock_t tp;
+    tp = clock();
+    *wcTime = (double)(((float)tp)/CLOCKS_PER_SEC);
+    // cout << "=== clock = " << tp << "   CLOCKS_PER_SEC = " << CLOCKS_PER_SEC << "\n";
+    // cout << "=== *wcTime = " << *wcTime << "\n";
+}
+
+EXP void CALL get_walltime(double* wcTime) {
+  get_walltime_(wcTime);
+}
+*/
+//-------------------------------------------------------------------------
+//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
+/*
+EXP void CALL srwlPrintTime(const char* str, double* start){
+#ifdef MANUAL_PROFILING
+	double end;
+	get_walltime (&end);
+	double dif= end-*start;
+	if (dif > 0.1)
+	{
+		printf ("Elapsed: %80s %5.2f s\n",str,dif);
+		fflush(stdout);
+	}
+	*start=end;
+#endif
+}
+*/
 //-------------------------------------------------------------------------

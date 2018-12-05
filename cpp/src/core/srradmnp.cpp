@@ -14,6 +14,7 @@
 #include "srradmnp.h"
 #include "gmfft.h"
 #include "gmmeth.h"
+//#include "gminterp.h"
 #include "srerror.h"
 
 //DEBUG
@@ -675,6 +676,320 @@ int srTRadGenManip::ExtractSingleElecIntensity3D(srTRadExtract& RadExtract)
 			ixPerX += PerX; 
 		}
 		izPerZ += PerZ; 
+	}
+	return 0;
+}
+
+//*************************************************************************
+
+int srTRadGenManip::ExtractSingleElecMutualIntensityVsX(srTRadExtract& RadExtract)
+{//OC06092018
+	int res = 0;
+	int PolCom = RadExtract.PolarizCompon;
+	int Int_or_ReE = RadExtract.Int_or_Phase;
+	srTSRWRadStructAccessData& RadAccessData = *((srTSRWRadStructAccessData*)(hRadAccessData.ptr()));
+
+	float *pMI = RadExtract.pExtractedData;
+	float *pEx0 = RadAccessData.pBaseRadX;
+	float *pEz0 = RadAccessData.pBaseRadZ;
+
+	long long PerX = RadAccessData.ne << 1;
+	long long PerZ = PerX*RadAccessData.nx;
+
+	long ie0=0, ie1=0, iz0=0, iz1=0;
+	double InvStepRelArg1, InvStepRelArg2;
+
+	SetupIntCoord('z', RadExtract.z, iz0, iz1, InvStepRelArg2);
+	SetupIntCoord('e', RadExtract.ePh, ie0, ie1, InvStepRelArg1);
+
+	const double tolRelArg = 1.e-08;
+	bool NeedInterp = true;
+	if(((iz0 == iz1) || (fabs(InvStepRelArg2) < tolRelArg)) && 
+	   ((ie0 == ie1) || (fabs(InvStepRelArg1) < tolRelArg))) NeedInterp = false;
+
+	long Two_ie0 = ie0 << 1, Two_ie1 = ie1 << 1;
+	long long iz0PerZ = iz0*PerZ, iz1PerZ = iz1*PerZ;
+	float *pEx_StartForX_iz0 = pEx0 + iz0PerZ, *pEx_StartForX_iz1 = pEx0 + iz1PerZ;
+	float *pEz_StartForX_iz0 = pEz0 + iz0PerZ, *pEz_StartForX_iz1 = pEz0 + iz1PerZ;
+	float *pEx_StartForE_iz0, *pEx_StartForE_iz1;
+	float *pEz_StartForE_iz0, *pEz_StartForE_iz1;
+
+	//First RadAccessData.nx values are the "normal" intensity (real diagonal elements of mutual intensity)
+	long nx = RadAccessData.nx;
+	long long ixPerX = 0;
+	for(long ix=0; ix<nx; ix++)
+	{
+		if(NeedInterp)
+		{
+			pEx_StartForE_iz0 = pEx_StartForX_iz0 + ixPerX; pEx_StartForE_iz1 = pEx_StartForX_iz1 + ixPerX;
+			pEz_StartForE_iz0 = pEz_StartForX_iz0 + ixPerX; pEz_StartForE_iz1 = pEz_StartForX_iz1 + ixPerX;
+			float *ExPtrs[] = { (pEx_StartForE_iz0 + Two_ie0), (pEx_StartForE_iz0 + Two_ie1),
+								(pEx_StartForE_iz1 + Two_ie0), (pEx_StartForE_iz1 + Two_ie1)};
+			float *EzPtrs[] = { (pEz_StartForE_iz0 + Two_ie0), (pEz_StartForE_iz0 + Two_ie1),
+								(pEz_StartForE_iz1 + Two_ie0), (pEz_StartForE_iz1 + Two_ie1)};
+			*(pMI++) = IntensityComponentSimpleInterpol2D(ExPtrs, EzPtrs, InvStepRelArg1, InvStepRelArg2, PolCom, 0);
+		}
+		else
+		{
+			*(pMI++) = IntensityComponent(pEx_StartForX_iz0 + ixPerX + Two_ie0, pEz_StartForX_iz0 + ixPerX + Two_ie0, PolCom, 0);
+		}
+		ixPerX += PerX;
+	}
+
+	float *pEx_StartForE_iz0_t, *pEx_StartForE_iz1_t;
+	float *pEz_StartForE_iz0_t, *pEz_StartForE_iz1_t;
+	float **ExPtrs, **EzPtrs, **ExPtrsT, **EzPtrsT;
+	long nx_mi_1 = nx - 1;
+	for(long ixt=0; ixt<nx_mi_1; ixt++)
+	{
+		long long ixt_PerX = ixt*PerX;
+		pEx_StartForE_iz0_t = pEx_StartForX_iz0 + ixt_PerX; 
+		pEz_StartForE_iz0_t = pEz_StartForX_iz0 + ixt_PerX;
+
+		if(NeedInterp)
+		{
+			pEx_StartForE_iz1_t = pEx_StartForX_iz1 + ixt_PerX;
+			pEz_StartForE_iz1_t = pEz_StartForX_iz1 + ixt_PerX;
+			float *arExPtrs_t[] = { (pEx_StartForE_iz0_t + Two_ie0), (pEx_StartForE_iz0_t + Two_ie1),
+									(pEx_StartForE_iz1_t + Two_ie0), (pEx_StartForE_iz1_t + Two_ie1)};
+			float *arEzPtrs_t[] = { (pEz_StartForE_iz0_t + Two_ie0), (pEz_StartForE_iz0_t + Two_ie1),
+									(pEz_StartForE_iz1_t + Two_ie0), (pEz_StartForE_iz1_t + Two_ie1)};
+			ExPtrsT = arExPtrs_t; EzPtrsT = arEzPtrs_t;
+		}
+
+		for(long ix=ixt+1; ix<nx; ix++)
+		{
+			long long ix_PerX = ix*PerX;
+			pEx_StartForE_iz0 = pEx_StartForX_iz0 + ix_PerX;
+			pEz_StartForE_iz0 = pEz_StartForX_iz0 + ix_PerX;
+
+			if(NeedInterp)
+			{
+				pEx_StartForE_iz1 = pEx_StartForX_iz1 + ix_PerX;
+				pEz_StartForE_iz1 = pEz_StartForX_iz1 + ix_PerX;
+				float *arExPtrs[] = { (pEx_StartForE_iz0 + Two_ie0), (pEx_StartForE_iz0 + Two_ie1),
+									  (pEx_StartForE_iz1 + Two_ie0), (pEx_StartForE_iz1 + Two_ie1)};
+				float *arEzPtrs[] = { (pEz_StartForE_iz0 + Two_ie0), (pEz_StartForE_iz0 + Two_ie1),
+									  (pEz_StartForE_iz1 + Two_ie0), (pEz_StartForE_iz1 + Two_ie1)};
+				ExPtrs = arExPtrs; EzPtrs = arEzPtrs;
+				if(res = MutualIntensityComponentSimpleInterpol2D(ExPtrs, ExPtrsT, EzPtrs, EzPtrsT, InvStepRelArg1, InvStepRelArg2, PolCom, pMI)) return res;
+			}
+			else
+			{
+				float *pEx = pEx_StartForE_iz0 + Two_ie0, *pExT = pEx_StartForE_iz0_t + Two_ie0;
+				float *pEz = pEz_StartForE_iz0 + Two_ie0, *pEzT = pEz_StartForE_iz0_t + Two_ie0;
+				if(res = MutualIntensityComponent(pEx, pExT, pEz, pEzT, PolCom, pMI)) return res;
+			}
+			pMI += 2;
+		}
+	}
+	return 0;
+}
+
+//*************************************************************************
+
+int srTRadGenManip::ExtractSingleElecMutualIntensityVsZ(srTRadExtract& RadExtract)
+{//OC10092018
+	int res = 0;
+	int PolCom = RadExtract.PolarizCompon;
+	int Int_or_ReE = RadExtract.Int_or_Phase;
+	srTSRWRadStructAccessData& RadAccessData = *((srTSRWRadStructAccessData*)(hRadAccessData.ptr()));
+
+	float *pMI = RadExtract.pExtractedData;
+	float *pEx0 = RadAccessData.pBaseRadX;
+	float *pEz0 = RadAccessData.pBaseRadZ;
+
+	long long PerX = RadAccessData.ne << 1;
+	long long PerZ = PerX*RadAccessData.nx;
+
+	long ie0=0, ie1=0, ix0=0, ix1=0;
+	double InvStepRelArg1, InvStepRelArg2;
+
+	SetupIntCoord('x', RadExtract.x, ix0, ix1, InvStepRelArg2);
+	SetupIntCoord('e', RadExtract.ePh, ie0, ie1, InvStepRelArg1);
+
+	const double tolRelArg = 1.e-08;
+	bool NeedInterp = true;
+	if(((ix0 == ix1) || (fabs(InvStepRelArg2) < tolRelArg)) && 
+	   ((ie0 == ie1) || (fabs(InvStepRelArg1) < tolRelArg))) NeedInterp = false;
+
+	long Two_ie0 = ie0 << 1, Two_ie1 = ie1 << 1;
+	long long ix0PerX = ix0*PerX, ix1PerX = ix1*PerX;
+
+	float *pEx_StartForZ_ix0 = pEx0 + ix0PerX, *pEx_StartForZ_ix1 = pEx0 + ix1PerX;
+	float *pEz_StartForZ_ix0 = pEz0 + ix0PerX, *pEz_StartForZ_ix1 = pEz0 + ix1PerX;
+	float *pEx_StartForE_ix0, *pEx_StartForE_ix1;
+	float *pEz_StartForE_ix0, *pEz_StartForE_ix1;
+
+	//First RadAccessData.nx values are the "normal" intensity (real diagonal elements of mutual intensity)
+	long nz = RadAccessData.nz;
+	long long izPerZ = 0;
+	for(long iz=0; iz<nz; iz++)
+	{
+		pEx_StartForE_ix0 = pEx_StartForZ_ix0 + izPerZ;
+		pEz_StartForE_ix0 = pEz_StartForZ_ix0 + izPerZ;
+
+		if(NeedInterp)
+		{
+			pEx_StartForE_ix1 = pEx_StartForZ_ix1 + izPerZ;
+			pEz_StartForE_ix1 = pEz_StartForZ_ix1 + izPerZ;
+			float *ExPtrs[] = { (pEx_StartForE_ix0 + Two_ie0), (pEx_StartForE_ix0 + Two_ie1),
+								(pEx_StartForE_ix1 + Two_ie0), (pEx_StartForE_ix1 + Two_ie1)};
+			float *EzPtrs[] = { (pEz_StartForE_ix0 + Two_ie0), (pEz_StartForE_ix0 + Two_ie1),
+								(pEz_StartForE_ix1 + Two_ie0), (pEz_StartForE_ix1 + Two_ie1)};
+
+			*(pMI++) = IntensityComponentSimpleInterpol2D(ExPtrs, EzPtrs, InvStepRelArg1, InvStepRelArg2, PolCom, 0);
+		}
+		else
+		{
+			*(pMI++) = IntensityComponent(pEx_StartForE_ix0 + Two_ie0, pEz_StartForE_ix0 + Two_ie0, PolCom, 0);
+		}
+		izPerZ += PerZ;
+	}
+
+	float *pEx_StartForE_ix0_t, *pEx_StartForE_ix1_t;
+	float *pEz_StartForE_ix0_t, *pEz_StartForE_ix1_t;
+	float **ExPtrs, **EzPtrs, **ExPtrsT, **EzPtrsT;
+	long nz_mi_1 = nz - 1;
+	for(long izt=0; izt<nz_mi_1; izt++)
+	{
+		long long izt_PerZ = izt*PerZ;
+		pEx_StartForE_ix0_t = pEx_StartForZ_ix0 + izt_PerZ;
+		pEz_StartForE_ix0_t = pEz_StartForZ_ix0 + izt_PerZ;
+
+		if(NeedInterp)
+		{
+			pEx_StartForE_ix1_t = pEx_StartForZ_ix1 + izt_PerZ;
+			pEz_StartForE_ix1_t = pEz_StartForZ_ix1 + izt_PerZ;
+			float *arExPtrs_t[] = { (pEx_StartForE_ix0_t + Two_ie0), (pEx_StartForE_ix0_t + Two_ie1),
+									(pEx_StartForE_ix1_t + Two_ie0), (pEx_StartForE_ix1_t + Two_ie1)};
+			float *arEzPtrs_t[] = { (pEz_StartForE_ix0_t + Two_ie0), (pEz_StartForE_ix0_t + Two_ie1),
+									(pEz_StartForE_ix1_t + Two_ie0), (pEz_StartForE_ix1_t + Two_ie1)};
+			ExPtrsT = arExPtrs_t; EzPtrsT = arEzPtrs_t;
+		}
+
+		for(long iz=izt+1; iz<nz; iz++)
+		{
+			long long iz_PerZ = iz*PerZ;
+			pEx_StartForE_ix0 = pEx_StartForZ_ix0 + iz_PerZ;
+			pEz_StartForE_ix0 = pEz_StartForZ_ix0 + iz_PerZ;
+
+			if(NeedInterp)
+			{
+				pEx_StartForE_ix1 = pEx_StartForZ_ix1 + iz_PerZ;
+				pEz_StartForE_ix1 = pEz_StartForZ_ix1 + iz_PerZ;
+				float *arExPtrs[] = { (pEx_StartForE_ix0 + Two_ie0), (pEx_StartForE_ix0 + Two_ie1),
+									  (pEx_StartForE_ix1 + Two_ie0), (pEx_StartForE_ix1 + Two_ie1)};
+				float *arEzPtrs[] = { (pEz_StartForE_ix0 + Two_ie0), (pEz_StartForE_ix0 + Two_ie1),
+									  (pEz_StartForE_ix1 + Two_ie0), (pEz_StartForE_ix1 + Two_ie1)};
+				ExPtrs = arExPtrs; EzPtrs = arEzPtrs;
+				if(res = MutualIntensityComponentSimpleInterpol2D(ExPtrs, ExPtrsT, EzPtrs, EzPtrsT, InvStepRelArg1, InvStepRelArg2, PolCom, pMI)) return res;
+			}
+			else
+			{
+				float *pEx = pEx_StartForE_ix0 + Two_ie0, *pExT = pEx_StartForE_ix0_t + Two_ie0;
+				float *pEz = pEz_StartForE_ix0 + Two_ie0, *pEzT = pEz_StartForE_ix0_t + Two_ie0;
+				if(res = MutualIntensityComponent(pEx, pExT, pEz, pEzT, PolCom, pMI)) return res;
+			}
+			pMI += 2;
+		}
+	}
+	return 0;
+}
+
+//*************************************************************************
+
+int srTRadGenManip::ExtractSingleElecMutualIntensityVsXZ(srTRadExtract& RadExtract)
+{//OC11092018
+	int res = 0;
+	int PolCom = RadExtract.PolarizCompon;
+	int Int_or_ReE = RadExtract.Int_or_Phase;
+	srTSRWRadStructAccessData& RadAccessData = *((srTSRWRadStructAccessData*)(hRadAccessData.ptr()));
+
+	float *pMI = RadExtract.pExtractedData;
+	float *pEx0 = RadAccessData.pBaseRadX;
+	float *pEz0 = RadAccessData.pBaseRadZ;
+
+	long long PerX = RadAccessData.ne << 1;
+	long long PerZ = PerX*RadAccessData.nx;
+
+	long ie0=0, ie1=0;
+	double InvStepRelArg=0;
+
+	SetupIntCoord('e', RadExtract.ePh, ie0, ie1, InvStepRelArg);
+
+	const double tolRelArg = 1.e-08;
+	bool NeedInterp = true;
+	if((ie0 == ie1) || (fabs(InvStepRelArg) < tolRelArg)) NeedInterp = false;
+
+	long Two_ie0 = ie0 << 1, Two_ie1 = ie1 << 1;
+	long nz = RadAccessData.nz, nx = RadAccessData.nx;
+
+	//First RadAccessData.nx values are the "normal" intensity (real diagonal elements of mutual intensity)
+	long long izPerZ = 0;
+	for(long iz=0; iz<nz; iz++)
+	{
+		float *pEx_StartForX = pEx0 + izPerZ;
+		float *pEz_StartForX = pEz0 + izPerZ;
+
+		float *pEx_St = pEx_StartForX + Two_ie0;
+		float *pEz_St = pEz_StartForX + Two_ie0;
+		float *pEx_Fi = pEx_StartForX + Two_ie1;
+		float *pEz_Fi = pEz_StartForX + Two_ie1;
+
+		for(long ix=0; ix<nx; ix++)
+		{
+			if(NeedInterp)
+			{
+				*(pMI++) = IntensityComponentSimpleInterpol(pEx_St, pEx_Fi, pEz_St, pEz_Fi, InvStepRelArg, PolCom, 0);
+			}
+			else
+			{
+				*(pMI++) = IntensityComponent(pEx_St, pEz_St, PolCom, 0);
+			}
+			pEx_St += PerX;
+			pEz_St += PerX;
+			pEx_Fi += PerX;
+			pEz_Fi += PerX;
+		}
+		izPerZ += PerZ;
+	}
+
+	float **ExPtrs, **EzPtrs, **ExPtrsT, **EzPtrsT;
+	long long nxnz = nx*nz;
+	long long nxnz_mi_1 = nxnz - 1;
+	for(long long it=0; it<nxnz_mi_1; it++)
+	{
+		long long it_PerX = it*PerX;
+		if(NeedInterp)
+		{
+			float *pEx0_p_it_PerX = pEx0 + it_PerX;
+			float *pEz0_p_it_PerX = pEz0 + it_PerX;
+			float *arExPtrs_t[] = { (pEx0_p_it_PerX + Two_ie0), (pEx0_p_it_PerX + Two_ie1)};
+			float *arEzPtrs_t[] = { (pEz0_p_it_PerX + Two_ie0), (pEz0_p_it_PerX + Two_ie1)};
+			ExPtrsT = arExPtrs_t; EzPtrsT = arEzPtrs_t;
+		}
+
+		for(long long i=it+1; i<nxnz; i++)
+		{
+			long long i_PerX = i*PerX;
+			if(NeedInterp)
+			{
+				float *pEx0_p_i_PerX = pEx0 + i_PerX;
+				float *pEz0_p_i_PerX = pEz0 + i_PerX;
+				float *arExPtrs[] = { (pEx0_p_i_PerX + Two_ie0), (pEx0_p_i_PerX + Two_ie1)};
+				float *arEzPtrs[] = { (pEz0_p_i_PerX + Two_ie0), (pEz0_p_i_PerX + Two_ie1)};
+				ExPtrs = arExPtrs; EzPtrs = arEzPtrs;
+				if(res = MutualIntensityComponentSimpleInterpol(ExPtrs, ExPtrsT, EzPtrs, EzPtrsT, InvStepRelArg, PolCom, pMI)) return res;
+			}
+			else
+			{
+				float *pEx = pEx0 + i_PerX + Two_ie0, *pExT = pEx0 + it_PerX + Two_ie0;
+				float *pEz = pEz0 + i_PerX + Two_ie0, *pEzT = pEz0 + it_PerX + Two_ie0;
+				if(res = MutualIntensityComponent(pEx, pExT, pEz, pEzT, PolCom, pMI)) return res;
+			}
+			pMI += 2;
+		}
 	}
 	return 0;
 }
@@ -1381,6 +1696,7 @@ void srTRadGenManip::ExtractRadiation(int PolarizCompon, int Int_or_Phase, int S
 	int res;
 	if(TransvPres != RadAccessData.Pres)
 		if(res = GenOptElem.SetRadRepres(&RadAccessData, char(TransvPres))) throw res;
+	
 	if(RadExtract.Int_or_Phase == 1)
 	{//1- Multi-Elec Intensity
 		if(res = ComputeConvolutedIntensity(RadExtract)) throw res;
@@ -1392,6 +1708,10 @@ void srTRadGenManip::ExtractRadiation(int PolarizCompon, int Int_or_Phase, int S
 	else if(RadExtract.Int_or_Phase == 5) //OC
 	{//5- Multi-Elec. Flux
 		if(res = ExtractFluxFromWfr(RadExtract, 'm')) throw res;
+	}
+	else if(RadExtract.Int_or_Phase == 8) //OC06092018
+	{
+		if(res = ExtractSingleElecMutualIntensity(RadExtract)) throw res;
 	}
 	else
 	{
@@ -1407,8 +1727,183 @@ void srTRadGenManip::ExtractRadiation(int PolarizCompon, int Int_or_Phase, int S
 
 //*************************************************************************
 
+void srTRadGenManip::IntProc(srTWaveAccessData* pwI1, srTWaveAccessData* pwI2, double* arPar)
+{//Added to move some simple "loops" from slow Py to C++
+	if((pwI1 == 0) || (pwI2 == 0) || (arPar == 0)) throw SRWL_INCORRECT_PARAM_FOR_INT_PROC;
+
+	char typeProc = (char)(arPar[0]);
+
+	if(typeProc == 1)
+	{//Sum-up intensities on same mesh
+	
+	}
+	else if(typeProc == 2)
+	{//Add I2 to I1 with interpolation to the mesh of I1
+	
+	}
+	else if(typeProc == 3) srTRadGenManip::Int2DIntegOverAzim(pwI1, pwI2, arPar + 1);
+}
+
+//*************************************************************************
+
+void srTRadGenManip::Int2DIntegOverAzim(srTWaveAccessData* pwI1, srTWaveAccessData* pwI2, double* arPar)
+{//Inegrate or Average intensity over azimuth in cylindrical coordinates (take input 2D intensity distribution from *pwI2 and save resulting 1D distribution vs r to *pwI1)
+	if((pwI1 == 0) || (pwI2 == 0) || (arPar == 0)) throw SRWL_INCORRECT_PARAM_FOR_INT_PROC;
+	if((pwI1->AmOfDims != 1) || (pwI1->pWaveData == 0) || (pwI2->AmOfDims != 2) || (pwI2->pWaveData == 0)) throw SRWL_INCORRECT_PARAM_FOR_INT_PROC;
+
+	bool calcAvg = ((char)arPar[0] == 1);
+	char meth = (char)arPar[1];
+
+	int nPhMax = 0;
+	double relPrec = 1.e-03;
+	if(meth == 1) 
+	{
+		nPhMax = (int)arPar[2];
+		if(nPhMax <= 0) throw SRWL_INCORRECT_PARAM_FOR_INT_PROC;
+	}
+	else if(meth == 2) relPrec = arPar[2];
+	else throw SRWL_INCORRECT_PARAM_FOR_INT_PROC;
+
+	char ordInterp = (char)arPar[3];
+	double phMin = arPar[4];
+	double phMax = arPar[5];
+	double x0 = arPar[6];
+	double y0 = arPar[7];
+
+	const double twoPi = 2*3.141592653589793;
+	if(phMin == phMax) phMax = phMin + twoPi;
+	double phRange = phMax - phMin;
+
+	float *pfI1=0, *pfI2=0; 
+	double *pdI1=0, *pdI2=0; 
+	char typeI1 = *(pwI1->WaveType), typeI2 = *(pwI2->WaveType);
+
+	if(typeI1 == 'f') pfI1 = (float*)(pwI1->pWaveData);
+	else if(typeI1 == 'd') pdI1 = (double*)(pwI1->pWaveData);
+	else throw SRWL_INCORRECT_PARAM_FOR_INT_PROC;
+
+	float *tfI1 = pfI1;
+	double *tdI1 = pdI1;
+
+	if(typeI2 == 'f') pfI2 = (float*)(pwI2->pWaveData);
+	else if(typeI2 == 'd') pdI2 = (double*)(pwI2->pWaveData);
+	else throw SRWL_INCORRECT_PARAM_FOR_INT_PROC;
+
+	double xMin = *(pwI2->DimStartValues);
+	double xStep = *(pwI2->DimSteps);
+	long nx = *(pwI2->DimSizes);
+	
+	double yMin = *((pwI2->DimStartValues) + 1);
+	double yStep = *((pwI2->DimSteps) + 1);
+	long ny = *((pwI2->DimSizes) + 1);
+
+	double *arFuncForAzimInt=0;
+	if(nPhMax > 0) arFuncForAzimInt = new double[nPhMax];
+
+	long nr = *(pwI1->DimSizes);
+	double rStep = *(pwI1->DimSteps);
+	double r = *(pwI1->DimStartValues);
+	double rMax = r + rStep*(nr - 1);
+
+	double tolPhMeth2=0;
+	double dFdPh1=0, dFdPh2=0;
+	srTAuxInt2DIntegOverAzim auxStruct;
+	if(meth == 2)
+	{
+		auxStruct.x0 = x0;
+		auxStruct.y0 = y0;
+		auxStruct.xMin = xMin;
+		auxStruct.xStep = xStep;
+		auxStruct.nx = nx;
+		auxStruct.yMin = yMin;
+		auxStruct.yStep = yStep;
+		auxStruct.ny = ny;
+		auxStruct.pfI2D = pfI2;
+		auxStruct.pdI2D = pdI2;
+		auxStruct.ordInterp = ordInterp;
+
+		tolPhMeth2 = ::fabs(phRange*relPrec);
+		if(::fabs(::fabs(phRange) - twoPi) < tolPhMeth2) tolPhMeth2 = 0; //meaning that calculation of edge derivatives vs phi is not necessary
+	}
+
+	for(int ir=0; ir<nr; ir++)
+	{
+		double curIntOverPh = 0.;
+		if(meth == 1)
+		{
+			long nPhCur = (long)round((r/rMax)*nPhMax);
+			if(nPhCur <= 1)
+			{
+				if(calcAvg) 
+				{
+					if(pfI2) curIntOverPh = CGenMathInterp::InterpOnRegMesh2d(x0 + r, y0, xMin, xStep, nx, yMin, yStep, ny, pfI2, ordInterp);
+					else curIntOverPh = CGenMathInterp::InterpOnRegMesh2d(x0 + r, y0, xMin, xStep, nx, yMin, yStep, ny, pdI2, ordInterp);
+				}
+			}
+			else
+			{
+				long nPhCur_mi_1 = nPhCur - 1;
+				double phStep = phRange/nPhCur_mi_1;
+				double ph = phMin;
+				double *t_ar = arFuncForAzimInt;
+				if(pfI2)
+				{
+					for(int iph=0; iph<nPhCur_mi_1; iph++)
+					{
+						//x = r*cos(ph); y = r*sin(ph);
+						*(t_ar++) = CGenMathInterp::InterpOnRegMesh2d(x0 + r*cos(ph), y0 + r*sin(ph), xMin, xStep, nx, yMin, yStep, ny, pfI2, ordInterp);
+						ph += phStep;
+					}
+					if(::fabs(::fabs(phRange) - twoPi) < fabs(1.e-03*phStep)) *t_ar = *arFuncForAzimInt;
+					else *t_ar = CGenMathInterp::InterpOnRegMesh2d(x0 + r*cos(ph), y0 + r*sin(ph), xMin, xStep, nx, yMin, yStep, ny, pfI2, ordInterp);
+				}
+				else
+				{
+					for(int iph=0; iph<nPhCur_mi_1; iph++)
+					{
+						//x = r*cos(ph); y = r*sin(ph);
+						*(t_ar++) = CGenMathInterp::InterpOnRegMesh2d(x0 + r*cos(ph), y0 + r*sin(ph), xMin, xStep, nx, yMin, yStep, ny, pdI2, ordInterp);
+						ph += phStep;
+					}
+					if(::fabs(::fabs(phRange) - twoPi) < ::fabs(1.e-03*phStep)) *t_ar = *arFuncForAzimInt;
+					else *t_ar = CGenMathInterp::InterpOnRegMesh2d(x0 + r*cos(ph), y0 + r*sin(ph), xMin, xStep, nx, yMin, yStep, ny, pfI2, ordInterp);
+				}
+				curIntOverPh = CGenMathMeth::Integ1D_FuncDefByArray(arFuncForAzimInt, nPhCur, phStep);
+			}
+		}
+		else if(meth == 2)
+		{
+			if(r == 0)
+			{
+				if(calcAvg) 
+				{
+					if(pfI2) curIntOverPh = CGenMathInterp::InterpOnRegMesh2d(x0 + r, y0, xMin, xStep, nx, yMin, yStep, ny, pfI2, ordInterp);
+					else curIntOverPh = CGenMathInterp::InterpOnRegMesh2d(x0 + r, y0, xMin, xStep, nx, yMin, yStep, ny, pdI2, ordInterp);
+				}
+			}
+			else
+			{
+				auxStruct.r = r;
+				if(tolPhMeth2 > 0) curIntOverPh = CGenMathMeth::Integ1D_Func(&(srTRadGenManip::IntCylCrd), phMin, phMax, relPrec, (void*)(&auxStruct));
+				else curIntOverPh = CGenMathMeth::Integ1D_FuncWithEdgeDer(&(srTRadGenManip::IntCylCrd), phMin, phMax, dFdPh1, dFdPh2, relPrec, (void*)(&auxStruct));
+			}
+		}
+		
+		if(calcAvg) curIntOverPh /= phRange;
+
+		if(pfI1) *(tfI1++) = (float)curIntOverPh;
+		else *(tdI1++) = curIntOverPh;
+
+		r += rStep;
+	}
+
+	if(arFuncForAzimInt != 0) delete[] arFuncForAzimInt;
+}
+
+//*************************************************************************
+
 void srTRadGenManip::ComponInteg(srTDataMD* pIntensOrigData, srTDataMD* pIntegParData, srTDataMD* pIntegResData)
-{
+{ 
 	if((pIntensOrigData == 0) || (pIntegParData == 0) || (pIntegResData == 0)) throw INCORRECT_PARAMS_WFR_COMPON_INTEG;
 
 	//{IntegType, eMin, eMax, xMin, xMax, zMin, zMax}

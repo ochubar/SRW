@@ -156,7 +156,9 @@ public:
 
 	static bool VectCheckIfCollinear(double xV1, double yV1, double zV1, double xV2, double yV2, double zV2, double RelPrec);
 
-	static double Integ1D_FuncWithEdgeDer(double (*pF)(double), double x1, double x2, double dFdx1, double dFdx2, double RelPrec);
+	//static double Integ1D_FuncWithEdgeDer(double (*pF)(double), double x1, double x2, double dFdx1, double dFdx2, double RelPrec);
+	static double Integ1D_FuncWithEdgeDer(double (*pF)(double, void*), double x1, double x2, double dFdx1, double dFdx2, double RelPrec, void* pv=0); //OC20112018
+	static double Integ1D_Func(double (*pF)(double, void*), double x1, double x2, double RelPrec, void* pv=0); //OC02122018
 
 	//static double Integ1D_FuncDefByArray(double* FuncArr, long Np, double Step);
 	//static double Integ1D_FuncDefByArray(float* FuncArr, long Np, double Step);
@@ -164,7 +166,8 @@ public:
 	template <class T> static double Integ1D_FuncDefByArray(T* FuncArr, long long Np, double Step)
 	{
 		if((FuncArr == 0) || (Np < 2) || (Step == 0)) return 0;
-		if(Np == 2) return (double)(0.5*(FuncArr[0] + FuncArr[1]));
+		//if(Np == 2) return (double)(0.5*(FuncArr[0] + FuncArr[1]));
+		if(Np == 2) return (double)(0.5*Step*(FuncArr[0] + FuncArr[1])); //02122018
 
 		T *tFuncArr = FuncArr + 1;
 		bool NpIsEven = (Np == ((Np >> 1) << 1));

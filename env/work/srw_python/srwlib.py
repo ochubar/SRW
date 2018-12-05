@@ -2,7 +2,7 @@
 # SRWLib for Python v 0.14
 #############################################################################
 
-from __future__ import print_function #Python 2.7 compatibility
+from __future__ import absolute_import, division, print_function #Py 2.*/3.* compatibility
 import srwlpy as srwl
 from array import *
 from math import *
@@ -827,6 +827,9 @@ class SRWLRadMesh(object):
         elif((self.ne > 1) and (self.nx > 1) and (self.ny > 1)): depType = 6
         return depType
 
+    def copy(self): #is called from C++
+        return deepcopy(self)
+
 #****************************************************************************
 class SRWLStokes(object):
     """Radiation Stokes Parameters"""
@@ -1481,6 +1484,10 @@ class SRWLStokes(object):
 
                                             #self.arS[ir] = (self.arS[ir]*_iter + _mult*fInterp)/(_iter + 1)
                                             self.arS[ir] = (self.arS[ir]*_iter + _mult*fInterp)/iter_p_1
+
+                                            #DEBUG
+                                            #print('   ir=',ir, 'arS[ir]=', self.arS[ir])
+                                           
                                             ir += 1
                                     else: #OC04052018
                                         #self.arS[ir] = self.arS[ir]*iter_d_iter_p_1; ir += 1
@@ -1554,6 +1561,9 @@ class SRWLStokes(object):
         ofstIc = orig_iec*origPerEp + orig_iec*origPerE + orig_ixc*origPerXp + orig_ixc*origPerX + orig_iyc*origPerYp + orig_iyc*origPerY
         absZerTolI = abs(self.arS[ofstIc])*_rel_zer_tol
 
+        #DEBUG
+        #print('   _rel_zer_tol=', _rel_zer_tol, ' absZerTolI=', absZerTolI)
+
         auxNp = origNe*origNx*origNy
         auxNp *= auxNp
         resDegCohNonRot = array('f', [0]*auxNp)
@@ -1606,7 +1616,13 @@ class SRWLStokes(object):
                                     absMI = sqrt(reMI*reMI + imMI*imMI)
                                     reI1 = self.arS[ofstI1]#; imI1 = self.arS[ofstI1 + 1]
                                     reI2 = self.arS[ofstI2]#; imI2 = self.arS[ofstI2 + 1]
-                                    resDegCohNonRot[resOfst] = absMI/(sqrt(reI1*reI2) + absZerTolI)
+
+                                    denom = sqrt(reI1*reI2) + absZerTolI #OC31072018
+                                    if(denom == 0): resDegCohNonRot[resOfst] = 0
+                                    else: resDegCohNonRot[resOfst] = absMI/denom
+
+                                    #resDegCohNonRot[resOfst] = absMI/(sqrt(reI1*reI2) + absZerTolI)
+                                    
                                     resOfst += 1
                         else:
                             ofstMI = ix2_0_origPerXp_p_ix1_0_origPerX + iy2_0_origPerYp_p_iy1_0_origPerY
@@ -1617,7 +1633,13 @@ class SRWLStokes(object):
                             absMI = sqrt(reMI*reMI + imMI*imMI)
                             reI1 = self.arS[ofstI1]#; imI1 = self.arS[ofstI1 + 1]
                             reI2 = self.arS[ofstI2]#; imI2 = self.arS[ofstI2 + 1]
-                            resDegCohNonRot[resOfst] = absMI/(sqrt(reI1*reI2) + absZerTolI)
+
+                            denom = sqrt(reI1*reI2) + absZerTolI #OC31072018
+                            if(denom == 0): resDegCohNonRot[resOfst] = 0
+                            else: resDegCohNonRot[resOfst] = absMI/denom
+                            
+                            #resDegCohNonRot[resOfst] = absMI/(sqrt(reI1*reI2) + absZerTolI)
+                            
                             resOfst += 1
 
         if(not _rot): return resDegCohNonRot
@@ -2475,7 +2497,12 @@ class SRWLStokes(object):
                                         #imI2 += (im_a000100 + (im_a000110 + im_a000101)*ry2)*rx2 + (im_a000010 + im_a000011*ry2)*ry2 + im_a000001*ry2 + im_a000000
                                         #OC05052018: Note that this does not include all terms of multi-dim "bi-linear" interpolation!?
 
-                                        resDegCoh[resOfst] = absMI/(sqrt(reI1*reI2) + absZerTolI)
+                                        denom = sqrt(reI1*reI2) + absZerTolI #OC31072018
+                                        if(denom == 0): resDegCoh[resOfst] = 0
+                                        else: esDegCoh[resOfst] = absMI/denom
+
+                                        #resDegCoh[resOfst] = absMI/(sqrt(reI1*reI2) + absZerTolI)
+                                        
                                     else:
                                         resDegCoh[resOfst] = 0
                                 else:
@@ -2495,7 +2522,12 @@ class SRWLStokes(object):
                                     absMI = sqrt(reMI*reMI + imMI*imMI)
                                     reI1 = self.arS[ofstI1]#; imI1 = self.arS[ofstI1 + 1]
                                     reI2 = self.arS[ofstI2]#; imI2 = self.arS[ofstI2 + 1]
-                                    resDegCoh[resOfst] = absMI/(sqrt(reI1*reI2) + absZerTolI)
+
+                                    denom = sqrt(reI1*reI2) + absZerTolI #OC31072018
+                                    if(denom == 0): resDegCoh[resOfst] = 0
+                                    else: resDegCoh[resOfst] = absMI/denom
+                                    
+                                    #resDegCoh[resOfst] = absMI/(sqrt(reI1*reI2) + absZerTolI)
 
                                 resOfst += 1
                                 resEp += resEstep
@@ -3182,7 +3214,16 @@ class SRWLOptT(SRWLOpt):
 
         halfRangeX = 0.5*_rx;
         halfRangeY = 0.5*_ry;
-        self.mesh = SRWLRadMesh(_eStart, _eFin, _ne, _x - halfRangeX, _x + halfRangeX, _nx, _y - halfRangeY, _y + halfRangeY, _ny)
+
+        if(not hasattr(self, 'mesh')): #OC10112018
+            self.mesh = SRWLRadMesh(_eStart, _eFin, _ne, _x - halfRangeX, _x + halfRangeX, _nx, _y - halfRangeY, _y + halfRangeY, _ny)
+        else:
+            self.mesh.eStart = _eStart
+            self.mesh.eFin = _eFin
+            self.mesh.xStart = _x - halfRangeX
+            self.mesh.xFin = _x + halfRangeX
+            self.mesh.yStart = _y - halfRangeY
+            self.mesh.yFin = _y + halfRangeY
 
         self.extTr = _extTr #0- transmission outside the grid/mesh is zero; 1- it is same as on boundary
         self.Fx = _Fx #estimated focal lengths [m]
@@ -3330,18 +3371,20 @@ class SRWLOptMir(SRWLOpt):
         _n_comp = int(_n_comp)
         if((_n_comp < 1) or (_n_comp > 2)):
             raise Exception("Number of reflectivity coefficient components can be 1 or 2")
-    
-        if(not(isinstance(_refl, list) or isinstance(_refl, array))):
-            self.arRefl = array('d', [_refl]*nTot)
-            for i in range(int(round(nTot/2))):
-                i2 = i*2
-                self.arRefl[i2] = _refl
-                self.arRefl[i2 + 1] = 0
-        else:
-            self.arRefl = _refl
+
+        self.arRefl = None #OC12082018
+        if((_refl is not None) and (_refl != 1)): #OC12082018 
+            if(not(isinstance(_refl, list) or isinstance(_refl, array))):
+                self.arRefl = array('d', [_refl]*nTot)
+                for i in range(int(round(nTot/2))):
+                    i2 = i*2
+                    self.arRefl[i2] = _refl
+                    self.arRefl[i2 + 1] = 0
+            else:
+                self.arRefl = _refl
 
         #DEBUG
-        #print(self.arRefl)
+        #print('Reflection:', _refl, self.arRefl)
         
         self.reflNumPhEn = int(_n_ph_en)
         self.reflNumAng = int(_n_ang)
@@ -4529,7 +4572,7 @@ def srwl_opt_setup_surf_height_1d(_height_prof_data, _dim, _ang, _ang_r=0, _amp_
     hApprox = 0
     ipStart = 0
 
-    #OCTEST
+    #DEBUG
     #print('Heigh profile: nx=', auxMesh.nx, ' ny=', auxMesh.ny)
 
     #if('y' in _dim):
@@ -4659,7 +4702,7 @@ def srwl_opt_setup_surf_height_1d_old(_height_prof_data, _dim, _ang, _ang_r=0, _
     hApprox = 0
     ipStart = 0
 
-    #OCTEST
+    #DEBUG
     #print('Heigh profile: nx=', auxMesh.nx, ' ny=', auxMesh.ny)
     
     #for iy in range(optSlopeErr.ny):
@@ -5393,6 +5436,8 @@ def srwl_uti_read_data_cols(_file_path, _str_sep, _i_col_start=0, _i_col_end=-1,
 
     for i in range(nRows):
         curLine = lines[_n_line_skip + i]
+        #print(curLine)
+        
         curLineParts = curLine.split(_str_sep)
         curNumParts = len(curLineParts)
         #print(curLineParts)
@@ -5604,6 +5649,8 @@ def srwl_uti_read_mag_fld_3d(_fpath, _scom='#'):
 #(to walk-around the problem that simple allocation "array(type, [0]*n)" at large n is usually very time-consuming)
 def srwl_uti_array_alloc(_type, _n):
     nPartMax = 10000000 #to tune
+    #print('srwl_uti_array_alloc: array requested:', _n)
+    
     if(_n <= nPartMax): return array(_type, [0]*_n)
         #resAr = array(_type, [0]*_n)
         #print('Array requested:', _n, 'Allocated:', len(resAr))
@@ -5689,6 +5736,10 @@ def srwl_wfr_prop_drifts(_wfr, _dz, _nz, _pp, _do3d=False, _nx=-1, _ny=-1, _rx=0
     resIntVsZXY = None
     if(_do3d): resIntVsZXY = array('f', [0]*(nzp1*_nx*_ny)) #array to store the final intensity
 
+    #OC19102018
+    resFWHMxVsZ = array('f', [0]*nzp1)
+    resFWHMyVsZ = array('f', [0]*nzp1)
+
     ec = _wfr.mesh.eStart
     if(_wfr.mesh.ne > 1): ec = 0.5*(_wfr.mesh.eStart + _wfr.mesh.eFin)
 
@@ -5709,7 +5760,17 @@ def srwl_wfr_prop_drifts(_wfr, _dz, _nz, _pp, _do3d=False, _nx=-1, _ny=-1, _rx=0
         yStart = _yc - halfRy
         yFin = _yc + halfRy
     yStep = (yFin - yStart)/(_ny - 1) if _ny > 1 else 0
-    
+
+    #OC19102018
+    meshFWHMx = copy(_wfr.mesh)
+    meshFWHMx.ne = 1; meshFWHMx.ny = 1
+    meshFWHMx.eStart = ec; meshFWHMx.eFin = ec
+    meshFWHMx.yStart = _yc; meshFWHMx.yFin = _yc
+    meshFWHMy = copy(_wfr.mesh)
+    meshFWHMy.ne = 1; meshFWHMy.nx = 1
+    meshFWHMy.eStart = ec; meshFWHMy.eFin = ec
+    meshFWHMy.xStart = _xc; meshFWHMy.xFin = _xc
+
     for iz in range(0, nzp1):
 
         if(iz > 0):
@@ -5721,10 +5782,16 @@ def srwl_wfr_prop_drifts(_wfr, _dz, _nz, _pp, _do3d=False, _nx=-1, _ny=-1, _rx=0
         curMesh = _wfr.mesh
         xStepCurMesh = (curMesh.xFin - curMesh.xStart)/(curMesh.nx - 1)
         yStepCurMesh = (curMesh.yFin - curMesh.yStart)/(curMesh.ny - 1)
-        curIntVsX = array('f', [0]*_wfr.mesh.nx)
-        curIntVsY = array('f', [0]*_wfr.mesh.ny)
+        curIntVsX = array('f', [0]*curMesh.nx)
+        curIntVsY = array('f', [0]*curMesh.ny)
         
         srwl.CalcIntFromElecField(curIntVsX, _wfr, _pol, _type, 1, ec, _xc, _yc) #int. vs X
+
+        #OC19102018
+        meshFWHMx.nx = curMesh.nx; meshFWHMx.xStart = curMesh.xStart; meshFWHMx.xFin = curMesh.xFin
+        intInfX = srwl.UtiIntInf(curIntVsX, meshFWHMx)
+        #print(intInfX)
+        resFWHMxVsZ[iz] = intInfX[4]
 
         x = xStart
         for ix in range(_nx): #interpolation
@@ -5732,6 +5799,12 @@ def srwl_wfr_prop_drifts(_wfr, _dz, _nz, _pp, _do3d=False, _nx=-1, _ny=-1, _rx=0
             x += xStep
         
         srwl.CalcIntFromElecField(curIntVsY, _wfr, _pol, _type, 2, ec, _xc, _yc) #int. vs Y
+
+        #OC19102018
+        meshFWHMy.ny = curMesh.ny; meshFWHMy.yStart = curMesh.yStart; meshFWHMy.yFin = curMesh.yFin
+        intInfY = srwl.UtiIntInf(curIntVsY, meshFWHMy)
+        #print(intInfY)
+        resFWHMyVsZ[iz] = intInfY[4]
 
         y = yStart
         for iy in range(_ny): #interpolation
@@ -5755,7 +5828,8 @@ def srwl_wfr_prop_drifts(_wfr, _dz, _nz, _pp, _do3d=False, _nx=-1, _ny=-1, _rx=0
     resMesh.zFin = _dz*_nz #adding long. mesh params (note: these may not propagate further!)
     resMesh.nz = nzp1 #adding long. mesh params (may not propagate further!)
 
-    return resIntVsZX, resIntVsZY, resIntVsZXY, resMesh
+    #return resIntVsZX, resIntVsZY, resIntVsZXY, resMesh
+    return resIntVsZX, resIntVsZY, resIntVsZXY, resMesh, resFWHMxVsZ, resFWHMyVsZ #OC19102018
 
 #**********************Auxiliary function to setup Coherent Wavefront from Intensity (assuming spherical or astigmatic wave)
 def srwl_wfr_from_intens(_ar_int, _mesh, _part_beam, _Rx, _Ry, _xc=0, _yc=0):
@@ -5833,7 +5907,7 @@ def srwl_wfr_from_intens(_ar_int, _mesh, _part_beam, _Rx, _Ry, _xc=0, _yc=0):
     wfr.avgPhotEn = _mesh.eStart if(_mesh.ne == 1) else 0.5*(_mesh.eStart + _mesh.eFin) #average photon energy for time-domain simulations
     wfr.presCA = 0 #presentation/domain: 0- coordinates, 1- angles
     wfr.presFT = 0 #presentation/domain: 0- frequency (photon energy), 1- time
-    wfr.unitElFld = 1 #electric field units: 0- arbitrary, 1- sqrt(Phot/s/0.1%bw/mm^2), 2- sqrt(J/eV/mm^2) or sqrt(W/mm^2), depending on representation (freq. or time) ?
+    wfr.unitElFld = 1 #electric field units: 0- arbitrary, 1- sqrt(Phot/s/0.1%bw/mm^2), 2- sqrt(J/eV/mm^2) or sqrt(W/mm^2), depending on representation (freq. or time)
     #wfr.arElecPropMatr = array('d', [0] * 20) #effective 1st order "propagation matrix" for electron beam parameters
     #wfr.arMomX = array('d', [0] * 11 * _ne) #statistical moments (of Wigner distribution); to check the exact number of moments required
     #wfr.arMomY = array('d', [0] * 11 * _ne)
@@ -5849,7 +5923,8 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
                                #_rand_meth=1, _tryToUseMPI=True, _wr=0.): #OC07092016 (renamed _wr)
                                #_rand_meth=1, _tryToUseMPI=True, _wr=0., _det=None): #OC06122016
                                #_rand_meth=1, _tryToUseMPI=True, _wr=0., _wre=0., _det=None): #OC05012017
-                               _rand_meth=1, _tryToUseMPI=True, _wr=0., _wre=0., _det=None, _me_approx=0): #OC05042017
+                               #_rand_meth=1, _tryToUseMPI=True, _wr=0., _wre=0., _det=None, _me_approx=0): #OC05042017
+                               _rand_meth=1, _tryToUseMPI=True, _wr=0., _wre=0., _det=None, _me_approx=0, _file_bkp=False): #OC14082018
     """
     Calculate Stokes Parameters of Emitted (and Propagated, if beamline is defined) Partially-Coherent SR
     :param _e_beam: Finite-Emittance e-beam (SRWLPartBeam type)
@@ -5885,6 +5960,7 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
     :param _wre: initial wavefront radius error [m] to assume at wavefront propagation (is taken into account if != 0)
     :param _det: detector object for post-processing of final intensity (instance of SRWLDet)
     :param _me_approx: approximation to be used at multi-electron integration: 0- none (i.e. do standard M-C integration over 5D phase space volume of e-beam), 1- integrate numerically only over e-beam energy spread and use convolution to treat transverse emittance
+    :param _file_bkp: create or not backup files with resulting multi-electron radiation characteristics
     """
 
     doMutual = 0 #OC30052017
@@ -5901,6 +5977,7 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
     #DEBUG
     #self.arOpt = []
     #self.arProp = []
+    #print('_file_bkp=',_file_bkp)
 
     nProc = 1
     rank = 1
@@ -6294,6 +6371,8 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
 
     if(_opt_bl is None): arPrecParSR[6] = 0 #Ensure non-automatic choice of numbers of points if there is no beamline
 
+    bkpFileToBeSaved = False #OC14082018
+
     if((rank > 0) or (nProc == 1)):
 
         #if((nProc > 1) and (_opt_bl != None)): #receive mesh for the resulting wavefront from the master
@@ -6361,10 +6440,13 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
         
         randAr = array('d', [0]*6) #for random Gaussian numbers
 
-        #random.seed(rank)
+        #random.seed(rank) #old
+
         random.seed(rank*123)
         newSeed = random.randint(0, 1000000)
         random.seed(newSeed)
+
+        #random.seed(1) #DEBUG
         
         iAuxSendCount = 0 #for debug
         
@@ -6588,23 +6670,8 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
                     #print('zStart=', wfr.mesh.zStart)
                     #END DEBUG
 
-                    #DEBUG
-                    #if(i == 48):
-                    #    print('Eel=', wfr.partBeam.partStatMom1.get_E(), ' GeV')
-                    #    print('xe=', wfr.partBeam.partStatMom1.x, ' xpe=', wfr.partBeam.partStatMom1.xp, ' ye=', wfr.partBeam.partStatMom1.y, ' ype=', wfr.partBeam.partStatMom1.yp)
-                    #    print('nx=', wfr.mesh.nx, ' xStart=', wfr.mesh.xStart, ' xFin=', wfr.mesh.xFin)
-                    #    print('ny=', wfr.mesh.ny, ' yStart=', wfr.mesh.yStart, ' yFin=', wfr.mesh.yFin)
-                    #END DEBUG
-
                     srwl.CalcElecFieldSR(wfr, 0, _mag, arPrecParSR) #calculate Electric Field emitted by current electron
                     if(wfr2 is not None): srwl.CalcElecFieldSR(wfr2, 0, _mag, arPrecParSR) #OC30052017
-
-                    #DEBUG
-                    #if(i == 48):
-                    #    arI1 = array('f', [0]*wfr.mesh.nx*wfr.mesh.ny) #"flat" 2D array to take intensity data
-                    #    srwl.CalcIntFromElecField(arI1, wfr, 6, 0, 3, wfr.mesh.eStart, 0, 0)
-                    #    srwl_uti_save_intens_ascii(arI1, wfr.mesh, os.path.join(os.getcwd(), 'data_CDI', 'debug_int_se.dat'))
-                    #END DEBUG
 
                     #print('completed (lasted', round(time.time() - t0, 6), 's)') #DEBUG
                     #print('DEBUG: Commented-out: CalcElecFieldSR')
@@ -6889,29 +6956,51 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
                     #srwl_uti_save_intens_ascii(resStokes.arS, meshRes, _file_path, 1, _mutual = doMutual)
                     #srwl_uti_save_intens_ascii(resStokes.arS, meshRes, _file_path, 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual) #OC26042016
                     #srwl_uti_save_intens_ascii(resStokes.arS, meshRes, _file_path, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual) #OC16012017
+                        
+                    fp = _file_path; fp1 = file_path1; fp2 = file_path2; fpdc1 = file_path_deg_coh1; fpdc2 = file_path_deg_coh2 #OC14082018
+                    if(_file_bkp): 
+                        if(bkpFileToBeSaved):
+                            if(fp is not None): fp = copy(fp) + '.bkp'
+                            if(fp1 is not None): fp1 = copy(fp1) + '.bkp'
+                            if(fp2 is not None): fp2 = copy(fp2) + '.bkp'
+                            if(fpdc1 is not None): fpdc1 = copy(fpdc1) + '.bkp'
+                            if(fpdc2 is not None): fpdc2 = copy(fpdc2) + '.bkp'
+                            bkpFileToBeSaved = False
+                        else: bkpFileToBeSaved = True
 
                     if(_char == 40): #OC03052018
-                        srwl_uti_save_intens_ascii(resStokes.arS, meshRes, _file_path, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 0)
+                        #srwl_uti_save_intens_ascii(resStokes.arS, meshRes, _file_path, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 0)
+                        srwl_uti_save_intens_ascii(resStokes.arS, meshRes, fp, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 0) #OC14082018
                         if(resStokes2 is not None):
                             #srwl_uti_save_intens_ascii(resStokes2.arS, resStokes2.mesh, file_path1, numComp, _arLabels = resLabelsToSaveMutualHorCut, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 1)
-                            srwl_uti_save_intens_ascii(resStokes2.arS, resStokes2.mesh, file_path1, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 1) #OC06052018
-                            srwl_uti_save_intens_ascii(resStokes2.to_deg_coh(), resStokes2.mesh, file_path_deg_coh1, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 0) #OC06052018
+                            #srwl_uti_save_intens_ascii(resStokes2.arS, resStokes2.mesh, file_path1, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 1) #OC06052018
+                            srwl_uti_save_intens_ascii(resStokes2.arS, resStokes2.mesh, fp1, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 1) #OC14082018
+                            #srwl_uti_save_intens_ascii(resStokes2.to_deg_coh(), resStokes2.mesh, file_path_deg_coh1, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 0) #OC06052018
+                            srwl_uti_save_intens_ascii(resStokes2.to_deg_coh(), resStokes2.mesh, fpdc1, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 0) #OC14082018
                         if(resStokes3 is not None):
                             #srwl_uti_save_intens_ascii(resStokes3.arS, resStokes3.mesh, file_path2, numComp, _arLabels = resLabelsToSaveMutualVerCut, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 1)
-                            srwl_uti_save_intens_ascii(resStokes3.arS, resStokes3.mesh, file_path2, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 1) #OC06052018
-                            srwl_uti_save_intens_ascii(resStokes3.to_deg_coh(), resStokes3.mesh, file_path_deg_coh2, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 0) #OC06052018
+                            #srwl_uti_save_intens_ascii(resStokes3.arS, resStokes3.mesh, file_path2, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 1) #OC06052018
+                            srwl_uti_save_intens_ascii(resStokes3.arS, resStokes3.mesh, fp2, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 1) #OC14082018
+                            #srwl_uti_save_intens_ascii(resStokes3.to_deg_coh(), resStokes3.mesh, file_path_deg_coh2, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 0) #OC06052018
+                            srwl_uti_save_intens_ascii(resStokes3.to_deg_coh(), resStokes3.mesh, fpdc2, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 0) #OC14082018
                     elif(_char == 4): #OC03052018
                         #srwl_uti_save_intens_ascii(resStokes.arS, meshRes, file_path1, numComp, _arLabels = resLabelsToSaveMutualHorCut, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = (1 if doMutual else 0))
-                        srwl_uti_save_intens_ascii(resStokes.arS, meshRes, file_path1, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = (1 if doMutual else 0)) #OC06052018
-                        srwl_uti_save_intens_ascii(resStokes.to_deg_coh(), meshRes, file_path_deg_coh1, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 0) #OC06052018
+                        #srwl_uti_save_intens_ascii(resStokes.arS, meshRes, file_path1, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = (1 if doMutual else 0)) #OC06052018
+                        srwl_uti_save_intens_ascii(resStokes.arS, meshRes, fp1, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = (1 if doMutual else 0)) #OC14082018
+                        #srwl_uti_save_intens_ascii(resStokes.to_deg_coh(), meshRes, file_path_deg_coh1, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 0) #OC06052018
+                        srwl_uti_save_intens_ascii(resStokes.to_deg_coh(), meshRes, fpdc1, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 0) #OC14082018
                         if((resStokes2 is not None) and (meshRes2 is not None)): #OC30052017
                             #srwl_uti_save_intens_ascii(resStokes2.arS, meshRes2, file_path2, numComp, _arLabels = resLabelsToSaveMutualVerCut, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = (1 if doMutual else 0))
-                            srwl_uti_save_intens_ascii(resStokes2.arS, meshRes2, file_path2, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = (1 if doMutual else 0)) #OC06052018
-                            srwl_uti_save_intens_ascii(resStokes2.to_deg_coh(), meshRes2, file_path_deg_coh2, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = 0) #OC06052018
+                            #srwl_uti_save_intens_ascii(resStokes2.arS, meshRes2, file_path2, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = (1 if doMutual else 0)) #OC06052018
+                            srwl_uti_save_intens_ascii(resStokes2.arS, meshRes2, fp2, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = (1 if doMutual else 0)) #OC14082018
+                            #srwl_uti_save_intens_ascii(resStokes2.to_deg_coh(), meshRes2, file_path_deg_coh2, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = 0) #OC06052018
+                            srwl_uti_save_intens_ascii(resStokes2.to_deg_coh(), meshRes2, fpdc2, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = 0) #OC14082018
                     else:
-                        srwl_uti_save_intens_ascii(resStokes.arS, meshRes, file_path1, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = (1 if doMutual else 0))
+                        #srwl_uti_save_intens_ascii(resStokes.arS, meshRes, file_path1, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = (1 if doMutual else 0))
+                        srwl_uti_save_intens_ascii(resStokes.arS, meshRes, fp1, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = (1 if doMutual else 0)) #OC14082018
                         if((resStokes2 is not None) and (meshRes2 is not None)): #OC30052017
-                            srwl_uti_save_intens_ascii(resStokes2.arS, meshRes2, file_path2, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = (1 if doMutual else 0))
+                            #srwl_uti_save_intens_ascii(resStokes2.arS, meshRes2, file_path2, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = (1 if doMutual else 0))
+                            srwl_uti_save_intens_ascii(resStokes2.arS, meshRes2, fp2, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = (1 if doMutual else 0)) #OC14082018
 
                     #DEBUG
                     #srwl_uti_save_intens_ascii(workStokes.arS, workStokes.mesh, _file_path, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual)
@@ -7003,10 +7092,10 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
             #if((_char == 4) and (workStokes2 is not None)): #OC30052017 #Cuts of Mutual Intensity vs X & Y
             #    comMPI.Recv([workStokes2.arS, MPI.FLOAT], source=MPI.ANY_SOURCE) #receive 
 
+            #OC15102018 (moved this log-writing to the place where other files are saved)
             #MR20160907 #Save .log and .json files:
-            particle_number = (i + 1) * _n_part_avg_proc
-            #srwl_uti_save_stat_wfr_emit_prop_multi_e(particle_number, total_num_of_particles)
-            srwl_uti_save_stat_wfr_emit_prop_multi_e(particle_number, total_num_of_particles, filename=log_path)
+            #particle_number = (i + 1) * _n_part_avg_proc
+            #srwl_uti_save_stat_wfr_emit_prop_multi_e(particle_number, total_num_of_particles, filename=log_path)
 
             #DEBUG
             #srwl_uti_save_text("Received intensity # " + str(i), _file_path + ".er.dbg")
@@ -7050,28 +7139,55 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
                 #srwl_uti_save_intens_ascii(resStokes.arS, meshRes, _file_path, 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual) #OC26042016
                 #srwl_uti_save_intens_ascii(resStokes.arS, meshRes, _file_path, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual) #OC16012017
 
+                #OC15102018 (moved this log-writing to the place where other files are saved):
+                #MR20160907 #Save .log and .json files:
+                particle_number = (i + 1) * _n_part_avg_proc
+                srwl_uti_save_stat_wfr_emit_prop_multi_e(particle_number, total_num_of_particles, filename=log_path)
+
+                fp = _file_path; fp1 = file_path1; fp2 = file_path2; fpdc1 = file_path_deg_coh1; fpdc2 = file_path_deg_coh2 #OC14082018
+                if(_file_bkp): 
+                    if(bkpFileToBeSaved):
+                        if(fp is not None): fp = copy(fp) + '.bkp'
+                        if(fp1 is not None): fp1 = copy(fp1) + '.bkp'
+                        if(fp2 is not None): fp2 = copy(fp2) + '.bkp'
+                        if(fpdc1 is not None): fpdc1 = copy(fpdc1) + '.bkp'
+                        if(fpdc2 is not None): fpdc2 = copy(fpdc2) + '.bkp'
+                        bkpFileToBeSaved = False
+                    else: bkpFileToBeSaved = True
+
                 if(_char == 40): #OC03052018
-                    srwl_uti_save_intens_ascii(resStokes.arS, meshRes, _file_path, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 0)
+                    #srwl_uti_save_intens_ascii(resStokes.arS, meshRes, _file_path, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 0)
+                    srwl_uti_save_intens_ascii(resStokes.arS, meshRes, fp, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 0) #OC14082018
                     if(resStokes2 is not None):
                         #srwl_uti_save_intens_ascii(resStokes2.arS, resStokes2.mesh, file_path1, numComp, _arLabels = resLabelsToSaveMutualHorCut, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 1) 
-                        srwl_uti_save_intens_ascii(resStokes2.arS, resStokes2.mesh, file_path1, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 1) #OC060502018
-                        srwl_uti_save_intens_ascii(resStokes2.to_deg_coh(), resStokes2.mesh, file_path_deg_coh1, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 0)
+                        #srwl_uti_save_intens_ascii(resStokes2.arS, resStokes2.mesh, file_path1, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 1) #OC060502018
+                        srwl_uti_save_intens_ascii(resStokes2.arS, resStokes2.mesh, fp1, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 1) #OC14082018
+                        #srwl_uti_save_intens_ascii(resStokes2.to_deg_coh(), resStokes2.mesh, file_path_deg_coh1, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 0)
+                        srwl_uti_save_intens_ascii(resStokes2.to_deg_coh(), resStokes2.mesh, fpdc1, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 0) #OC14082018
                     if(resStokes3 is not None):
                         #srwl_uti_save_intens_ascii(resStokes3.arS, resStokes3.mesh, file_path2, numComp, _arLabels = resLabelsToSaveMutualVerCut, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 1) 
-                        srwl_uti_save_intens_ascii(resStokes3.arS, resStokes3.mesh, file_path2, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 1) #OC060502018
-                        srwl_uti_save_intens_ascii(resStokes3.to_deg_coh(), resStokes3.mesh, file_path_deg_coh2, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 0)
+                        #srwl_uti_save_intens_ascii(resStokes3.arS, resStokes3.mesh, file_path2, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 1) #OC060502018
+                        srwl_uti_save_intens_ascii(resStokes3.arS, resStokes3.mesh, fp2, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 1) #OC14082018
+                        #srwl_uti_save_intens_ascii(resStokes3.to_deg_coh(), resStokes3.mesh, file_path_deg_coh2, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 0)
+                        srwl_uti_save_intens_ascii(resStokes3.to_deg_coh(), resStokes3.mesh, fpdc2, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 0) #OC14082018
                 elif(_char == 4): #OC03052018
                     #srwl_uti_save_intens_ascii(resStokes.arS, meshRes, file_path1, numComp, _arLabels = resLabelsToSaveMutualHorCut, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = (1 if doMutual else 0))
-                    srwl_uti_save_intens_ascii(resStokes.arS, meshRes, file_path1, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = (1 if doMutual else 0)) #OC060502018
-                    srwl_uti_save_intens_ascii(resStokes.to_deg_coh(), meshRes, file_path_deg_coh1, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 0)
+                    #srwl_uti_save_intens_ascii(resStokes.arS, meshRes, file_path1, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = (1 if doMutual else 0)) #OC060502018
+                    srwl_uti_save_intens_ascii(resStokes.arS, meshRes, fp1, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = (1 if doMutual else 0)) #OC14082018
+                    #srwl_uti_save_intens_ascii(resStokes.to_deg_coh(), meshRes, file_path_deg_coh1, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 0)
+                    srwl_uti_save_intens_ascii(resStokes.to_deg_coh(), meshRes, fpdc1, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 0) #OC14082018
                     if((resStokes2 is not None) and (meshRes2 is not None)):
                         #srwl_uti_save_intens_ascii(resStokes2.arS, meshRes2, file_path2, numComp, _arLabels = resLabelsToSaveMutualVerCut, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = (1 if doMutual else 0)) 
-                        srwl_uti_save_intens_ascii(resStokes2.arS, meshRes2, file_path2, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = (1 if doMutual else 0)) #OC060502018
-                        srwl_uti_save_intens_ascii(resStokes2.to_deg_coh(), meshRes2, file_path_deg_coh2, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = 0)
+                        #srwl_uti_save_intens_ascii(resStokes2.arS, meshRes2, file_path2, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = (1 if doMutual else 0)) #OC060502018
+                        srwl_uti_save_intens_ascii(resStokes2.arS, meshRes2, fp2, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = (1 if doMutual else 0)) #OC14082018
+                        #srwl_uti_save_intens_ascii(resStokes2.to_deg_coh(), meshRes2, file_path_deg_coh2, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = 0)
+                        srwl_uti_save_intens_ascii(resStokes2.to_deg_coh(), meshRes2, fpdc2, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = 0) #OC14082018
                 else:
-                    srwl_uti_save_intens_ascii(resStokes.arS, meshRes, file_path1, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = (1 if doMutual else 0)) #OC30052017
+                    #srwl_uti_save_intens_ascii(resStokes.arS, meshRes, file_path1, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = (1 if doMutual else 0)) #OC30052017
+                    srwl_uti_save_intens_ascii(resStokes.arS, meshRes, fp1, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = (1 if doMutual else 0)) #OC14082018
                     if((resStokes2 is not None) and (meshRes2 is not None)): #OC30052017
-                        srwl_uti_save_intens_ascii(resStokes2.arS, meshRes2, file_path2, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = (1 if doMutual else 0)) 
+                        #srwl_uti_save_intens_ascii(resStokes2.arS, meshRes2, file_path2, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = (1 if doMutual else 0)) 
+                        srwl_uti_save_intens_ascii(resStokes2.arS, meshRes2, fp2, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = (1 if doMutual else 0)) #OC14082018
 
                 #DEBUG
                 #srwl_uti_save_intens_ascii(workStokes.arS, meshRes, _file_path, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual) #OC16012017
@@ -7282,6 +7398,7 @@ function calculates/"extracts" Intensity from pre-calculated Electric Field
                =5 -Re(E): Real part of Single-Electron Electric Field;
                =6 -Im(E): Imaginary part of Single-Electron Electric Field;
                =7 -"Single-Electron" Intensity, integrated over Time or Photon Energy (i.e. Fluence)
+               =8 -"Single-Electron" Mutual Intensity (i.e. E(r)E*(r')) 
 :param _inDepType: input switch specifying type of dependence to be extracted:
                =0 -vs e (photon energy or time);
                =1 -vs x (horizontal position or angle);

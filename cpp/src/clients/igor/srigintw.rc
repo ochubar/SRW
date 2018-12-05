@@ -222,6 +222,10 @@ BEGIN
 	"Incorrect or insufficient parameters for spherical wave electric field calculation.\0", //#186
 	
 	"Failed to determine array element index for interpolation.\0", //#187
+	"Failed to allocate array in front-end / client environment.\0", //#188
+	"Mutual intensity can not be extracted for these input parameters.\0", //189
+	"Incorrect input parameters for calculation of statistical characteristics of intensity.\0", //190
+	"Incorrect input parameters for processing intensity distributions.\0", //191
 
 	"\0"						// NOTE: NULL required to terminate the resource.
 END

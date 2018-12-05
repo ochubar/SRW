@@ -16,6 +16,10 @@
 
 #include "sroptshp.h"
 
+//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
+//#include <stdio.h>
+//#include "srwlib.h"
+
 //*************************************************************************
 
 class srTAperture : public srTShapedOptElem {

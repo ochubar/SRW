@@ -7,7 +7,7 @@ SRW is a physical optics computer code for calculation of detailed characteristi
 In the following writing, it is assumed that "SRW_Dev" is absolute path to the full SRW directory (obtained e.g. after downloading from repository).
 
 
-Using pre-compiled SRW libraries and clients / bindings:
+I. Using pre-compiled SRW libraries and clients / bindings:
 --------------------------------------------------------
 The last ~"clean" release of SRW for IGOR Pro and for Python can be found in SRW_Dev/env/release, in particular:
 	- installers (of compressed packages) can be found in SRW_Dev/env/release/install;
@@ -15,44 +15,51 @@ The last ~"clean" release of SRW for IGOR Pro and for Python can be found in SRW
 SRW_Dev/env/release/srw_igor; this folder contains ReadMe.txt file with general "start-up" notes; detailed documentation for IGOR Pro version can be found in: SRW_Dev/env/release/srw_igor/SRW Help/SRW Help.ifn file (in IGOR formatted notebook format);
 	- unpacked folder of SRW for Python (for Windows and Linux) is: SRW_Dev/env/release/srw_python; this folder contains ReadMe.txt file with general "start-up" notes.
 
-Besides, some recent pre-releases and current work versions of SRW for Python and for IGOR Pro can be found in: SRW_Dev/env/work.
+The most recent pre-releases and current work versions of SRW for Python and for IGOR Pro can be found in: SRW_Dev/env/work.
 
-Testing of the pre-compiled SRW libraries and clients / bindings can be done using examples included both to Python and IGOR Pro versions of SRW (see "Check example" section below for a particular platform).
+Testing of the pre-compiled SRW libraries and clients / bindings can be done using examples included both to Python and IGOR Pro versions of SRW (see "Checking the examples" sections below for different platforms).
 
 
-I. Compiling and testing SRW Library and its Python and IGOR Pro bindings on Windows:
+II. Compiling and testing SRW Library and its Python and IGOR Pro bindings on Windows.
 ------------------------------------------------------------------
-1. Compile SRWLib library and Python binding using MS Visual Studio:
-	Microsoft Visual C++ 2015 (or later version) solution file (SRW.sln), which includes 4 projects: 
+II.1. Compiling SRW library and Python binding using MS Visual C++.
+
+II.1.1.	Microsoft Visual C++ 2015 (or later version) solution file (SRW.sln), which includes 4 projects: 
 	- SRW Library (file SRWLIB.vcxproj),
 	- SRW Python client / binding (file SRWLClientPython.vcxproj),
 	- SRW IGOR Pro client / binding (file SRWLClientIgor.vcxproj),
 	- SRW C demo client (file SRWLClientC.vcxproj),
-can be found in SRW_Dev/cpp/vc. These project files allow for compiling SRW for Python 2.7 and 3.x (64-bit or 32-bit), and SRW for IGOR Pro (32-bit only). Free Microsoft Visual Studio Community 2015 (or later versions) can be used.
+can be found in SRW_Dev/cpp/vc. The SRWLClientPython project file allows for compiling "srwlpy.pyd" shared library, i.e. SRW for Python 2.7 or/and 3.x (64-bit or 32-bit); SRWLClientIgor allows for compiling "SRW.xop" shared library, i.e. SRW for IGOR Pro (32-bit only). Free Microsoft Visual Studio Community 2015 (or later versions) can be used.
+	To compile SRW library supporting OpenMP based parallel calculations (e.g. for XFEL applications):
+	- In the Visual C++ Configuration Manager, select "ReleaseOMP" version of the SRWLIB project, then re-compile SRWLIB and SRWLClientPython under the "x64" Solution Platform to produce a 64-bit version of SRW for Python supporting OpenMP based parallel calculations. 
+	- Note that the "ReleaseOMP" version of the SRWLIB project has only two differences with respect to the standard version: the "_WITH_OMP" preprocessor definition is added to Configuration Properties -> C/C++ -> Preprocessor -> Preprocessor Definitions, and the "Open MP Support" option is set to "Yes (/openmp)" in Configuration Properties -> C/C++ -> Language -> Open MP Support.
 
-2. Check examples:
+II.2. Checking the examples.
 
-2.1.	The SRW for Python examples can be tested using e.g. "IDLE" (Python native GUI). To do so, start this application (e.g. from Windows Start menu), open an example file in it, e.g. "SRW_Dev\env\work\srw_python\SRWLIB_Example01.py", and run it from the IDLE.
+II.2.1.	The SRW for Python examples can be tested using e.g. "IDLE" (Python native GUI). To do so, start this application (e.g. from Windows Start menu), open an example file in it, e.g. "SRW_Dev\env\work\srw_python\SRWLIB_Example01.py", and run it from the IDLE.
 	Alternatively, the example scripts can be executed from the Windows Command Prompt, e.g. from within the "SRW_Dev\env\work\srw_python" directory. For convenience, correct path to python.exe file may need to be specified in the Windows system PATH variable prior to these tests.
 
-2.2. The The SRW for IGOR Pro examples can be tested from "SRWE" and "SRWP" menus, "Help" sub-menus, of the IGOR Pro.
+II.2.2. The SRW for IGOR Pro examples can be tested from "SRWE" and "SRWP" menus, "Help" sub-menus, of the IGOR Pro.
 
 
-II. Compiling and testing SRW Library and its Python binding on Linux:
+III. Compiling and testing SRW Library and its Python binding on Linux.
 ------------------------------------------------------------------
-1. Compile SRWLib library and Python binding:
-	This can be done either using Python "distutils" (see section 2.1 below) or without it (see section 2.2)
+III.1. Compiling SRW library and Python binding.
+	This can be done either using Python "distutils" (see section II.1.1 below) or without it (see section II.1.2).
 
-1.1. Compiling using Python "distutils" module:
+III.1.1. Compiling using Python "distutils" module.
 	Make sure the "distutils" module of the Python version you would like to use is properly installed and configured. If this is done, the compilation and installation is simple:
 	cd SRW_Dev
 	make all
+	To compile SRW library supporting OpenMP based parallel calculations (e.g. for XFEL applications) use add "MODE=omp" after "make all":
+	make all MODE=omp
 	This should compile libsrw.a and srwlpy.so, and copy srwlpy.so to SRW_Dev/env/work/srw_python/
 
-1.2. Compiling without "distutils":
 
-1.2.1. Download and compile fftw-2.1.5 library as required for SRW:
-	Download fftw-2.1.5.tar.gz from FFTW site (probably http://www.fftw.org/download.html) and place it to SRW_Dev/ext_lib
+III.1.2. Compiling without "distutils".
+
+III.1.2.1. Download and compile fftw-2.1.5 library as required for SRW.
+	Download fftw-2.1.5.tar.gz from FFTW site (probably http://www.fftw.org/download.html) and place it to SRW_Dev/ext_lib:
 	cd SRW_Dev/ext_lib
 	tar -zxvf fftw-2.1.5.tar.gz
 	cd fftw-2.1.5
@@ -62,23 +69,52 @@ II. Compiling and testing SRW Library and its Python binding on Linux:
 	make install
 	cp fftw/.libs/libfftw.a SRW_Dev/ext_lib/
 
-1.2.2. Compile the SRW library and Python binding:
+III.1.2.2. Compile the SRW library and Python binding.
 	cd SRW_Dev/cpp/gcc
-	Make sure that Python 3.2 or higher (or Python 2.7) is installed 
-	In Makefile, modify/correct PYPATH and PYFLAGS variables, i.e. specify path to Python header and library files
+	Make sure Python 3.2 or higher (or Python 2.7) is installed. 
+	In the SRW_Dev/cpp/gcc/Makefile, modify/correct PYPATH and PYFLAGS variables, i.e. specify path to Python header and library files. Depending on Linux environment, it may also be necessary to modify the name of compiler to be used, e.g.:
+	CC  = gcc
+	CXX = g++
+	#CC  = cc
+	#CXX = c++
+	After this, execute the following:
 	rm libsrw.a
 	make all
+	To compile SRW library supporting OpenMP based parallel calculations (e.g. for XFEL applications) use add "MODE=omp" after "make all":
+	make all MODE=omp
+	Then copy srwlpy.so to SRW_Dev/env/work/srw_python/:
 	cp srwlpy.so ../../env/work/srw_python/
 
-2. Check examples:
-	Make sure the path to Python 3.5 (or 2.7) is added to the PATH variable and "srw_python" to PYTHONPATH variable:
-	export PATH="$PATH:<absolute path to Python 3.5>" # this is not necessary if you install python using the distro's package manager
-	export PYTHONPAH="$PYTHONPATH:SRW_Dev/env/work/srw_python/" # temporarely solution
+III.2. Checking the examples.
+	Make sure the path to Python 3.x (or 2.7) is added to the PATH variable and "srw_python" to PYTHONPATH variable:
+	export PATH="$PATH:<absolute path to Python 3.x>" # this is not necessary if you install python using the distro's package manager
+	export PYTHONPAH="$PYTHONPATH:SRW_Dev/env/work/srw_python/" #temporary solution
 	or
-	echo "export PYTHONPATH=$PYTHONPATH:SRW_Dev/env/work/srw_python/" >> ~/.bashrc # permanent solution for a single user
-	Setting up PYTHONPATH allows to import srwlpy module from any directory.
+	echo "export PYTHONPATH=$PYTHONPATH:SRW_Dev/env/work/srw_python/" >> ~/.bashrc #permanent solution for a single user
+	Setting up PYTHONPATH allows to import srwlpy module from any directory. Testing of the examples would preferably done in the "srw_python" directory:
 	cd SRW_Dev/env/work/srw_python
 	python SRWLIB_ExampleXX.py
+
+
+IV. Compiling and testing SRW Library and its Python binding on Mac OSX.
+------------------------------------------------------------------
+	Try to follow the steps described in section III, describing options for compiling and testing SRW on Linux. 
+	We were informed that the actions described in III.1.2.2 lead to successful compilation with gcc/g++ provided by Xcode 10.1, after the following modifications in SRW_Dev/cpp/gcc/Makefile:
+	CC  = gcc
+	CXX = g++
+	#CC  = cc
+	#CXX = c++
+	...
+	PYPATH=/Library/Frameworks/Python.framework/Versions/3.6
+	PYFLAGS=-I$(PYPATH)/include/python3.6m -I$(PYPATH)/include/python3.6m -L$(PYPATH)/lib/python3.6/config-3.6m-darwin -lpython3.6m -ldl
+	
+	The correct path and flags can be obtained e.g. by executing from command line:
+	python3-config --includes --ldflags
+	and removing the option -framework
+
+	With earlier versions of Xcode, the following manipulations, consisting in installation of "macports" and obtaining the whole gcc toolchain, were reported to be successful:
+	sudo port install gcc47
+	Modify the SRW_Dev/cpp/gcc/Makefile so that CC=<path to macports>/gcc and CXX=<path to macports>/g++, and proceed to the compilation as described in III.1.2.2.	
 
 
 Authors and Contributors to SRW project:
@@ -86,6 +122,7 @@ Authors and Contributors to SRW project:
 O. Chubar (ESRF - SOLEIL - BNL)
 P. Elleaume (ESRF)
 J. Chavanne (ESRF)
+R. Celestre (ESRF)
 P. Dumas (SOLEIL)
 O. Marcouille (SOLEIL)
 L. Samoylova (E-XFEL)
@@ -94,12 +131,14 @@ G. Geloni (E-XFEL)
 I. Agapov (E-XFEL)
 J. Sutter (DIAMOND)
 D. Laundy (DIAMOND)
+A. He (BNL)
 M. Rakitin (BNL)
 N. Canestrari (ESRF - BNL)
 A. Suvorov (BNL)
 R. Reininger (ANL)
 X. Shi (ANL)
 R. Lindberg (ANL)
+L. Rebuffi (ELETTRA - ANL)
 D. Bruhwiler (RadiaSoft LLC)
 R. Nagler (RadiaSoft LLC)
 P. Moeller (Bivio Inc)

@@ -1,9 +1,11 @@
 .PHONY: python clean
 
+MODE ?= 0 
+
 python: srwlpy.so
 
 srwlpy.so:
-	python setup.py build_ext --build-lib='../gcc'
+	MODE=$(MODE) python setup.py build_ext --build-lib='../gcc'
 	cp ../gcc/srwlpy*.so ../../env/work/srw_python/
 	rm -rf build
 

@@ -74,7 +74,8 @@ public:
 
 	/** Computes x^2*Kn(x)^2
     */
-	static double AuxFuncK2d3e2_xe2(double x)
+	static double AuxFuncK2d3e2_xe2(double x, void* pv=0) //OC20112018
+	//static double AuxFuncK2d3e2_xe2(double x)
 	{
 		double KmuVal = 0;
 		Kmu(0, 2./3., x, KmuVal);
@@ -83,7 +84,8 @@ public:
 
 	/** Computes x^2*Kn(x)^2
     */
-	static double AuxFuncIntK5d3_x(double x)
+	static double AuxFuncIntK5d3_x(double x, void* pv=0) //OC20112018
+	//static double AuxFuncIntK5d3_x(double x)
 	{
 		double KmuVal = 0;
 		Kmu(1, 5./3., x, KmuVal);

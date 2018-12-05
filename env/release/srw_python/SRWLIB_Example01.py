@@ -1,10 +1,12 @@
+# -*- coding: utf-8 -*-
 #############################################################################
 # SRWLIB Example#1: Calculating electron trajectory in 3D magnetic field of an APPLE-II undulator
-# v 0.03
+# v 0.06
 #############################################################################
 
 from __future__ import print_function #Python 2.7 compatibility
 from srwlib import *
+from uti_plot import *
 import os
 
 print('SRWLIB Python Example # 1:')
@@ -70,20 +72,7 @@ def AuxReadInMagFld3D(filePath, sCom):
     if yNp > 1: yRange = (yNp - 1)*yStep
     zRange = zStep
     if zNp > 1: zRange = (zNp - 1)*zStep
-    return SRWLMagFld3D(locArBx, locArBy, locArBz, xNp, yNp, zNp, xStep*(xNp - 1), yStep*(yNp - 1), zStep*(zNp - 1), 1)
-
-#**********************Auxiliary function to write tabulated resulting Trajectory data to ASCII file:
-def AuxSaveTrajData(traj, filePath):
-    f = open(filePath, 'w')
-    f.write('#ct [m], X [m], BetaX [rad], Y [m], BetaY [rad], Z [m], BetaZ [rad]\n')
-    ctStep = 0
-    if traj.np > 0:
-        ctStep = (traj.ctEnd - traj.ctStart)/(traj.np - 1)
-    ct = traj.ctStart
-    for i in range(traj.np):
-        f.write(str(ct) + '\t' + repr(traj.arX[i]) + '\t' + repr(traj.arXp[i]) + '\t' + repr(traj.arY[i]) + '\t' + repr(traj.arYp[i]) + '\t' + repr(traj.arZ[i]) + '\t' + repr(traj.arZp[i]) + '\n')        
-        ct += ctStep
-    f.close()
+    return SRWLMagFld3D(locArBx, locArBy, locArBz, xNp, yNp, zNp, xRange, yRange, zRange, 1)
 
 #**********************Defining Magnetic Field:
 magFldCnt = SRWLMagFldC() #Container
@@ -113,7 +102,8 @@ part.z = zcID - 0.5*magFldCnt.arMagFld[0].rz
 #**********************Trajectory structure, where the results will be stored
 partTraj = SRWLPrtTrj()
 partTraj.partInitCond = part
-partTraj.allocate(npTraj)
+#partTraj.allocate(npTraj)
+partTraj.allocate(npTraj, True)
 partTraj.ctStart = 0 #Start Time for the calculation
 #partTraj.ctEnd = (numPer + 2)*per + magFldCnt.arMagFld[0].rz + magFldCnt.arMagFld[2].rz #End Time
 partTraj.ctEnd = magFldCnt.arMagFld[0].rz
@@ -123,7 +113,20 @@ print('   Performing calculation ... ', end='')
 partTraj = srwl.CalcPartTraj(partTraj, magFldCnt, arPrecPar)
 print('done')
 
-#**********************Saving results
+#**********************Saving results to a file
 print('   Saving trajectory data to a file ... ', end='')
-AuxSaveTrajData(partTraj, os.path.join(os.getcwd(), strExDataFolderName, strTrajOutFileName))
+partTraj.save_ascii(os.path.join(os.getcwd(), strExDataFolderName, strTrajOutFileName))
+print('done')
+
+#**********************Plotting results
+print('   Plotting the results (blocks script execution; close any graph windows to proceed) ... ', end='')
+ctMesh = [partTraj.ctStart, partTraj.ctEnd, partTraj.np]
+for i in range(partTraj.np):
+    partTraj.arX[i] *= 1000
+    partTraj.arY[i] *= 1000
+    
+uti_plot1d(partTraj.arX, ctMesh, ['ct [m]', 'Horizontal Position [mm]'])
+uti_plot1d(partTraj.arY, ctMesh, ['ct [m]', 'Vertical Position [mm]'])
+
+uti_plot_show() #show all graphs (and block execution)
 print('done')

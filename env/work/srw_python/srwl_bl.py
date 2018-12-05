@@ -1303,7 +1303,8 @@ class SRWLBeamline(object):
 
     #------------------------------------------------------------------------
     #def calc_arb_spec_me(self, _mesh, _meth=2, _rel_prec=0.01, _n_part_tot=100000, _n_part_avg_proc=10, _n_save_per=10, _type=2, _mag=2, _pol=0, _rand_meth=1, _fname=None):
-    def calc_arb_spec_me(self, _mesh, _meth=2, _rel_prec=0.01, _n_part_tot=100000, _n_part_avg_proc=10, _n_save_per=10, _type=2, _mag=2, _pol=0, _rand_meth=1, _fname=None, _sr_samp_fact=-1, _det=None, _me_approx=0): #OC13042018
+    #def calc_arb_spec_me(self, _mesh, _meth=2, _rel_prec=0.01, _n_part_tot=100000, _n_part_avg_proc=10, _n_save_per=10, _type=2, _mag=2, _pol=0, _rand_meth=1, _fname=None, _sr_samp_fact=-1, _det=None, _me_approx=0): #OC13042018
+    def calc_arb_spec_me(self, _mesh, _meth=2, _rel_prec=0.01, _n_part_tot=100000, _n_part_avg_proc=10, _n_save_per=10, _type=2, _mag=2, _pol=0, _rand_meth=1, _fname=None, _sr_samp_fact=-1, _det=None, _me_approx=0, _fbk=False): #OC14082018
         """Calculates multi-electron flux of undulator radiation (within fixed aperture of per unit surface), using approximate periodic magnetic field
         :param _mesh: mesh on which the intensity has to be calculated (SRWLRadMesh instance)
         :param _meth: SR Electric Field calculation method to be used (0- "manual", 1- "auto-undulator", 2- "auto-wiggler")
@@ -1353,7 +1354,9 @@ class SRWLBeamline(object):
             _sr_meth = _meth, _sr_rel_prec = _rel_prec,
             _n_part_tot = _n_part_tot, _n_part_avg_proc = _n_part_avg_proc, _n_save_per = _n_save_per, _rand_meth = _rand_meth,
             #_file_path = _fname, _char = charMultiE)
-            _file_path = _fname, _sr_samp_fact = _sr_samp_fact, _char = charMultiE, _det = _det, _me_approx = _me_approx) #OC14042018
+            _file_path = _fname, _sr_samp_fact = _sr_samp_fact, _char = charMultiE, _det = _det, _me_approx = _me_approx, #) #OC14042018
+            _file_bkp = True if(_fbk == True) else False) #OC14082018
+            
         #Consider treating detector here?
 
         arI = None
@@ -1734,7 +1737,8 @@ class SRWLBeamline(object):
     #def calc_wfr_emit_prop_me(self, _mesh, _sr_samp_fact=1, _sr_meth=2, _sr_rel_prec=0.01, _mag_type=1, _n_part_tot=100000, _n_part_avg_proc=10, _n_save_per=50, _pres_ang=0, _char=0, _x0=0, _y0=0, _e_ph_integ=0, _rand_meth=1, _fname=None):
     #def calc_wfr_emit_prop_me(self, _mesh, _sr_samp_fact=1, _sr_meth=2, _sr_rel_prec=0.01, _in_wr=0., _mag_type=1, _n_part_tot=100000, _n_part_avg_proc=10, _n_save_per=50, _pres_ang=0, _char=0, _x0=0, _y0=0, _e_ph_integ=0, _rand_meth=1, _fname=None):
     #def calc_wfr_emit_prop_me(self, _mesh, _sr_samp_fact=1, _sr_meth=2, _sr_rel_prec=0.01, _in_wr=0., _mag_type=1, _n_part_tot=100000, _n_part_avg_proc=10, _n_save_per=50, _pres_ang=0, _char=0, _x0=0, _y0=0, _e_ph_integ=0, _rand_meth=1, _fname=None, _det=None): #OC06122016
-    def calc_wfr_emit_prop_me(self, _mesh, _sr_samp_fact=1, _sr_meth=2, _sr_rel_prec=0.01, _in_wr=0., _in_wre=0., _mag_type=1, _n_part_tot=100000, _n_part_avg_proc=10, _n_save_per=50, _pres_ang=0, _char=0, _x0=0, _y0=0, _e_ph_integ=0, _rand_meth=1, _fname=None, _det=None, _me_approx=0): #OC05042017
+    #def calc_wfr_emit_prop_me(self, _mesh, _sr_samp_fact=1, _sr_meth=2, _sr_rel_prec=0.01, _in_wr=0., _in_wre=0., _mag_type=1, _n_part_tot=100000, _n_part_avg_proc=10, _n_save_per=50, _pres_ang=0, _char=0, _x0=0, _y0=0, _e_ph_integ=0, _rand_meth=1, _fname=None, _det=None, _me_approx=0): #OC05042017
+    def calc_wfr_emit_prop_me(self, _mesh, _sr_samp_fact=1, _sr_meth=2, _sr_rel_prec=0.01, _in_wr=0., _in_wre=0., _mag_type=1, _n_part_tot=100000, _n_part_avg_proc=10, _n_save_per=50, _pres_ang=0, _char=0, _x0=0, _y0=0, _e_ph_integ=0, _rand_meth=1, _fname=None, _det=None, _me_approx=0, _fbk=False): #OC14082018
         """Calculates multi-electron (/ partially coherent) SR emission and wavefront propagation
         :param _mesh: mesh (grid) on which the initial wavefront has to be calculated (SRWLRadMesh instance)
         :param _sr_samp_fact: oversampling factor for calculating of initial wavefront for subsequent propagation (effective if >0)
@@ -1807,7 +1811,8 @@ class SRWLBeamline(object):
             #_e_ph_integ = _e_ph_integ, _rand_meth = _rand_meth)
             #_e_ph_integ = _e_ph_integ, _rand_meth = _rand_meth, _det = _det) #OC06122016
             #_e_ph_integ = _e_ph_integ, _rand_meth = _rand_meth, _det = _det, _me_approx = _multi_e_approx) #OC05042017
-            _e_ph_integ = _e_ph_integ, _rand_meth = _rand_meth, _det = _det, _me_approx = _me_approx) #OC14042018
+            _e_ph_integ = _e_ph_integ, _rand_meth = _rand_meth, _det = _det, _me_approx = _me_approx, 
+            _file_bkp = True if(_fbk == True) else False) #OC14082018
 
     #------------------------------------------------------------------------
     ##def srwl_uti_parse_optics_par(self, _v):
@@ -2164,7 +2169,8 @@ class SRWLBeamline(object):
                     _fname = os.path.join(_v.fdir, _v.sm_fn) if(len(_v.sm_fn) > 0) else '',
                     _sr_samp_fact = _v.sm_smpf,
                     _det = detector,
-                    _me_approx = _v.sm_am) #OC13042018
+                    _me_approx = _v.sm_am, #) #OC13042018
+                    _fbk = True if(_v.sm_fbk) else False) #OC14082018
 
         #---calculate undulator "operation table", i.e. dependence of gap (and phase) on photon energy (for a given polarization)
         if(_v.ut):
@@ -2355,6 +2361,7 @@ class SRWLBeamline(object):
             if(_v.wm):
                 #wmResFileName = os.path.join(_v.fdir, _v.wm_fni) if(len(_v.wm_fni) > 0) else None
                 #print(wmResFileName)
+                #print('_v.wm_fbk=', _v.wm_fbk)
                 
                 res_ipm = self.calc_wfr_emit_prop_me(
                     _mesh = mesh_w,
@@ -2376,7 +2383,8 @@ class SRWLBeamline(object):
                     _fname = os.path.join(_v.fdir, _v.wm_fni) if(len(_v.wm_fni) > 0) else None,
                     _det = detector,
                     #_multi_e_approx = _v.wm_am)
-                    _me_approx = _v.wm_am) #OC13042018
+                    _me_approx = _v.wm_am, #) #OC13042018
+                    _fbk = True if(_v.wm_fbk) else False) #OC14082018
 
         #---plot results of all calculatiopns here (because the plotting "from the middle of the script" may hang up script execution)
         #uti_plot_init('TkAgg') #make the backend name an input option or move this to uti_plot ?
@@ -2793,6 +2801,7 @@ def srwl_uti_std_options():
         ['sm_am', 'i', 0, 'multi-electron integration approximation method: 0- no approximation (use the standard 5D integration method), 1- integrate numerically only over e-beam energy spread and use convolution to treat transverse emittance'],
         ['sm_fn', 's', 'res_spec_me.dat', 'file name for saving calculated milti-e spectrum vs photon energy'],
         ['sm_pl', 's', 'e', 'plot the resulting spectrum-e spectrum in a graph: ""- dont plot, "e"- show plot vs photon energy'],
+        ['sm_fbk', '', '', 'create backup file(s) with multi-e spectrum (only is it is calculated using the macro-particle method)', 'store_true'],
 
     #Power Density Distribution vs horizontal and vertical position
         ['pw', '', '', 'calculate SR power density distribution', 'store_true'],
@@ -2877,6 +2886,7 @@ def srwl_uti_std_options():
         ['wm_rm', 'i', 1, 'method for generation of pseudo-random numbers for e-beam phase-space integration: 1- standard pseudo-random number generator, 2- Halton sequences, 3- LPtau sequences (to be implemented)'],
         ['wm_am', 'i', 0, 'multi-electron integration approximation method: 0- no approximation (use the standard 5D integration method), 1- integrate numerically only over e-beam energy spread and use convolution to treat transverse emittance'],
         ['wm_fni', 's', 'res_int_pr_me.dat', 'file name for saving propagated multi-e intensity distribution vs horizontal and vertical position'],
+        ['wm_fbk', '', '', 'create backup file(s) with propagated multi-e intensity distribution vs horizontal and vertical position and other radiation characteristics', 'store_true'],
 
         #['ws_fn', 's', '', 'file name for saving single-e (/ fully coherent) wavefront data'],
         #['wm_fn', 's', '', 'file name for saving multi-e (/ partially coherent) wavefront data'],

@@ -124,6 +124,9 @@ def read_image(image_path):  # MR26102017
     except:
         raise ImportError(msg.format('pillow'))
 
+    #OC11112018 (as suggested by Rafael Celestre, to walk around image size limit)
+    Image.MAX_IMAGE_PIXELS = None
+
     # Read the image:
     raw_image = Image.open(image_path)
     image_format = raw_image.format
