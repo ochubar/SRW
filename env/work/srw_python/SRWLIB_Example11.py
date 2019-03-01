@@ -168,7 +168,7 @@ auxMeshP = deepcopy(wfrI.mesh)
 
 #Defining a perfect 2D parabolic CRL (with dispersion):
 #Be CRL array, 5 m focusing distance 905 m
-print('Setting-up CRL (with dispersion)...')
+print('   Setting-up CRL (with dispersion) ... ')
 eStartCRL = 34.01e+03 # Initial Photon Energy [eV]
 eFinCRL = 36.11e+03 #Final Photon Energy [eV]
 #Refractive Index Decrement tabulated (with constant step) for the photon energy from eStartCRL to eFinCRL
@@ -294,7 +294,7 @@ if(srwl_uti_proc_is_master()):
     print('done')
 #sys.exit(0)
     
-print('   Starting simulation of Partially-Coherent Wavefront Propagation (takes a lot of time)... ')
+print('   Starting simulation of Partially-Coherent Wavefront Propagation (takes a lot of time) ... ')
 nMacroElec = 50000 #Total number of Macro-Electrons (Wavefronts)
 nMacroElecAvgOneProc = 5 #Number of Macro-Electrons (Wavefronts) to average on each node (for MPI calculations)
 nMacroElecSavePer = 5 #Saving periodicity (in terms of Macro-Electrons) for the Resulting Intensity

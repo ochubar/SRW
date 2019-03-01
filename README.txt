@@ -31,8 +31,8 @@ II.1.1.	Microsoft Visual C++ 2015 (or later version) solution file (SRW.sln), wh
 	- SRW C demo client (file SRWLClientC.vcxproj),
 can be found in SRW_Dev/cpp/vc. The SRWLClientPython project file allows for compiling "srwlpy.pyd" shared library, i.e. SRW for Python 2.7 or/and 3.x (64-bit or 32-bit); SRWLClientIgor allows for compiling "SRW.xop" shared library, i.e. SRW for IGOR Pro (32-bit only). Free Microsoft Visual Studio Community 2015 (or later versions) can be used.
 	To compile SRW library supporting OpenMP based parallel calculations (e.g. for XFEL applications):
-	- In the Visual C++ Configuration Manager, select "ReleaseOMP" version of the SRWLIB project, then re-compile SRWLIB and SRWLClientPython under the "x64" Solution Platform to produce a 64-bit version of SRW for Python supporting OpenMP based parallel calculations. 
-	- Note that the "ReleaseOMP" version of the SRWLIB project has only two differences with respect to the standard version: the "_WITH_OMP" preprocessor definition is added to Configuration Properties -> C/C++ -> Preprocessor -> Preprocessor Definitions, and the "Open MP Support" option is set to "Yes (/openmp)" in Configuration Properties -> C/C++ -> Language -> Open MP Support.
+	- In the Visual C++ Configuration Manager, select "Release_omp" version of the SRWLIB project, then re-compile SRWLIB and SRWLClientPython under the "x64" Solution Platform to produce a 64-bit version of SRW for Python supporting OpenMP based parallel calculations. 
+	- Note that the "Release_omp" version of the SRWLIB project has only a few differences with respect to the standard version: the "_WITH_OMP" preprocessor definition is added to Configuration Properties -> C/C++ -> Preprocessor -> Preprocessor Definitions, the "Open MP Support" option is set to "Yes (/openmp)" in Configuration Properties -> C/C++ -> Language -> Open MP Support, and the linking is made with older versions of the FFTW library (FFTW 2.5), whereas the "normal" compilation / linking is with the FFTW 3.8.
 
 II.2. Checking the examples.
 
@@ -54,7 +54,6 @@ III.1.1. Compiling using Python "distutils" module.
 	To compile SRW library supporting OpenMP based parallel calculations (e.g. for XFEL applications) use add "MODE=omp" after "make all":
 	make all MODE=omp
 	This should compile libsrw.a and srwlpy.so, and copy srwlpy.so to SRW_Dev/env/work/srw_python/
-
 
 III.1.2. Compiling without "distutils".
 
@@ -141,5 +140,6 @@ R. Lindberg (ANL)
 L. Rebuffi (ELETTRA - ANL)
 D. Bruhwiler (RadiaSoft LLC)
 R. Nagler (RadiaSoft LLC)
-P. Moeller (Bivio Inc)
+P. Moeller (RadiaSoft LLC)
+B. Nash (RadiaSoft LLC)
 

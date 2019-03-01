@@ -468,6 +468,7 @@ int srTDriftSpace::PropagateRadiationSimple_PropFromWaist(srTSRWRadStructAccessD
 
 	PropBufVars.PassNo = 2;
 	if(result = TraverseRadZXE(pRadAccessData)) return result;
+
 	return result;
 }
 

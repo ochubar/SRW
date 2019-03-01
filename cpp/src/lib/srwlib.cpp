@@ -881,8 +881,12 @@ EXP int CALL srwlPropagElecField(SRWLWfr* pWfr, SRWLOptC* pOpt, int nInt, char**
 
 EXP int CALL srwlUtiFFT(char* pcData, char typeData, double* arMesh, int nMesh, int dir)
 {
-	if((pcData == 0) || (arMesh == 0) || (typeData != 'f') || (nMesh < 3) || (dir == 0)) return SRWL_INCORRECT_PARAM_FOR_FFT;
-	//to support typeData == 'd' later
+	if((pcData == 0) || (arMesh == 0) || ((typeData != 'f') && (typeData != 'd')) || (nMesh < 3) || (dir == 0)) return SRWL_INCORRECT_PARAM_FOR_FFT; //OC31012019
+
+#ifndef _FFTW3 //OC31012019
+	if(typeData == 'd') return SRWL_INCORRECT_PARAM_FOR_FFT; 
+#endif
+
 	int locErNo = 0;
 	try 
 	{
@@ -893,14 +897,25 @@ EXP int CALL srwlUtiFFT(char* pcData, char typeData, double* arMesh, int nMesh, 
 
 		int dimFFT = 1;
 		if(ny > 1) dimFFT = 2;
-
-		float *pfData = (float*)pcData;
+		//float *pfData = (float*)pcData; //OC31012019 (commented-out)
 
 		if(dimFFT == 1)
 		{
 			CGenMathFFT1DInfo FFT1DInfo;
-			FFT1DInfo.pInData = pfData;
-			FFT1DInfo.pOutData = pfData; //does this ensure in-place FFT?
+
+			if(typeData == 'f')
+			{
+				FFT1DInfo.pInData = (float*)pcData;
+				FFT1DInfo.pOutData = FFT1DInfo.pInData;
+			}
+#ifdef _FFTW3 //OC31012019
+			else if(typeData == 'd')
+			{
+				FFT1DInfo.pdInData = (double*)pcData;
+				FFT1DInfo.pdOutData = FFT1DInfo.pdInData;
+			}
+#endif
+
 			FFT1DInfo.Dir = (char)dir;
 			FFT1DInfo.xStart = arMesh[0];
 			FFT1DInfo.xStep = arMesh[1];
@@ -917,7 +932,18 @@ EXP int CALL srwlUtiFFT(char* pcData, char typeData, double* arMesh, int nMesh, 
 		else
 		{
 			CGenMathFFT2DInfo FFT2DInfo;
-			FFT2DInfo.pData = pfData;
+			//FFT2DInfo.pData = pfData;
+			if(typeData == 'f') //OC31012019
+			{
+				FFT2DInfo.pData = (float*)pcData;
+			}
+#ifdef _FFTW3 //OC31012019
+			else if(typeData == 'd')
+			{
+				FFT2DInfo.pdData = (double*)pcData;
+			}
+#endif
+
 			FFT2DInfo.Dir = (char)dir;
 			FFT2DInfo.xStart = arMesh[0];
 			FFT2DInfo.xStep = arMesh[1];
@@ -1124,7 +1150,7 @@ EXP int CALL srwlUtiConvWithGaussian(char* pcData, char typeData, double* arMesh
 
 //-------------------------------------------------------------------------
 
-EXP int CALL srwlUtiIntInf(double* arInf, char* pcData, char typeData, SRWLRadMesh* pMesh)
+EXP int CALL srwlUtiIntInf(double* arInf, char* pcData, char typeData, SRWLRadMesh* pMesh, double* arPar, int nPar)
 {//OC24092018
 	if((arInf == 0) || (pcData == 0) || ((typeData != 'f') && (typeData != 'd')) || (pMesh == 0)) return SRWL_INCORRECT_PARAM_FOR_INT_STAT;
 	try 
@@ -1200,19 +1226,23 @@ EXP int CALL srwlUtiIntInf(double* arInf, char* pcData, char typeData, SRWLRadMe
 		InData.DimSteps[2] = step3;
 **/
 
-		float arInfAux[5];
+		double arInfAux[7]; //OC03012019
+		//double arInfAux[5]; //OC02012019
+		//float arInfAux[5];
 		srTWaveAccessData OutData;
 		OutData.pWaveData = (char*)arInfAux;
-		OutData.WaveType[0] = 'f';
+		OutData.WaveType[0] = 'd'; //OC02012019
+		//OutData.WaveType[0] = 'f';
 		OutData.AmOfDims = 1;
-		OutData.DimSizes[0] = 5; //to update to 3D data case in the future
+		OutData.DimSizes[0] = 7; //5; //to update to 3D data case in the future
 		OutData.DimSizes[1] = 0;
 		OutData.DimStartValues[0] = 0;
 		OutData.DimSteps[0] = 1;
 
 		srTAuxMatStat AuxMatStat;
 		int res = 0;
-		if(res = AuxMatStat.FindSimplestStat(InData, OutData)) throw res;
+		if(res = AuxMatStat.FindSimplestStat(InData, OutData, arPar, nPar)) throw res; //OC29122018
+		//if(res = AuxMatStat.FindSimplestStat(InData, OutData)) throw res;
 
 		//re-arranging res. data for eventual 3D case
 		for(int i=0; i<3; i++) arInf[i] = arInfAux[i];
@@ -1220,6 +1250,13 @@ EXP int CALL srwlUtiIntInf(double* arInf, char* pcData, char typeData, SRWLRadMe
 		arInf[4] = arInfAux[3];
 		arInf[5] = arInfAux[4];
 		arInf[6] = 0;
+
+		if(nPar > 1)
+		{//OC03012019
+			arInf[7] = arInfAux[5];
+			arInf[8] = arInfAux[6];
+			arInf[9] = 0;
+		}
 	}
 	catch(int erNo)
 	{

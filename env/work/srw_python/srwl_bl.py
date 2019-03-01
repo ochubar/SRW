@@ -5,7 +5,7 @@
 # of a complete user beamline in a synchrotron radiation source.
 # Under development!!!
 # Authors/Contributors: O.C., Maksim Rakitin
-# v 0.06
+# v 0.09
 #############################################################################
 
 from __future__ import print_function #Python 2.7 compatibility
@@ -286,10 +286,14 @@ class SRWLBeamline(object):
         """
 
         if(_add == 0):
-            if(self.mag_approx is not None):
-                del self.mag_approx
+            if(hasattr(self, 'mag_approx')): #OC16122018
+                if(self.mag_approx is not None):
+                    del self.mag_approx
 
-        if(self.mag_approx is None): self.mag_approx = SRWLMagFldC()
+        #if(self.mag_approx is None): self.mag_approx = SRWLMagFldC()
+        if((not hasattr(self, 'mag_approx')) or (self.mag_approx is None)): #OC16122018
+            #print('Setting up mag_approx')
+            self.mag_approx = SRWLMagFldC()
 
         und = SRWLMagFldU()
         und.set_sin(_per, _len, _bx, _by, _phx, _phy, _sx, _sy)
@@ -632,7 +636,7 @@ class SRWLBeamline(object):
         """
 
         sErMes = 'Magnetic Field is not defined'
-        if(self.mag is None): Exception(sErMes)
+        if(self.mag is None): raise Exception(sErMes)
         if(isinstance(self.mag, SRWLMagFldC) == False): raise Exception(sErMes)
 
         arHarm = []
@@ -728,8 +732,13 @@ class SRWLBeamline(object):
         """
 
         #if((_op is None) or (isinstance(_op, SRWLOptC) == False)):
-        if((_op is None) or (not isinstance(_op, SRWLOptC))):
-            raise Exception('Incorrect optics container (SRWLOptC) structure')
+        #if((_op is None) or (not isinstance(_op, SRWLOptC))):
+        #    raise Exception('Incorrect optics container (SRWLOptC) structure')
+
+        if(_op is None): #OC16122018
+            if(_v.op_func is None):
+                raise Exception('Optics container structure (SRWLOptC) or function for setting it up is not defined')
+            else: _op = _v.op_func(_v) #assuming _v.op_func is reference to set_optics function of virtual beamline script
 
         #print(_v)
         if(_v is not None): #OC28042018
@@ -786,13 +795,13 @@ class SRWLBeamline(object):
         :return: trajectory structure
         """
 
-        if(self.eBeam is None): Exception('Electron Beam structure is not defined')
+        if(self.eBeam is None): raise Exception('Electron Beam structure is not defined')
 
         if(_mag_type == 1):
-            if(self.mag_approx is None): Exception('Approximate Magnetic Field is not defined')
+            if(self.mag_approx is None): raise Exception('Approximate Magnetic Field is not defined')
         elif(_mag_type == 2):
-            if(self.mag is None): Exception('Magnetic Field is not defined')
-        else: Exception('Incorrect Magnetic Field type identificator')
+            if(self.mag is None): raise Exception('Magnetic Field is not defined')
+        else: raise Exception('Incorrect Magnetic Field type identificator')
 
         magToUse = self.mag_approx
         if(_mag_type == 2):
@@ -863,7 +872,7 @@ class SRWLBeamline(object):
         resMeshI = deepcopy(_wfr.mesh)
 
         depType = resMeshI.get_dep_type()
-        if(depType < 0): Exception('Incorrect numbers of points in the mesh structure')
+        if(depType < 0): raise Exception('Incorrect numbers of points in the mesh structure')
         
         arI = array(sNumTypeInt, [0]*resMeshI.ne*resMeshI.nx*resMeshI.ny)
         srwl.CalcIntFromElecField(arI, _wfr, _pol, _int_type, depType, resMeshI.eStart, resMeshI.xStart, resMeshI.yStart)
@@ -929,17 +938,17 @@ class SRWLBeamline(object):
         #elif((_mesh.ne > 1) and (_mesh.nx > 1) and (_mesh.ny > 1)): depType = 6
 
         #depType = _mesh.get_dep_type() #OC06042018
-        #if(depType < 0): Exception('Incorrect numbers of points in the mesh structure')
+        #if(depType < 0): raise Exception('Incorrect numbers of points in the mesh structure')
 
-        if(self.eBeam is None): Exception('Electron Beam structure is not defined')
+        if(self.eBeam is None): raise Exception('Electron Beam structure is not defined')
 
         #print('In the beginning of calc_sr_se, mag_approx:', self.mag_approx)
 
         if(_mag_type == 1):
-            if(self.mag_approx is None): Exception('Approximate Magnetic Field is not defined')
+            if(self.mag_approx is None): raise Exception('Approximate Magnetic Field is not defined')
         elif(_mag_type == 2):
-            if(self.mag is None): Exception('Magnetic Field is not defined')
-        else: Exception('Incorrect Magnetic Field type identificator')
+            if(self.mag is None): raise Exception('Magnetic Field is not defined')
+        else: raise Exception('Incorrect Magnetic Field type identificator')
 
         magToUse = self.mag_approx
         if(_mag_type == 2):
@@ -1045,7 +1054,7 @@ class SRWLBeamline(object):
         #elif((_mesh.ne > 1) and (_mesh.nx > 1) and (_mesh.ny > 1)): depType = 6
 
         #depType = _mesh.get_dep_type() #OC11102017
-        #if(depType < 0): Exception('Incorrect numbers of points in the mesh structure')
+        #if(depType < 0): raise Exception('Incorrect numbers of points in the mesh structure')
 
         wfr = SRWLWfr()
         wfr.allocate(_mesh.ne, _mesh.nx, _mesh.ny) #Numbers of points vs Photon Energy, Horizontal and Vertical Positions
@@ -1157,7 +1166,7 @@ class SRWLBeamline(object):
         #elif((_mesh.ne > 1) and (_mesh.nx > 1) and (_mesh.ny > 1)): depType = 6
 
         #depType = _mesh.get_dep_type()
-        #if(depType < 0): Exception('Incorrect numbers of points in the mesh structure')
+        #if(depType < 0): raise Exception('Incorrect numbers of points in the mesh structure')
 
         wfr = SRWLWfr()
         wfr.allocate(_mesh.ne, _mesh.nx, _mesh.ny) #Numbers of points vs Photon Energy, Horizontal and Vertical Positions
@@ -1264,10 +1273,10 @@ class SRWLBeamline(object):
         #elif((_mesh.ne > 1) and (_mesh.nx > 1) and (_mesh.ny > 1)): depType = 6
 
         depType = _mesh.get_dep_type() #OC06042018
-        if(depType < 0): Exception('Incorrect numbers of points in the mesh structure')
+        if(depType < 0): raise Exception('Incorrect numbers of points in the mesh structure')
 
-        if(self.eBeam is None): Exception('Electron Beam structure is not defined')
-        if(self.mag_approx is None): Exception('Approximate Magnetic Field is not defined')
+        if(self.eBeam is None): raise Exception('Electron Beam structure is not defined')
+        if(self.mag_approx is None): raise Exception('Approximate Magnetic Field is not defined')
 
         stk = SRWLStokes()
         stk.allocate(_mesh.ne, _mesh.nx, _mesh.ny) #numbers of points vs photon energy, horizontal and vertical positions
@@ -1336,14 +1345,14 @@ class SRWLBeamline(object):
         if((_mesh is None) or (not isinstance(_mesh, SRWLRadMesh))):
             raise Exception('Incorrect SRWLRadMesh structure')
 
-        if(self.eBeam is None): Exception('Electron Beam structure is not defined')
+        if(self.eBeam is None): raise Exception('Electron Beam structure is not defined')
 
         mag2use = self.mag
         if(_mag == 1):
-            if(self.mag_approx is None): Exception('Approximate Magnetic Field is not defined')
+            if(self.mag_approx is None): raise Exception('Approximate Magnetic Field is not defined')
             mag2use = self.mag_approx
         else:
-            if(self.mag is None): Exception('Accurate Magnetic Field is not defined')
+            if(self.mag is None): raise Exception('Accurate Magnetic Field is not defined')
 
         charMultiE = 0 #Calculate intensity (flux per unit surface by default)
         if(_type == 1): charMultiE = 10 #Calculate flux
@@ -1390,13 +1399,14 @@ class SRWLBeamline(object):
         if((_mesh is None) or (not isinstance(_mesh, SRWLRadMesh))):
             raise Exception('Incorrect SRWLRadMesh structure')
 
-        if(self.eBeam is None): Exception('Electron Beam structure is not defined')
+        #if(self.eBeam is None): Exception('Electron Beam structure is not defined')
+        if(self.eBeam is None): raise Exception('Electron Beam structure is not defined') #AH03022019 (identified raise missing in many places)
 
         if(_mag_type == 1):
-            if(self.mag_approx is None): Exception('Approximate Magnetic Field is not defined')
+            if(self.mag_approx is None): raise Exception('Approximate Magnetic Field is not defined')
         elif(_mag_type == 2):
-            if(self.mag is None): Exception('Magnetic Field is not defined')
-        else: Exception('Incorrect Magnetic Field type identificator')
+            if(self.mag is None): raise Exception('Magnetic Field is not defined')
+        else: raise Exception('Incorrect Magnetic Field type identificator')
 
         magToUse = self.mag_approx
         if(_mag_type == 2): magToUse = self.mag
@@ -1430,7 +1440,7 @@ class SRWLBeamline(object):
 
         #print('_mesh.xStart=', _mesh.xStart, '_mesh.xFin=', _mesh.xFin)
 
-        if(self.eBeam is None): Exception('Electron Beam structure is not defined')
+        if(self.eBeam is None): raise Exception('Electron Beam structure is not defined')
 
         fPathSum = ''
         if(_meas_or_calc == 'm'):
@@ -1785,10 +1795,10 @@ class SRWLBeamline(object):
             raise Exception('Incorrect optics container (SRWLOptC) structure')
 
         if(_mag_type == 1):
-            if(self.mag_approx is None): Exception('Approximate Magnetic Field is not defined')
+            if(self.mag_approx is None): raise Exception('Approximate Magnetic Field is not defined')
         elif(_mag_type == 2):
-            if(self.mag is None): Exception('Magnetic Field is not defined')
-        else: Exception('Incorrect Magnetic Field type identificator')
+            if(self.mag is None): raise Exception('Magnetic Field is not defined')
+        else: raise Exception('Incorrect Magnetic Field type identificator')
 
         magToUse = self.mag_approx
         if(_mag_type == 2): magToUse = self.mag
@@ -1815,22 +1825,387 @@ class SRWLBeamline(object):
             _file_bkp = True if(_fbk == True) else False) #OC14082018
 
     #------------------------------------------------------------------------
-    ##def srwl_uti_parse_optics_par(self, _v):
-    #def parse_optics_par(self, _v):
-    #    """Attempts to setup optical element container from list of optical element options
-    #    :param _v: an object containing set of variables / options defining optical elements
-    #    """
-    #return None
+    def cost_func(self, _x, *_aux):
+        """Standard Cost Function used for optimization of optical elements and possibly sources"""
+
+        x_lim = _aux[0]
+        #print(x_lim)
+        
+        v = _aux[1] #all params for optical simulation
+        cw = v.om_cw #optimization weights for different criterions
+        ct = v.om_ct #target values of different criterions
+        cn = v.om_cn #nominal values of different criterions
+        #[0]- horizontal spot size,
+        #[1]- vertucal spot size,
+        #[2]- horizontal angular divergence,
+        #[3]- vertical angular divergence,
+        #[4]- horizontal coherence length,
+        #[5]- vertical coherence length,
+        #[6]- peak intensity,
+        #[7]- given intensity distribution
+        
+        nmVars = v.om_pn
+        nVars = len(_x)
+        if((nVars != len(nmVars)) or (nVars != len(x_lim))):
+            raise Exception("Inconsistent numbers of optimization parameters / names / limits")
+
+        if(not self.uti_math_opt.check_limits(_x, x_lim)): return 1.e+23 #to tune
+        
+        for i in range(nVars): 
+            #curNameVar = nmVars[i]
+            #curVar = getattr(v, curNameVar)
+            #print(curNameVar, '= ', curVar)
+            setattr(v, nmVars[i], _x[i]) #setting instant values of optimization variables
+
+        self.calc_all(v) #run forward-simulation
+        cost = 0
+        
+        #Calculate cost based of weights, target and nominal values of radiation characteristics
+        if(v.si or v.ws or v.wg): #fully-coherent / single-electron calculations
+
+            #To uncomment when / if MPI will be used for fully-coherent (e.g. time-dependent) calculations:
+            #if(self.comMPI is not None): self.comMPI.Barrier() #synchronizing all processes in case if MPI is used (e.g. for partially-coherent calculations)
+
+            s2pr = '  '
+            frm = '{:04.6g}'
+            def critInf(_parDescr, _parName, _subCost):
+                return (' '+_parDescr+'='+frm).format(_parName) + (' (sub-cost:'+frm+')').format(_subCost)
+                
+            wfr = v.w_res            
+            infIsReq = v.om_pr or v.om_fl
+
+            if((cw['xFWHM'] > 0) or (cw['yFWHM'] > 0) or (cw['iM'] > 0) or (cw['xFWFM'] > 0) or (cw['yFWFM'] > 0)): #horizontal, vertical sizes, and peak intensity
+            #if((cw[0] > 0) or (cw[1] > 0) or (cw[6] > 0)): #horizontal, vertical sizes, and peak intensity
+                
+                meshI = wfr.mesh
+                arI = array('f', [0]*meshI.nx*meshI.ny) #"flat" 2D array to take intensity data
+                srwl.CalcIntFromElecField(arI, wfr, 6, 0, 3, meshI.eStart, 0, 0) #total intensity vs x and y; consider adding different polarizations
+
+                arParInf = [0]
+                if((cw['xFWFM'] > 0) or (cw['yFWFM'] > 0)):
+                    arParInf = [0, 0, 0]
+                    if(cw['xFWFM'] > 0): arParInf[1] = v.om_ce['xFWFM']
+                    if(cw['yFWFM'] > 0): arParInf[2] = v.om_ce['yFWFM']
+                
+                infI = srwl.UtiIntInf(arI, meshI, arParInf)
+                
+                if((cw['xFWHM'] > 0) and (cn['xFWHM'] > 0)): #horizontal size
+                #if((cw[0] > 0) and (cn[0] > 0)): #horizontal size
+                    xFWHM = infI[4]
+                    rx = (xFWHM - ct['xFWHM'])/cn['xFWHM']
+                    dCost = cw['xFWHM']*rx*rx
+                    #if(infIsReq): s2pr += (' xFWHM='+frm).format(xFWHM) + (' (sub-cost:'+frm+')').format(dCost)
+                    if(infIsReq): s2pr += critInf('xFWHM', xFWHM, dCost)
+                    cost += dCost
+
+                if((cw['yFWHM'] > 0) and (cn['yFWHM'] > 0)): #vertical size
+                    yFWHM = infI[5]
+                    ry = (yFWHM - ct['yFWHM'])/cn['yFWHM']
+                    dCost = cw['yFWHM']*ry*ry
+                    #if(infIsReq): s2pr += (' yFWHM='+frm).format(yFWHM) + (' (sub-cost:'+frm+')').format(dCost)
+                    if(infIsReq): s2pr += critInf('yFWHM', yFWHM, dCost)
+                    cost += dCost
+
+                if((cw['xFWFM'] > 0) and (cn['xFWFM'] > 0)): #additional horizontal size
+                    xFWFM = infI[7]
+                    rx = (xFWFM - ct['xFWFM'])/cn['xFWFM']
+                    dCost = cw['xFWFM']*rx*rx
+                    #if(infIsReq): s2pr += (' xFWFM='+frm).format(xFWFM) + (' (sub-cost:'+frm+')').format(dCost)
+                    if(infIsReq): s2pr += critInf('xFWHM', xFWHM, dCost)
+                    cost += dCost
+
+                if((cw['yFWFM'] > 0) and (cn['yFWFM'] > 0)): #additional vertical size
+                    yFWFM = infI[8]
+                    ry = (yFWFM - ct['yFWFM'])/cn['yFWFM']
+                    dCost = cw['yFWFM']*ry*ry
+                    #if(infIsReq): s2pr += (' yFWFM='+frm).format(yFWFM) + (' (sub-cost:'+frm+')').format(dCost)
+                    if(infIsReq): s2pr += critInf('yFWFM', yFWFM, dCost)
+                    cost += dCost
+
+                if((cw['iM'] > 0) and (cn['iM'] > 0)): #peak intensity
+                    maxI = infI[0]
+                    rI = (maxI - ct['iM'])/cn['iM']
+                    dCost = cw['iM']*rI*rI
+                    #if(infIsReq): s2pr += (' iM='+frm).format(maxI) + (' (sub-cost:'+frm+')').format(dCost)
+                    if(infIsReq): s2pr += critInf('iM', maxI, dCost)
+                    cost += dCost
+
+            if((cw['xpFWHM'] > 0) or (cw['ypFWHM'] > 0)): #horizontal and vertical angular divergences
+                srwl.SetRepresElecField(wfr, 'a')
+                meshI = wfr.mesh
+                arI = array('f', [0]*meshI.nx*meshI.ny) #"flat" 2D array to take intensity data
+                srwl.CalcIntFromElecField(arI, wfr, 6, 0, 3, meshI.eStart, 0, 0) #total intensity vs x and y; consider adding different polarizations
+
+                arParInf = [0]
+                if((cw['xpFWFM'] > 0) or (cw['ypFWFM'] > 0)):
+                    arParInf = [0, 0, 0]
+                    if(cw['xpFWFM'] > 0): arParInf[1] = v.om_ce['xpFWFM']
+                    if(cw['ypFWFM'] > 0): arParInf[2] = v.om_ce['ypFWFM']
+
+                infI = srwl.UtiIntInf(arI, meshI, arParInf)
+                
+                if((cw['xpFWHM'] > 0) and (cn['xpFWHM'] > 0)): #horizontal angular divergence
+                    xpFWHM = infI[4]
+                    rxp = (xpFWHM - ct['xpFWHM'])/cn['xpFWHM']
+                    dCost = cw['xpFWHM']*rxp*rxp
+                    #if(infIsReq): s2pr += (' xpFWHM='+frm).format(xpFWHM) + (' (sub-cost:'+frm+')').format(dCost)
+                    if(infIsReq): s2pr += critInf('xpFWHM', xpFWHM, dCost)
+                    cost += dCost
+
+                if((cw['ypFWHM'] > 0) and (cn['ypFWHM'] > 0)): #vertical angular divergence
+                    ypFWHM = infI[5]
+                    ryp = (ypFWHM - ct['ypFWHM'])/cn['ypFWHM']
+                    dCost = cw['ypFWHM']*ryp*ryp
+                    #if(infIsReq): s2pr += (' ypFWHM='+frm).format(ypFWHM) + (' (sub-cost:'+frm+')').format(dCost)
+                    if(infIsReq): s2pr += critInf('ypFWHM', ypFWHM, dCost)
+                    cost += dCost
+
+                if((cw['xpFWFM'] > 0) and (cn['xpFWFM'] > 0)): #additional horizontal angular divergence
+                    xpFWFM = infI[7]
+                    rxp = (xpFWFM - ct['xpFWFM'])/cn['xpFWFM']
+                    dCost = cw['xpFWFM']*rxp*rxp
+                    #if(infIsReq): s2pr += (' xpFWFM='+frm).format(xpFWFM) + (' (sub-cost:'+frm+')').format(dCost)
+                    if(infIsReq): s2pr += critInf('xpFWFM', xpFWFM, dCost)
+                    cost += dCost
+
+                if((cw['ypFWFM'] > 0) and (cn['ypFWFM'] > 0)): #additional vertical angular divergence
+                    ypFWFM = infI[8]
+                    ryp = (ypFWFM - ct['ypFWFM'])/cn['ypFWFM']
+                    dCost = cw['ypFWFM']*ryp*ryp
+                    #if(infIsReq): s2pr += (' ypFWFM='+frm).format(ypFWFM) + (' (sub-cost:'+frm+')').format(dCost)
+                    if(infIsReq): s2pr += critInf('ypFWFM', ypFWFM, dCost)
+                    cost += dCost
+
+            #if(cw['iD'] > 0): #arbitrary intensity distribution, to implement!
+               
+        if(v.wm): #partially-coherent / multi-electron calculations (add treatment of the Gaussian-Schell case later)
+
+            if(self.comMPI is not None): self.comMPI.Barrier() #synchronizing all processes in case if MPI is used (e.g. for partially-coherent calculations)
+
+            if(len(v.wm_fni) > 0): #load Intensity / Degree of Coherence from files and analyze the data
+
+                if(((cw['xFWHM'] > 0) or (cw['yFWHM'] > 0) or (cw['iM'] > 0)) and ((v.wm_ap == 0) or (v.wm_ap == 2))): #horizontal, vertical sizes and peak intensity
+                    if((v.wm_ch == 0) or (v.wm_ch == 40)):
+                        arI, meshI = srwl_uti_read_intens_ascii(os.path.join(os.getcwd(), v.fdir, v.wm_fni), 'f')
+
+                        arParInf = [0]
+                        if((cw['xFWFM'] > 0) or (cw['yFWFM'] > 0)):
+                            arParInf = [0, 0, 0]
+                            if(cw['xFWFM'] > 0): arParInf[1] = v.om_ce['xFWFM']
+                            if(cw['yFWFM'] > 0): arParInf[2] = v.om_ce['yFWFM']
+
+                        infI = srwl.UtiIntInf(arI, meshI, arParInf)
+            
+                        if((cw['xFWHM'] > 0) and (cn['xFWHM'] > 0)): #horizontal size
+                            xFWHM = infI[4]
+                            rx = (xFWHM - ct['xFWHM'])/cn['xFWHM']
+                            dCost = cw['xFWHM']*rx*rx
+                            if(infIsReq): s2pr += critInf('xFWHM', xFWHM, dCost)
+                            cost += dCost
+
+                        if((cw['yFWHM'] > 0) and (cn['yFWHM'] > 0)): #vertical size
+                            yFWHM = infI[5]
+                            ry = (yFWHM - ct['yFWHM'])/cn['yFWHM']
+                            dCost = cw['yFWHM']*ry*ry
+                            if(infIsReq): s2pr += critInf('yFWHM', yFWHM, dCost)
+                            cost += dCost
+
+                        if((cw['xFWFM'] > 0) and (cn['xFWFM'] > 0)): #additional horizontal size
+                            xFWFM = infI[7]
+                            rx = (xFWFM - ct['xFWFM'])/cn['xFWFM']
+                            dCost = cw['xFWFM']*rx*rx
+                            if(infIsReq): s2pr += critInf('xFWFM', xFWFM, dCost)
+                            cost += dCost
+
+                        if((cw['yFWFM'] > 0) and (cn['yFWFM'] > 0)): #additional vertical size
+                            yFWFM = infI[8]
+                            ry = (yFWFM - ct['yFWFM'])/cn['yFWFM']
+                            dCost = cw['yFWFM']*ry*ry
+                            if(infIsReq): s2pr += critInf('yFWFM', yFWFM, dCost)
+                            cost += dCost
+
+                        if((cw['iM'] > 0) and (cn['iM'] > 0)): #peak intensity
+                            maxI = infI[0]
+                            rI = (maxI - ct['iM'])/cn['iM']
+                            dCost = cw['iM']*rI*rI
+                            if(infIsReq): s2pr += critInf('iM', maxI, dCost)
+                            cost += dCost
+            
+                if(((cw['xpFWHM'] > 0) or (cw['ypFWHM'] > 0)) and ((v.wm_ap == 1) or (v.wm_ap == 2))): #horizontal and vertical angular divergences
+                    #if((v.wm_ch == 0) or (v.wm_ch == 40)):
+                    fnAngI = v.wm_fni
+                    if(v.wm_ap == 2): fnAngI = srwl_wfr_fn(v.wm_fni, 2)
+                    arI, meshI = srwl_uti_read_intens_ascii(os.path.join(os.getcwd(), v.fdir, fnAngI), 'f')
+
+                    arParInf = [0]
+                    if((cw['xpFWFM'] > 0) or (cw['ypFWFM'] > 0)):
+                        arParInf = [0, 0, 0]
+                        if(cw['xpFWFM'] > 0): arParInf[1] = v.om_ce['xpFWFM']
+                        if(cw['ypFWFM'] > 0): arParInf[2] = v.om_ce['ypFWFM']
+
+                    infI = srwl.UtiIntInf(arI, meshI, arParInf) #estimate FWHMs, starting search from extremities of the distribution
+
+                    if((cw['xpFWHM'] > 0) and (cn['xpFWHM'] > 0)): #horizontal divergence
+                        xpFWHM = infI[4]
+                        rx = (xpFWHM - ct['xpFWHM'])/cn['xpFWHM']
+                        dCost = cw['xpFWHM']*rx*rx
+                        if(infIsReq): s2pr += critInf('xpFWHM', xpFWHM, dCost)
+                        cost += dCost
+
+                    if((cw['ypFWHM'] > 0) and (cn['ypFWHM'] > 0)): #vertical divergence
+                        ypFWHM = infI[5]
+                        ry = (ypFWHM - ct['ypFWHM'])/cn['ypFWHM']
+                        dCost = cw['ypFWHM']*ry*ry
+                        if(infIsReq): s2pr += critInf('ypFWHM', ypFWHM, dCost)
+                        cost += dCost
+
+                    if((cw['xpFWFM'] > 0) and (cn['xpFWFM'] > 0)): #additional horizontal angular divergence
+                        xpFWFM = infI[7]
+                        rxp = (xpFWFM - ct['xpFWFM'])/cn['xpFWFM']
+                        dCost = cw['xpFWFM']*rxp*rxp
+                        if(infIsReq): s2pr += critInf('xpFWFM', xpFWFM, dCost)
+                        cost += dCost
+
+                    if((cw['ypFWFM'] > 0) and (cn['ypFWFM'] > 0)): #additional vertical angular divergence
+                        ypFWFM = infI[8]
+                        ryp = (ypFWFM - ct['ypFWFM'])/cn['ypFWFM']
+                        dCost = cw['ypFWFM']*ryp*ryp
+                        if(infIsReq): s2pr += critInf('ypFWFM', ypFWFM, dCost)
+                        cost += dCost
+
+                if(((cw['xCL'] > 0) or (cw['yCL'] > 0)) and ((v.wm_ch == 4) or (v.wm_ch == 40))): #horizontal and vertical coherence lengths
+
+                    if((cw['xCL'] > 0) and (cn['xCL'] > 0)): #horizontal coherence length
+                        fnDC = srwl_wfr_fn(v.wm_fni, 41)
+                        arDC, meshDC = srwl_uti_read_intens_ascii(os.path.join(os.getcwd(), v.fdir, fnDC), 'f')
+                        infDC = srwl.UtiIntInf(arDC, meshDC, [1]) #estimate FWHMs, starting search from center of the distribution
+                        xCoh = infDC[5] #cut vs (x1+x2)/2
+                        rx = (xCoh - ct['xCL'])/cn['xCL']
+                        dCost = cw['xCL']*rx*rx
+                        if(infIsReq): s2pr += critInf('xCL', xCoh, dCost)
+                        cost += dCost
+                        
+                    if((cw['yCL'] > 0) and (cn['yCL'] > 0)): #vertical coherence length
+                        fnDC = srwl_wfr_fn(v.wm_fni, 42)
+                        arDC, meshDC = srwl_uti_read_intens_ascii(os.path.join(os.getcwd(), v.fdir, fnDC), 'f')
+                        infDC = srwl.UtiIntInf(arDC, meshDC, [1]) #estimate FWHMs, starting search from center of the distribution
+                        yCoh = infDC[5] #cut vs (y1+y2)/2
+                        ry = (yCoh - ct['yCL'])/cn['yCL']
+                        dCost = cw['yCL']*ry*ry
+                        if(infIsReq): s2pr += critInf('yCL', yCoh, dCost)
+                        cost += dCost
+
+            #if(cw['iD'] > 0): #arbitrary intensity distribution, to implement!
+
+        if(v.om_pr or v.om_pr):
+            statStr = self.uti_math_opt.status_str(v.om_pn, _x, cost, frm, v.om_res)
+            if(v.om_pr): print(statStr)
+            if(v.om_fl): self.uti_math_opt.log_update(v.om_fnl, statStr)
+            
+        v.om_res = self.uti_math_opt.status_update(v.om_res, _x, cost)
+
+        return cost
 
     #------------------------------------------------------------------------
-    def calc_all(self, _v, _op):
+    def cancel_calc_req(self, _v):
+        """Calcel requests of any calculations in the parameter list _v
+        :param _v: an object containing set of variables / options defining SR source and required calculations
+        """
+        _v.om = False
+        _v.tr = False
+        _v.ss = False
+        _v.sm = False
+        _v.pw = False
+        _v.si = False
+        _v.ws = False
+        _v.wm = False
+        return _v
+
+    #------------------------------------------------------------------------
+    def calc_all(self, _v, _op=None): #16122018
+    #def calc_all(self, _v, _op):
         """Performs setup of electron beam, magnetic field, and performs calculations according to options specified in _v
         :param _v: an object containing set of variables / options defining SR source and required calculations
         :param _op: optical element container (SRWLOptC instance) that is assumed to be set up before calling this function and eventually used for wavefront propagation
         """
 
+        #---perform optimization of beamline and possibly source parameters (this should be processed before any other things)
+        if(_v.om): #since the optimization modifies params in _v and calls calc_all, it goes first
+            try: #16122018
+                import uti_math_opt
+                self.uti_math_opt = uti_math_opt
+                
+            except:
+                traceback.print_exc()
+                print('Optimization can not be performed (probably because required libraries are missing).')
+                return
+
+            try:
+                from mpi4py import MPI
+                self.comMPI = MPI.COMM_WORLD
+            except:
+                self.comMPI = None
+
+            _v.om = False #to avoid infinite nested loop
+
+            #_v.om_cw = uti_math_opt.norm_weights(_v.om_cw)
+            #Updating weight values in the hashtable (is there a simpler war to do the above manipulation?):
+            om_cw_vals = uti_math_opt.norm_weights([_v.om_cw[k] for k in _v.om_cw.keys()])
+            ik = 0
+            for k in _v.om_cw.keys():
+                _v.om_cw[k] = om_cw_vals[ik]
+                ik += 1
+            #print(_v.om_cw)
+
+            if(_v.om_pr): print('Optimization started ...')
+
+            if(_v.om_fl): _v.om_fnl = self.uti_math_opt.log_init('__srwl_logs__')
+
+            _v.om_res = [0]*(len(_v.om_iv) + 2) #array for storing instant optimization results in the process of the optimization
+            for ip in range(len(_v.om_iv)): _v.om_res[ip] = _v.om_iv[ip]
+            
+            uti_math_opt.minimize(self.cost_func, _v.om_iv, _x_lim=_v.om_lm, _meth=_v.om_mt, _opt=_v.om_mp, _aux=_v)
+            _v = self.cancel_calc_req(_v)
+
         #---main folder
         if hasattr(_v, 'fdir'): self.dir_main = _v.fdir
+
+        #---defining radiation source type (moved from def setup_source(v))
+        if hasattr(_v, 'rs_type'): #OC29012019
+
+            #_v.rs_tp == 'c' means combined SR source that may include several magnetic fields
+            
+            if((_v.rs_type != 'u') and (_v.rs_type != 'c')): #not idealized undulator / multi-pole wiggler (and e-beam)
+                if hasattr(_v, 'und_b'): _v.und_b = 0;
+                if hasattr(_v, 'und_by'): _v.und_by = 0; 
+                if hasattr(_v, 'und_bx'): _v.und_bx = 0;
+
+            if((_v.rs_type != 't') and (_v.rs_type != 'c')): #not ID with tabulated magnetic field, including dependence on gap / phase (and e-beam)
+                if hasattr(_v, 'und_g'): del _v.und_g
+
+            if((_v.rs_type != 'd') and (_v.rs_type != 'c')): #not idealized dipole magnet with eventual gradient (and e-beam)
+                if hasattr(_v, 'mag_bx'): _v.mag_bx = 0
+                if hasattr(_v, 'mag_by'): _v.mag_by = 0
+                if hasattr(_v, 'mag_gn'): _v.mag_gn = 0
+                if hasattr(_v, 'mag_gs'): _v.mag_gs = 0
+
+            if((_v.rs_type != 'a') and (_v.rs_type != 'c')): #not tabulated magnetic field not depending on gap / phase, i.e. arbitrary magnetic field source (and e-beam)
+                if hasattr(_v, 'mag_ifn'): del _v.mag_ifn
+
+            if(_v.rs_type != 'g'): #fully-coherent Gaussian radiation beam
+                if hasattr(_v, 'gbm_pen'): del _v.gbm_pen
+
+            if(_v.rs_type != 'p'): #point radiation source
+                if hasattr(_v, 'psc_fl'): del _v.psc_fl
+
+            #if(_v.rs_tp != 'gm'): #partially-coherent Gaussian Schell model radiation beam, defined through e-beam and coherent Gaussian beam
+            #    pass
+            #if(_v.rs_tp != 'f'): #FEL radiation beam in the format of GENESIS code output file(s)
+            #    pass
+            #if(_v.rs_tp != 'ws'): #fully-coherent SRW wavefront in pickle (or other) file format
+            #    pass
+            #if(_v.rs_tp != 'wm'): #partially-coherent SRW radiation represented as a set of fully-coherent wavefronts (format TBD)
+            #    pass
 
         #---setup electron beam
         #if(hasattr(_v, 'ebm_nm')): #To improve
@@ -1946,7 +2321,7 @@ class SRWLBeamline(object):
                         _zc = _v.und2_cmz,
                         _add = 1)
 
-        #---setup magnetic field: undulator, tabulated (e.g. measured) magnetic field 
+        #---setup magnetic field: undulator, tabulated (e.g. measured) magnetic field (a set of 3D magnetic field data files for different gaps / phases with a summary file)
         magnMeasDirExists = False
         if hasattr(_v, 'und_mdir'):
             self.dir_magn_meas = _v.und_mdir
@@ -2017,28 +2392,57 @@ class SRWLBeamline(object):
                 _zc = _v.mag_zc)
             #self.mag = None #OC16122016 (commented-out)
             
-        #---setup magnetic field: tabulated
-        magnMeasDirExists = False
-        if hasattr(_v, 'mag_mdir'):
-            #self.dir_magn_meas = _v.mag_mdir
-            if(len(_v.mag_mdir) > 0):
-                if hasattr(_v, 'mag_ifn'):
-                    magPath = os.path.join(os.getcwd(), self.dir_main, _v.mag_mdir, _v.mag_ifn)
-                   
-                    if(os.path.exists(magPath)):
-                        #print("")
-                        #print(magPath)
-                        #print("")
-                        self.set_mag_tab(#setup magnet from tabulated magnetic field data file
-                            _fpath = magPath,
-                            _zc = _v.mag_zc,
-                            _interp_ord = 3)
-                        
-                        #self.mag_approx = None #OC16122016 (commented-out)
-                        #forcing using tabulated field for whatever calculaitons (?):
-                        #_v.ss_mag = 2
-                        #_v.w_mag = 2
-                        #_v.tr_mag = 2
+        #---setup arbitrary magnetic field source from one file of tabulated 3D magnetic field data
+        if hasattr(_v, 'mag_fn'):
+            if(len(_v.mag_fn) > 0):
+                magPath = os.getcwd()
+                if hasattr(self, 'dir_main'):
+                    if(len(self.dir_main) > 0): magPath = os.path.join(magPath, self.dir_main)
+                if hasattr(_v, 'mag_mdir'):
+                    if(len(_v.mag_mdir) > 0): magPath = os.path.join(magPath, _v.mag_mdir)
+                magPath = os.path.join(magPath, _v.mag_fn)
+
+                #if(os.path.exists(magPath)):
+                #    #print('')
+                #    #print(magPath)
+                #    #print('')
+                #    ordInterp = 1
+                #    if hasattr(_v, 'mag_ior'): ordInterp = _v.mag_ior
+                #    self.set_mag_tab(#setup magnet from tabulated magnetic field data file
+                #        _fpath = magPath,
+                #        _zc = _v.mag_zc,
+                #        _interp_ord = ordInterp)
+                    
+                if(not os.path.exists(magPath)): #AH03022019
+                    raise Exception('Magnetic field file {} can not be found'.format(_v.mag_fn))
+                ordInterp = 1
+                if hasattr(_v, 'mag_ior'): ordInterp = _v.mag_ior
+                self.set_mag_tab(#setup magnet from tabulated magnetic field data file
+                    _fpath = magPath,
+                    _zc = _v.mag_zc,
+                    _interp_ord = ordInterp)
+
+        #magnMeasDirExists = False
+        #if hasattr(_v, 'mag_mdir'):
+        #    #self.dir_magn_meas = _v.mag_mdir
+        #    if(len(_v.mag_mdir) > 0):
+        #        if hasattr(_v, 'mag_ifn'):
+        #            magPath = os.path.join(os.getcwd(), self.dir_main, _v.mag_mdir, _v.mag_ifn)
+        #           
+        #            if(os.path.exists(magPath)):
+        #                #print("")
+        #                #print(magPath)
+        #                #print("")
+        #                self.set_mag_tab(#setup magnet from tabulated magnetic field data file
+        #                    _fpath = magPath,
+        #                    _zc = _v.mag_zc,
+        #                    _interp_ord = 3)
+        #                
+        #                #self.mag_approx = None #OC16122016 (commented-out)
+        #                #forcing using tabulated field for whatever calculaitons (?):
+        #                #_v.ss_mag = 2
+        #                #_v.w_mag = 2
+        #                #_v.tr_mag = 2
 
         #---setup Gaussian beam
         if hasattr(_v, 'gbm_pen'):
@@ -2072,15 +2476,6 @@ class SRWLBeamline(object):
                     _unitFlux = _v.psc_ufl,
                     _polar = _v.psc_pol)
 
-        #---calculate electron trajectory
-        if(_v.tr):
-            #print(self.eBeam.partStatMom1.z)
-            #trj = self.calc_el_trj(
-            _v.tr_res = self.calc_el_trj( #OC15112017
-                _ctst = _v.tr_cti, _ctfi = _v.tr_ctf, _np = _v.tr_np,
-                _mag_type = _v.tr_mag,
-                _fname = os.path.join(_v.fdir, _v.tr_fn) if(len(_v.tr_fn) > 0) else '')
-
         #---setup detector (that may be used at different calculations)
         detector = None
         if((_v.d_rx > 0.) and (_v.d_nx > 0) and (_v.d_ry > 0.) and (_v.d_ny > 0)): #OC06122016
@@ -2095,6 +2490,30 @@ class SRWLBeamline(object):
                 _dy = _v.d_dy,
                 _ord = _v.d_or,
                 _fname = os.path.join(_v.fdir, _v.d_ifn) if(len(_v.d_ifn) > 0) else '')
+
+        #---calculate electron trajectory
+        if(_v.tr):
+            #print(self.eBeam.partStatMom1.z)
+            #trj = self.calc_el_trj(
+            _v.tr_res = self.calc_el_trj( #OC15112017
+                _ctst = _v.tr_cti, _ctfi = _v.tr_ctf, _np = _v.tr_np,
+                _mag_type = _v.tr_mag,
+                _fname = os.path.join(_v.fdir, _v.tr_fn) if(len(_v.tr_fn) > 0) else '')
+
+        ##---setup detector (that may be used at different calculations)
+        #detector = None
+        #if((_v.d_rx > 0.) and (_v.d_nx > 0) and (_v.d_ry > 0.) and (_v.d_ny > 0)): #OC06122016
+        #    detector = self.set_detector(
+        #        _x = _v.d_x,
+        #        _rx = _v.d_rx,
+        #        _nx = _v.d_nx,
+        #        _dx = _v.d_dx,
+        #        _y = _v.d_y,
+        #        _ry = _v.d_ry,
+        #        _ny = _v.d_ny,
+        #        _dy = _v.d_dy,
+        #        _ord = _v.d_or,
+        #        _fname = os.path.join(_v.fdir, _v.d_ifn) if(len(_v.d_ifn) > 0) else '')
 
         #---calculate single-e spectrum vs photon energy
         if(_v.ss or _v.gs): 
@@ -2742,6 +3161,38 @@ def srwl_uti_std_options():
         ['und_b2e', '', '', 'estimate undulator fundamental photon energy (in [eV]) for the amplitude of sinusoidal magnetic field defined by und_b or und_bx, und_by', 'store_true'],
         ['und_e2b', '', '', 'estimate undulator field amplitude (in [T]) for the photon energy defined by w_e', 'store_true'],
 
+#---Dipole Magnet (with eventual field gradient)
+        ['mag_by', 'f', 0., 'vertical magnetic field [T]'],
+        ['mag_bx', 'f', 0., 'horizontal magnetic field [T]'],
+        ['mag_bn', 'f', 0., 'normal magnetic field quadrupole [T/m]'],
+        ['mag_bs', 'f', 0., 'skew magnetic field quadrupole [T/m]'],
+        ['mag_len', 'f', 3.0, 'magnetic length [m]'],
+        ['mag_led', 'f', 0., 'magnetic edge length bw 10% and 90% of peak field [m]; G/(1 + ((z-zc)/d)^2)^2 field dependence is assumed'],
+        ['mag_r', 'f', 0., 'radius of curvature of central trajectory [m] (for simulating e.g. quadrupole component integrated to a bending magnet; effective if > 0)'],
+        ['mag_zc', 'f', 0., 'center longitudinal position [m]'],
+
+#---Arbitrary Magnetic Field
+        ['mag_fn', 's', '', 'input 3D magnetic field file name'],
+        ['mag_ior', 'f', 3, 'interpolation order to use for tabulated magnetic field (1<= mag_ior <= 3)'],
+
+#---Coherent Gaussian Beam
+        ['gbm_pen', 'f', 0., 'energy per pulse [J] (needs to be >0 for the Gaussian beam to be set up)'],
+        ['gbm_x', 'f', 0.0, 'average horizontal coordinates of waist [m]'],
+        ['gbm_y', 'f', 0.0, 'average vertical coordinates of waist [m]'],
+        ['gbm_z', 'f', 0.0, 'average longitudinal coordinate of waist [m]'],
+        ['gbm_xp', 'f', 0.0, 'average horizontal angle at waist [rad]'],
+        ['gbm_yp', 'f', 0.0, 'average verical angle at waist [rad]'],
+        ['gbm_ave', 'f', 9000.0, 'average photon energy [eV]'],
+        ['gbm_rep', 'f', 1, 'rep. rate [Hz]'],
+        ['gbm_pol', 'f', 1, 'polarization 1- lin. hor., 2- lin. vert., 3- lin. 45 deg., 4- lin.135 deg., 5- circ. right, 6- circ. left'],
+        ['gbm_sx', 'f', 9.78723e-06, 'rms beam size vs horizontal position [m] at waist (for intensity)'],
+        ['gbm_sy', 'f', 9.78723e-06, 'rms beam size vs vertical position [m] at waist (for intensity)'],
+        ['gbm_st', 'f', 1e-13, 'rms pulse duration [s] (for intensity)'],
+        ['gbm_mx', 'f', 0, 'transverse Gauss-Hermite mode order in horizontal direction'],
+        ['gbm_my', 'f', 0, 'transverse Gauss-Hermite mode order in vertical direction'],
+        ['gbm_ca', 's', 'c', 'treat _sigX, _sigY as sizes in [m] in coordinate representation (_presCA="c") or as angular divergences in [rad] in angular representation (_presCA="a")'],
+        ['gbm_ft', 's', 't', 'treat _sigT as pulse duration in [s] in time domain/representation (_presFT="t") or as bandwidth in [eV] in frequency domain/representation (_presFT="f")'],
+
 #---Calculation Types
     #Electron Trajectory
         ['tr', '', '', 'calculate electron trajectory', 'store_true'],
@@ -2907,6 +3358,16 @@ def srwl_uti_std_options():
         ['d_or', 'f', 1, 'interpolation order (i.e. order of polynomials to be used at 2D interpolation)'],
         ['d_ifn', 's', '', 'file name with detector spectral efficiency data (on 1D mesh vs photon energy: _eStart, _eFin, _ne)'],
         #['d_ifn', 's', 'in_det_spec_eff.dat', 'file name with detector spectral efficiency data (on 1D mesh vs photon energy: _eStart, _eFin, _ne)'],
+
+    #Optimization
+        ['om', '', '', 'perform optimization of beamline parameters', 'store_true'],
+        ['om_pn', '', ['op_VFM_r', 'op_HFM_r', 'op_S0_Dy', 'op_S0H_Dx'], 'names of parameters to be optimized'],
+        ['om_iv', 'f', [20000., 20000., 1e-05, 1e-05], 'initial values of parameters to be optimized'],
+        ['om_pb', 'f', [[10000.,30000.], [10000.,30000.], [1.e-06,0.001], [1.e-06,0.001]], 'bounding (i.e. min. amd max. possible) values of parameters to be optimized'],
+        ['om_cw', 'f', [1, 1, 0, 0, 0, 0, 0], 'weights of different criterions the optimization should be performed for: [0]- horizontal spot size, [1]- vertucal spot size, [2]- horizontal angular divergence, [3]- vertical angular divergence, [4]- horizontal coherence length, [5]- vertical coherence length, [6]- given intensity distribution'],
+        ['om_cn', 'f', [1e-06, 1e-06, 0, 0, 0, 0, 0], 'nominal values of different criterions / figures of merit for the optimization, in the same order as defined by om_cw'],
+        ['om_mt', 'i', 0, 'optimization method to use: 0- ..., 1- ...'],
+        
 
         #to add options
     ]
@@ -3175,7 +3636,9 @@ if(os.getenv('SRWL_OPTPARSE')): #OC08032016
     srwl_uti_parse_options = srwl_uti_parse_options_obs
 
 #****************************************************************************
-#OC: This function function may need to be moved to SRWLBeamline class or renamed (to have name with prefixes / "decorations")
+#OC25012019: This function is obsolete; this processing is taking place in SRWLBeamline.calc_all().
+#The source type is defined by v.rs_tp string variable (instead of v.source_type).
+#OC (previously): This function function may need to be moved to SRWLBeamline class or renamed (to have name with prefixes / "decorations")
 def setup_source(v):  #MR20160617 - moved from Sirepo .jinja template
     mag = None
     if v.source_type in ['u', 't']:
@@ -3209,4 +3672,7 @@ def setup_source(v):  #MR20160617 - moved from Sirepo .jinja template
         raise AssertionError('{}: unknown source_type'.format(v.source_type))
 
     return v.source_type, mag
+
+
+
 

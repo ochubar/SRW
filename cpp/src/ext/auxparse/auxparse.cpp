@@ -21,7 +21,7 @@ void CAuxParse::StringSplitSimple(const char* c_strTot, int maxNumSymb, char cSe
 	int lenStrTot = (int)strlen(c_strTot);
 	if(lenStrTot == 0) return;
 	if(lenStrTot > maxNumSymb) lenStrTot = maxNumSymb;
-	
+
 	char *sBufStrTot = new char[lenStrTot + 1];
 	char *sBuf = new char[lenStrTot + 1];
 	strncpy(sBufStrTot, c_strTot, lenStrTot);

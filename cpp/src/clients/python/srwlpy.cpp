@@ -4750,7 +4750,7 @@ static PyObject* srwlpy_UtiFFT(PyObject *self, PyObject *args)
 			else 
 			{
 				typeData = 'd'; //Yet to implement
-				throw strEr_FloatArrayRequired;
+				//throw strEr_FloatArrayRequired;
 			}
 		}
 
@@ -4851,12 +4851,13 @@ static PyObject* srwlpy_UtiConvWithGaussian(PyObject *self, PyObject *args)
  ***************************************************************************/
 static PyObject* srwlpy_UtiIntInf(PyObject *self, PyObject *args)
 {
-	PyObject *oData=0, *oMesh=0, *oRes=0;
+	PyObject *oData=0, *oMesh=0, *oPar=0, *oRes=0;
 	vector<Py_buffer> vBuf;
-
+	double *arPar=0;
 	try
 	{
-		if(!PyArg_ParseTuple(args, "OO:UtiIntInf", &oData, &oMesh)) throw strEr_BadArg_UtiIntInf;
+		//if(!PyArg_ParseTuple(args, "OO|O:UtiIntInf", &oData, &oMesh)) throw strEr_BadArg_UtiIntInf;
+		if(!PyArg_ParseTuple(args, "OO|O:UtiIntInf", &oData, &oMesh, &oPar)) throw strEr_BadArg_UtiIntInf;
 		if((oData == 0) || (oMesh == 0)) throw strEr_BadArg_UtiIntInf;
 
 		char *pcData=0;
@@ -4875,9 +4876,16 @@ static PyObject* srwlpy_UtiIntInf(PyObject *self, PyObject *args)
 		else if(dataItemSize == (Py_ssize_t)sizeof(double)) typeData = 'd';
 		else throw strEr_BadArg_UtiIntInf;
 
-		const int nInf = 7;
+		int nPar = 0;
+		if(oPar != 0) //OC29122018
+		{
+			CopyPyListElemsToNumArray(oPar, 'd', arPar, nPar);
+		}
+
+		const int nInf = 10; //7;
 		double resInf[nInf];
-		ProcRes(srwlUtiIntInf(resInf, pcData, typeData, &mesh));
+		ProcRes(srwlUtiIntInf(resInf, pcData, typeData, &mesh, arPar, nPar)); //OC02012019
+		//ProcRes(srwlUtiIntInf(resInf, pcData, typeData, &mesh));
 
 		oRes = SetPyListOfLists(resInf, nInf, 1, (char*)"d");
 	}
@@ -4887,6 +4895,7 @@ static PyObject* srwlpy_UtiIntInf(PyObject *self, PyObject *args)
 	}
 
 	ReleasePyBuffers(vBuf);
+	if(arPar != 0) delete[] arPar;
 
 	if(oRes) Py_XINCREF(oRes);
 	return oRes;

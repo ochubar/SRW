@@ -263,7 +263,7 @@ optBL = SRWLOptC([opCr1,     opCr2,  opDCM_Samp],
 
 #**********************Calculation
 #***********Initial Gaussian Beam Wavefront
-print('Calculating initial wavefront...', end='')
+print('   Calculating initial wavefront ... ', end='')
 t0 = time.time()
 srwl.CalcElecFieldGaussian(wfr, GsnBm, [sampFactNxNyForProp])
 print('done in', round(time.time() - t0), 's')
@@ -273,46 +273,46 @@ meshP0vsT = None; meshP0vsXY = None; #meshP0vsX = None; meshP0vsY = None
 tc0 = 0 #Time moment for power density cut [s]
 if((wfr.mesh.ne > 1) and (wfr.presFT == 1)):
 
-    print('Extracting initial power (density) in time domain and saving to files...', end='')
+    print('   Extracting initial power (density) in time domain and saving to files ... ', end='')
     t0 = time.time()
     [[arPI0vsT, arP0vsT, arF0vsXYdummy, arP0vsXY], [meshP0vsT, meshP0vsXY]] = ExtractAndSavePulseData(wfr, os.path.join(os.getcwd(), strDataFolderName, strIntOutFileNameCore0), _ec=tc0)
     print('done in', round(time.time() - t0), 's')
 
-    print('Resizing: increasing time range to improve resolution in frequency domain...', end='')
+    print('   Resizing: increasing time range to improve resolution in frequency domain ... ', end='')
     t0 = time.time()
     srwl.ResizeElecField(wfr, 'f', [0, 35., 0.7])
     print('done in', round(time.time() - t0), 's')
 
-    print('Switching from time to frequency domain...', end='')
+    print('   Switching from time to frequency domain ... ', end='')
     t0 = time.time()
     srwl.SetRepresElecField(wfr, 'f')
     print('done in', round(time.time() - t0), 's')
 
-    print('Resizing: decreasing photon energy range to speed-up calculation and save memory...', end='')
+    print('   Resizing: decreasing photon energy range to speed-up calculation and save memory ... ', end='')
     t0 = time.time()
     srwl.ResizeElecField(wfr, 'f', [0, 0.12, 1.])
     print('done in', round(time.time() - t0), 's')
 
 ec0 = wfr.avgPhotEn #Photon energy for spectral fluence cut [eV]
 
-print('Extracting initial spectral fluence in frequency domain and saving it to files...', end='')
+print('   Extracting initial spectral fluence in frequency domain and saving it to files ... ', end='')
 t0 = time.time()
 [[arII0vsE, arI0vsE, arF0vsXY, arI0vsXY], [meshI0vsE, meshI0vsXY]] = ExtractAndSavePulseData(wfr, os.path.join(os.getcwd(), strDataFolderName, strIntOutFileNameCore0), _ec=ec0)
 print('done in', round(time.time() - t0), 's')
 
 #***********Wavefront Propagation
 if(wfr.mesh.ne > 1):
-    print('Starting propagation of time/frequency-dependent radiation pulse (may take many munites)')
+    print('   Starting propagation of time/frequency-dependent radiation pulse (may take many munites)')
 else:
-    print('Starting propagation of monochromatic wavefront')
-print('Propagating wavefront...', end='')
+    print('   Starting propagation of monochromatic wavefront')
+print('   Propagating wavefront ... ', end='')
 t0 = time.time()
 srwl.PropagElecField(wfr, optBL)
 print('done in', round(time.time() - t0), 's')
 
 ec1 = wfr.avgPhotEn #Photon energy for spectral fluence cut [eV]
 
-print('Extracting propagated spectral fluence in frequency domain and saving it to files...', end='')
+print('   Extracting propagated spectral fluence in frequency domain and saving it to files ... ', end='')
 t0 = time.time()
 [[arII1vsE, arI1vsE, arF1vsXY, arI1vsXY], [meshI1vsE, meshI1vsXY]] = ExtractAndSavePulseData(wfr, os.path.join(os.getcwd(), strDataFolderName, strIntOutFileNameCore1), _ec=ec1)
 print('done in', round(time.time() - t0), 's')
@@ -321,22 +321,22 @@ arPI1vsT = None; arP1vsT = None; arP1vsXY = None
 meshP1vsT = None; meshP1vsXY = None
 tc1 = 40e-15 #-40e-15 #Time moment for power density cut [s]
 if(wfr.mesh.ne > 1):
-    print('Resizing: increasing photon energy range to increase resolution in time domain...', end='')
+    print('   Resizing: increasing photon energy range to increase resolution in time domain ... ', end='')
     t0 = time.time()
     srwl.ResizeElecField(wfr, 'f', [0, 3., 1.])
     print('done in', round(time.time() - t0), 's')
 
-    print('Switching from frequency to time domain...', end='')
+    print('   Switching from frequency to time domain ... ', end='')
     t0 = time.time()
     srwl.SetRepresElecField(wfr, 't')
     print('done in', round(time.time() - t0), 's')
 
-    print('Resizing: decreasing time range to reduce amount of output data...', end='')
+    print('   Resizing: decreasing time range to reduce amount of output data ... ', end='')
     t0 = time.time()
     srwl.ResizeElecField(wfr, 'f', [0, 0.2, 1.])
     print('done in', round(time.time() - t0), 's')
 
-    print('Extracting propagated power (density) in time domain and saving it to files...', end='')
+    print('   Extracting propagated power (density) in time domain and saving it to files ... ', end='')
     t0 = time.time()
     [[arPI1vsT, arP1vsT, arF1vsXYdummy, arP1vsXY], [meshP1vsT, meshP1vsXY]] = ExtractAndSavePulseData(wfr, os.path.join(os.getcwd(), strDataFolderName, strIntOutFileNameCore1), _ec=tc1)
     print('done in', round(time.time() - t0), 's')

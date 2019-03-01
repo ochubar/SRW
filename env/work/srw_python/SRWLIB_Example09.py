@@ -104,12 +104,12 @@ opApM1 = SRWLOptA('r', 'a', 10.e-03, lenM1*angM1)
 
 #M1 Surface Height Error
 #Read mirror slope arror data from file and setup the corresponding optical element
-print('Defining Transmission element (to simulate mirror surface slope error)...', end='')
+print('   Defining Transmission element (to simulate mirror surface slope error) ... ', end='')
 heightProfData = srwl_uti_read_data_cols(os.path.join(os.getcwd(), strDataFolderName, strMirSurfHeightErrInFileName01), _str_sep='\t', _i_col_start=0, _i_col_end=1)
 opTrErM1 = srwl_opt_setup_surf_height_1d(heightProfData, _dim='y', _ang=angM1, _amp_coef=1)
 #Use _amp_coef != 1 to scale surface height error
 print('done')
-print('Saving optical path difference data to file (for viewing/debugging)...', end='')
+print('   Saving optical path difference data to file (for viewing/debugging) ... ', end='')
 opPathDifErM1 = opTrErM1.get_data(3, 3)
 srwl_uti_save_intens_ascii(opPathDifErM1, opTrErM1.mesh, os.path.join(os.getcwd(), strDataFolderName, strMirOptPathDifOutFileName01), 0,
                            ['', 'Horizontal Position', 'Vertical Position', 'Opt. Path Diff.'], _arUnits=['', 'm', 'm', 'm'])
@@ -128,11 +128,11 @@ opVFM = SRWLOptMirEl(_p=(distSrc_M1 + distM1_VFM), _q=(distVFM_HFM + distHFM_Sam
                      _nvx=0, _nvy=cos(angKB), _nvz=-sin(angKB), _tvx=0, _tvy=-sin(angKB))
 
 #VFM Surface Height Error
-print('Defining Transmission element (to simulate mirror surface slope error)...', end='')
+print('   Defining Transmission element (to simulate mirror surface slope error) ... ', end='')
 opTrErVFM = srwl_opt_setup_surf_height_1d(heightProfData, _dim='y', _ang=angKB, _amp_coef=1)
 #Use _amp_coef != 1 to scale surface height error
 print('done')
-print('Saving optical path difference data to file (for viewing/debugging)...', end='')
+print('   Saving optical path difference data to file (for viewing/debugging) ... ', end='')
 opPathDifErVFM = opTrErVFM.get_data(3, 3)
 opPathDifErVFMy = opTrErVFM.get_data(3, 2) #for plotting
 srwl_uti_save_intens_ascii(opPathDifErVFM, opTrErVFM.mesh, os.path.join(os.getcwd(), strDataFolderName, strMirOptPathDifOutFileName02), 0,
@@ -149,11 +149,11 @@ opHFM = SRWLOptMirEl(_p=(distSrc_M1 + distM1_VFM + distVFM_HFM), _q=distHFM_Samp
                      _nvx=cos(angKB), _nvy=0, _nvz=-sin(angKB), _tvx=-sin(angKB), _tvy=0)
 
 #HFM Surface Height Error
-print('Defining Transmission element (to simulate mirror surface slope error)...', end='')
+print('   Defining Transmission element (to simulate mirror surface slope error) ... ', end='')
 opTrErHFM = srwl_opt_setup_surf_height_1d(heightProfData, _dim='x', _ang=angKB, _amp_coef=1)
 #Use _amp_coef != 1 to scale surface height error
 print('done')
-print('Saving optical path difference data to file (for viewing/debugging)...', end='')
+print('   Saving optical path difference data to file (for viewing/debugging) ... ', end='')
 opPathDifErHFM = opTrErHFM.get_data(3, 3)
 srwl_uti_save_intens_ascii(opPathDifErHFM, opTrErHFM.mesh, os.path.join(os.getcwd(), strDataFolderName, strMirOptPathDifOutFileName03), 0,
                            ['', 'Horizontal Position', 'Vertical Position', 'Opt. Path Diff.'], _arUnits=['', 'm', 'm', 'm'])
@@ -213,12 +213,12 @@ srwl_uti_save_intens_ascii(arP0, mesh0, os.path.join(os.getcwd(), strDataFolderN
                            ['Photon Energy', 'Horizontal Position', 'Vertical Position', 'Phase'], _arUnits=['eV', 'm', 'm', 'rad'])
 
 #***********Wavefront Propagation
-print('Propagating wavefront...', end='')
+print('   Propagating wavefront ... ', end='')
 t0 = time.time();
 srwl.PropagElecField(wfr, optBL)
 print('done in', round(time.time() - t0), 's')
 
-print('Saving propagated wavefront intensity and phase to files...', end='')
+print('   Saving propagated wavefront intensity and phase to files ... ', end='')
 mesh1 = deepcopy(wfr.mesh)
 arI1 = array('f', [0]*mesh1.nx*mesh1.ny) #"flat" array to take 2D intensity data
 srwl.CalcIntFromElecField(arI1, wfr, 6, 0, 3, mesh1.eStart, 0, 0) #extracts intensity

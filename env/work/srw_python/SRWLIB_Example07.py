@@ -98,9 +98,9 @@ opMeshCRL = None
 
 #Generating a perfect 2D parabolic CRL:
 if(opCRLperf != None):
-    print('Setting-up Perfect CRL...')
+    print('   Setting-up Perfect CRL ...')
     opCRLperf = srwl_opt_setup_CRL(3, delta, attenLen, 1, diamCRL, diamCRL, rMinCRL, nCRL, wallThickCRL, 0, 0)
-    print('done')
+    print('   done')
     #Extracting transmission data characteristic for subsequent plotting and saving it to a file
     opPathDifCRL = opCRLperf.get_data(3, 3)
     srwl_uti_save_intens_ascii(opPathDifCRL, opCRLperf.mesh, os.path.join(os.getcwd(), strDataFolderName, strOpPathOutFileName2), 0, ['', 'Horizontal Position', 'Vertical Position', 'Opt. Path Diff.'], _arUnits=['', 'm', 'm', 'm'])
@@ -109,7 +109,7 @@ if(opCRLperf != None):
     opMeshCRL = opCRLperf.mesh
 
 if(opCRLdist != None):
-    print('Setting-up CRL Distorted by \"voids\" in volume (takes time)...')
+    print('   Setting-up CRL Distorted by \"voids\" in volume (takes time) ...')
     #Generating array of Void Centers and Radii, and a CRL with these (spherical) Voids:
     nVoidInRectPar = 100 #1000 #parameter controlling density of voids
     baseNx = 201 #(auxiliary) numbers of points in tabulated functions to be used (in the rejection method)
@@ -150,7 +150,7 @@ if(opCRLdist != None):
         #print('Void Coord. and Rad. (x, y, r):', arVoidCenCoordInCRL[3*i], arVoidCenCoordInCRL[3*i + 1], arVoidCenCoordInCRL[3*i + 2])
     #Generating distorted CRL, with voids
     opCRLdist = srwl_opt_setup_CRL(3, delta, attenLen, 1, diamCRL, diamCRL, rMinCRL, nCRL, wallThickCRL, 0, 0, arVoidCenCoordInCRL)
-    print('done')
+    print('   done')
     #Extracting transmission data characteristic for subsequent plotting and saving it to a file
     opPathDifCRL = opCRLdist.get_data(3, 3)
     srwl_uti_save_intens_ascii(opPathDifCRL, opCRLdist.mesh, os.path.join(os.getcwd(), strDataFolderName, strOpPathOutFileName1), 0, ['', 'Horizontal Position', 'Vertical Position', 'Opt. Path Diff.'], _arUnits=['', 'm', 'm', 'm'])   
@@ -207,10 +207,10 @@ if(opCRLdist != None):
     wfr1 = copy.deepcopy(wfr)
     wfr2 = copy.deepcopy(wfr)
 
-    print('Propagating Wavefront (through Distorted CRL and short Drift)...', end='')
+    print('   Propagating Wavefront (through Distorted CRL and short Drift) ... ', end='')
     srwl.PropagElecField(wfr1, optBLdistCDI)
     print('done')
-    print('Saving resulting Intensity and Phase data to files...', end='')
+    print('   Saving resulting Intensity and Phase data to files ... ', end='')
     mesh1 = deepcopy(wfr1.mesh)
     arI1 = array('f', [0]*mesh1.nx*mesh1.ny) #"flat" array to take 2D intensity data
     srwl.CalcIntFromElecField(arI1, wfr1, 6, 0, 3, mesh1.eStart, 0, 0) #extracts intensity
@@ -226,10 +226,10 @@ if(opCRLdist != None):
     del wfr1
     print('done')
 
-    print('Propagating Wavefront (through Distorted CRL and Drift to waist)...', end='')
+    print('   Propagating Wavefront (through Distorted CRL and Drift to waist) ... ', end='')
     srwl.PropagElecField(wfr2, optBLdist)
     print('done')
-    print('Saving resulting Intensity and Phase data to files...', end='')
+    print('   Saving resulting Intensity and Phase data to files ... ', end='')
     mesh2 = deepcopy(wfr2.mesh)
     arI2 = array('f', [0]*mesh2.nx*mesh2.ny) #"flat" array to take 2D intensity data
     srwl.CalcIntFromElecField(arI2, wfr2, 6, 0, 3, mesh2.eStart, 0, 0) #extracts intensity
@@ -246,10 +246,10 @@ if(opCRLdist != None):
     print('done')
 
 if(opCRLperf != None):
-    print('Propagating Wavefront (through Perfect CRL and Drift to waist)...', end='')
+    print('   Propagating Wavefront (through Perfect CRL and Drift to waist) ... ', end='')
     srwl.PropagElecField(wfr, optBLperf)
     print('done')
-    print('Saving resulting data to files...', end='')
+    print('   Saving resulting data to files ... ', end='')
     mesh3 = deepcopy(wfr.mesh)
     arI3 = array('f', [0]*mesh3.nx*mesh3.ny) #"flat" array to take 2D intensity data
     srwl.CalcIntFromElecField(arI3, wfr, 6, 0, 3, mesh3.eStart, 0, 0) #extracts intensity

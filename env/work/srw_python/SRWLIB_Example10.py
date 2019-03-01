@@ -207,7 +207,7 @@ if(srwl_uti_proc_is_master()):
 
 #sys.exit()
 
-print('   Starting simulation of Partially-Coherent Wavefront Propagation (takes a lot of time)... ')
+print('   Starting simulation of Partially-Coherent Wavefront Propagation (takes a lot of time) ... ')
 nMacroElec = 50000 #Total number of Macro-Electrons (Wavefronts)
 nMacroElecAvgOneProc = 5 #Number of Macro-Electrons (Wavefronts) to average on each node (for MPI calculations)
 nMacroElecSavePer = 5 #Saving periodicity (in terms of Macro-Electrons) for the Resulting Intensity

@@ -16,149 +16,176 @@
 
 //*************************************************************************
 
-int srTAuxMatStat::FindSimplestStat(srTWaveAccessData& InWaveData, srTWaveAccessData& OutSpotInfo)
+int srTAuxMatStat::FindSimplestStat(srTWaveAccessData& InWaveData, srTWaveAccessData& OutSpotInfo, double* arPar, int nPar) //OC29122018
+//int srTAuxMatStat::FindSimplestStat(srTWaveAccessData& InWaveData, srTWaveAccessData& OutSpotInfo)
 {
 	int result;
 	if(result = ValidateSpotData(InWaveData)) return result;
 
-	if(InWaveData.AmOfDims == 1) return FindSimplestStat1D(InWaveData, OutSpotInfo);
-	if(InWaveData.AmOfDims == 2) return FindSimplestStat2D(InWaveData, OutSpotInfo);
+	if(InWaveData.AmOfDims == 1) 
+	{//OC29122018
+		double xStart = (InWaveData.DimStartValues)[0], xStep = (InWaveData.DimSteps)[0];
+		long long lenArr = (InWaveData.DimSizes)[0];
+		char cType = *(InWaveData.WaveType);
+		char *pData = InWaveData.pWaveData;
+		if(cType == 'f') FindSimplestStat1D((float*)pData, xStart, xStep, lenArr, OutSpotInfo, arPar, nPar);
+		else FindSimplestStat1D((double*)pData, xStart, xStep, lenArr, OutSpotInfo, arPar, nPar);
+		//return FindSimplestStat1D(InWaveData, OutSpotInfo, arPar);
+	}
+	//if(InWaveData.AmOfDims == 1) return FindSimplestStat1D(InWaveData, OutSpotInfo);
+	if(InWaveData.AmOfDims == 2) 
+	{//02012019
+		double xStart = (InWaveData.DimStartValues)[0], xStep = (InWaveData.DimSteps)[0];
+		long long xLenArr = (InWaveData.DimSizes)[0];
+		double yStart = (InWaveData.DimStartValues)[1], yStep = (InWaveData.DimSteps)[1];
+		long long yLenArr = (InWaveData.DimSizes)[1];
+		char cType = *(InWaveData.WaveType);
+		char *pData = InWaveData.pWaveData;
+		if(cType == 'f') FindSimplestStat2D((float*)pData, xStart, xStep, xLenArr, yStart, yStep, yLenArr, OutSpotInfo, arPar, nPar);
+		else FindSimplestStat2D((double*)pData, xStart, xStep, xLenArr, yStart, yStep, yLenArr, OutSpotInfo, arPar, nPar);
+		//return FindSimplestStat2D(InWaveData, OutSpotInfo, arPar);
+	}
+	//if(InWaveData.AmOfDims == 2) return FindSimplestStat2D(InWaveData, OutSpotInfo);
 	return 0;
 };
 
 //*************************************************************************
 
-int srTAuxMatStat::FindSimplestStat1D(srTWaveAccessData& InWaveData, srTWaveAccessData& OutSpotInfo)
-{
-	double xStart = (InWaveData.DimStartValues)[0], xStep = (InWaveData.DimSteps)[0];
-	//long LenArr = (InWaveData.DimSizes)[0];
-	long long LenArr = (InWaveData.DimSizes)[0];
-
-	double MaxVal;
-	//long iMax;
-	long long iMax;
-	if(*(InWaveData.WaveType) == 'f')
-	{
-		float* p0 = (float*)(InWaveData.pWaveData);
-		FindMax1D(p0, LenArr, MaxVal, iMax);
-	}
-	else
-	{
-		DOUBLE* p0 = (DOUBLE*)(InWaveData.pWaveData);
-		FindMax1D(p0, (InWaveData.DimSizes)[0], MaxVal, iMax);
-	}
-	double xMax = xStart + iMax*xStep;
-
-	double HalfMaxVal = 0.5*MaxVal;
-	//long iHalfMaxLeft, iHalfMaxRight;
-	long long iHalfMaxLeft, iHalfMaxRight;
-	double yLeft1, yLeft2, yRight1, yRight2;
-	if(*(InWaveData.WaveType) == 'f')
-	{
-		float* p0 = (float*)(InWaveData.pWaveData);
-		FindIndHalfMaxLeftRight1D(p0, LenArr, HalfMaxVal, iHalfMaxLeft, iHalfMaxRight);
-
-		yLeft1 = *(p0 + iHalfMaxLeft); yLeft2 = *(p0 + iHalfMaxLeft + 1);
-		yRight1 = *(p0 + iHalfMaxRight); yRight2 = *(p0 + iHalfMaxRight + 1);
-	}
-	else
-	{
-		DOUBLE* p0 = (DOUBLE*)(InWaveData.pWaveData);
-		FindIndHalfMaxLeftRight1D(p0, LenArr, HalfMaxVal, iHalfMaxLeft, iHalfMaxRight);
-
-		yLeft1 = *(p0 + iHalfMaxLeft); yLeft2 = *(p0 + iHalfMaxLeft + 1);
-		yRight1 = *(p0 + iHalfMaxRight); yRight2 = *(p0 + iHalfMaxRight + 1);
-	}
-
-	double xLeft1 = xStart + iHalfMaxLeft*xStep;
-	double xLeft = xLeft1 + ((yLeft1 - HalfMaxVal)/(yLeft1 - yLeft2))*xStep;
-
-	double xRight1 = xStart + iHalfMaxRight*xStep;
-	double xRight = xRight1 + ((yRight1 - HalfMaxVal)/(yRight1 - yRight2))*xStep;
-
-	float* pOut = (float*)(OutSpotInfo.pWaveData);
-	*(pOut++) = (float)MaxVal;
-	*(pOut++) = (float)xMax;
-	*(pOut++) = 0;
-	*(pOut++) = (float)(xRight - xLeft);
-	*pOut = 0;
-	return 0;
-};
+//int srTAuxMatStat::FindSimplestStat1D(srTWaveAccessData& InWaveData, srTWaveAccessData& OutSpotInfo, double* arPar) //OC29122018
+////int srTAuxMatStat::FindSimplestStat1D(srTWaveAccessData& InWaveData, srTWaveAccessData& OutSpotInfo)
+//{
+//	double xStart = (InWaveData.DimStartValues)[0], xStep = (InWaveData.DimSteps)[0];
+//	//long LenArr = (InWaveData.DimSizes)[0];
+//	long long LenArr = (InWaveData.DimSizes)[0];
+//
+//	double MaxVal;
+//	//long iMax;
+//	long long iMax;
+//
+//	if(*(InWaveData.WaveType) == 'f')
+//	{
+//		float* p0 = (float*)(InWaveData.pWaveData);
+//		FindMax1D(p0, LenArr, MaxVal, iMax);
+//	}
+//	else
+//	{
+//		DOUBLE* p0 = (DOUBLE*)(InWaveData.pWaveData);
+//		FindMax1D(p0, LenArr, MaxVal, iMax); //OC29122018
+//		//FindMax1D(p0, (InWaveData.DimSizes)[0], MaxVal, iMax);
+//	}
+//	double xMax = xStart + iMax*xStep;
+//
+//	double HalfMaxVal = 0.5*MaxVal;
+//	//long iHalfMaxLeft, iHalfMaxRight;
+//	long long iHalfMaxLeft, iHalfMaxRight;
+//	double yLeft1, yLeft2, yRight1, yRight2;
+//	if(*(InWaveData.WaveType) == 'f')
+//	{
+//		float* p0 = (float*)(InWaveData.pWaveData);
+//		FindIndHalfMaxLeftRight1D(p0, LenArr, HalfMaxVal, iHalfMaxLeft, iHalfMaxRight);
+//
+//		yLeft1 = *(p0 + iHalfMaxLeft); yLeft2 = *(p0 + iHalfMaxLeft + 1);
+//		yRight1 = *(p0 + iHalfMaxRight); yRight2 = *(p0 + iHalfMaxRight + 1);
+//	}
+//	else
+//	{
+//		DOUBLE* p0 = (DOUBLE*)(InWaveData.pWaveData);
+//		FindIndHalfMaxLeftRight1D(p0, LenArr, HalfMaxVal, iHalfMaxLeft, iHalfMaxRight);
+//
+//		yLeft1 = *(p0 + iHalfMaxLeft); yLeft2 = *(p0 + iHalfMaxLeft + 1);
+//		yRight1 = *(p0 + iHalfMaxRight); yRight2 = *(p0 + iHalfMaxRight + 1);
+//	}
+//
+//	double xLeft1 = xStart + iHalfMaxLeft*xStep;
+//	double xLeft = xLeft1 + ((yLeft1 - HalfMaxVal)/(yLeft1 - yLeft2))*xStep;
+//
+//	double xRight1 = xStart + iHalfMaxRight*xStep;
+//	double xRight = xRight1 + ((yRight1 - HalfMaxVal)/(yRight1 - yRight2))*xStep;
+//
+//	float* pOut = (float*)(OutSpotInfo.pWaveData);
+//	*(pOut++) = (float)MaxVal;
+//	*(pOut++) = (float)xMax;
+//	*(pOut++) = 0;
+//	*(pOut++) = (float)(xRight - xLeft);
+//	*pOut = 0;
+//	return 0;
+//};
 
 //*************************************************************************
 
-int srTAuxMatStat::FindSimplestStat2D(srTWaveAccessData& InWaveData, srTWaveAccessData& OutSpotInfo)
-{
-	double xStart = (InWaveData.DimStartValues)[0], xStep = (InWaveData.DimSteps)[0];
-	//long xLenArr = (InWaveData.DimSizes)[0];
-	long long xLenArr = (InWaveData.DimSizes)[0];
-	double yStart = (InWaveData.DimStartValues)[1], yStep = (InWaveData.DimSteps)[1];
-	//long yLenArr = (InWaveData.DimSizes)[1];
-	long long yLenArr = (InWaveData.DimSizes)[1];
-
-	double MaxVal;
-	//long iMax, jMax;
-	long long iMax, jMax;
-	FindMax2D(InWaveData, MaxVal, iMax, jMax);
-	double xMax = xStart + iMax*xStep;
-	double yMax = yStart + jMax*yStep;
-
-	double HalfMaxVal = 0.5*MaxVal;
-
-	//long iHalfMaxLeft, iHalfMaxRight, jHalfMaxLeft, jHalfMaxRight;
-	long long iHalfMaxLeft, iHalfMaxRight, jHalfMaxLeft, jHalfMaxRight;
-	double VxLeft1, VxLeft2, VxRight1, VxRight2, VyLeft1, VyLeft2, VyRight1, VyRight2;
-
-	DOUBLE* AuxCont = new DOUBLE[yLenArr];
-	if(AuxCont == 0) return MEMORY_ALLOCATION_FAILURE;
-
-	if(*(InWaveData.WaveType) == 'f')
-	{
-		float* p0 = (float*)(InWaveData.pWaveData) + jMax*xLenArr;
-		FindIndHalfMaxLeftRight1D(p0, xLenArr, HalfMaxVal, iHalfMaxLeft, iHalfMaxRight);
-		VxLeft1 = *(p0 + iHalfMaxLeft); VxLeft2 = *(p0 + iHalfMaxLeft + 1);
-		VxRight1 = *(p0 + iHalfMaxRight); VxRight2 = *(p0 + iHalfMaxRight + 1);
-		
-		DOUBLE *tAux = AuxCont;
-		float *t = (float*)(InWaveData.pWaveData) + iMax;
-		//for(long k=0; k<yLenArr; k++) { *(tAux++) = *t; t += xLenArr;}
-		for(long long k=0; k<yLenArr; k++) { *(tAux++) = *t; t += xLenArr;}
-	}
-	else
-	{
-		DOUBLE* p0 = (DOUBLE*)(InWaveData.pWaveData) + jMax*xLenArr;
-		FindIndHalfMaxLeftRight1D(p0, xLenArr, HalfMaxVal, iHalfMaxLeft, iHalfMaxRight);
-		VxLeft1 = *(p0 + iHalfMaxLeft); VxLeft2 = *(p0 + iHalfMaxLeft + 1);
-		VxRight1 = *(p0 + iHalfMaxRight); VxRight2 = *(p0 + iHalfMaxRight + 1);
-
-		DOUBLE *tAux = AuxCont;
-		DOUBLE *t = (DOUBLE*)(InWaveData.pWaveData) + iMax;
-		//for(long k=0; k<yLenArr; k++) { *(tAux++) = *t; t += xLenArr;}
-		for(long long k=0; k<yLenArr; k++) { *(tAux++) = *t; t += xLenArr;}
-	}
-	FindIndHalfMaxLeftRight1D(AuxCont, yLenArr, HalfMaxVal, jHalfMaxLeft, jHalfMaxRight);
-	VyLeft1 = *(AuxCont + jHalfMaxLeft); VyLeft2 = *(AuxCont + jHalfMaxLeft + 1);
-	VyRight1 = *(AuxCont + jHalfMaxRight); VyRight2 = *(AuxCont + jHalfMaxRight + 1);
-
-	double xLeft1 = xStart + iHalfMaxLeft*xStep;
-	double xLeft = xLeft1 + ((VxLeft1 - HalfMaxVal)/(VxLeft1 - VxLeft2))*xStep;
-	double xRight1 = xStart + iHalfMaxRight*xStep;
-	double xRight = xRight1 + ((VxRight1 - HalfMaxVal)/(VxRight1 - VxRight2))*xStep;
-	double yLeft1 = yStart + jHalfMaxLeft*yStep;
-	double yLeft = yLeft1 + ((VyLeft1 - HalfMaxVal)/(VyLeft1 - VyLeft2))*yStep;
-	double yRight1 = yStart + jHalfMaxRight*yStep;
-	double yRight = yRight1 + ((VyRight1 - HalfMaxVal)/(VyRight1 - VyRight2))*yStep;
-
-	delete[] AuxCont;
-
-	float* pOut = (float*)(OutSpotInfo.pWaveData);
-	*(pOut++) = (float)MaxVal;
-	*(pOut++) = (float)xMax;
-	*(pOut++) = (float)yMax;
-	*(pOut++) = (float)(xRight - xLeft);
-	*pOut = (float)(yRight - yLeft);
-	return 0;
-};
+//int srTAuxMatStat::FindSimplestStat2D(srTWaveAccessData& InWaveData, srTWaveAccessData& OutSpotInfo, double* arPar) //OC29122018
+////int srTAuxMatStat::FindSimplestStat2D(srTWaveAccessData& InWaveData, srTWaveAccessData& OutSpotInfo)
+//{
+//	double xStart = (InWaveData.DimStartValues)[0], xStep = (InWaveData.DimSteps)[0];
+//	//long xLenArr = (InWaveData.DimSizes)[0];
+//	long long xLenArr = (InWaveData.DimSizes)[0];
+//	double yStart = (InWaveData.DimStartValues)[1], yStep = (InWaveData.DimSteps)[1];
+//	//long yLenArr = (InWaveData.DimSizes)[1];
+//	long long yLenArr = (InWaveData.DimSizes)[1];
+//
+//	double MaxVal;
+//	//long iMax, jMax;
+//	long long iMax, jMax;
+//	FindMax2D(InWaveData, MaxVal, iMax, jMax);
+//	double xMax = xStart + iMax*xStep;
+//	double yMax = yStart + jMax*yStep;
+//
+//	double HalfMaxVal = 0.5*MaxVal;
+//
+//	//long iHalfMaxLeft, iHalfMaxRight, jHalfMaxLeft, jHalfMaxRight;
+//	long long iHalfMaxLeft, iHalfMaxRight, jHalfMaxLeft, jHalfMaxRight;
+//	double VxLeft1, VxLeft2, VxRight1, VxRight2, VyLeft1, VyLeft2, VyRight1, VyRight2;
+//
+//	DOUBLE* AuxCont = new DOUBLE[yLenArr];
+//	if(AuxCont == 0) return MEMORY_ALLOCATION_FAILURE;
+//
+//	if(*(InWaveData.WaveType) == 'f')
+//	{
+//		float* p0 = (float*)(InWaveData.pWaveData) + jMax*xLenArr;
+//		FindIndHalfMaxLeftRight1D(p0, xLenArr, HalfMaxVal, iHalfMaxLeft, iHalfMaxRight);
+//		VxLeft1 = *(p0 + iHalfMaxLeft); VxLeft2 = *(p0 + iHalfMaxLeft + 1);
+//		VxRight1 = *(p0 + iHalfMaxRight); VxRight2 = *(p0 + iHalfMaxRight + 1);
+//		
+//		DOUBLE *tAux = AuxCont;
+//		float *t = (float*)(InWaveData.pWaveData) + iMax;
+//		//for(long k=0; k<yLenArr; k++) { *(tAux++) = *t; t += xLenArr;}
+//		for(long long k=0; k<yLenArr; k++) { *(tAux++) = *t; t += xLenArr;}
+//	}
+//	else
+//	{
+//		DOUBLE* p0 = (DOUBLE*)(InWaveData.pWaveData) + jMax*xLenArr;
+//		FindIndHalfMaxLeftRight1D(p0, xLenArr, HalfMaxVal, iHalfMaxLeft, iHalfMaxRight);
+//		VxLeft1 = *(p0 + iHalfMaxLeft); VxLeft2 = *(p0 + iHalfMaxLeft + 1);
+//		VxRight1 = *(p0 + iHalfMaxRight); VxRight2 = *(p0 + iHalfMaxRight + 1);
+//
+//		DOUBLE *tAux = AuxCont;
+//		DOUBLE *t = (DOUBLE*)(InWaveData.pWaveData) + iMax;
+//		//for(long k=0; k<yLenArr; k++) { *(tAux++) = *t; t += xLenArr;}
+//		for(long long k=0; k<yLenArr; k++) { *(tAux++) = *t; t += xLenArr;}
+//	}
+//	FindIndHalfMaxLeftRight1D(AuxCont, yLenArr, HalfMaxVal, jHalfMaxLeft, jHalfMaxRight);
+//	VyLeft1 = *(AuxCont + jHalfMaxLeft); VyLeft2 = *(AuxCont + jHalfMaxLeft + 1);
+//	VyRight1 = *(AuxCont + jHalfMaxRight); VyRight2 = *(AuxCont + jHalfMaxRight + 1);
+//
+//	double xLeft1 = xStart + iHalfMaxLeft*xStep;
+//	double xLeft = xLeft1 + ((VxLeft1 - HalfMaxVal)/(VxLeft1 - VxLeft2))*xStep;
+//	double xRight1 = xStart + iHalfMaxRight*xStep;
+//	double xRight = xRight1 + ((VxRight1 - HalfMaxVal)/(VxRight1 - VxRight2))*xStep;
+//	double yLeft1 = yStart + jHalfMaxLeft*yStep;
+//	double yLeft = yLeft1 + ((VyLeft1 - HalfMaxVal)/(VyLeft1 - VyLeft2))*yStep;
+//	double yRight1 = yStart + jHalfMaxRight*yStep;
+//	double yRight = yRight1 + ((VyRight1 - HalfMaxVal)/(VyRight1 - VyRight2))*yStep;
+//
+//	delete[] AuxCont;
+//
+//	float* pOut = (float*)(OutSpotInfo.pWaveData);
+//	*(pOut++) = (float)MaxVal;
+//	*(pOut++) = (float)xMax;
+//	*(pOut++) = (float)yMax;
+//	*(pOut++) = (float)(xRight - xLeft);
+//	*pOut = (float)(yRight - yLeft);
+//	return 0;
+//};
 
 //*************************************************************************
 //Searches for intensity limits: returns a rectangle within which the power is located
@@ -179,134 +206,134 @@ int srTAuxMatStat::FindIntensityLimits(srTWaveAccessData& InWaveData, double Rel
 
 //*************************************************************************
 
-//void srTAuxMatStat::FindMax2D(srTWaveAccessData& InWaveData, double& MaxVal, long& iMax, long& jMax)
-void srTAuxMatStat::FindMax2D(srTWaveAccessData& InWaveData, double& MaxVal, long long& iMax, long long& jMax)
-{
-	//long xLenArr = (InWaveData.DimSizes)[0], yLenArr = (InWaveData.DimSizes)[1];
-	long long xLenArr = (InWaveData.DimSizes)[0], yLenArr = (InWaveData.DimSizes)[1];
-	MaxVal = -1E+23;
-
-	float* pf = 0;
-	DOUBLE* pd = 0;
-	if(*(InWaveData.WaveType) == 'f')
-	{
-		pf = (float*)(InWaveData.pWaveData);
-		//for(long j=0; j<yLenArr; j++)
-		for(long long j=0; j<yLenArr; j++)
-		{
-			double MaxValLoc = -1E+23;
-			//long iMaxLoc;
-			long long iMaxLoc;
-			FindMax1D(pf, xLenArr, MaxValLoc, iMaxLoc);
-			if(MaxVal < MaxValLoc)
-			{
-				MaxVal = MaxValLoc; iMax = iMaxLoc; jMax = j;
-			}
-			pf += xLenArr;
-		}
-	}
-	else
-	{
-		pd = (DOUBLE*)(InWaveData.pWaveData);
-		//for(long j=0; j<yLenArr; j++)
-		for(long long j=0; j<yLenArr; j++)
-		{
-			double MaxValLoc = -1E+23;
-			//long iMaxLoc;
-			long long iMaxLoc;
-			FindMax1D(pd, xLenArr, MaxValLoc, iMaxLoc);
-			if(MaxVal < MaxValLoc)
-			{
-				MaxVal = MaxValLoc; iMax = iMaxLoc; jMax = j;
-			}
-			pd += xLenArr;
-		}
-	}
-}
-
-//*************************************************************************
-
-//void srTAuxMatStat::FindMax1D(float* p0, long LenArr, double& MaxVal, long& iMax)
-void srTAuxMatStat::FindMax1D(float* p0, long long LenArr, double& MaxVal, long long& iMax)
-{
-	float vMax = (float)(-1.E+23);
-	float* t = p0;
-	//for(long i=0; i<LenArr; i++)
-	for(long long i=0; i<LenArr; i++)
-	{
-		if(vMax < *t) { vMax = *t; iMax = i;}
-		t++;
-	}
-	MaxVal = double(vMax);
-}
+////void srTAuxMatStat::FindMax2D(srTWaveAccessData& InWaveData, double& MaxVal, long& iMax, long& jMax)
+//void srTAuxMatStat::FindMax2D(srTWaveAccessData& InWaveData, double& MaxVal, long long& iMax, long long& jMax)
+//{
+//	//long xLenArr = (InWaveData.DimSizes)[0], yLenArr = (InWaveData.DimSizes)[1];
+//	long long xLenArr = (InWaveData.DimSizes)[0], yLenArr = (InWaveData.DimSizes)[1];
+//	MaxVal = -1E+23;
+//
+//	float* pf = 0;
+//	DOUBLE* pd = 0;
+//	if(*(InWaveData.WaveType) == 'f')
+//	{
+//		pf = (float*)(InWaveData.pWaveData);
+//		//for(long j=0; j<yLenArr; j++)
+//		for(long long j=0; j<yLenArr; j++)
+//		{
+//			double MaxValLoc = -1E+23;
+//			//long iMaxLoc;
+//			long long iMaxLoc;
+//			FindMax1D(pf, xLenArr, MaxValLoc, iMaxLoc);
+//			if(MaxVal < MaxValLoc)
+//			{
+//				MaxVal = MaxValLoc; iMax = iMaxLoc; jMax = j;
+//			}
+//			pf += xLenArr;
+//		}
+//	}
+//	else
+//	{
+//		pd = (DOUBLE*)(InWaveData.pWaveData);
+//		//for(long j=0; j<yLenArr; j++)
+//		for(long long j=0; j<yLenArr; j++)
+//		{
+//			double MaxValLoc = -1E+23;
+//			//long iMaxLoc;
+//			long long iMaxLoc;
+//			FindMax1D(pd, xLenArr, MaxValLoc, iMaxLoc);
+//			if(MaxVal < MaxValLoc)
+//			{
+//				MaxVal = MaxValLoc; iMax = iMaxLoc; jMax = j;
+//			}
+//			pd += xLenArr;
+//		}
+//	}
+//}
 
 //*************************************************************************
 
-//void srTAuxMatStat::FindMax1D(DOUBLE* p0, long LenArr, double& MaxVal, long& iMax)
-void srTAuxMatStat::FindMax1D(DOUBLE* p0, long long LenArr, double& MaxVal, long long& iMax)
-{
-	double vMax = -1.E+23;
-	DOUBLE* t = p0;
-	//for(long i=0; i<LenArr; i++)
-	for(long long i=0; i<LenArr; i++)
-	{
-		if(vMax < *t) { vMax = *t; iMax = i;}
-		t++;
-	}
-	MaxVal = double(vMax);
-}
+////void srTAuxMatStat::FindMax1D(float* p0, long LenArr, double& MaxVal, long& iMax)
+//void srTAuxMatStat::FindMax1D(float* p0, long long LenArr, double& MaxVal, long long& iMax)
+//{
+//	float vMax = (float)(-1.E+23);
+//	float* t = p0;
+//	//for(long i=0; i<LenArr; i++)
+//	for(long long i=0; i<LenArr; i++)
+//	{
+//		if(vMax < *t) { vMax = *t; iMax = i;}
+//		t++;
+//	}
+//	MaxVal = double(vMax);
+//}
 
 //*************************************************************************
 
-//void srTAuxMatStat::FindIndHalfMaxLeftRight1D(float* p0, long LenArr, double HalfMaxVal, long& iHalfMaxLeft, long& iHalfMaxRight)
-void srTAuxMatStat::FindIndHalfMaxLeftRight1D(float* p0, long long LenArr, double HalfMaxVal, long long& iHalfMaxLeft, long long& iHalfMaxRight)
-{
-	iHalfMaxLeft = 0; iHalfMaxRight = LenArr - 1;
-
-	float* t = p0;
-	float HalfMax = (float)HalfMaxVal;
-	//for(long i=0; i<LenArr; i++)
-	for(long long i=0; i<LenArr; i++)
-	{
-		if(*(t++) < HalfMax) iHalfMaxLeft = i;
-		else break;
-	}
-	//long LenArr_mi_1 = LenArr - 1;
-	long long LenArr_mi_1 = LenArr - 1;
-	t = p0 + LenArr_mi_1;
-	//for(long j=LenArr_mi_1; j>=0; j--)
-	for(long long j=LenArr_mi_1; j>=0; j--)
-	{
-		iHalfMaxRight = j;
-		if(*(t--) >= HalfMax) break;
-	}
-}
+////void srTAuxMatStat::FindMax1D(DOUBLE* p0, long LenArr, double& MaxVal, long& iMax)
+//void srTAuxMatStat::FindMax1D(DOUBLE* p0, long long LenArr, double& MaxVal, long long& iMax)
+//{
+//	double vMax = -1.E+23;
+//	DOUBLE* t = p0;
+//	//for(long i=0; i<LenArr; i++)
+//	for(long long i=0; i<LenArr; i++)
+//	{
+//		if(vMax < *t) { vMax = *t; iMax = i;}
+//		t++;
+//	}
+//	MaxVal = double(vMax);
+//}
 
 //*************************************************************************
 
-//void srTAuxMatStat::FindIndHalfMaxLeftRight1D(DOUBLE* p0, long LenArr, double HalfMaxVal, long& iHalfMaxLeft, long& iHalfMaxRight)
-void srTAuxMatStat::FindIndHalfMaxLeftRight1D(DOUBLE* p0, long long LenArr, double HalfMaxVal, long long& iHalfMaxLeft, long long& iHalfMaxRight)
-{
-	iHalfMaxLeft = 0; iHalfMaxRight = LenArr - 1;
+////void srTAuxMatStat::FindIndHalfMaxLeftRight1D(float* p0, long LenArr, double HalfMaxVal, long& iHalfMaxLeft, long& iHalfMaxRight)
+//void srTAuxMatStat::FindIndHalfMaxLeftRight1D(float* p0, long long LenArr, double HalfMaxVal, long long& iHalfMaxLeft, long long& iHalfMaxRight)
+//{
+//	iHalfMaxLeft = 0; iHalfMaxRight = LenArr - 1;
+//
+//	float* t = p0;
+//	float HalfMax = (float)HalfMaxVal;
+//	//for(long i=0; i<LenArr; i++)
+//	for(long long i=0; i<LenArr; i++)
+//	{
+//		if(*(t++) < HalfMax) iHalfMaxLeft = i;
+//		else break;
+//	}
+//	//long LenArr_mi_1 = LenArr - 1;
+//	long long LenArr_mi_1 = LenArr - 1;
+//	t = p0 + LenArr_mi_1;
+//	//for(long j=LenArr_mi_1; j>=0; j--)
+//	for(long long j=LenArr_mi_1; j>=0; j--)
+//	{
+//		iHalfMaxRight = j;
+//		if(*(t--) >= HalfMax) break;
+//	}
+//}
 
-	DOUBLE* t = p0;
-	double HalfMax = HalfMaxVal;
-	//for(long i=0; i<LenArr; i++)
-	for(long long i=0; i<LenArr; i++)
-	{
-		if(*(t++) < HalfMax) iHalfMaxLeft = i;
-		else break;
-	}
-	//long LenArr_mi_1 = LenArr - 1;
-	long long LenArr_mi_1 = LenArr - 1;
-	t = p0 + LenArr_mi_1;
-	//for(long j=LenArr_mi_1; j>=0; j--)
-	for(long long j=LenArr_mi_1; j>=0; j--)
-	{
-		iHalfMaxRight = j;
-		if(*(t--) >= HalfMax) break;
-	}
-}
+//*************************************************************************
+
+////void srTAuxMatStat::FindIndHalfMaxLeftRight1D(DOUBLE* p0, long LenArr, double HalfMaxVal, long& iHalfMaxLeft, long& iHalfMaxRight)
+//void srTAuxMatStat::FindIndHalfMaxLeftRight1D(DOUBLE* p0, long long LenArr, double HalfMaxVal, long long& iHalfMaxLeft, long long& iHalfMaxRight)
+//{
+//	iHalfMaxLeft = 0; iHalfMaxRight = LenArr - 1;
+//
+//	DOUBLE* t = p0;
+//	double HalfMax = HalfMaxVal;
+//	//for(long i=0; i<LenArr; i++)
+//	for(long long i=0; i<LenArr; i++)
+//	{
+//		if(*(t++) < HalfMax) iHalfMaxLeft = i;
+//		else break;
+//	}
+//	//long LenArr_mi_1 = LenArr - 1;
+//	long long LenArr_mi_1 = LenArr - 1;
+//	t = p0 + LenArr_mi_1;
+//	//for(long j=LenArr_mi_1; j>=0; j--)
+//	for(long long j=LenArr_mi_1; j>=0; j--)
+//	{
+//		iHalfMaxRight = j;
+//		if(*(t--) >= HalfMax) break;
+//	}
+//}
 
 //*************************************************************************
 

@@ -796,7 +796,7 @@ EXP int CALL srwlUtiFFT(char* pcData, char typeData, double* arMesh, int nMesh, 
 EXP int CALL srwlUtiConvWithGaussian(char* pcData, char typeData, double* arMesh, int nMesh, double* arSig);
 
 /** 
- * Calculates basic statistical characteristics of intensity distribution
+ * Calculates basic statistical characteristics of an intensity distribution
  * @param [in, out] arInf (double) array of characteristics to be extracted:
  *                  arInf[0]: peak (max.) intensity
  *                  arInf[1]: position of peak intensity vs 1st dimension
@@ -805,13 +805,22 @@ EXP int CALL srwlUtiConvWithGaussian(char* pcData, char typeData, double* arMesh
  *                  arInf[4]: FWHM value of intensity distribution vs 1st dimension
  *                  arInf[5]: FWHM value of intensity distribution vs 2nd dimension
  *                  arInf[6]: FWHM value of intensity distribution vs 3rd dimension (reserved for future use)
+ *                  arInf[7]: (optional) additional Full Width at a Fraction of Maximum value of intensity distribution over 1st dimension (the fraction is defined by arPar[1])
+ *                  arInf[8]: (optional) additional Full Width at a Fraction of Maximum value of intensity distribution over 2nd dimension (the fraction is defined by arPar[2])
+ *                  arInf[9]: (optional) additional Full Width at a Fraction of Maximum value of intensity distribution over 3rd dimension (the fraction is defined by arPar[3])
  * @param [in] pcData (char) pointer to intensity distribution data to be analyzed
  * @param [in] typeData character specifying data type ('f' for float, 'd' for double)
  * @param [in] pMesh (pointer to SRWLRadMesh) mesh of intensity data to be analyzed
+ * @param [in] arPar optional array of parameters defining type / precision of data processing
+ *             arPar[0]: method to be used for determining FWHM values: =0 means start intensity scan from extremities of the distribution, =1 means start intensity scan from the peak of the distribution
+ *             arPar[1]: (optional) fraction of maximum for determining additional Full Width at a Fraction of Maximum value over 1st dimension
+ *             arPar[2]: (optional) fraction of maximum for determining additional Full Width at a Fraction of Maximum value over 2nd dimension
+ *             arPar[3]: (optional) fraction of maximum for determining additional Full Width at a Fraction of Maximum value over 3rd dimension
+ * @param [in] nPar optional length of array of parameters defining type / precision of data processing
  * @return	integer error (>0) or warnig (<0) code
  * @see ...
  */
-EXP int CALL srwlUtiIntInf(double* arInf, char* pcData, char typeData, SRWLRadMesh* pMesh);
+EXP int CALL srwlUtiIntInf(double* arInf, char* pcData, char typeData, SRWLRadMesh* pMesh, double* arPar=0, int nPar=0);
 
 /** 
  * Performs misc. operations on intensity distribution (or similar C-aligned) arrays
@@ -822,7 +831,7 @@ EXP int CALL srwlUtiIntInf(double* arInf, char* pcData, char typeData, SRWLRadMe
  * @param [in] typeI2 character specifying intensity #2 data type ('f' for float, 'd' for double)
  * @param [in] pMesh2 (pointer to SRWLRadMesh) mesh of intensity data #2
  * @param [in] arPar array of parameters defining operation to be performed:
- *			   arPar[0] defines type of the operation, with the meaning of other elements dependent on it
+ *			   arPar[0] defines type of the operation and the meaning of other elements dependent on it
  * @return	integer error (>0) or warnig (<0) code
  * @see ...
  */

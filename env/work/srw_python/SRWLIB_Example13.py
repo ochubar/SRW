@@ -161,7 +161,6 @@ srwl_uti_save_intens_ascii(arI1s, mesh1, os.path.join(os.getcwd(), strExDataFold
 arI1m = deepcopy(arI1s) #"Flat" array to take 2D multi-electron intensity data (vs X & Y)
 srwl.CalcIntFromElecField(arI1m, wfr, 6, 1, 3, mesh1.eStart, 0, 0) #Calculating multi-electron intensity vs X & Y using convolution method (assuming it to be valid!)
 srwl_uti_save_intens_ascii(arI1m, mesh1, os.path.join(os.getcwd(), strExDataFolderName, strIntOutFileName2))
-
 print('done in', round(time.time() - t0), 's')
 
 #***********Plotting the Calculation Results
