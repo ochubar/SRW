@@ -116,7 +116,8 @@ public:
     void DetermineLongPosGridLimits(srTTrjDat* pTrUnifTrjDat, srTMagFldCont* pMagLensCont, double& sStart, double& sEnd);
     void AnalyzeFinalResultsSymmetry(char& FinalResAreSymOverX, char& FinalResAreSymOverZ, srTEbmDat* pElecBeam, srTTrjDat* pTrjDat, srTMagFldCont* pMagLensCont, srTStokesStructAccessData* pStokes);
     void FillInSymPartsOfResults(char FinalResAreSymOverX, char FinalResAreSymOverZ, srTStokesStructAccessData* pStokes);
-    void CopySymEnergySlice(float* pOrigData, float* pSymData, long Ne, char SymWithRespectToXax, char SymWithRespectToZax);
+    void CopySymEnergySlice(float* pOrigData, float* pSymData, long long Ne, char SymWithRespectToXax, char SymWithRespectToZax); //OC26042019
+    //void CopySymEnergySlice(float* pOrigData, float* pSymData, long Ne, char SymWithRespectToXax, char SymWithRespectToZax);
     //long FindTotalAmOfPointsToCalc(srTStokesStructAccessData* pStokes, char FinalResAreSymOverX, char FinalResAreSymOverZ);
     long long FindTotalAmOfPointsToCalc(srTStokesStructAccessData* pStokes, char FinalResAreSymOverX, char FinalResAreSymOverZ);
 	void ComputeStokesAtOneObsPoint(srTEXZY EXZY, srTParPrecStokesArb& Prec, srTStokes& CurSt);

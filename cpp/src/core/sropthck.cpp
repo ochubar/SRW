@@ -2729,10 +2729,12 @@ void srTMirror::RadPointModifier_FourierByParts(srTEXZ& EXZ, srTEFieldPtrs& EPtr
 	double EpiRe = vEr*vPi, EpiIm = vEi*vPi;
 
 	//getting complex reflecivity coefficients for Sigma and Pi components of the electric field
-	int ne = m_reflData.DimSizes[1];
+	//int ne = m_reflData.DimSizes[1];
+	long ne = (long)(m_reflData.DimSizes[1]); //OC28042019
 	double eStart = m_reflData.DimStartValues[1];
 	double eStep = m_reflData.DimSteps[1];
-	int nAng = m_reflData.DimSizes[2];
+	//int nAng = m_reflData.DimSizes[2];
+	long nAng = (long)(m_reflData.DimSizes[2]); //OC28042019
 	double angStart = m_reflData.DimStartValues[2];
 	double angStep = m_reflData.DimSteps[2];
 

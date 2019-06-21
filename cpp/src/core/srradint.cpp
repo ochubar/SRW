@@ -147,7 +147,8 @@ int srTRadInt::AllocateMemForRadDistr()
 		}
 	}
 
-	int TotAmOfData = DistrInfoDat.nLamb * DistrInfoDat.ny * DistrInfoDat.nz * DistrInfoDat.nx;
+	//int TotAmOfData = DistrInfoDat.nLamb * DistrInfoDat.ny * DistrInfoDat.nz * DistrInfoDat.nx;
+	long long TotAmOfData = DistrInfoDat.nLamb * DistrInfoDat.ny * DistrInfoDat.nz * DistrInfoDat.nx; //OC26042019
 
 	if((DistrInfoDat.DistrValType == StokesParam) || (DistrInfoDat.DistrValType == FieldFourier))
 	{
@@ -208,7 +209,9 @@ int srTRadInt::ComputeTotalRadDistrLoops()
 	InitializeTraverses();
 
 	double *pStartArgLoop[4], *pArgLoop[4], *pStepArgLoop[4];
-	int *pNArgLoop[4];
+	//int *pNArgLoop[4];
+	long *pNArgLoop[4];
+	//long long *pNArgLoop[4]; //OC26042019
 
 	for(int i=0; i<4; i++)
 	{
@@ -321,7 +324,7 @@ int srTRadInt::ComputeTotalRadDistrDirectOut(srTSRWRadStructAccessData& SRWRadSt
 	double xTol = StepX*0.001, zTol = StepZ*0.001; // To steer
 
 	//long TotalAmOfOutPointsForInd = DistrInfoDat.nz*DistrInfoDat.nx*DistrInfoDat.nLamb;
-	long TotalAmOfOutPointsForInd = ((long long)DistrInfoDat.nz)*((long long)DistrInfoDat.nx)*((long long)DistrInfoDat.nLamb);
+	long long TotalAmOfOutPointsForInd = ((long long)DistrInfoDat.nz)*((long long)DistrInfoDat.nx)*((long long)DistrInfoDat.nLamb);
 	if(FinalResAreSymOverX) TotalAmOfOutPointsForInd >>= 1;
 	if(FinalResAreSymOverZ) TotalAmOfOutPointsForInd >>= 1;
 	//long PointCount = 0;
@@ -3265,11 +3268,14 @@ void srTRadInt::FillInSymPartsOfResults(char FinalResAreSymOverX, char FinalResA
 	long long PerZ = PerX*DistrInfoDat.nx;
 
 	char SymWithRespectToXax, SymWithRespectToZax;
-	int HalfNz = DistrInfoDat.nz >> 1, Nz_mi_1 = DistrInfoDat.nz - 1;
+	//int HalfNz = DistrInfoDat.nz >> 1, Nz_mi_1 = DistrInfoDat.nz - 1;
+	long long HalfNz = DistrInfoDat.nz >> 1, Nz_mi_1 = DistrInfoDat.nz - 1; //OC26042019
 	//int izStart = ((HalfNz << 1) == DistrInfoDat.nz)? HalfNz : (HalfNz + 1);
-	int HalfNx = DistrInfoDat.nx >> 1, Nx_mi_1 = DistrInfoDat.nx - 1;
+	//int HalfNx = DistrInfoDat.nx >> 1, Nx_mi_1 = DistrInfoDat.nx - 1;
+	long long HalfNx = DistrInfoDat.nx >> 1, Nx_mi_1 = DistrInfoDat.nx - 1; //OC26042019
 	//int ixStart = ((HalfNx << 1) == DistrInfoDat.nx)? HalfNx : (HalfNx + 1);
-	int iz, ix;
+	//int iz, ix;
+	long long iz, ix; //OC26042019
 
 	if(FinalResAreSymOverZ)
 	{

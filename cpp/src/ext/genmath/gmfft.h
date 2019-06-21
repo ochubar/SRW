@@ -110,6 +110,7 @@ public:
 		if(ChangeSign) { Cos = -Cos; Sin = -Sin;}
 	}
 
+	//void NextCorrectNumberForFFT(long long&); //OC26042019
 	void NextCorrectNumberForFFT(long&);
 };
 
@@ -123,6 +124,7 @@ struct CGenMathFFT2DInfo {
 	double xStep, yStep, xStart, yStart;
 	double xStepTr, yStepTr, xStartTr, yStartTr;
 	long Nx, Ny;
+	//long long Nx, Ny;
 
 	long howMany; //OC151014
 	long iStride, iDist; //OC151014
@@ -158,6 +160,8 @@ class CGenMathFFT2D : public CGenMathFFT {
 
 	long Nx, Ny;
 	long HalfNx, HalfNy;
+	//long long Nx, Ny;
+	//long long HalfNx, HalfNy;
 	char NeedsShiftBeforeX, NeedsShiftBeforeY, NeedsShiftAfterX, NeedsShiftAfterY;
 	//float *ArrayShiftX, *ArrayShiftY;
 	float *m_ArrayShiftX, *m_ArrayShiftY; //OC02022019
@@ -476,7 +480,9 @@ struct CGenMathFFT1DInfo {
 	double xStep, xStart;
 	double xStepTr, xStartTr;
 	long Nx;
+	//long long Nx;
 	long HowMany;
+	//long long HowMany;
 	char UseGivenStartTrValue;
 	double MultExtra;
 
@@ -543,6 +549,8 @@ class CGenMathFFT1D : public CGenMathFFT {
 
 	long Nx;
 	long HalfNx;
+	//long long Nx;
+	//long long HalfNx;
 	char NeedsShiftBeforeX, NeedsShiftAfterX;
 	float *m_ArrayShiftX;
 	double *m_dArrayShiftX; //OC02022019

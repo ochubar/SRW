@@ -11,4 +11,9 @@
       <Filter>core</Filter>
     </ClCompile>
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\src\clients\python\pyparse.h">
+      <Filter>core</Filter>
+    </ClInclude>
+  </ItemGroup>
 </Project>

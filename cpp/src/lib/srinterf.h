@@ -175,8 +175,10 @@ struct srTParPrecWfrPropag {
 struct srTDataMD {
 	char* pData;
 	char DataType[2]; // 'f'|'d'|'cf'|'cd'
-	long AmOfDims;
-	long DimSizes[10];
+	//long AmOfDims;
+	int AmOfDims; //OC26042019 (port to XOP7)
+	//long DimSizes[10];
+	long long DimSizes[10]; //OC26042019 (port to XOP7)
 	double DimStartValues[10];
 	double DimSteps[10];
 	char DimScales[10][4]; //OC040912
@@ -409,8 +411,9 @@ EXP int CALL srMagFldContSet(int* i, int* pMagElem, int nMagElem);
 @return	integer error code
 @version	1.0 
 @see		... */
-//EXP int CALL srWfrSmpSet(int* i, double s, double hSt, double hFi, int hN, double vSt, double vFi, int vN, double eSt, double eFi, int eN, char* eUnit);
 EXP int CALL srWfrSmpSet(int* i, double s, double hSt, double hFi, int hN, double vSt, double vFi, int vN, double* pSurfData, double eSt, double eFi, int eN, char* PhotEnUnit, double tSt, double tFi, int tN, int presT =0, double* horOrtObsPlane =0, double* inNormObsPlane =0);
+//EXP int CALL srWfrSmpSet(int* i, double s, double hSt, double hFi, long long hN, double vSt, double vFi, long long vN, double* pSurfData, double eSt, double eFi, long long eN, char* PhotEnUnit, double tSt, double tFi, long long tN, int presT =0, double* horOrtObsPlane =0, double* inNormObsPlane =0); //OC26042019
+//EXP int CALL srWfrSmpSet(int* i, double s, double hSt, double hFi, int hN, double vSt, double vFi, int vN, double eSt, double eFi, int eN, char* eUnit);
 
 EXP int CALL srWfrSet(int* i, srTSRWRadInData* pSRWRadInData, int CopyData);
 

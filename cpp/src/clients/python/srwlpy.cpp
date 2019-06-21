@@ -21,6 +21,7 @@
 //#endif
 
 #include "srwlib.h"
+#include "pyparse.h" //OC09032019
 #include <vector>
 #include <map>
 #include <sstream> //OCTEST_161214
@@ -44,12 +45,12 @@ using namespace std;
  * Error messages related to Python interface
  ***************************************************************************/
 static const char strEr_NoObj[] = "No objects were submitted for parsing";
-static const char strEr_BadList[] = "Incorrect or no Python List structure";
-static const char strEr_BadArray[] = "Incorrect or no Python Array structure";
-static const char strEr_BadListArray[] = "Incorrect or no Python List or Array structure";
-static const char strEr_BadStr[] = "Error at parsing / converting Python string";
-static const char strEr_BadClassName[] = "Error at retrieving Python class name";
-static const char strEr_BadNum[] = "Incorrect or no Python number";
+//static const char strEr_BadList[] = "Incorrect or no Python List structure"; //OC09032019 (defined in pyparse.h)
+//static const char strEr_BadArray[] = "Incorrect or no Python Array structure"; //OC09032019 (defined in pyparse.h)
+//static const char strEr_BadListArray[] = "Incorrect or no Python List or Array structure"; //OC09032019 (defined in pyparse.h)
+//static const char strEr_BadStr[] = "Error at parsing / converting Python string"; //OC09032019 (defined in pyparse.h)
+//static const char strEr_BadClassName[] = "Error at retrieving Python class name"; //OC09032019 (defined in pyparse.h)
+//static const char strEr_BadNum[] = "Incorrect or no Python number"; //OC09032019 (defined in pyparse.h)
 static const char strEr_BadTrj[] = "Incorrect Trajectory structure";
 static const char strEr_BadPrt[] = "Incorrect Particle structure";
 static const char strEr_BadPrtBm[] = "Incorrect Particle Beam structure";
@@ -81,7 +82,7 @@ static const char strEr_BadListIntProp[] = "Incorrect list structure defining in
 static const char strEr_FloatArrayRequired[] = "This function can be executed for float array(s) only";
 static const char strEr_FailedAllocPyArray[] = "Failed to allocate Python array from C";
 static const char strEr_FailedUpdateInt[] = "Failed to update intensity data after propagation";
-static const char strEr_FailedCreateList[] = "Failed to create resulting data list";
+//static const char strEr_FailedCreateList[] = "Failed to create resulting data list"; //OC09032019 (defined in pyparse.h)
 
 static const char strEr_BadArg_CalcMagnField[] = "Incorrect arguments for magnetic field calculation/tabulation function";
 static const char strEr_BadArg_CalcPartTraj[] = "Incorrect arguments for trajectory calculation function";
@@ -4801,7 +4802,9 @@ static PyObject* srwlpy_UtiConvWithGaussian(PyObject *self, PyObject *args)
 		if(nMesh < 3) throw strEr_BadArg_UtiConvWithGaussian;
 
 		char typeData = 'f';
-		long nPt = (long)arMesh[2];
+		//long nPt = (long)arMesh[2];
+		long long nPt = (long long)arMesh[2]; //OC06032019
+
 		int nDim = 1;
 		if(nMesh >= 6) 
 		{
@@ -4812,10 +4815,12 @@ static PyObject* srwlpy_UtiConvWithGaussian(PyObject *self, PyObject *args)
 				nDim = 2;
 			}
 		}
-		long nElemTest = (long)(sizeBuf/sizeof(float));
+		//long nElemTest = (long)(sizeBuf/sizeof(float));
+		long long nElemTest = (long long)(sizeBuf/sizeof(float)); //OC06032019
 		if(nElemTest != nPt)
 		{
-			nElemTest = (long)(sizeBuf/sizeof(double));
+			//nElemTest = (long)(sizeBuf/sizeof(double));
+			nElemTest = (long long)(sizeBuf/sizeof(double)); //OC06032019
 			if(nElemTest != nPt) throw strEr_BadArg_UtiConvWithGaussian;
 			else 
 			{
@@ -4939,10 +4944,12 @@ static PyObject* srwlpy_UtiIntProc(PyObject *self, PyObject *args)
 		else throw strEr_BadArg_UtiIntProc;
 
 		int nPar=0;
-		CopyPyListElemsToNumArray(oPar, 'd', arPar, nPar);
+		//CopyPyListElemsToNumArray(oPar, 'd', arPar, nPar);
+		CPyParse::CopyPyNestedListElemsToNumAr(oPar, 'd', arPar, nPar); //OC09032019
 		if(nPar < 1) throw strEr_BadArg_UtiIntProc;
 
-		ProcRes(srwlUtiIntProc(pcInt1, typeInt1, &mesh1, pcInt2, typeInt2, &mesh2, arPar));
+		ProcRes(srwlUtiIntProc(pcInt1, typeInt1, &mesh1, pcInt2, typeInt2, &mesh2, arPar, nPar)); //OC09032019
+		//ProcRes(srwlUtiIntProc(pcInt1, typeInt1, &mesh1, pcInt2, typeInt2, &mesh2, arPar));
 	}
 	catch(const char* erText) 
 	{

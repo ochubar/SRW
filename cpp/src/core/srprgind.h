@@ -33,7 +33,7 @@ class srTCompProgressIndicator {
 #endif
 
 	char ProgressIndicatorIsUsed, CallsAreCountedInside;
-	//long TotalAmOfOutPoints, PrevAmOfPoints, PrevAmOfPointsShown, CallsCount;
+	//long TotalAmOfOutPoints, PrevAmOfPoints, PrevAmOfPointsShown, CallsCount; //OC26042019
 	long long TotalAmOfOutPoints, PrevAmOfPoints, PrevAmOfPointsShown, CallsCount;
 	clock_t UpdateTimeInt, PrevUpdateClock, StartCompClock;
 
@@ -47,7 +47,8 @@ public:
 		ProgressIndicatorIsUsed = 0; ErrorCode = 0;
 		if(InTotalAmOfOutPoints <= 0) return;
 
-		ErrorCode = InitializeIndicator(InTotalAmOfOutPoints, UpdateTimeInt_s, CountCallsInside);
+		//ErrorCode = InitializeIndicator(InTotalAmOfOutPoints, UpdateTimeInt_s, CountCallsInside);
+		ErrorCode = InitializeIndicator((long)InTotalAmOfOutPoints, UpdateTimeInt_s, CountCallsInside); //OC26042019
 	}
 	srTCompProgressIndicator()
 	{
@@ -80,7 +81,8 @@ public:
 #ifdef __VC__
 		char TotOutStr[200];
 		char PtNoStr[12];
-		sprintf(PtNoStr, "%d\n", CurPoint);
+		//sprintf(PtNoStr, "%d\n", CurPoint);
+		sprintf(PtNoStr, "%d\n", (long)CurPoint); //OC26042019 (port to XOP7) ?
 		strcpy(TotOutStr, "ValDisplay srIgorCompProgressBar value= #\"");
 		strcat(TotOutStr, PtNoStr);
 		strcat(TotOutStr, "\"");

@@ -985,7 +985,8 @@ int srTSASE::ConvertInputDataToGenesisFormat(int numHarm) //OC191108
 			//test !!!
 			//PrecDat.ncar = 151;
 			//end test
-	inputcom_1.ncar = PrecDat.ncar; //"NCAR"
+	//inputcom_1.ncar = PrecDat.ncar; //"NCAR"
+	inputcom_1.ncar = (long)PrecDat.ncar; //"NCAR" //OC26042019
 	inputcom_1.nsec = WigCom.simcom_nsec; //"NSEC"
 	inputcom_1.iorb = PrecDat.iorb; // "IORB" - flag for orbit correction
 	inputcom_1.delz = PrecDat.delz; // "DELZ"
@@ -1027,7 +1028,7 @@ int srTSASE::ConvertInputDataToGenesisFormat(int numHarm) //OC191108
 	inputcom_1.emitx = EbmDat.NormalizedEmittanceX(); // "EMITX" check this function !!!
 	inputcom_1.emity = EbmDat.NormalizedEmittanceZ(); // "EMITY" check this function !!!
 	inputcom_1.npart = PrecDat.npart; // "NPART"
-	inputcom_1.ntail = PrecDat.ntail; // "NTAIL" - (-253 – integer – unitless) Position of the first simulated slice in measures of ZSEP*XLAMDS. GENESIS 1.3 starts with the tail side of the time window, progressing towards the head. Thus a negative or positive value shifts the slices towards the tail or head region of the beam, respectively. For a constant profile (CURLEN < 0) NTAIL has no impact.
+	inputcom_1.ntail = PrecDat.ntail; // "NTAIL" - (-253 integer unitless) Position of the first simulated slice in measures of ZSEP*XLAMDS. GENESIS 1.3 starts with the tail side of the time window, progressing towards the head. Thus a negative or positive value shifts the slices towards the tail or head region of the beam, respectively. For a constant profile (CURLEN < 0) NTAIL has no impact.
 
 	inputcom_1.gamma0 = EbmDat.Gamma; // "GAMMA0"
 	//double W0 = InRad.WaistDiam; // or 0.5* ?
@@ -1035,7 +1036,7 @@ int srTSASE::ConvertInputDataToGenesisFormat(int numHarm) //OC191108
 
 	inputcom_1.zstop = PrecDat.zstop; // "ZSTOP"
 	inputcom_1.fbess0 = WigCom.fbess0; // "FBESS0"
-	inputcom_1.shotnoise = EbmDat.ShotNoiseFactor; // "SHOTNOISE" (1.0 – float – unitless) GENESIS 1.3 applies a random o_set to each macro particle phase to generate the correct statistic for the bunching factor. Each o_set is scaled prior by SHOTNOISE, thus SHOTNOISE can be set to zero to disable shot noise.
+	inputcom_1.shotnoise = EbmDat.ShotNoiseFactor; // "SHOTNOISE" (1.0 float unitless) GENESIS 1.3 applies a random o_set to each macro particle phase to generate the correct statistic for the bunching factor. Each o_set is scaled prior by SHOTNOISE, thus SHOTNOISE can be set to zero to disable shot noise.
 	inputcom_1.dl = PrecDat.delz*RoundDoubleToInt(WigCom.dl/PrecDat.delz); // "DL" re-calc to integer of step size
 	inputcom_1.fl = PrecDat.delz*RoundDoubleToInt(WigCom.fl/PrecDat.delz); // "FL"
 	inputcom_1.delgam = EbmDat.SigmaRelE*EbmDat.Gamma; // "DELGAM"
@@ -1104,7 +1105,7 @@ int srTSASE::ConvertInputDataToGenesisFormat(int numHarm) //OC191108
 	inputcom_1.offsetradf = PrecDat.offsetradf; 	
 
 	inputcom_1.cuttail = -1; // "CUTTAIL" - Cut in the transverse phase space in measures of the rms size to collimate transverse beam tails/halos. The cut is applied after the loading and beam current is set accordingly to the reduced number of macro particles. It is disabled if the value is negative or the electron beam is imported from an external file.
-	inputcom_1.conditx = 0; // "CONDITX" - [1/m] correlation strength between the amplitude of the eletron’s betatron oscillation and its energy. If the condition is applied correctly any emittance e_ects are removed from the FEL amplification and the focal strength can be increased. However it requires a conditioning beamline prior to the FEL to apply the correlation. Refer to the paper of Sessler (A.N. Sessler, et al., Phys. Rev. Lett 68 (1992) 309) for more information.
+	inputcom_1.conditx = 0; // "CONDITX" - [1/m] correlation strength between the amplitude of the eletron betatron oscillation and its energy. If the condition is applied correctly any emittance e_ects are removed from the FEL amplification and the focal strength can be increased. However it requires a conditioning beamline prior to the FEL to apply the correlation. Refer to the paper of Sessler (A.N. Sessler, et al., Phys. Rev. Lett 68 (1992) 309) for more information.
 	inputcom_1.condity = 0; // "CONDITY" - [1/m] same as CONDITX but for the correlation in the y-plane
 	inputcom_1.eloss = 0; // "ELOSS" - energy loss per meter - Externally applied energy loss of the electron beam.
 	inputcom_1.ndcut = -1; // "NDCUT" =<0 self optimized binning of ext. dist.
@@ -1120,7 +1121,7 @@ int srTSASE::ConvertInputDataToGenesisFormat(int numHarm) //OC191108
 	inputcom_1.ildpsi = 7; // "ILDPSI" - index of the Hammersley sequence bases for loading the particle phase
 	inputcom_1.iotail = 1; //0; // "IOTAIL" - If set to a non-zero value the output time window is the same as the simulated time window. Otherwise the output for the first slices covered by the slippage length is suppressed. Needed for bunches which are completely covered by the time-window
 	inputcom_1.iscan = 0; // "ISCAN" >0 -> iscanth parameter selected
-	//(0 – integer – unitless) Selects the parameter for a scan over a certain range of its value:
+	//(0 integer unitless) Selects the parameter for a scan over a certain range of its value:
 		//1. GAMMA0
 		//2. DELGAM
 		//3. CURPEAK
@@ -1150,7 +1151,7 @@ int srTSASE::ConvertInputDataToGenesisFormat(int numHarm) //OC191108
 	//adjust XLAMDS according to the resonance condition and the beam energy, defined in the BEAMFILE. The BEAMGAM option is similar to BEAMFILE, but overwrites the value of energy with GAMMA0 from the main input file.
 	inputcom_1.scan[0] = '\0'; //"SCAN" - By supplying the parameter name to scan over it overrules the setting of ISCAN.
 	inputcom_1.nscan = 3; // "NSCAN" number of steps per scan (is taken into account only if ISCAN > 0)
-	inputcom_1.svar = 0.01; // "SVAR" (0.01 – float – unitless) - Defines the scan range of the selected scan parameter. The parameter is varied between (1-SVAR) and (1+SVAR) of its initial value. One exception is the scan over ISEED where the random number generator is not reinitialized.
+	inputcom_1.svar = 0.01; // "SVAR" (0.01 float unitless) - Defines the scan range of the selected scan parameter. The parameter is varied between (1-SVAR) and (1+SVAR) of its initial value. One exception is the scan over ISEED where the random number generator is not reinitialized.
 	inputcom_1.version = 0.1; // "VERSION" - Used for backward compatibility of the input decks. Some parameters might change their behavior for older versions of GENESIS 1.3. The current version is 1.0.
 
 	inputcom_1.fieldfile[0] = '\0'; // "FIELDFILE"
@@ -1164,13 +1165,13 @@ int srTSASE::ConvertInputDataToGenesisFormat(int numHarm) //OC191108
 	inputcom_1.distfile[0] = '\0'; // "DISTFILE"
 
 	inputcom_1.ispart = 0; // "ISPART" - write the particle distribution to file for every ISPART slice.
-	inputcom_1.ippart = 0; // "IPPART" - write the particle distribution to file at each IPPARTth integration step. To disable output, set IPPART to zero. The filename is the same of the main outputfile + the extension ’.par’.
+	inputcom_1.ippart = 0; // "IPPART" - write the particle distribution to file at each IPPARTth integration step. To disable output, set IPPART to zero. The filename is the same of the main outputfile + the extension ".par".
 	inputcom_1.ipradi = 0; // "IPRADI" - write the radiation field into file at each step
 	inputcom_1.iphsty = 1; // "IPHSTY" - Generate output in the main output file at each IPHSTYth integration step. To disable output set IPHSTY to zero.
 	inputcom_1.ishsty = 1; // "ISHSTY" - Generate output in the main output file for each ISHSTYth slice.
-    inputcom_1.magin = 0; // "MAGIN" - (0 – integer – unitless) - If set to a non-zero value the user is prompted to type in the file name containing a explicit description of the magnetic field.
+    inputcom_1.magin = 0; // "MAGIN" - (0 integer unitless) - If set to a non-zero value the user is prompted to type in the file name containing a explicit description of the magnetic field.
 	inputcom_1.magout = 0; // "MAGOUT" - Similar to MAGIN to write out the magnetic field lattice used for the simulation.
-	inputcom_1.idump = 0; // "IDUMP" - If set to a non-zero value the complete particle and field distribution is dumped at the undulator exit into two outputfiles. The filenames are the filename of the main output file plus the extension ’.dpa’ and ’.dfl’, respectively.
+	inputcom_1.idump = 0; // "IDUMP" - If set to a non-zero value the complete particle and field distribution is dumped at the undulator exit into two outputfiles. The filenames are the filename of the main output file plus the extension ".dpa" and ".dfl", respectively.
 	inputcom_1.idmpfld = 0; // "IDMPFLD" - similar to IDUMP but only for the field distribution
 	inputcom_1.idmppar = 0; // "IDMPPAR" - similar to IDUMP but only for the particle distribution
 	inputcom_1.isradi = 0; // "ISRADI" - write the field distribution to file for every ISRADI slice, if !=0
@@ -2388,7 +2389,8 @@ int srTSASE::initrun_srw()
 	int result = 0;
 	if(inputcom_1.itdp != 0) //OC191108
 	{//to check!
-		if(result = Alloc_tslipcom(PrecDat.ncar, tbunchcom_1.nslp)) return result; //OC port: separate allocation of GENESIS crtime buffer
+		//if(result = Alloc_tslipcom(PrecDat.ncar, tbunchcom_1.nslp)) return result; //OC port: separate allocation of GENESIS crtime buffer
+		if(result = Alloc_tslipcom((int)(PrecDat.ncar), tbunchcom_1.nslp)) return result; //OC26042019
 	}
 
 /*     time dependencies */
@@ -3136,7 +3138,8 @@ int srTSASE::readfield_srw(f2c_doublecomplex* cin, f2c_integer* irec)
 
 	double tMoment = tStart + (*irec - 1)*tStep;
 	int it0_srw = (int)((tMoment - SeedRad.eStart)/SeedRad.eStep + 0.000001);
-	int nt_srw_mi_1 = SeedRad.ne - 1;
+	//int nt_srw_mi_1 = SeedRad.ne - 1;
+	long long nt_srw_mi_1 = SeedRad.ne - 1; //OC26042019
 	//if((it0_srw < 0) || (it0_srw >= nt_srw_mi_1)) return 0; //don't fill-in anything if out of range (- to check if it's OK)
 	if((it0_srw < 0) || (it0_srw >= nt_srw_mi_1)) OutOfRangeT = true; //don't fill-in anything if out of range (- to check if it's OK)
 	double rt = (tMoment - (SeedRad.eStart + it0_srw*SeedRad.eStep))/SeedRad.eStep; //0 <= rt <= 1
@@ -3160,7 +3163,8 @@ int srTSASE::readfield_srw(f2c_doublecomplex* cin, f2c_integer* irec)
 	double Dmax = RadMeshRange();
 	double xzStep = Dmax/double(Ncar - 1);
 	double xzStart = -0.5*Dmax;
-	int nz_srw_mi_1 = SeedRad.nz - 1, nx_srw_mi_1 = SeedRad.nx - 1;
+	//int nz_srw_mi_1 = SeedRad.nz - 1, nx_srw_mi_1 = SeedRad.nx - 1;
+	long long nz_srw_mi_1 = SeedRad.nz - 1, nx_srw_mi_1 = SeedRad.nx - 1; //OC26042019
 
 	//long perT = 2;
 	//long perX = perT*SeedRad.ne;

@@ -23,6 +23,17 @@ except:
     import pickle
 
 #****************************************************************************
+# Global Constants
+
+_Pi = 3.14159265358979
+_ElCh = 1.60217646263E-19 #1.602189246E-19 #Electron Charge [Q]
+_ElMass_kg = 9.1093818872E-31 #9.10953447E-31 #Electron Mass in [kg]
+_ElMass_MeV = 0.51099890221 #Electron Mass in [MeV]
+_LightSp = 2.9979245812E+08 #Speed of Light [m/c]
+_Light_eV_mu = 1.23984186 #Wavelength <-> Photon Energy conversion constant ([um] <-> [eV])
+_PlanckConst_eVs = 4.13566766225E-15 #Planck constant in [eV*s]
+
+#****************************************************************************
 class SRWLBeamline(object):
     """Basic Synchrotron Radiation Beamline (in a storage ring based source)
     Several different types of simulations are planned to be supported, including:
@@ -567,9 +578,16 @@ class SRWLBeamline(object):
         meshIsRect = 0
         precPar = [numDims, _gap, _phase, _interp_ord, meshIsRect] #NOTE: these values can be modified by srwl.UtiUndFindMagFldInterpInds
 
-        #print(precPar)
+        #OCTEST
+        #print('precPar for UtiUndFindMagFldInterpInds:', precPar)
+        
         nIndReq = srwl.UtiUndFindMagFldInterpInds(arIndReqFiles, arGaps, arPhases, precPar) #to implement
+
+        #OCTEST
+        #print('precPar after UtiUndFindMagFldInterpInds:', precPar)
+        #print(nIndReq)
         #print(arIndReqFiles)
+        #print(arFieldFileNames)
 
         if((nIndReq <= 0) or (nIndReq > nRows)):
             raise Exception('Inconsistent magnetic field data summary file')
@@ -583,6 +601,8 @@ class SRWLBeamline(object):
 
             curFileName = arFieldFileNames[curInd]
             curFilePath = os.path.join(os.getcwd(), self.dir_main, self.dir_magn_meas, curFileName)
+
+            #OCTEST
             #print(curFilePath)
             
             curFldCnt = srwl_uti_read_mag_fld_3d(curFilePath, '#')
@@ -597,7 +617,11 @@ class SRWLBeamline(object):
                 
                 if(len(arCoefBx) > curInd): arResCoefBx.append(arCoefBx[curInd])
                 if(len(arCoefBy) > curInd): arResCoefBy.append(arCoefBy[curInd])
-         
+
+        #OCTEST
+        #print('Gaps:', arResGaps)
+        #print('Phases:', arResPhases)
+        
         fldResCnt = SRWLMagFldC(arResMagFld3D, array('d', arResXc), array('d', arResYc), array('d', arResZc))
         #nElem = len(arMagFld3D)
         #if((nElem != len(arGaps)) or (nElem != len(arPhases))):
@@ -618,7 +642,9 @@ class SRWLBeamline(object):
         fldCntFinRes = SRWLMagFldC(copy(arResMagFld3D[0]), arResXc[0], arResYc[0], arResZc[0])
 
         precPar.append(1) #this means that search for necessary subset of indexes should not be done, i.e. the field container is assumed to include only the fields necessary for the interpolaton
-        #print(precPar)
+
+        #OCTEST
+        #print('precPar for CalcMagnField:', precPar)
 
         self.mag = srwl.CalcMagnField(fldCntFinRes, fldResCnt, precPar)
 
@@ -883,7 +909,8 @@ class SRWLBeamline(object):
             resMeshI = resStkDet.mesh
 
         if(len(_fname) > 0): srwl_uti_save_intens_ascii(arI, resMeshI, _fname, 0, ['Photon Energy', 'Horizontal Position', 'Vertical Position', ''], _arUnits=['eV', 'm', 'm', 'ph/s/.1%bw/mm^2'])
-        if _pr: print('completed (lasted', round(time.time() - t0, 2), 's)')
+        #if _pr: print('completed (lasted', round(time.time() - t0, 2), 's)')
+        if _pr: print('completed (lasted', round(time.time() - t0, 3), 's)')
 
         return arI, resMeshI
 
@@ -984,7 +1011,8 @@ class SRWLBeamline(object):
         #END DEBUG
         
         srwl.CalcElecFieldSR(wfr, 0, magToUse, arPrecPar) #calculate SR
-        if _pr: print('completed (lasted', round(time.time() - t0, 2), 's)')
+        #if _pr: print('completed (lasted', round(time.time() - t0, 2), 's)')
+        if _pr: print('completed (lasted', round(time.time() - t0, 3), 's)')
 
         arI = None
         resMeshI = None
@@ -1097,7 +1125,8 @@ class SRWLBeamline(object):
             
         #srwl.CalcElecFieldGaussian(wfr, self.gsnBeam, [_samp_fact])
         srwl.CalcElecFieldGaussian(wfr, locGsnBeam, [_samp_fact]) #OC16102017
-        if _pr: print('completed (lasted', round(time.time() - t0, 2), 's)')
+        #if _pr: print('completed (lasted', round(time.time() - t0, 2), 's)')
+        if _pr: print('completed (lasted', round(time.time() - t0, 3), 's)')
 
         arI = None
         resMeshI = None
@@ -1205,7 +1234,8 @@ class SRWLBeamline(object):
             
         #srwl.CalcElecFieldPointSrc(wfr, self.ptSrc, [_samp_fact])
         srwl.CalcElecFieldPointSrc(wfr, locPtSrc, [_samp_fact])
-        if _pr: print('completed (lasted', round(time.time() - t0, 2), 's)')
+        #if _pr: print('completed (lasted', round(time.time() - t0, 2), 's)')
+        if _pr: print('completed (lasted', round(time.time() - t0, 3), 's)')
 
         arI = None
         resMeshI = None
@@ -1707,10 +1737,23 @@ class SRWLBeamline(object):
         if(isinstance(_wfr, SRWLWfr) == False):
             raise Exception('Incorrect wavefront (SRWLWfr) structure')
 
+        from datetime import datetime #OCTEST
+
         print('Propagation ... ', end='')
         t0 = time.time();
+        #dt = datetime.now() #OCTEST
+        #t0 = dt.now(); #OCTEST
+        #print(t0) #OCTEST
+
         srwl.PropagElecField(_wfr, self.optics)
-        print('completed (lasted', round(time.time() - t0, 2), 's)')
+
+        #dt = datetime.now() #OCTEST
+        #t = dt.now(); #OCTEST
+        #print(t) #OCTEST
+        
+        #print('completed (lasted', t - t0, 's)')#OCTEST
+        #print('completed (lasted', round(time.time() - t0, 2), 's)')
+        print('completed (lasted', round(time.time() - t0, 3), 's)')
 
         #print('_wfr.Rx=',  _wfr.Rx, '   _wfr.Ry=',  _wfr.Ry)
 
@@ -1738,7 +1781,8 @@ class SRWLBeamline(object):
                 print('Saving Propagation Results ... ', end='')
                 t0 = time.time();
                 srwl_uti_save_intens_ascii(arI, resMeshI, _fname, 0, ['Photon Energy', 'Horizontal Position', 'Vertical Position', ''], _arUnits=['eV', 'm', 'm', sValUnitName])
-                print('completed (lasted', round(time.time() - t0, 2), 's)')
+                #print('completed (lasted', round(time.time() - t0, 2), 's)')
+                print('completed (lasted', round(time.time() - t0, 3), 's)')
 
         #return arI
         return arI, resMeshI #OC06122016
@@ -1825,6 +1869,64 @@ class SRWLBeamline(object):
             _file_bkp = True if(_fbk == True) else False) #OC14082018
 
     #------------------------------------------------------------------------
+    def cost_func_aux_int_distr(self, _x, *_aux):
+
+        x_lim = _aux[0]
+        if(x_lim is not None):
+            if(not self.uti_math_opt.check_limits(_x, x_lim)): return 1.e+23 #to tune
+
+        v = _aux[1] #all params for optical simulation
+        rStart = v.om_aux_rStart
+        rFin = v.om_aux_rFin
+        irStart = v.om_aux_irStart
+        irFinP1 = v.om_aux_irFinP1
+        arI1d = v.om_aux_arI1d
+
+        rStep = (self.meshIntFit.xFin - self.meshIntFit.xStart)/(self.meshIntFit.nx - 1)
+        nr = irFinP1 - irStart
+
+        scaleMult = _x[0]
+
+        useLogOnlyForF = False
+        useLogForFandArg = False
+        rMult = 1; 
+
+        if(v.om_fs[1] == 1): useLogOnlyForF = True #do fitting in normal scale or apply log to function only
+        elif(v.om_fs[1] == 2): #do fitting in log scale vs argument in log scale
+            useLogForFandArg = True
+            rMult = 10.**((log10(rFin) - log10(rStart))/(nr - 1))
+        
+        useNormalScale = not (useLogOnlyForF or useLogForFandArg)
+        sumDifE2 = 0
+        sumMeas = 0; sumCalc = 0
+        r = rStart
+        for ir in range(irStart, irFinP1):
+            if useNormalScale or useLogOnlyForF:
+                fMeas = self.arIntFit[ir]
+                fCalc = scaleMult*arI1d[ir - irStart]
+                if(useLogOnlyForF):
+                    fMeas = log10(fMeas)
+                    fCalc = log10(fCalc)
+            elif useLogForFandArg:
+                fMeas = log10(uti_math.interp_1d(r, self.meshIntFit.xStart, rStep, self.meshIntFit.nx, self.arIntFit, _ord=v.om_fp[4])) #interpolate using same order as at azimuthal avaraging
+                fCalc = log10(scaleMult*uti_math.interp_1d(r, rStart, rStep, nr, arI1d, _ord=v.om_fp[4]))
+                r *= rMult
+            dF = fMeas - fCalc
+            sumDifE2 += dF*dF
+            sumMeas += fMeas
+            sumCalc += fCalc
+
+        v.om_aux_avg_fMeas = sumMeas/nr
+        v.om_aux_avg_fCalc = sumCalc/nr
+        #_aux[1] = v #not necessary?
+
+        res = sqrt(sumDifE2/nr)
+        #OCTEST
+        #print('cost_func_aux_int_distr: res=', res)
+        
+        return res #maybe normalize it by something / apply weight?
+
+    #------------------------------------------------------------------------
     def cost_func(self, _x, *_aux):
         """Standard Cost Function used for optimization of optical elements and possibly sources"""
 
@@ -1875,7 +1977,6 @@ class SRWLBeamline(object):
             infIsReq = v.om_pr or v.om_fl
 
             if((cw['xFWHM'] > 0) or (cw['yFWHM'] > 0) or (cw['iM'] > 0) or (cw['xFWFM'] > 0) or (cw['yFWFM'] > 0)): #horizontal, vertical sizes, and peak intensity
-            #if((cw[0] > 0) or (cw[1] > 0) or (cw[6] > 0)): #horizontal, vertical sizes, and peak intensity
                 
                 meshI = wfr.mesh
                 arI = array('f', [0]*meshI.nx*meshI.ny) #"flat" 2D array to take intensity data
@@ -1976,8 +2077,86 @@ class SRWLBeamline(object):
                     if(infIsReq): s2pr += critInf('ypFWFM', ypFWFM, dCost)
                     cost += dCost
 
-            #if(cw['iD'] > 0): #arbitrary intensity distribution, to implement!
-               
+            if(cw['iD'] > 0): #arbitrary intensity distribution to fit; this optimization should run separately with others (const values don't accumulate)
+                if(hasattr(self, 'arIntFit') and hasattr(self, 'meshIntFit')):
+
+                    #To move this section to a separate function(?)
+                    meshI2d = wfr.mesh
+                    if(v.om_fp[0] == 3): #azimuthally-averaged flux per unit surface area
+                        arI2d = array('f', [0]*meshI2d.nx*meshI2d.ny) #"flat" 2D array to take intensity data
+                        srwl.CalcIntFromElecField(arI2d, wfr, 6, 0, 3, meshI2d.eStart, 0, 0) #total intensity vs x and y
+
+                        xcAzAvg = v.om_fp[7]; ycAzAvg = v.om_fp[8]
+                        rMaxFromI2d = xcAzAvg - meshI2d.xStart
+                        rMaxTest = meshI2d.xFin - xcAzAvg
+                        if(rMaxFromI2d > rMaxTest): rMaxFromI2d = rMaxTest
+                        rMaxTest = ycAzAvg - meshI2d.yStart
+                        if(rMaxFromI2d > rMaxTest): rMaxFromI2d = rMaxTest
+                        rMaxTest = meshI2d.yFin - ycAzAvg
+                        if(rMaxFromI2d > rMaxTest): rMaxFromI2d = rMaxTest
+
+                        rStep = (self.meshIntFit.xFin - self.meshIntFit.xStart)/(self.meshIntFit.nx - 1)
+                        rStart = self.meshIntFit.xStart
+                        rFin = self.meshIntFit.xFin
+                        irStart = 0
+                        irFinP1 = self.meshIntFit.nx 
+
+                        if(v.om_fr is not None):
+                            if(v.om_fr[0] > self.meshIntFit.xStart): 
+                                rStart = v.om_fr[0]
+                                irStart = int((rStart - self.meshIntFit.xStart)/rStep)
+                                rStart = self.meshIntFit.xStart + irStart*rStep
+
+                            if(v.om_fr[1] < self.meshIntFit.xFin): 
+                                rFin = v.om_fr[1]
+                                irFinP1 = int((rFin - self.meshIntFit.xStart)/rStep) + 1
+                                rFin = self.meshIntFit.xStart + (irFinP1 - 1)*rStep
+
+                        if(rStart > rMaxFromI2d): raise Exception("Inconsistent argument limits of calculated and external / measured intensity distributions")
+
+                        if(rFin > rMaxFromI2d): 
+                            irFinP1 = int((rMaxFromI2d - self.meshIntFit.xStart)/rStep) + 1
+                            rFin = self.meshIntFit.xStart + (irFinP1 - 1)*rStep
+
+                        nr = irFinP1 - irStart
+                        meshI1d = SRWLRadMesh(_eStart=meshI2d.eStart, _eFin=meshI2d.eFin, _ne=meshI2d.ne, 
+                                              _xStart=rStart, _xFin=rFin, _nx=nr, 
+                                              _yStart=0, _yFin=0, _ny=1, _zStart=meshI2d.zStart)
+                        arI1d = array('f', [0]*nr)
+                        srwl.UtiIntProc(arI1d, meshI1d, arI2d, meshI2d, v.om_fp)
+                        #print('Azimuthally-averaged intensity calculated')
+
+                        v.om_aux_rStart = rStart
+                        v.om_aux_rFin = rFin
+                        v.om_aux_irStart = irStart
+                        v.om_aux_irFinP1 = irFinP1
+                        v.om_aux_arI1d = arI1d
+
+                        #OCTEST
+                        print('cost_func: rStart=', rStart, ' rFin=', rFin)
+
+                        if(v.om_fs[0] == 0): #do not scale data at fitting (i.e. do not multiply it by a best-fit constant)
+
+                            dCost = self.cost_func_aux_int_distr([1.], None, v)
+
+                        elif(v.om_fs[0] == 1): #do scale data at fitting (i.e. multiply it by a best-fit constant)
+
+                            self.cost_func_aux_int_distr([1.], None, v)
+                            ivScaleMult = v.om_aux_avg_fMeas/v.om_aux_avg_fCalc
+                            #OCTEST
+                            #print('cost_func: ivScaleMult=', ivScaleMult)
+
+                            optRes = self.uti_math_opt.minimize(self.cost_func_aux_int_distr, 
+                                                                _x=[ivScaleMult], _x_lim=[[0.01*ivScaleMult,100*ivScaleMult]], #to tune?
+                                                                _meth=v.om_fs[0], _opt=v.om_mp, _aux=v)
+                            dCost = optRes.fun
+                            #OCTEST
+                            #print('cost_func: optRes.fun=', optRes.fun)
+                            #return optRes.fun #?
+
+                    #if(infIsReq): s2pr += critInf('yFWHM', yFWHM, dCost)
+                    cost += dCost
+
         if(v.wm): #partially-coherent / multi-electron calculations (add treatment of the Gaussian-Schell case later)
 
             if(self.comMPI is not None): self.comMPI.Barrier() #synchronizing all processes in case if MPI is used (e.g. for partially-coherent calculations)
@@ -2103,7 +2282,6 @@ class SRWLBeamline(object):
             if(v.om_fl): self.uti_math_opt.log_update(v.om_fnl, statStr)
             
         v.om_res = self.uti_math_opt.status_update(v.om_res, _x, cost)
-
         return cost
 
     #------------------------------------------------------------------------
@@ -2163,6 +2341,12 @@ class SRWLBeamline(object):
 
             _v.om_res = [0]*(len(_v.om_iv) + 2) #array for storing instant optimization results in the process of the optimization
             for ip in range(len(_v.om_iv)): _v.om_res[ip] = _v.om_iv[ip]
+
+            if(_v.om_cw['iD'] > 0):
+                if((_v.om_fn is not None) and (len(_v.om_fn) > 0)):
+                    fPathOptIntDistr = os.path.join(os.getcwd(), _v.fdir, _v.om_fn)
+                    #print(self.meshIntFit)
+                    self.arIntFit, self.meshIntFit = srwl_uti_read_intens_ascii(fPathOptIntDistr)
             
             uti_math_opt.minimize(self.cost_func, _v.om_iv, _x_lim=_v.om_lm, _meth=_v.om_mt, _opt=_v.om_mp, _aux=_v)
             _v = self.cancel_calc_req(_v)
@@ -2190,7 +2374,8 @@ class SRWLBeamline(object):
                 if hasattr(_v, 'mag_gs'): _v.mag_gs = 0
 
             if((_v.rs_type != 'a') and (_v.rs_type != 'c')): #not tabulated magnetic field not depending on gap / phase, i.e. arbitrary magnetic field source (and e-beam)
-                if hasattr(_v, 'mag_ifn'): del _v.mag_ifn
+                #if hasattr(_v, 'mag_ifn'): del _v.mag_ifn
+                if hasattr(_v, 'mag_fn'): del _v.mag_fn #OC29052019
 
             if(_v.rs_type != 'g'): #fully-coherent Gaussian radiation beam
                 if hasattr(_v, 'gbm_pen'): del _v.gbm_pen
@@ -2346,7 +2531,7 @@ class SRWLBeamline(object):
                     _ph_mode = phase_mode,
                     _phase = phase,
                     _zc = _v.und_zc,
-                    _interp_ord = 3, #1,
+                    _interp_ord = _v.und_ior, #3, #1,
                     _meas_or_calc = 'm',
                     _per = _v.und_per,
                     _c1 = _v.und_c1,
@@ -2667,7 +2852,8 @@ class SRWLBeamline(object):
                     if(_v.w_res is not None):
                         _v.si_res, mesh_si = self.calc_int_from_wfr(_v.w_res, _v.si_pol, _v.si_type, detForSI, _pr=False)
                         wfrWasNotLoaded = False
-                        print('completed (lasted', round(time.time() - t0, 2), 's)')
+                        #print('completed (lasted', round(time.time() - t0, 2), 's)')
+                        print('completed (lasted', round(time.time() - t0, 3), 's)')
                     else: print('failed to load wavefront file')
 
                 if wfrWasNotLoaded:
@@ -2726,7 +2912,8 @@ class SRWLBeamline(object):
                         pickle.dump(_v.w_res, out_s)
                         out_s.flush()
                         out_s.close()
-                        print('completed (lasted', round(time.time() - t0, 2), 's)')
+                        #print('completed (lasted', round(time.time() - t0, 2), 's)')
+                        print('completed (lasted', round(time.time() - t0, 3), 's)')
 
                 #mesh_si = deepcopy(wfr.mesh) #OC06122016 (commented-out)
                 #if(detForSI is None): mesh_si = deepcopy(wfr.mesh)
@@ -2774,7 +2961,8 @@ class SRWLBeamline(object):
                         pickle.dump(_v.w_res, out_s)
                         out_s.flush()
                         out_s.close()
-                        print('completed (lasted', round(time.time() - t0, 2), 's)')
+                        #print('completed (lasted', round(time.time() - t0, 2), 's)')
+                        print('completed (lasted', round(time.time() - t0, 3), 's)')
 
         #---calculate multi-electron (/ partially coherent) wavefront propagation
             if(_v.wm):
@@ -3126,6 +3314,9 @@ def srwl_uti_std_options():
         ['und_phm', 's', 'p1', 'undulator phase move mode'],
         ['und2_phm', 's', 'p1', 'second undulator phase move mode'],
 
+        ['und_ior', 'f', 1, 'interpolaton order of tabulated undulator magnetic field'],
+        ['und2_ior', 'f', 1, 'interpolaton order of second tabulated undulator magnetic field'],
+
         ['und_sx', 'i', 1, 'undulator horizontal magnetic field symmetry vs longitudinal position'],
         ['und2_sx', 'i', 1, 'undulator horizontal magnetic field symmetry vs longitudinal position'],
         ['und_sy', 'i', -1, 'undulator vertical magnetic field symmetry vs longitudinal position'],
@@ -3363,13 +3554,23 @@ def srwl_uti_std_options():
         ['om', '', '', 'perform optimization of beamline parameters', 'store_true'],
         ['om_pn', '', ['op_VFM_r', 'op_HFM_r', 'op_S0_Dy', 'op_S0H_Dx'], 'names of parameters to be optimized'],
         ['om_iv', 'f', [20000., 20000., 1e-05, 1e-05], 'initial values of parameters to be optimized'],
-        ['om_pb', 'f', [[10000.,30000.], [10000.,30000.], [1.e-06,0.001], [1.e-06,0.001]], 'bounding (i.e. min. amd max. possible) values of parameters to be optimized'],
-        ['om_cw', 'f', [1, 1, 0, 0, 0, 0, 0], 'weights of different criterions the optimization should be performed for: [0]- horizontal spot size, [1]- vertucal spot size, [2]- horizontal angular divergence, [3]- vertical angular divergence, [4]- horizontal coherence length, [5]- vertical coherence length, [6]- given intensity distribution'],
-        ['om_cn', 'f', [1e-06, 1e-06, 0, 0, 0, 0, 0], 'nominal values of different criterions / figures of merit for the optimization, in the same order as defined by om_cw'],
-        ['om_mt', 'i', 0, 'optimization method to use: 0- ..., 1- ...'],
-        
+        ['om_lm', 'f', [[10000.,30000.], [10000.,30000.], [1.e-06,0.001], [1.e-06,0.001]], 'limiting (i.e. min. amd max. possible) values of parameters to be optimized'],
 
-        #to add options
+        ['om_cw', 'f', {'xFWHM':1, 'yFWHM':1, 'xpFWHM':0, 'ypFWHM':0, 'xCL':0, 'yCL':0, 'iM':0, 'iD':0, 'xFWFM':1.5, 'yFWFM':3., 'xpFWFM':0, 'ypFWFM':0}, 'weights of different criterions the optimization should be performed for: [0]- horizontal spot size, [1]- vertical spot size, [2]- horizontal angular divergence, [3]- vertical angular divergence, [4]- horizontal coherence length, [5]- vertical coherence length, [6]- peak intensity, [7]- given intensity distribution'],
+        ['om_ct', 'f', {'xFWHM':0.7e-06, 'yFWHM':0.7e-06, 'xpFWHM':0, 'ypFWHM':0, 'xCL':0, 'yCL':0, 'iM':1.e+17, 'iD':0, 'xFWFM':(0.7e-06*1.52379), 'yFWFM':(0.7e-06*1.52379), 'xpFWFM':0, 'ypFWFM':0}, 'target values of different criterions / figures of merit for the optimization, in the same order as defined by om_cw'],
+        ['om_cn', 'f', {'xFWHM':0.7e-06, 'yFWHM':0.7e-06, 'xpFWHM':0, 'ypFWHM':0, 'xCL':0, 'yCL':0, 'iM':1.e+17, 'iD':0, 'xFWFM':(0.7e-06*1.52379), 'yFWFM':(0.7e-06*1.52379), 'xpFWFM':0, 'ypFWFM':0}, 'nominal values of different criterions / figures of merit for the optimization, in the same order as defined by om_cw'],
+        ['om_ce', 'f', {'xFWFM':0.2, 'yFWFM':0.2, 'xpFWFM':0.2, 'ypFWFM':0.2}, 'extra data related to some optimization criterions, e.g. for *FWFM this is the fraction of maximum at which full width of intensity distribution should be considered'],
+
+        ['om_fn', 's', '', 'input intensity distribution file name'],
+        ['om_ft', 'i', 2, 'type of input intensity distribution: 1- flux per unit surface area, 2- azimuthally-averaged flux per unit surface area'],
+
+        ['om_mt', 'i', 1, 'optimization method to use: 1- ..., 2- ...'],
+        ['om_mp', 'i', {'xtol': 1e-3, 'ftol': 1e-3, 'maxiter': 1000}, 'method-dependent optimization parameters (dictionary)'],
+
+        ['om_pr', '', '1', 'print-out auxiliary information in the course of the optimization procedure', 'store_true'],
+        ['om_fl', '', '1', 'save auxiliary information during the optimization procedure to a listing file', 'store_true'],
+        
+        #add more options here
     ]
     return varParamStd
 

@@ -634,7 +634,7 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="..\src\clients\igor\srigintw.rc">
+    <ResourceCompile Include="..\src\clients\igor\srigintr.rc">
       <Filter>igor</Filter>
     </ResourceCompile>
   </ItemGroup>

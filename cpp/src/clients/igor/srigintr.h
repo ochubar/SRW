@@ -34,6 +34,7 @@
 /* Prototypes */
 
 //HOST_IMPORT void main(IORecHandle ioRecHandle);
+HOST_IMPORT int XOPMain(IORecHandle ioRecHandle); //OC28042019
 
 //*************************************************************************
 

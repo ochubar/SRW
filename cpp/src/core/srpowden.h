@@ -106,8 +106,11 @@ public:
 	int TreatFiniteElecBeamEmittance1D(srTPowDensStructAccessData&, char);
 	void DetermineSingleElecPowDensEffSizes(srTPowDensStructAccessData&, double& MxxPowSingleE, double& MzzPowSingleE);
 	void DetermineResizeBeforeConv(double MxxElecEff, double MzzElecEff, double MxxPowSingleE, double MzzPowSingleE, srTRadResize& Resize);
+	//void ConstructDataForConv(srTPowDensStructAccessData& PowDensAccessData, float* NewData, long long NewNx, long long NewNz);
 	void ConstructDataForConv(srTPowDensStructAccessData& PowDensAccessData, float* NewData, long NewNx, long NewNz);
+	//int PerformConvolutionWithGaussian(float* AuxConvData, long long NxAux, long long NzAux, double MxxElecEff, double MzzElecEff);
 	int PerformConvolutionWithGaussian(float* AuxConvData, long NxAux, long NzAux, double MxxElecEff, double MzzElecEff);
+	//void ExtractFinalDataAfterConv(float* AuxConvData, long long NxAux, long long NzAux, srTPowDensStructAccessData& PowDensAccessData);
 	void ExtractFinalDataAfterConv(float* AuxConvData, long NxAux, long NzAux, srTPowDensStructAccessData& PowDensAccessData);
 
 	void SetPrecParams(srTParPrecPowDens* pPrecPowDens);

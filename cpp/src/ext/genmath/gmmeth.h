@@ -278,7 +278,8 @@ public:
 		}
 	}
 
-	template <class T> static T tabTangOrtsToSurf2D(TVector3d& vHorRes, TVector3d& vVertRes, int ix, int iz, int nx, int nz, double xStep, double zStep, T* pF)
+	template <class T> static T tabTangOrtsToSurf2D(TVector3d& vHorRes, TVector3d& vVertRes, long long ix, long long iz, long long nx, long long nz, double xStep, double zStep, T* pF) //OC26042019
+	//template <class T> static T tabTangOrtsToSurf2D(TVector3d& vHorRes, TVector3d& vVertRes, int ix, int iz, int nx, int nz, double xStep, double zStep, T* pF)
 	{//calculates  "horizontal" and "vertical" tangential vector and inner normal (assuming y - longitudinal coordinate)
 	 //returns function value, same as tabFunc2D
 		if((pF == 0) || (nx <= 1) || (nz <= 1)) return (T)0.;

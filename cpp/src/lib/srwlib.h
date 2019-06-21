@@ -832,10 +832,12 @@ EXP int CALL srwlUtiIntInf(double* arInf, char* pcData, char typeData, SRWLRadMe
  * @param [in] pMesh2 (pointer to SRWLRadMesh) mesh of intensity data #2
  * @param [in] arPar array of parameters defining operation to be performed:
  *			   arPar[0] defines type of the operation and the meaning of other elements dependent on it
+ * @param [in] nPar length of array of parameters defining operation to be performed
  * @return	integer error (>0) or warnig (<0) code
  * @see ...
  */
-EXP int CALL srwlUtiIntProc(char* pcI1, char typeI1, SRWLRadMesh* pMesh1, char* pcI2, char typeI2, SRWLRadMesh* pMesh2, double* arPar);
+EXP int CALL srwlUtiIntProc(char* pcI1, char typeI1, SRWLRadMesh* pMesh1, char* pcI2, char typeI2, SRWLRadMesh* pMesh2, double* arPar, int nPar);
+//EXP int CALL srwlUtiIntProc(char* pcI1, char typeI1, SRWLRadMesh* pMesh1, char* pcI2, char typeI2, SRWLRadMesh* pMesh2, double* arPar);
 
 /** 
  * Attempts to deduce parameters of peridic undulator magnetic field from tabulated field and set up Undulator structure

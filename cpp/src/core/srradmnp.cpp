@@ -25,10 +25,12 @@
 
 //*************************************************************************
 
-void srTRadGenManip::SetupIntCoord(char Cmpn, double Arg, long& i0, long& i1, double& InvStepRelArg)
+void srTRadGenManip::SetupIntCoord(char Cmpn, double Arg, long long& i0, long long& i1, double& InvStepRelArg) //OC26042019
+//void srTRadGenManip::SetupIntCoord(char Cmpn, double Arg, long& i0, long& i1, double& InvStepRelArg)
 {
 	double Step, Start;
-	long N;
+	//long N;
+	long long N; //OC26042019
 
 	srTSRWRadStructAccessData& RadAccessData = *((srTSRWRadStructAccessData*)(hRadAccessData.ptr()));
 
@@ -85,18 +87,22 @@ int srTRadGenManip::ExtractSingleElecFlux1DvsE(srTRadExtract& RadExtract)
 	long long PerX = RadAccessData.ne << 1;
 	long long PerZ = PerX*RadAccessData.nx;
 
-	long Nz_mi_1 = RadAccessData.nz - 1;
-	long Nx_mi_1 = RadAccessData.nx - 1;
+	//long Nz_mi_1 = RadAccessData.nz - 1;
+	//long Nx_mi_1 = RadAccessData.nx - 1;
+	long long Nz_mi_1 = RadAccessData.nz - 1; //OC26042019
+	long long Nx_mi_1 = RadAccessData.nx - 1;
 
     //long iePerE = 0;
     long long iePerE = 0;
-	for(long ie=0; ie<RadAccessData.ne; ie++)
+	for(long long ie=0; ie<RadAccessData.ne; ie++) //OC26042019
+	//for(long ie=0; ie<RadAccessData.ne; ie++)
 	{
         //long izPerZ = 0;
         long long izPerZ = 0;
 
 		double Sum = 0;
-		for(long iz=0; iz<RadAccessData.nz; iz++)
+		for(long long iz=0; iz<RadAccessData.nz; iz++) //OC26042019
+		//for(long iz=0; iz<RadAccessData.nz; iz++)
 		{
 			float *pEx_StartForX = pEx0 + izPerZ;
             float *pEz_StartForX = pEz0 + izPerZ;
@@ -105,7 +111,8 @@ int srTRadGenManip::ExtractSingleElecFlux1DvsE(srTRadExtract& RadExtract)
 
 			double SumX = 0.;
 
-            for(long ix=0; ix<RadAccessData.nx; ix++)
+            for(long long ix=0; ix<RadAccessData.nx; ix++) //OC26042019
+            //for(long ix=0; ix<RadAccessData.nx; ix++)
             {
 				float* pEx = pEx_StartForX + (ixPerX + iePerE);
 				float* pEz = pEz_StartForX + (ixPerX + iePerE);
@@ -139,6 +146,8 @@ int srTRadGenManip::ExtractMultiElecFlux1DvsE(srTRadExtract& RadExtract)
 
 	long Nx = RadAccessData.nx;
 	long Nz = RadAccessData.nz;
+	//long long Nx = RadAccessData.nx; //OC26042019
+	//long long Nz = RadAccessData.nz;
 
 	CGenMathFFT2D FFT2D;
 	FFT2D.NextCorrectNumberForFFT(Nx);
@@ -162,7 +171,8 @@ int srTRadGenManip::ExtractMultiElecFlux1DvsE(srTRadExtract& RadExtract)
 	OwnRadExtract.Int_or_Phase = 0;
 	OwnRadExtract.ePh = RadAccessData.eStart;
 
-	long Ne = RadAccessData.ne;
+	//long Ne = RadAccessData.ne;
+	long long Ne = RadAccessData.ne; //OC26042019
 	float *pF = RadExtract.pExtractedData;
 
 	//long Nz_mi_1 = Nz - 1;
@@ -224,7 +234,8 @@ int srTRadGenManip::ExtractSingleElecIntensity1DvsE(srTRadExtract& RadExtract)
 	long long PerX = RadAccessData.ne << 1;
 	long long PerZ = PerX*RadAccessData.nx;
 
-	long ix0=0, ix1=0, iz0=0, iz1=0;
+	//long ix0=0, ix1=0, iz0=0, iz1=0;
+	long long ix0=0, ix1=0, iz0=0, iz1=0; //OC26042019
 	double InvStepRelArg1, InvStepRelArg2;
 	SetupIntCoord('x', RadExtract.x, ix0, ix1, InvStepRelArg1);
 	SetupIntCoord('z', RadExtract.z, iz0, iz1, InvStepRelArg2);
@@ -282,7 +293,8 @@ int srTRadGenManip::ExtractSingleElecIntensity1DvsX(srTRadExtract& RadExtract)
 	long long PerX = RadAccessData.ne << 1;
 	long long PerZ = PerX*RadAccessData.nx;
 
-	long ie0=0, ie1=0, iz0=0, iz1=0;
+	//long ie0=0, ie1=0, iz0=0, iz1=0;
+	long long ie0=0, ie1=0, iz0=0, iz1=0; //OC26042019
 	double InvStepRelArg1, InvStepRelArg2;
 	//SetupIntCoord('e', RadExtract.ePh, ie0, ie1, InvStepRelArg1); //OC140813
 	SetupIntCoord('z', RadExtract.z, iz0, iz1, InvStepRelArg2);
@@ -299,7 +311,8 @@ int srTRadGenManip::ExtractSingleElecIntensity1DvsX(srTRadExtract& RadExtract)
 	//if(RadAccessData.ElecFldUnit != 1) ConstPhotEnInteg = 1; //(?) 
 	double ConstPhotEnInteg = 1.; //1 Phot/s/.1%bw correspond(s) to : 1.60219e-16 W/eV
 
-	long Two_ie0 = ie0 << 1, Two_ie1 = ie1 << 1;
+	//long Two_ie0 = ie0 << 1, Two_ie1 = ie1 << 1;
+	long long Two_ie0 = ie0 << 1, Two_ie1 = ie1 << 1; //OC26042019
 
 	//long iz0PerZ = iz0*PerZ, iz1PerZ = iz1*PerZ;
 	long long iz0PerZ = iz0*PerZ, iz1PerZ = iz1*PerZ;
@@ -372,7 +385,8 @@ int srTRadGenManip::ExtractSingleElecIntensity1DvsZ(srTRadExtract& RadExtract)
 	long long PerX = RadAccessData.ne << 1;
 	long long PerZ = PerX*RadAccessData.nx;
 
-	long ie0=0, ie1=0, ix0=0, ix1=0;
+	//long ie0=0, ie1=0, ix0=0, ix1=0;
+	long long ie0=0, ie1=0, ix0=0, ix1=0; //OC26042019
 	double InvStepRelArg1, InvStepRelArg2;
 	//SetupIntCoord('e', RadExtract.ePh, ie0, ie1, InvStepRelArg1); //OC150813
 	SetupIntCoord('x', RadExtract.x, ix0, ix1, InvStepRelArg2);
@@ -389,13 +403,15 @@ int srTRadGenManip::ExtractSingleElecIntensity1DvsZ(srTRadExtract& RadExtract)
 	//if(RadAccessData.ElecFldUnit != 1) ConstPhotEnInteg = 1; //(?) 
 	double ConstPhotEnInteg = 1.; //1 Phot/s/.1%bw correspond(s) to : 1.60219e-16 W/eV
 
-	long Two_ie0 = ie0 << 1, Two_ie1 = ie1 << 1;
+	//long Two_ie0 = ie0 << 1, Two_ie1 = ie1 << 1;
+	long long Two_ie0 = ie0 << 1, Two_ie1 = ie1 << 1; //OC26042019
 	//long ix0PerX = ix0*PerX, ix1PerX = ix1*PerX;
 	//long izPerZ = 0;
 	long long ix0PerX = ix0*PerX, ix1PerX = ix1*PerX;
 	long long izPerZ = 0;
 
-	for(long iz=0; iz<RadAccessData.nz; iz++)
+	for(long long iz=0; iz<RadAccessData.nz; iz++) //OC26042019
+	//for(long iz=0; iz<RadAccessData.nz; iz++)
 	{
 		float *pEx_StartForX = pEx0 + izPerZ;
 		float *pEz_StartForX = pEz0 + izPerZ;
@@ -461,7 +477,8 @@ int srTRadGenManip::ExtractSingleElecIntensity2DvsXZ(srTRadExtract& RadExtract)
 	long long PerX = RadAccessData.ne << 1;
 	long long PerZ = PerX*RadAccessData.nx;
 
-	long ie0=0, ie1=0;
+	//long ie0=0, ie1=0;
+	long long ie0=0, ie1=0; //OC26042019
 	double InvStepRelArg=0;
 	//SetupIntCoord('e', RadExtract.ePh, ie0, ie1, InvStepRelArg); //OC140813
 	bool intOverEnIsRequired = (RadExtract.Int_or_Phase == 7) && (RadAccessData.ne > 1); //OC140813
@@ -476,11 +493,13 @@ int srTRadGenManip::ExtractSingleElecIntensity2DvsXZ(srTRadExtract& RadExtract)
 	//if(RadAccessData.ElecFldUnit != 1) ConstPhotEnInteg = 1; //(?) 
 	double ConstPhotEnInteg = 1.; //1 Phot/s/.1%bw correspond(s) to : 1.60219e-16 W/eV
 
-	long Two_ie0 = ie0 << 1, Two_ie1 = ie1 << 1;
+	//long Two_ie0 = ie0 << 1, Two_ie1 = ie1 << 1;
+	long long Two_ie0 = ie0 << 1, Two_ie1 = ie1 << 1; //OC26042019
 	//long izPerZ = 0;
 	long long izPerZ = 0;
 
-	for(long iz=0; iz<RadAccessData.nz; iz++)
+	for(long long iz=0; iz<RadAccessData.nz; iz++) //OC26042019
+	//for(long iz=0; iz<RadAccessData.nz; iz++)
 	{
 		float *pEx_StartForX = pEx0 + izPerZ;
 		float *pEz_StartForX = pEz0 + izPerZ;
@@ -550,7 +569,8 @@ int srTRadGenManip::ExtractSingleElecIntensity2DvsEX(srTRadExtract& RadExtract)
 	long long PerX = RadAccessData.ne << 1;
 	long long PerZ = PerX*RadAccessData.nx;
 
-	long iz0=0, iz1=0;
+	//long iz0=0, iz1=0;
+	long long iz0=0, iz1=0; //OC26042019
 	double InvStepRelArg;
 	SetupIntCoord('z', RadExtract.z, iz0, iz1, InvStepRelArg);
 
@@ -600,7 +620,8 @@ int srTRadGenManip::ExtractSingleElecIntensity2DvsEZ(srTRadExtract& RadExtract)
 	long long PerX = RadAccessData.ne << 1;
 	long long PerZ = PerX*RadAccessData.nx;
 
-	long ix0=0, ix1=0;
+	//long ix0=0, ix1=0;
+	long long ix0=0, ix1=0; //OC26042019
 	double InvStepRelArg;
 	SetupIntCoord('x', RadExtract.x, ix0, ix1, InvStepRelArg);
 
@@ -696,7 +717,8 @@ int srTRadGenManip::ExtractSingleElecMutualIntensityVsX(srTRadExtract& RadExtrac
 	long long PerX = RadAccessData.ne << 1;
 	long long PerZ = PerX*RadAccessData.nx;
 
-	long ie0=0, ie1=0, iz0=0, iz1=0;
+	//long ie0=0, ie1=0, iz0=0, iz1=0;
+	long long ie0=0, ie1=0, iz0=0, iz1=0; //OC26042019
 	double InvStepRelArg1, InvStepRelArg2;
 
 	SetupIntCoord('z', RadExtract.z, iz0, iz1, InvStepRelArg2);
@@ -707,7 +729,8 @@ int srTRadGenManip::ExtractSingleElecMutualIntensityVsX(srTRadExtract& RadExtrac
 	if(((iz0 == iz1) || (fabs(InvStepRelArg2) < tolRelArg)) && 
 	   ((ie0 == ie1) || (fabs(InvStepRelArg1) < tolRelArg))) NeedInterp = false;
 
-	long Two_ie0 = ie0 << 1, Two_ie1 = ie1 << 1;
+	//long Two_ie0 = ie0 << 1, Two_ie1 = ie1 << 1;
+	long long Two_ie0 = ie0 << 1, Two_ie1 = ie1 << 1; //OC26042019
 	long long iz0PerZ = iz0*PerZ, iz1PerZ = iz1*PerZ;
 	float *pEx_StartForX_iz0 = pEx0 + iz0PerZ, *pEx_StartForX_iz1 = pEx0 + iz1PerZ;
 	float *pEz_StartForX_iz0 = pEz0 + iz0PerZ, *pEz_StartForX_iz1 = pEz0 + iz1PerZ;
@@ -715,9 +738,11 @@ int srTRadGenManip::ExtractSingleElecMutualIntensityVsX(srTRadExtract& RadExtrac
 	float *pEz_StartForE_iz0, *pEz_StartForE_iz1;
 
 	//First RadAccessData.nx values are the "normal" intensity (real diagonal elements of mutual intensity)
-	long nx = RadAccessData.nx;
+	//long nx = RadAccessData.nx;
+	long long nx = RadAccessData.nx; //OC26042019
 	long long ixPerX = 0;
-	for(long ix=0; ix<nx; ix++)
+	for(long long ix=0; ix<nx; ix++) //OC26042019
+	//for(long ix=0; ix<nx; ix++)
 	{
 		if(NeedInterp)
 		{
@@ -739,8 +764,10 @@ int srTRadGenManip::ExtractSingleElecMutualIntensityVsX(srTRadExtract& RadExtrac
 	float *pEx_StartForE_iz0_t, *pEx_StartForE_iz1_t;
 	float *pEz_StartForE_iz0_t, *pEz_StartForE_iz1_t;
 	float **ExPtrs, **EzPtrs, **ExPtrsT, **EzPtrsT;
-	long nx_mi_1 = nx - 1;
-	for(long ixt=0; ixt<nx_mi_1; ixt++)
+	//long nx_mi_1 = nx - 1;
+	long long nx_mi_1 = nx - 1; //OC26042019
+	for(long long ixt=0; ixt<nx_mi_1; ixt++)
+	//for(long ixt=0; ixt<nx_mi_1; ixt++)
 	{
 		long long ixt_PerX = ixt*PerX;
 		pEx_StartForE_iz0_t = pEx_StartForX_iz0 + ixt_PerX; 
@@ -757,7 +784,8 @@ int srTRadGenManip::ExtractSingleElecMutualIntensityVsX(srTRadExtract& RadExtrac
 			ExPtrsT = arExPtrs_t; EzPtrsT = arEzPtrs_t;
 		}
 
-		for(long ix=ixt+1; ix<nx; ix++)
+		for(long long ix=ixt+1; ix<nx; ix++) //OC26042019
+		//for(long ix=ixt+1; ix<nx; ix++)
 		{
 			long long ix_PerX = ix*PerX;
 			pEx_StartForE_iz0 = pEx_StartForX_iz0 + ix_PerX;
@@ -802,7 +830,8 @@ int srTRadGenManip::ExtractSingleElecMutualIntensityVsZ(srTRadExtract& RadExtrac
 	long long PerX = RadAccessData.ne << 1;
 	long long PerZ = PerX*RadAccessData.nx;
 
-	long ie0=0, ie1=0, ix0=0, ix1=0;
+	//long ie0=0, ie1=0, ix0=0, ix1=0;
+	long long ie0=0, ie1=0, ix0=0, ix1=0; //OC26042019
 	double InvStepRelArg1, InvStepRelArg2;
 
 	SetupIntCoord('x', RadExtract.x, ix0, ix1, InvStepRelArg2);
@@ -813,7 +842,8 @@ int srTRadGenManip::ExtractSingleElecMutualIntensityVsZ(srTRadExtract& RadExtrac
 	if(((ix0 == ix1) || (fabs(InvStepRelArg2) < tolRelArg)) && 
 	   ((ie0 == ie1) || (fabs(InvStepRelArg1) < tolRelArg))) NeedInterp = false;
 
-	long Two_ie0 = ie0 << 1, Two_ie1 = ie1 << 1;
+	//long Two_ie0 = ie0 << 1, Two_ie1 = ie1 << 1;
+	long long Two_ie0 = ie0 << 1, Two_ie1 = ie1 << 1; //OC26042019
 	long long ix0PerX = ix0*PerX, ix1PerX = ix1*PerX;
 
 	float *pEx_StartForZ_ix0 = pEx0 + ix0PerX, *pEx_StartForZ_ix1 = pEx0 + ix1PerX;
@@ -822,9 +852,11 @@ int srTRadGenManip::ExtractSingleElecMutualIntensityVsZ(srTRadExtract& RadExtrac
 	float *pEz_StartForE_ix0, *pEz_StartForE_ix1;
 
 	//First RadAccessData.nx values are the "normal" intensity (real diagonal elements of mutual intensity)
-	long nz = RadAccessData.nz;
+	//long nz = RadAccessData.nz;
+	long long nz = RadAccessData.nz; //OC26042019
 	long long izPerZ = 0;
-	for(long iz=0; iz<nz; iz++)
+	for(long long iz=0; iz<nz; iz++) //OC26042019
+	//for(long iz=0; iz<nz; iz++)
 	{
 		pEx_StartForE_ix0 = pEx_StartForZ_ix0 + izPerZ;
 		pEz_StartForE_ix0 = pEz_StartForZ_ix0 + izPerZ;
@@ -850,8 +882,10 @@ int srTRadGenManip::ExtractSingleElecMutualIntensityVsZ(srTRadExtract& RadExtrac
 	float *pEx_StartForE_ix0_t, *pEx_StartForE_ix1_t;
 	float *pEz_StartForE_ix0_t, *pEz_StartForE_ix1_t;
 	float **ExPtrs, **EzPtrs, **ExPtrsT, **EzPtrsT;
-	long nz_mi_1 = nz - 1;
-	for(long izt=0; izt<nz_mi_1; izt++)
+	//long nz_mi_1 = nz - 1;
+	//for(long izt=0; izt<nz_mi_1; izt++)
+	long long nz_mi_1 = nz - 1; //OC26042019
+	for(long long izt=0; izt<nz_mi_1; izt++)
 	{
 		long long izt_PerZ = izt*PerZ;
 		pEx_StartForE_ix0_t = pEx_StartForZ_ix0 + izt_PerZ;
@@ -868,7 +902,8 @@ int srTRadGenManip::ExtractSingleElecMutualIntensityVsZ(srTRadExtract& RadExtrac
 			ExPtrsT = arExPtrs_t; EzPtrsT = arEzPtrs_t;
 		}
 
-		for(long iz=izt+1; iz<nz; iz++)
+		for(long long iz=izt+1; iz<nz; iz++) //OC26042019
+		//for(long iz=izt+1; iz<nz; iz++)
 		{
 			long long iz_PerZ = iz*PerZ;
 			pEx_StartForE_ix0 = pEx_StartForZ_ix0 + iz_PerZ;
@@ -913,7 +948,8 @@ int srTRadGenManip::ExtractSingleElecMutualIntensityVsXZ(srTRadExtract& RadExtra
 	long long PerX = RadAccessData.ne << 1;
 	long long PerZ = PerX*RadAccessData.nx;
 
-	long ie0=0, ie1=0;
+	//long ie0=0, ie1=0;
+	long long ie0=0, ie1=0; //OC26042019
 	double InvStepRelArg=0;
 
 	SetupIntCoord('e', RadExtract.ePh, ie0, ie1, InvStepRelArg);
@@ -922,12 +958,15 @@ int srTRadGenManip::ExtractSingleElecMutualIntensityVsXZ(srTRadExtract& RadExtra
 	bool NeedInterp = true;
 	if((ie0 == ie1) || (fabs(InvStepRelArg) < tolRelArg)) NeedInterp = false;
 
-	long Two_ie0 = ie0 << 1, Two_ie1 = ie1 << 1;
-	long nz = RadAccessData.nz, nx = RadAccessData.nx;
+	//long Two_ie0 = ie0 << 1, Two_ie1 = ie1 << 1;
+	//long nz = RadAccessData.nz, nx = RadAccessData.nx;
+	long long Two_ie0 = ie0 << 1, Two_ie1 = ie1 << 1; //OC26042019
+	long long nz = RadAccessData.nz, nx = RadAccessData.nx;
 
 	//First RadAccessData.nx values are the "normal" intensity (real diagonal elements of mutual intensity)
 	long long izPerZ = 0;
-	for(long iz=0; iz<nz; iz++)
+	for(long long iz=0; iz<nz; iz++) //OC26042019
+	//for(long iz=0; iz<nz; iz++)
 	{
 		float *pEx_StartForX = pEx0 + izPerZ;
 		float *pEz_StartForX = pEz0 + izPerZ;
@@ -937,7 +976,8 @@ int srTRadGenManip::ExtractSingleElecMutualIntensityVsXZ(srTRadExtract& RadExtra
 		float *pEx_Fi = pEx_StartForX + Two_ie1;
 		float *pEz_Fi = pEz_StartForX + Two_ie1;
 
-		for(long ix=0; ix<nx; ix++)
+		for(long long ix=0; ix<nx; ix++) //OC26042019
+		//for(long ix=0; ix<nx; ix++)
 		{
 			if(NeedInterp)
 			{
@@ -1009,6 +1049,8 @@ int srTRadGenManip::ComputeConvolutedIntensity(srTRadExtract& RadExtract)
 
 	long Nx = RadAccessData.nx;
 	long Nz = RadAccessData.nz;
+	//long long Nx = RadAccessData.nx; //OC26042019
+	//long long Nz = RadAccessData.nz;
 
 	CGenMathFFT2D FFT2D;
 	FFT2D.NextCorrectNumberForFFT(Nx);
@@ -1023,7 +1065,8 @@ int srTRadGenManip::ComputeConvolutedIntensity(srTRadExtract& RadExtract)
 	OwnRadExtract.pExtractedData = pTempStorage;
 	OwnRadExtract.PlotType = 3; // vs x&z
 
-	long Ne = RadAccessData.ne;
+	//long Ne = RadAccessData.ne;
+	long long Ne = RadAccessData.ne; //OC26042019
 	OwnRadExtract.ePh = RadAccessData.eStart;
 
 	char SinglePhotonEnergy = ((PT == 1) || (PT == 2) || (PT == 3));
@@ -1032,15 +1075,18 @@ int srTRadGenManip::ComputeConvolutedIntensity(srTRadExtract& RadExtract)
 		Ne = 1; OwnRadExtract.ePh = RadExtract.ePh;
 	}
 
-	for(long ie=0; ie<Ne; ie++)
+	for(long long ie=0; ie<Ne; ie++) //OC26042019
+	//for(long ie=0; ie<Ne; ie++)
 	{
 		if(result = ExtractSingleElecIntensity2DvsXZ(OwnRadExtract)) return result;
 		if(result = ConvoluteWithElecBeamOverTransvCoord(OwnRadExtract.pExtractedData, Nx, Nz)) return result;
 
-		long ie0 = ie;
+		//long ie0 = ie;
+		long long ie0 = ie; //OC26042019
 		if(SinglePhotonEnergy && (RadAccessData.ne > 1))
 		{
-			long ie1;
+			//long ie1;
+			long long ie1; //OC26042019
 			double RelArgE_Dummy;
 			SetupIntCoord('e', OwnRadExtract.ePh, ie0, ie1, RelArgE_Dummy);
 		}
@@ -1056,6 +1102,7 @@ int srTRadGenManip::ComputeConvolutedIntensity(srTRadExtract& RadExtract)
 //*************************************************************************
 
 int srTRadGenManip::ConvoluteWithElecBeamOverTransvCoord(float* DataToConv, long Nx, long Nz)
+//int srTRadGenManip::ConvoluteWithElecBeamOverTransvCoord(float* DataToConv, long long Nx, long long Nz)
 {
 	PadImZerosToRealData(DataToConv, Nx, Nz);
 
@@ -1133,7 +1180,8 @@ int srTRadGenManip::ConvoluteWithElecBeamOverTransvCoord(float* DataToConv, long
 
 //*************************************************************************
 
-void srTRadGenManip::PadImZerosToRealData(float* pData, long Nx, long Nz)
+void srTRadGenManip::PadImZerosToRealData(float* pData, long long Nx, long long Nz) //OC26042019
+//void srTRadGenManip::PadImZerosToRealData(float* pData, long Nx, long Nz)
 {
 	srTSRWRadStructAccessData& RadAccessData = *((srTSRWRadStructAccessData*)(hRadAccessData.ptr()));
 
@@ -1159,9 +1207,11 @@ void srTRadGenManip::PadImZerosToRealData(float* pData, long Nx, long Nz)
         //pTot = pData + ((Nx << 1)*(RadAccessData.nz));
         pTot = pData + ((((long long)Nx) << 1)*((long long)RadAccessData.nz));
 
-		for(long iz=RadAccessData.nz; iz<Nz; iz++)
+		for(long long iz=RadAccessData.nz; iz<Nz; iz++) //OC26042019
+		//for(long iz=RadAccessData.nz; iz<Nz; iz++)
 		{
-			for(long ix=0; ix<Nx; ix++)
+			for(long long ix=0; ix<Nx; ix++) //OC26042019
+			//for(long ix=0; ix<Nx; ix++)
 			{
 				*(pTot++) = 0.; *(pTot++) = 0.;
 			}
@@ -1169,16 +1219,20 @@ void srTRadGenManip::PadImZerosToRealData(float* pData, long Nx, long Nz)
 	}
 	if(Nx > RadAccessData.nx)
 	{
-		long TwoNxOld = RadAccessData.nx << 1;
-		long NzOld_mi_1 = RadAccessData.nz - 1;
-		long ShiftPer = (Nx - RadAccessData.nx) << 1;
+		//long TwoNxOld = RadAccessData.nx << 1;
+		//long NzOld_mi_1 = RadAccessData.nz - 1;
+		//long ShiftPer = (Nx - RadAccessData.nx) << 1;
+		long long TwoNxOld = RadAccessData.nx << 1; //OC26042019
+		long long NzOld_mi_1 = RadAccessData.nz - 1;
+		long long ShiftPer = (Nx - RadAccessData.nx) << 1;
 
 		//float* pOrig_Start = pData + (TwoNxOld*NzOld_mi_1);
 		float* pOrig_Start = pData + (((long long)TwoNxOld)*((long long)NzOld_mi_1));
 		//long ShiftLen = ShiftPer*NzOld_mi_1;
 		long long ShiftLen = ((long long)ShiftPer)*((long long)NzOld_mi_1);
 
-		for(long iz=0; iz<NzOld_mi_1; iz++)
+		for(long long iz=0; iz<NzOld_mi_1; iz++) //OC26042019
+		//for(long iz=0; iz<NzOld_mi_1; iz++)
 		{
 			ShiftData(pOrig_Start, TwoNxOld, ShiftLen);
 			SetDataToZero(pOrig_Start + TwoNxOld + ShiftLen, ShiftPer);
@@ -1366,7 +1420,8 @@ void srTRadGenManip::PropagateElecBeamMoments(srTElecBeamMoments& ElecBeamMom, d
 
 //*************************************************************************
 
-void srTRadGenManip::PutConstPhotEnergySliceInExtractPlace(long ie, long NxSlice, long NzSlice, srTRadExtract& LocRadExtract, srTRadExtract& RadExtract)
+void srTRadGenManip::PutConstPhotEnergySliceInExtractPlace(long long ie, long long NxSlice, long long NzSlice, srTRadExtract& LocRadExtract, srTRadExtract& RadExtract) //OC26042019
+//void srTRadGenManip::PutConstPhotEnergySliceInExtractPlace(long ie, long NxSlice, long NzSlice, srTRadExtract& LocRadExtract, srTRadExtract& RadExtract)
 {
 	srTSRWRadStructAccessData& RadAccessData = *((srTSRWRadStructAccessData*)(hRadAccessData.ptr()));
 
@@ -1375,7 +1430,8 @@ void srTRadGenManip::PutConstPhotEnergySliceInExtractPlace(long ie, long NxSlice
 	float *pGenStart = pGen0; //OC160815
 	float *pSlice0 = LocRadExtract.pExtractedData;
 
-	long Nx, Nz;
+	//long Nx, Nz;
+	long long Nx, Nz; //OC26042019
 	double RelArgX, RelArgZ;
 	double zAbs, xAbs, xAbsStart;
 	//long PerZ_Slice = NxSlice << 1;
@@ -1438,15 +1494,19 @@ void srTRadGenManip::PutConstPhotEnergySliceInExtractPlace(long ie, long NxSlice
 	char IntegOverXandZ_IsNeeded = (PT == 8);
 	float Sum = 0.;
 
-	long ix0_Slice, ix1_Slice, iz0_Slice, iz1_Slice;
+	//long ix0_Slice, ix1_Slice, iz0_Slice, iz1_Slice;
+	long long ix0_Slice, ix1_Slice, iz0_Slice, iz1_Slice; //OC26042019
 	//long izPerZ_Gen = 0;
 	long long izPerZ_Gen = 0;
 
-	long Nz_mi_1 = Nz - 1;
-	long Nx_mi_1 = Nx - 1;
+	//long Nz_mi_1 = Nz - 1;
+	//long Nx_mi_1 = Nx - 1;
+	long long Nz_mi_1 = Nz - 1; //OC26042019
+	long long Nx_mi_1 = Nx - 1;
 	float wx, wz; //, wtot;
 
-	for(long iz=0; iz<Nz; iz++)
+	for(long long iz=0; iz<Nz; iz++) //OC26042019
+	//for(long iz=0; iz<Nz; iz++)
 	{
 		wz = 1.;
 		if((iz == 0) || (iz == Nz_mi_1)) wz = 0.5;
@@ -1588,16 +1648,20 @@ int srTRadGenManip::SetupExtractedWaveData(srTRadExtract& RadExtract, srTWaveAcc
 
 int srTRadGenManip::TryToMakePhaseContinuous(srTWaveAccessData& WaveData)
 {
-	long Nx = WaveData.DimSizes[0];
-	long Nz = WaveData.DimSizes[1];
+	//long Nx = WaveData.DimSizes[0];
+	//long Nz = WaveData.DimSizes[1];
+	long long Nx = WaveData.DimSizes[0]; //OC26042019
+	long long Nz = WaveData.DimSizes[1];
 
 	double* CenterSlice = new double[Nx];
 	if(CenterSlice == 0) return MEMORY_ALLOCATION_FAILURE;
 
 	//long ixMid = Nx >> 1, izMid = Nz >> 1;
-	long izMid = Nz >> 1;
+	//long izMid = Nz >> 1;
+	long long izMid = Nz >> 1; //OC26042019
 
-	long ix, iz;
+	//long ix, iz;
+	long long ix, iz; //OC26042019
 	DOUBLE *pData = (DOUBLE*)(WaveData.pWaveData);
 	DOUBLE *tm = pData + izMid*Nx;
 	double *t = CenterSlice;
@@ -1623,21 +1687,25 @@ int srTRadGenManip::TryToMakePhaseContinuous(srTWaveAccessData& WaveData)
 
 //*************************************************************************
 
-void srTRadGenManip::TryToMakePhaseContinuous1D(double* Slice, long Np, long i0, float Phi0)
+void srTRadGenManip::TryToMakePhaseContinuous1D(double* Slice, long long Np, long long i0, float Phi0) //OC26042019
+//void srTRadGenManip::TryToMakePhaseContinuous1D(double* Slice, long Np, long i0, float Phi0)
 {
 	const double TwoPi = 6.2831853071796;
 	const double cFlip = TwoPi - 2.5; // To steer
 
 	float PhToAdd0 = (float)((i0 != -1)? (Phi0 - Slice[i0]) : 0.);
 
-	long HalfNp = Np >> 1;
-	long OtherHalfNp = Np - HalfNp;
+	//long HalfNp = Np >> 1;
+	//long OtherHalfNp = Np - HalfNp;
+	long long HalfNp = Np >> 1; //OC26042019
+	long long OtherHalfNp = Np - HalfNp;
 
 	double PhToAdd = PhToAdd0;
 	double *t = Slice + HalfNp - 1; 
 	*t += PhToAdd;
 	double PrevPh = *(t--);
-	for(long i=0; i<(HalfNp - 1); i++)
+	for(long long i=0; i<(HalfNp - 1); i++) //OC26042019
+	//for(long i=0; i<(HalfNp - 1); i++)
 	{
 		*t += PhToAdd;
 		if(::fabs(*t - PrevPh) > cFlip)
@@ -1727,7 +1795,8 @@ void srTRadGenManip::ExtractRadiation(int PolarizCompon, int Int_or_Phase, int S
 
 //*************************************************************************
 
-void srTRadGenManip::IntProc(srTWaveAccessData* pwI1, srTWaveAccessData* pwI2, double* arPar)
+void srTRadGenManip::IntProc(srTWaveAccessData* pwI1, srTWaveAccessData* pwI2, double* arPar, int nPar) //OC09032019
+//void srTRadGenManip::IntProc(srTWaveAccessData* pwI1, srTWaveAccessData* pwI2, double* arPar)
 {//Added to move some simple "loops" from slow Py to C++
 	if((pwI1 == 0) || (pwI2 == 0) || (arPar == 0)) throw SRWL_INCORRECT_PARAM_FOR_INT_PROC;
 
@@ -1741,12 +1810,14 @@ void srTRadGenManip::IntProc(srTWaveAccessData* pwI1, srTWaveAccessData* pwI2, d
 	{//Add I2 to I1 with interpolation to the mesh of I1
 	
 	}
-	else if(typeProc == 3) srTRadGenManip::Int2DIntegOverAzim(pwI1, pwI2, arPar + 1);
+	else if(typeProc == 3) srTRadGenManip::Int2DIntegOverAzim(pwI1, pwI2, arPar + 1, nPar - 1); //OC09032019
+	//else if(typeProc == 3) srTRadGenManip::Int2DIntegOverAzim(pwI1, pwI2, arPar + 1);
 }
 
 //*************************************************************************
 
-void srTRadGenManip::Int2DIntegOverAzim(srTWaveAccessData* pwI1, srTWaveAccessData* pwI2, double* arPar)
+void srTRadGenManip::Int2DIntegOverAzim(srTWaveAccessData* pwI1, srTWaveAccessData* pwI2, double* arPar, int nPar) //OC09032019
+//void srTRadGenManip::Int2DIntegOverAzim(srTWaveAccessData* pwI1, srTWaveAccessData* pwI2, double* arPar)
 {//Inegrate or Average intensity over azimuth in cylindrical coordinates (take input 2D intensity distribution from *pwI2 and save resulting 1D distribution vs r to *pwI1)
 	if((pwI1 == 0) || (pwI2 == 0) || (arPar == 0)) throw SRWL_INCORRECT_PARAM_FOR_INT_PROC;
 	if((pwI1->AmOfDims != 1) || (pwI1->pWaveData == 0) || (pwI2->AmOfDims != 2) || (pwI2->pWaveData == 0)) throw SRWL_INCORRECT_PARAM_FOR_INT_PROC;
@@ -1770,6 +1841,16 @@ void srTRadGenManip::Int2DIntegOverAzim(srTWaveAccessData* pwI1, srTWaveAccessDa
 	double x0 = arPar[6];
 	double y0 = arPar[7];
 
+	int nParMin = 8; //OC09032019 (number of input params without optional ones)
+	int nRectToSkip = (int)(0.25*(nPar - nParMin) + 1e-07);
+	double *arRectToSkipPar = 0;
+	if(nRectToSkip > 0)
+	{
+		arRectToSkipPar = arPar + nParMin;
+		//converting widths to half-widths for convenience of treatment
+		for(int i=0; i<(nRectToSkip << 1); i++) arRectToSkipPar[2*i + 1] *= 0.5; 
+	}
+
 	const double twoPi = 2*3.141592653589793;
 	if(phMin == phMax) phMax = phMin + twoPi;
 	double phRange = phMax - phMin;
@@ -1791,16 +1872,19 @@ void srTRadGenManip::Int2DIntegOverAzim(srTWaveAccessData* pwI1, srTWaveAccessDa
 
 	double xMin = *(pwI2->DimStartValues);
 	double xStep = *(pwI2->DimSteps);
-	long nx = *(pwI2->DimSizes);
+	//long nx = *(pwI2->DimSizes);
+	long long nx = *(pwI2->DimSizes); //OC26042019
 	
 	double yMin = *((pwI2->DimStartValues) + 1);
 	double yStep = *((pwI2->DimSteps) + 1);
-	long ny = *((pwI2->DimSizes) + 1);
+	//long ny = *((pwI2->DimSizes) + 1);
+	long long ny = *((pwI2->DimSizes) + 1); //OC26042019
 
 	double *arFuncForAzimInt=0;
 	if(nPhMax > 0) arFuncForAzimInt = new double[nPhMax];
 
-	long nr = *(pwI1->DimSizes);
+	//long nr = *(pwI1->DimSizes);
+	long long nr = *(pwI1->DimSizes); //OC26042019
 	double rStep = *(pwI1->DimSteps);
 	double r = *(pwI1->DimStartValues);
 	double rMax = r + rStep*(nr - 1);
@@ -1821,14 +1905,21 @@ void srTRadGenManip::Int2DIntegOverAzim(srTWaveAccessData* pwI1, srTWaveAccessDa
 		auxStruct.pfI2D = pfI2;
 		auxStruct.pdI2D = pdI2;
 		auxStruct.ordInterp = ordInterp;
+		auxStruct.arRectToSkipPar = arRectToSkipPar;
+		auxStruct.nRectToSkip = nRectToSkip;
 
 		tolPhMeth2 = ::fabs(phRange*relPrec);
 		if(::fabs(::fabs(phRange) - twoPi) < tolPhMeth2) tolPhMeth2 = 0; //meaning that calculation of edge derivatives vs phi is not necessary
 	}
+	bool pointToBeUsed = true; //OC09032019
+	bool isMoreThanOnePoint = true;
+	double curIntOverPh;
+	double xx, yy;
 
 	for(int ir=0; ir<nr; ir++)
 	{
-		double curIntOverPh = 0.;
+		curIntOverPh = 0.;
+		isMoreThanOnePoint = true; //OC09032019
 		if(meth == 1)
 		{
 			long nPhCur = (long)round((r/rMax)*nPhMax);
@@ -1836,8 +1927,13 @@ void srTRadGenManip::Int2DIntegOverAzim(srTWaveAccessData* pwI1, srTWaveAccessDa
 			{
 				if(calcAvg) 
 				{
-					if(pfI2) curIntOverPh = CGenMathInterp::InterpOnRegMesh2d(x0 + r, y0, xMin, xStep, nx, yMin, yStep, ny, pfI2, ordInterp);
-					else curIntOverPh = CGenMathInterp::InterpOnRegMesh2d(x0 + r, y0, xMin, xStep, nx, yMin, yStep, ny, pdI2, ordInterp);
+					if(arRectToSkipPar != 0) pointToBeUsed = CheckIfPointIsOutsideRectangles(x0 + r, y0, arRectToSkipPar, nRectToSkip); //OC09032019
+					if(pointToBeUsed)
+					{
+						if(pfI2) curIntOverPh = CGenMathInterp::InterpOnRegMesh2d(x0 + r, y0, xMin, xStep, nx, yMin, yStep, ny, pfI2, ordInterp);
+						else curIntOverPh = CGenMathInterp::InterpOnRegMesh2d(x0 + r, y0, xMin, xStep, nx, yMin, yStep, ny, pdI2, ordInterp);
+					}
+					isMoreThanOnePoint = false; //OC09032019
 				}
 			}
 			else
@@ -1851,22 +1947,44 @@ void srTRadGenManip::Int2DIntegOverAzim(srTWaveAccessData* pwI1, srTWaveAccessDa
 					for(int iph=0; iph<nPhCur_mi_1; iph++)
 					{
 						//x = r*cos(ph); y = r*sin(ph);
-						*(t_ar++) = CGenMathInterp::InterpOnRegMesh2d(x0 + r*cos(ph), y0 + r*sin(ph), xMin, xStep, nx, yMin, yStep, ny, pfI2, ordInterp);
+						xx = x0 + r*cos(ph); yy = y0 + r*sin(ph); //OC09032019
+						if(arRectToSkipPar != 0) pointToBeUsed = CheckIfPointIsOutsideRectangles(xx, yy, arRectToSkipPar, nRectToSkip); //OC09032019
+						if(pointToBeUsed) *(t_ar++) = CGenMathInterp::InterpOnRegMesh2d(xx, yy, xMin, xStep, nx, yMin, yStep, ny, pfI2, ordInterp);
+						else *(t_ar++) = 0.;
+						//*(t_ar++) = CGenMathInterp::InterpOnRegMesh2d(x0 + r*cos(ph), y0 + r*sin(ph), xMin, xStep, nx, yMin, yStep, ny, pfI2, ordInterp);
 						ph += phStep;
 					}
-					if(::fabs(::fabs(phRange) - twoPi) < fabs(1.e-03*phStep)) *t_ar = *arFuncForAzimInt;
-					else *t_ar = CGenMathInterp::InterpOnRegMesh2d(x0 + r*cos(ph), y0 + r*sin(ph), xMin, xStep, nx, yMin, yStep, ny, pfI2, ordInterp);
+					if(::fabs(::fabs(phRange) - twoPi) < fabs(1.e-03*phStep)) *t_ar = *arFuncForAzimInt; //full circle
+					else 
+					{
+						xx = x0 + r*cos(ph); yy = y0 + r*sin(ph); //OC09032019
+						if(arRectToSkipPar != 0) pointToBeUsed = CheckIfPointIsOutsideRectangles(xx, yy, arRectToSkipPar, nRectToSkip); //OC09032019
+						if(pointToBeUsed) *t_ar = CGenMathInterp::InterpOnRegMesh2d(xx, yy, xMin, xStep, nx, yMin, yStep, ny, pfI2, ordInterp);
+						else *t_ar = 0;
+						//*t_ar = CGenMathInterp::InterpOnRegMesh2d(x0 + r*cos(ph), y0 + r*sin(ph), xMin, xStep, nx, yMin, yStep, ny, pfI2, ordInterp);
+					}
 				}
 				else
 				{
 					for(int iph=0; iph<nPhCur_mi_1; iph++)
 					{
 						//x = r*cos(ph); y = r*sin(ph);
-						*(t_ar++) = CGenMathInterp::InterpOnRegMesh2d(x0 + r*cos(ph), y0 + r*sin(ph), xMin, xStep, nx, yMin, yStep, ny, pdI2, ordInterp);
+						xx = x0 + r*cos(ph); yy = y0 + r*sin(ph); //OC09032019
+						if(arRectToSkipPar != 0) pointToBeUsed = CheckIfPointIsOutsideRectangles(xx, yy, arRectToSkipPar, nRectToSkip); //OC09032019
+						if(pointToBeUsed) *(t_ar++) = CGenMathInterp::InterpOnRegMesh2d(xx, yy, xMin, xStep, nx, yMin, yStep, ny, pdI2, ordInterp);
+						else *(t_ar++) = 0.;
+						//*(t_ar++) = CGenMathInterp::InterpOnRegMesh2d(x0 + r*cos(ph), y0 + r*sin(ph), xMin, xStep, nx, yMin, yStep, ny, pdI2, ordInterp);
 						ph += phStep;
 					}
-					if(::fabs(::fabs(phRange) - twoPi) < ::fabs(1.e-03*phStep)) *t_ar = *arFuncForAzimInt;
-					else *t_ar = CGenMathInterp::InterpOnRegMesh2d(x0 + r*cos(ph), y0 + r*sin(ph), xMin, xStep, nx, yMin, yStep, ny, pfI2, ordInterp);
+					if(::fabs(::fabs(phRange) - twoPi) < ::fabs(1.e-03*phStep)) *t_ar = *arFuncForAzimInt; //full circle
+					else 
+					{
+						xx = x0 + r*cos(ph); yy = y0 + r*sin(ph); //OC09032019
+						if(arRectToSkipPar != 0) pointToBeUsed = CheckIfPointIsOutsideRectangles(xx, yy, arRectToSkipPar, nRectToSkip); //OC09032019
+						if(pointToBeUsed) *t_ar = CGenMathInterp::InterpOnRegMesh2d(xx, yy, xMin, xStep, nx, yMin, yStep, ny, pfI2, ordInterp);
+						else *t_ar = 0;
+						//*t_ar = CGenMathInterp::InterpOnRegMesh2d(x0 + r*cos(ph), y0 + r*sin(ph), xMin, xStep, nx, yMin, yStep, ny, pfI2, ordInterp);
+					}
 				}
 				curIntOverPh = CGenMathMeth::Integ1D_FuncDefByArray(arFuncForAzimInt, nPhCur, phStep);
 			}
@@ -1877,8 +1995,13 @@ void srTRadGenManip::Int2DIntegOverAzim(srTWaveAccessData* pwI1, srTWaveAccessDa
 			{
 				if(calcAvg) 
 				{
-					if(pfI2) curIntOverPh = CGenMathInterp::InterpOnRegMesh2d(x0 + r, y0, xMin, xStep, nx, yMin, yStep, ny, pfI2, ordInterp);
-					else curIntOverPh = CGenMathInterp::InterpOnRegMesh2d(x0 + r, y0, xMin, xStep, nx, yMin, yStep, ny, pdI2, ordInterp);
+					if(arRectToSkipPar != 0) pointToBeUsed = CheckIfPointIsOutsideRectangles(x0 + r, y0, arRectToSkipPar, nRectToSkip); //OC09032019
+					if(pointToBeUsed)
+					{
+						if(pfI2) curIntOverPh = CGenMathInterp::InterpOnRegMesh2d(x0 + r, y0, xMin, xStep, nx, yMin, yStep, ny, pfI2, ordInterp);
+						else curIntOverPh = CGenMathInterp::InterpOnRegMesh2d(x0 + r, y0, xMin, xStep, nx, yMin, yStep, ny, pdI2, ordInterp);
+					}
+					isMoreThanOnePoint = false; //OC09032019
 				}
 			}
 			else
@@ -1889,7 +2012,8 @@ void srTRadGenManip::Int2DIntegOverAzim(srTWaveAccessData* pwI1, srTWaveAccessDa
 			}
 		}
 		
-		if(calcAvg) curIntOverPh /= phRange;
+		if(calcAvg && isMoreThanOnePoint) curIntOverPh /= phRange; //OC09032019
+		//if(calcAvg) curIntOverPh /= phRange;
 
 		if(pfI1) *(tfI1++) = (float)curIntOverPh;
 		else *(tdI1++) = curIntOverPh;
@@ -1989,15 +2113,18 @@ void srTRadGenManip::ComponIntegVsPhotEn(srTDataMD* pIntensOrigData, double eMin
 		}
 	}
 
-	long DimSizesOrig[10];
+	//long DimSizesOrig[10];
+	long long DimSizesOrig[10]; //OC26042019
 	int AmOfDimOrig = srTUtiDataMD::ExtractDimSizes(pIntensOrigData, DimSizesOrig);
 	if(AmOfDimOrig <= 0) throw INCORRECT_PARAMS_WFR_COMPON_INTEG;
 
-	long DimSizesFin[10];
+	//long DimSizesFin[10];
+	long long DimSizesFin[10]; //OC26042019
 	int AmOfDimFin = srTUtiDataMD::ExtractDimSizes(pIntegResData, DimSizesFin);
 	if((AmOfDimFin <= 0) || (AmOfDimFin < (AmOfDimOrig - 1))) throw INCORRECT_PARAMS_WFR_COMPON_INTEG;
 
-	long Ne = pIntensOrigData->DimSizes[0];
+	//long Ne = pIntensOrigData->DimSizes[0];
+	long long Ne = pIntensOrigData->DimSizes[0]; //OC26042019
 	double StartE = srTUtiDataMD::ExtractDimStartValue(pIntensOrigData, 0);
 	double StepE = srTUtiDataMD::ExtractDimStep(pIntensOrigData, 0);
 
@@ -2005,18 +2132,21 @@ void srTRadGenManip::ComponIntegVsPhotEn(srTDataMD* pIntensOrigData, double eMin
 	if(StepE != 0) InvStepE = 1./StepE;
 
 	double dIndStartE = (eMin - StartE)*InvStepE;
-	long IndStartE = (long)dIndStartE;
+	//long IndStartE = (long)dIndStartE;
+	long long IndStartE = (long long)dIndStartE; //OC26042019
 	if((dIndStartE - IndStartE) >= 0.5) IndStartE++; //to improve
 	if(IndStartE < 0) IndStartE = 0;
 	if(IndStartE >= Ne) IndStartE = Ne - 1;
 
 	double dIndEndE = (eMax - StartE)*InvStepE;
-	long IndEndE = (long)dIndEndE;
+	//long IndEndE = (long)dIndEndE;
+	long long IndEndE = (long long)dIndEndE; //OC26042019
 	if((dIndEndE - IndEndE) >= 0.5) IndEndE++; //to improve
 	if(IndEndE < 0) IndEndE = 0;
 	if(IndEndE >= Ne) IndEndE = Ne - 1;
 
-	long EffNe = IndEndE - IndStartE;
+	//long EffNe = IndEndE - IndStartE;
+	long long EffNe = IndEndE - IndStartE; //OC26042019
 	if(EffNe < 0) EffNe = 0;
 	else if(EffNe > Ne) EffNe = Ne;
 
@@ -2024,7 +2154,8 @@ void srTRadGenManip::ComponIntegVsPhotEn(srTDataMD* pIntensOrigData, double eMin
 	{
 		for(int k=0; k<AmOfDimFin; k++)
 		{
-			int FinNp = DimSizesFin[AmOfDimFin - k - 1];
+			//int FinNp = DimSizesFin[AmOfDimFin - k - 1];
+			long long FinNp = DimSizesFin[AmOfDimFin - k - 1]; //OC26042019
 			if(DimSizesOrig[AmOfDimOrig - k - 1] != FinNp) throw INCORRECT_PARAMS_WFR_COMPON_INTEG;
 		}
 	}
@@ -2094,11 +2225,13 @@ void srTRadGenManip::ComponIntegVsHorOrVertPos(srTDataMD* pIntensOrigData, char 
 		}
 	}
 
-	long DimSizesOrig[10];
+	//long DimSizesOrig[10];
+	long long DimSizesOrig[10]; //OC26042019
 	int AmOfDimOrig = srTUtiDataMD::ExtractDimSizes(pIntensOrigData, DimSizesOrig);
 	if(AmOfDimOrig <= 0) throw INCORRECT_PARAMS_WFR_COMPON_INTEG;
 
-	long DimSizesFin[10];
+	//long DimSizesFin[10];
+	long long DimSizesFin[10]; //OC26042019
 	int AmOfDimFin = srTUtiDataMD::ExtractDimSizes(pIntegResData, DimSizesFin);
 	if((AmOfDimFin <= 0) || (AmOfDimFin < (AmOfDimOrig - 1))) throw INCORRECT_PARAMS_WFR_COMPON_INTEG;
 
@@ -2145,7 +2278,8 @@ void srTRadGenManip::ComponIntegVsHorOrVertPos(srTDataMD* pIntensOrigData, char 
 		else throw INCORRECT_PARAMS_WFR_COMPON_INTEG;
 	}
 
-	long Np = pIntensOrigData->DimSizes[IndDimToInteg];
+	//long Np = pIntensOrigData->DimSizes[IndDimToInteg];
+	long long Np = pIntensOrigData->DimSizes[IndDimToInteg]; //OC26042019
 	double StartP = srTUtiDataMD::ExtractDimStartValue(pIntensOrigData, IndDimToInteg);
 	double StepP = srTUtiDataMD::ExtractDimStep(pIntensOrigData, IndDimToInteg);
 
@@ -2153,18 +2287,21 @@ void srTRadGenManip::ComponIntegVsHorOrVertPos(srTDataMD* pIntensOrigData, char 
 	if(StepP != 0) InvStepP = 1./StepP;
 
 	double dIndStartP = (xMin - StartP)*InvStepP;
-	long IndStartP = (long)dIndStartP;
+	//long IndStartP = (long)dIndStartP;
+	long long IndStartP = (long long)dIndStartP; //OC26042019
 	if((dIndStartP - IndStartP) >= 0.5) IndStartP++; //to improve
 	if(IndStartP < 0) IndStartP = 0;
 	if(IndStartP >= Np) IndStartP = Np - 1;
 
 	double dIndEndP = (xMax - StartP)*InvStepP;
-	long IndEndP = (long)dIndEndP;
+	//long IndEndP = (long)dIndEndP;
+	long long IndEndP = (long long)dIndEndP; //OC26042019
 	if((dIndEndP - IndEndP) >= 0.5) IndEndP++;
 	if(IndEndP < 0) IndEndP = 0;
 	if(IndEndP >= Np) IndEndP = Np - 1;
 
-	long EffNp = IndEndP - IndStartP;
+	//long EffNp = IndEndP - IndStartP;
+	long long EffNp = IndEndP - IndStartP; //OC26042019
 	if(EffNp < 0) EffNp = 0;
 	else if(EffNp > Np) EffNp = Np;
 
@@ -2222,7 +2359,8 @@ void srTRadGenManip::ComponIntegVsHorOrVertPos(srTDataMD* pIntensOrigData, char 
 			AmOfDimFin = 2; DimSizesFin[1] = 1;
 		}
 
-		long NperOrig0 = DimSizesOrig[0];
+		//long NperOrig0 = DimSizesOrig[0];
+		long long NperOrig0 = DimSizesOrig[0];
 		float *fAuxArr = 0;
 		double *dAuxArr = 0;
 		if(ftFinData != 0) 
@@ -2236,7 +2374,8 @@ void srTRadGenManip::ComponIntegVsHorOrVertPos(srTDataMD* pIntensOrigData, char 
 			dAuxArr = new double[EffNp];
 		}
 
-		for(int j=0; j<DimSizesFin[1]; j++)
+		for(long long j=0; j<DimSizesFin[1]; j++) //OC26042019
+		//for(int j=0; j<DimSizesFin[1]; j++)
 		{
 
 			//for(int i=0; i<DimSizesFin[0]; i++)
@@ -2257,9 +2396,6 @@ void srTRadGenManip::ComponIntegVsHorOrVertPos(srTDataMD* pIntensOrigData, char 
 		if(fAuxArr != 0) delete[] fAuxArr;
 		if(dAuxArr != 0) delete[] dAuxArr;
 
-
-
-
 	}
 	else if(IndDimToInteg == 2)
 	{
@@ -2268,10 +2404,7 @@ void srTRadGenManip::ComponIntegVsHorOrVertPos(srTDataMD* pIntensOrigData, char 
 
 	}
 
-
 	//ddddddddddddddddddddddddddddddd
-
-
 }
 
 //*************************************************************************

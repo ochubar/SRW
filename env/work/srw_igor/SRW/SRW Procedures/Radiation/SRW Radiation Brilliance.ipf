@@ -77,7 +77,7 @@ endif
 Per=str2num($MagName[0])
 N=str2num($MagName[1])/Per
 
-| Print Kx,Kz,Per,N,Phase
+//Print Kx,Kz,Per,N,Phase
 // Get electron Beam Parameters
 
 Variable en,cur,sigx,sigpx,sigz,sigpz,mx,mz

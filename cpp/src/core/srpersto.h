@@ -205,7 +205,9 @@ public:
 	//int ComputeTotalStokesDistr(srTStokesStructAccessData&);
 	int ComputeTotalStokesDistr(srTStokesStructAccessData* pStokesAccessData, SRWLStructStokes* pStokesSRWL=0);
 
+	//int DeduceGridOverPhotonEnergyAndAzimuth(int n, double& eStart, double& eFin, long long& ne, srTEnergyAzimuthGrid& EnAzGrid); //OC26042019
 	int DeduceGridOverPhotonEnergyAndAzimuth(int n, double& eStart, double& eFin, long& ne, srTEnergyAzimuthGrid& EnAzGrid);
+	//void CorrectGridForPassingThroughCritEnergy(int n, double& eStart, double& eStep, long long& ne); //OC26042019
 	void CorrectGridForPassingThroughCritEnergy(int n, double& eStart, double& eStep, long& ne);
 	void CorrectGridToAllowRangeResizeOnTheOtherSide(srTEnergyAzimuthGrid& EnAzGrid);
 	void CorrectGridForOnePoint(srTEnergyAzimuthGrid& EnAzGrid);
@@ -515,7 +517,8 @@ public:
 	//void ZeroOutData(srTStokesStructAccessData& StokesAccessData)
 	void ZeroOutData(srTStokesStructAccessData* pStokesAccessData, SRWLStructStokes* pStokesSRWL)
 	{
-		long Ne, Nx, Nz;
+		//long Ne, Nx, Nz;
+		long long Ne, Nx, Nz; //OC26042019
 		if(pStokesAccessData != 0)
 		{
 			Ne = pStokesAccessData->ne;

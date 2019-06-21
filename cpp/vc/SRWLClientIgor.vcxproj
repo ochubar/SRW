@@ -29,6 +29,8 @@
   <PropertyGroup Label="Globals">
     <ProjectGuid>{0D473386-2B3E-4586-8516-DD4DCF6D4E1E}</ProjectGuid>
     <RootNamespace>SRW</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0.15063.0</WindowsTargetPlatformVersion>
+    <ProjectName>SRWLClientIgor</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -92,9 +94,11 @@
     <TargetExt>.xop</TargetExt>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
+    <OutDir>$(ProjectDir)</OutDir>
     <IntDir>$(Platform)\$(Configuration)\</IntDir>
     <LinkIncremental>false</LinkIncremental>
+    <TargetName>SRW64</TargetName>
+    <TargetExt>.xop</TargetExt>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <OutDir>$(ProjectDir)</OutDir>
@@ -104,9 +108,11 @@
     <TargetExt>.xop</TargetExt>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
+    <OutDir>$(ProjectDir)</OutDir>
     <IntDir>$(Platform)\$(Configuration)\</IntDir>
     <LinkIncremental>true</LinkIncremental>
+    <TargetName>SRW64</TargetName>
+    <TargetExt>.xop</TargetExt>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <Midl>
@@ -132,7 +138,7 @@
       <ObjectFileName>$(IntDir)</ObjectFileName>
       <ProgramDataBaseFileName>$(IntDir)vc$(PlatformToolsetVersion).pdb</ProgramDataBaseFileName>
       <BrowseInformation />
-      <WarningLevel>Level3</WarningLevel>
+      <WarningLevel>Level2</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <DebugInformationFormat />
       <CompileAs>Default</CompileAs>
@@ -144,7 +150,7 @@
     </ResourceCompile>
     <Link>
       <AdditionalOptions>/MACHINE:I386 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalDependencies>version.lib;odbc32.lib;odbccp32.lib;legacy_stdio_definitions.lib;..\..\ext_lib\fftw_f.lib;..\..\ext_lib\igor\XOPSupport\IGOR.lib;..\..\ext_lib\igor\XOPSupport\VC8\XOPSupport.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>version.lib;odbc32.lib;odbccp32.lib;legacy_stdio_definitions.lib;..\..\ext_lib\fftw_f.lib;..\..\ext_lib\igor\XOPSupport\IGOR.lib;..\..\ext_lib\igor\XOPSupport\VC\XOPSupport.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>SRW.xop</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <IgnoreSpecificDefaultLibraries>LIBC;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
@@ -170,23 +176,25 @@
     <ClCompile>
       <Optimization>MaxSpeed</Optimization>
       <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
-      <AdditionalIncludeDirectories>..\src\core;..\src\clients\igor;..\src\lib;..\src\ext\genmath;..\src\ext\auxparse;..\..\Shared\lib\igor\XOPSupport;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;SRW_EXPORTS;__VC__;__IGOR_PRO__;ALPHA_NONE;_MT;_GM_WITHOUT_BASE;_CRT_SECURE_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>..\src\core;..\src\clients\igor;..\src\lib;..\src\ext\genmath;..\src\ext\auxparse;..\..\ext_lib\igor\XOPSupport;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;SRW_EXPORTS;__VC__;__IGOR_PRO__;ALPHA_NONE;_MT;_GM_WITHOUT_BASE;_CRT_SECURE_NO_WARNINGS;NON_UNIX_STDIO;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <StructMemberAlignment>2Bytes</StructMemberAlignment>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <RuntimeTypeInfo>true</RuntimeTypeInfo>
-      <PrecompiledHeader />
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderOutputFile />
       <AssemblerListingLocation />
       <ObjectFileName>$(IntDir)</ObjectFileName>
-      <ProgramDataBaseFileName>$(IntDir)vc$(PlatformToolsetVersion).pdb</ProgramDataBaseFileName>
+      <ProgramDataBaseFileName>$(IntDir)</ProgramDataBaseFileName>
       <BrowseInformation />
       <WarningLevel>Level3</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <DebugInformationFormat />
       <CompileAs>Default</CompileAs>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <PrecompiledHeaderFile />
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -194,12 +202,11 @@
       <AdditionalIncludeDirectories>..\..\ext_lib\igor\XOPSupport;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
     <Link>
-      <AdditionalOptions>/MACHINE:I386 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalDependencies>version.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <OutputFile>SRW.xop</OutputFile>
+      <AdditionalDependencies>version.lib;odbc32.lib;odbccp32.lib;..\..\ext_lib\fftw64_f.lib;..\..\ext_lib\igor\XOPSupport\IGOR64.lib;..\..\ext_lib\igor\XOPSupport\VC\XOPSupport64.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <OutputFile>SRW64.xop</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <IgnoreSpecificDefaultLibraries>LIBC;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
       <ProgramDatabaseFile>$(TargetDir)$(TargetName).pdb</ProgramDatabaseFile>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <DataExecutionPrevention />
@@ -207,7 +214,7 @@
       <TargetMachine>MachineX64</TargetMachine>
     </Link>
     <PostBuildEvent>
-      <Command>copy $(TargetPath) "$(SolutionDir)..\work\srw_igor\SRW\"</Command>
+      <Command>copy $(TargetPath) "$(SolutionDir)..\..\env\work\srw_igor\SRW\"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -221,22 +228,24 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>..\src\core;..\src\clients\igor;..\src\lib;..\src\ext\genmath;..\src\ext\auxparse;..\..\ext_lib\igor\XOPSupport;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;SRW_EXPORTS;__VC__;__IGOR_PRO__;ALPHA_NONE;_MT;_GM_WITHOUT_BASE;_CRT_SECURE_NO_DEPRECATE;NON_UNIX_STDIO;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;SRW_EXPORTS;__VC__;__IGOR_PRO__;ALPHA_NONE;_MT;_GM_WITHOUT_BASE;_CRT_SECURE_NO_WARNINGS;NON_UNIX_STDIO;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <StructMemberAlignment>2Bytes</StructMemberAlignment>
       <RuntimeTypeInfo>true</RuntimeTypeInfo>
-      <PrecompiledHeader />
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderOutputFile />
       <AssemblerListingLocation />
       <ObjectFileName>$(IntDir)</ObjectFileName>
-      <ProgramDataBaseFileName>$(IntDir)vc90.pdb</ProgramDataBaseFileName>
+      <ProgramDataBaseFileName>$(IntDir)</ProgramDataBaseFileName>
       <BrowseInformation>true</BrowseInformation>
-      <WarningLevel>Level3</WarningLevel>
+      <WarningLevel>Level2</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
       <CompileAs>Default</CompileAs>
+      <PrecompiledHeaderFile />
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>_DEBUG;WIN_Rez;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -245,7 +254,7 @@
     </ResourceCompile>
     <Link>
       <AdditionalOptions>/MACHINE:I386 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalDependencies>version.lib;odbc32.lib;odbccp32.lib;..\..\ext_lib\fftw_f.lib;..\..\ext_lib\igor\XOPSupport\IGOR.lib;..\..\ext_lib\igor\XOPSupport\VC8\XOPSupport.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>version.lib;odbc32.lib;odbccp32.lib;..\..\ext_lib\fftw_f.lib;..\..\ext_lib\igor\XOPSupport\IGOR.lib;..\..\ext_lib\igor\XOPSupport\VC\XOPSupport.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>SRW.xop</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <IgnoreSpecificDefaultLibraries>LIBC;LIBCD;LIBCMT;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
@@ -270,23 +279,25 @@
     </Midl>
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>..\src\core;..\src\clients\igor;..\src\lib;..\src\ext\genmath;..\src\ext\auxparse;..\..\Shared\lib\igor\XOPSupport;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;SRW_EXPORTS;__VC__;__IGOR_PRO__;ALPHA_NONE;_MT;_GM_WITHOUT_BASE;_CRT_SECURE_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>..\src\core;..\src\clients\igor;..\src\lib;..\src\ext\genmath;..\src\ext\auxparse;..\..\ext_lib\igor\XOPSupport;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;SRW_EXPORTS;__VC__;__IGOR_PRO__;ALPHA_NONE;_MT;_GM_WITHOUT_BASE;_CRT_SECURE_NO_WARNINGS;NON_UNIX_STDIO;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <StructMemberAlignment>2Bytes</StructMemberAlignment>
       <RuntimeTypeInfo>true</RuntimeTypeInfo>
-      <PrecompiledHeader />
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderOutputFile />
       <AssemblerListingLocation />
       <ObjectFileName>$(IntDir)</ObjectFileName>
-      <ProgramDataBaseFileName>$(IntDir)vc90.pdb</ProgramDataBaseFileName>
-      <BrowseInformation>false</BrowseInformation>
+      <ProgramDataBaseFileName>$(IntDir)</ProgramDataBaseFileName>
+      <BrowseInformation>true</BrowseInformation>
       <WarningLevel>Level3</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
-      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
       <CompileAs>Default</CompileAs>
+      <PrecompiledHeaderFile />
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>_DEBUG;WIN_Rez;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -294,11 +305,10 @@
       <AdditionalIncludeDirectories>..\..\ext_lib\igor\XOPSupport;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
     <Link>
-      <AdditionalOptions>/MACHINE:I386 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalDependencies>version.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <OutputFile>SRW.xop</OutputFile>
+      <AdditionalDependencies>version.lib;odbc32.lib;odbccp32.lib;..\..\ext_lib\fftw64_f.lib;..\..\ext_lib\igor\XOPSupport\IGOR64.lib;..\..\ext_lib\igor\XOPSupport\VC\XOPSupport64.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <OutputFile>SRW64.xop</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
-      <IgnoreSpecificDefaultLibraries>LIBC;LIBCD;LIBCMT;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
+      <IgnoreSpecificDefaultLibraries>LIBCMT;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <ProgramDatabaseFile>$(TargetDir)$(TargetName).pdb</ProgramDatabaseFile>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
@@ -307,7 +317,7 @@
       <TargetMachine>MachineX64</TargetMachine>
     </Link>
     <PostBuildEvent>
-      <Command>copy $(TargetPath) "$(SolutionDir)..\clients\igor\SRW\"</Command>
+      <Command>copy $(TargetPath) "$(SolutionDir)..\..\env\work\srw_igor\SRW\"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -726,7 +736,7 @@
     <ClInclude Include="..\src\lib\srinterf.h" />
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="..\src\clients\igor\srigintw.rc" />
+    <ResourceCompile Include="..\src\clients\igor\srigintr.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

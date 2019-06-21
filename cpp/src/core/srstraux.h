@@ -682,6 +682,7 @@ struct srTRadSect1D {
 	float *pEx, *pEz;
 	double ArgStep, ArgStart, ArgStartTr;
 	long np;
+	//long long np; //OC26042019
 
 	double eVal, OtherCoordVal;
 	char VsXorZ;
@@ -779,7 +780,8 @@ struct srTRadSect1D {
 
 		RadSect1D = *this;
 
-		long Two_np = np << 1;
+		//long Two_np = np << 1;
+		long long Two_np = np << 1; //OC26042019
 		RadSect1D.pEx = new float[Two_np];
 		if(RadSect1D.pEx == 0) return MEMORY_ALLOCATION_FAILURE;
 		RadSect1D.pEz = new float[Two_np];
@@ -913,6 +915,7 @@ public:
 
 	double eStep, eStart, xStep, xStart, zStep, zStart, yStep, yStart;
 	long ne, nx, nz, ny;
+	//long long ne, nx, nz, ny; //OC26042019
 
 	double dx, dz; //for flux calculations, for internal use only
 
@@ -1111,6 +1114,7 @@ public:
 
 	double xStep, xStart, zStep, zStart;
 	long nx, nz;
+	//long long nx, nz;
 
 	CSmartPtr<double> m_spObSurfData;
 
@@ -1294,8 +1298,10 @@ struct srTElecBeamMoments {
 struct srTWaveAccessData {
 	char* pWaveData;
 	char WaveType[2]; // 'f'|'d'|'cf'|'cd'
-	long AmOfDims;
-	long DimSizes[10];
+	//long AmOfDims;
+	int AmOfDims; //OC26042019
+	//long DimSizes[10];
+	long long DimSizes[10]; //OC26042019
 	double DimStartValues[10];
 	double DimSteps[10];
 	char DimUnits[10][255];
@@ -1332,7 +1338,8 @@ struct srTWaveAccessData {
 		WaveType[0] = typeData; WaveType[1] = '\0';
 	
 		int nDims = 0;
-		int n1 = 0, n2 = 0, n3 = 0;
+		//int n1 = 0, n2 = 0, n3 = 0;
+		long long n1 = 0, n2 = 0, n3 = 0; //OC26042019
 		double start1 = 0, start2 = 0, start3 = 0;
 		double step1 = 0, step2 = 0, step3 = 0;
 		if(pMesh->ne > 1) 
@@ -1412,11 +1419,13 @@ struct srTWaveAccessData {
 		*DataUnits = '\0';
 	}
 
-	void OutRealData(double* ArrToFill, long MaxLen)
+	void OutRealData(double* ArrToFill, long long MaxLen)
+	//void OutRealData(double* ArrToFill, long MaxLen)
 	{
 		if((ArrToFill == 0) || (pWaveData == 0) || (AmOfDims == 0)) return;
 
-		long ActLen = 1;
+		//long ActLen = 1;
+		long long ActLen = 1;
 		for(int i=0; i<AmOfDims; i++) ActLen *= DimSizes[i];
 		if(ActLen < MaxLen) MaxLen = ActLen;
 		
@@ -1895,6 +1904,7 @@ struct srTPrecSASE {
 	long npart;
 	double rmax0;
 	long ncar;
+	//long long ncar; //OC26042019
 	long nptr;
 	long nscr;
 	long nscz;
@@ -2154,14 +2164,16 @@ public:
 		return OutAmOfDims;
 	}
 
-	static int ExtractDimSizes(srTDataMD* pDataMD, long* ArDimSizes)
+	static int ExtractDimSizes(srTDataMD* pDataMD, long long* ArDimSizes) //OC26042019 (port to XOP7)
+	//static int ExtractDimSizes(srTDataMD* pDataMD, long* ArDimSizes)
 	{
 		if((pDataMD == 0) || (ArDimSizes == 0)) return 0;
 		if(pDataMD->pData == 0) return 0;
 		int DimNum = (int)(pDataMD->AmOfDims);
 		if(DimNum > 10) DimNum = 10;
 
-		long *tArDimSizes = ArDimSizes, *tDimSizes = pDataMD->DimSizes;
+		//long *tArDimSizes = ArDimSizes, *tDimSizes = pDataMD->DimSizes;
+		long long *tArDimSizes = ArDimSizes, *tDimSizes = pDataMD->DimSizes; //OC26042019 (port to XOP7)
 		for(int i=0; i<DimNum; i++)
 		{
 			*(tArDimSizes++) = *(tDimSizes++);

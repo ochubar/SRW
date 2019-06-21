@@ -102,7 +102,9 @@ public:
 	void Interpolate(double sSt, double sStp, int Np, double* pInterpData);
 	void CompDerivForOrigData(double* OrigF, double* DerF);
 
+	//void InitCubicSpline(double *x, double *y, long long np);
 	void InitCubicSpline(double *x, double *y, int np);
+	//void InitCubicSplineU(double xStart, double xStep, double *y, long long np);
 	void InitCubicSplineU(double xStart, double xStep, double *y, int np);
 
 	double Interp1D(double x)
@@ -114,7 +116,8 @@ public:
 		return 0;
 	}
 	
-	double InterpRelCubicSpline(double b, int i0, double curArgStep)
+	double InterpRelCubicSpline(double b, long long i0, double curArgStep) //OC26042019
+	//double InterpRelCubicSpline(double b, int i0, double curArgStep)
 	{
 		if((mSplineY2Arr == 0) || (mSplineValTabArr == 0)) return 0;
 
@@ -124,7 +127,8 @@ public:
 		double y2a_lo = mSplineY2Arr[i0], y2a_hi = mSplineY2Arr[i0 + 1];
 		return a*ya_lo + b*ya_hi + ((a*a*a - a)*y2a_lo + (b*b*b - b)*y2a_hi)*(curArgStep*curArgStep)/6.0;
 	}
-	double InterpRelCubicSplineU(double b, int i0)
+	double InterpRelCubicSplineU(double b, long long i0) //OC26042019
+	//double InterpRelCubicSplineU(double b, int i0)
 	{
 		if((mSplineY2Arr == 0) || (mSplineValTabArr == 0) || (mArgStep == 0)) return 0;
 
@@ -622,7 +626,8 @@ public:
 		return (f11 + f00 - f10 - f01)*xr*yr + (f10 - f00)*xr + (f01 - f00)*xr + f00;
 	}
 
-	template<class T> static double InterpOnRegMesh2d(double x, double y, double x_min, double x_step, long nx, double y_min, double y_step, long ny, T* ar_f, char ord=3, long ix_per=1, long ix_ofst=0)
+	template<class T> static double InterpOnRegMesh2d(double x, double y, double x_min, double x_step, long long nx, double y_min, double y_step, long long ny, T* ar_f, char ord=3, long long ix_per=1, long long ix_ofst=0) //OC26042019
+	//template<class T> static double InterpOnRegMesh2d(double x, double y, double x_min, double x_step, long nx, double y_min, double y_step, long ny, T* ar_f, char ord=3, long ix_per=1, long ix_ofst=0)
 	{//OC20112018: "copied" from uti_math.py: uti_math.interp_2d
 
 		if((x_step == 0) || (y_step == 0) || (ar_f == 0) || (ord < 1) || (ord > 3)) throw CAN_NOT_FIND_IND_FOR_INTERP;
@@ -630,18 +635,22 @@ public:
 
 		if(ord == 1) //bi-linear interpolation based on 4 points
 		{
-			long ix0 = (long)((x - x_min)/x_step + truncTol);
+			//long ix0 = (long)((x - x_min)/x_step + truncTol);
+			long long ix0 = (long long)((x - x_min)/x_step + truncTol); //OC26042019
 	        if(ix0 < 0) ix0 = 0;
 			else if(ix0 >= nx - 1) ix0 = nx - 2;
 
-			long ix1 = ix0 + 1;
+			//long ix1 = ix0 + 1;
+			long long ix1 = ix0 + 1; //OC26042019
 			double tx = (x - (x_min + x_step*ix0))/x_step;
 
-	        long iy0 = (long)((y - y_min)/y_step + truncTol);
+	        //long iy0 = (long)((y - y_min)/y_step + truncTol);
+	        long long iy0 = (long long)((y - y_min)/y_step + truncTol); //OC26042019
 			if(iy0 < 0) iy0 = 0;
 			else if(iy0 >= ny - 1) iy0 = ny - 2;
 
-			long iy1 = iy0 + 1;
+			//long iy1 = iy0 + 1;
+			long long iy1 = iy0 + 1; //OC26042019
 			double ty = (y - (y_min + y_step*iy0))/y_step;
 
 			long long nx_ix_per = nx*ix_per;
@@ -661,20 +670,26 @@ public:
 		}
 		else if(ord == 2) //bi-quadratic interpolation based on 6 points
 		{
-			long ix0 = (long)((x - x_min)/x_step + truncTol);
+			//long ix0 = (long)((x - x_min)/x_step + truncTol);
+			long long ix0 = (long long)((x - x_min)/x_step + truncTol); //OC26042019
 			if(ix0 < 1) ix0 = 1;
 			else if(ix0 >= nx - 1) ix0 = nx - 2;
 
-			long ixm1 = ix0 - 1;
-			long ix1 = ix0 + 1;
+			//long ixm1 = ix0 - 1;
+			//long ix1 = ix0 + 1;
+			long long ixm1 = ix0 - 1; //OC26042019
+			long long ix1 = ix0 + 1;
 			double tx = (x - (x_min + x_step*ix0))/x_step;
 
-			long iy0 = (long)((y - y_min)/y_step + truncTol);
+			//long iy0 = (long)((y - y_min)/y_step + truncTol);
+			long long iy0 = (long long)((y - y_min)/y_step + truncTol); //OC26042019
 			if(iy0 < 1) iy0 = 1;
 			else if(iy0 >= ny - 1) iy0 = ny - 2;
 
-			long iym1 = iy0 - 1;
-			long iy1 = iy0 + 1;
+			//long iym1 = iy0 - 1;
+			//long iy1 = iy0 + 1;
+			long long iym1 = iy0 - 1;
+			long long iy1 = iy0 + 1;
 			double ty = (y - (y_min + y_step*iy0))/y_step;
 
 			long long nx_ix_per = nx*ix_per;
@@ -700,22 +715,30 @@ public:
 		}
 		else if(ord == 3) //bi-cubic interpolation based on 12 points
 		{
-			long ix0 = (long)((x - x_min)/x_step + truncTol);
+			//long ix0 = (long)((x - x_min)/x_step + truncTol);
+			long long ix0 = (long long)((x - x_min)/x_step + truncTol); //OC26042019
 			if(ix0 < 1) ix0 = 1;
 			else if(ix0 >= nx - 2) ix0 = nx - 3;
 
-			long ixm1 = ix0 - 1;
-			long ix1 = ix0 + 1;
-			long ix2 = ix0 + 2;
+			//long ixm1 = ix0 - 1;
+			//long ix1 = ix0 + 1;
+			//long ix2 = ix0 + 2;
+			long long ixm1 = ix0 - 1; //OC26042019
+			long long ix1 = ix0 + 1;
+			long long ix2 = ix0 + 2;
 			double tx = (x - (x_min + x_step*ix0))/x_step;
 
-			long iy0 = (long)((y - y_min)/y_step + truncTol);
+			//long iy0 = (long)((y - y_min)/y_step + truncTol);
+			long long iy0 = (long long)((y - y_min)/y_step + truncTol); //OC26042019
 			if(iy0 < 1) iy0 = 1;
 			else if(iy0 >= ny - 2) iy0 = ny - 3;
 
-			long iym1 = iy0 - 1;
-			long iy1 = iy0 + 1;
-			long iy2 = iy0 + 2;
+			//long iym1 = iy0 - 1;
+			//long iy1 = iy0 + 1;
+			//long iy2 = iy0 + 2;
+			long long iym1 = iy0 - 1; //OC26042019
+			long long iy1 = iy0 + 1;
+			long long iy2 = iy0 + 2;
 			double ty = (y - (y_min + y_step*iy0))/y_step;
 
 			long long nx_ix_per = nx*ix_per;

@@ -137,12 +137,14 @@ class srTMagFldTrUnif : public srTMagElem {
 
 	double *BxArr, *BzArr;
 	int Np;
+	//long long Np; //OC26042019
 	double sStart, sStep;
 	char ArraysWereAllocated;
 
 public:
 
 	srTMagFldTrUnif(double In_sStart, double In_sStep, int In_Np, double* In_BxArr, double* In_BzArr, char ArraysShouldBeAllocated)
+	//srTMagFldTrUnif(double In_sStart, double In_sStep, long long In_Np, double* In_BxArr, double* In_BzArr, char ArraysShouldBeAllocated) //OC26042019
 	{
 		sStart = In_sStart; sStep = In_sStep;
 		Np = In_Np;
@@ -438,7 +440,7 @@ public:
 			//double Bm = (Harm.K/(PerLength_d_HarmNo*factK2B))*cosh(UndWaveNum*yr);
 			double Bm = (Harm.K/(PerLength*factK2B))*cosh(UndWaveNum*yr); //OC261012  
 			//OC261012: corrected since K is defined from harmonic field amplitude as: 93.37290417576577*PerLength*t_FldH->B
-			//and it is used assuming this definition for firld/trajectory calculations in SRW for IGOR 
+			//and it is used assuming this definition for field/trajectory calculations in SRW for IGOR 
 
 			double arg = UndWaveNum*zrr;
 			double dB = 0; 
@@ -515,6 +517,7 @@ class srTMagFld3d : public srTMagElem {
 
 	double *BxArr, *ByArr, *BzArr;
 	int nx, ny, nz;
+	//long long nx, ny, nz; //OC26042019
 	double xStart, xStep, yStart, yStep, zStart, zStep;
 	int nRep; //SRWLIB
 	char ArraysWereAllocated;
@@ -522,13 +525,16 @@ class srTMagFld3d : public srTMagElem {
 	double *xArr, *yArr, *zArr; //SRWLIB
 	int mInterp; //SRWLIB
 
-	int m_nx_mi_2, m_ny_mi_2, m_nz_mi_2;
+	//int m_nx_mi_2, m_ny_mi_2, m_nz_mi_2;
+	long long m_nx_mi_2, m_ny_mi_2, m_nz_mi_2; //OC26042019
 
-	map<pair<int, int>, CGenMathInterp*> mAuxSplineDataB;
+	//map<pair<int, int>, CGenMathInterp*> mAuxSplineDataB;
+	map<pair<long long, long long>, CGenMathInterp*> mAuxSplineDataB; //OC26042019
 
 public:
 
 	//srTMagFld3d(double _xStart, double _xStep, int _nx, double _yStart, double _yStep, int _ny, double _zStart, double _zStep, int _nz, double* _pBx, double* _pBy, double* _pBz, int _nRep, char _arraysShouldBeAllocated)
+	//srTMagFld3d(double _xStart, double _xStep, long long _nx, double _yStart, double _yStep, long long _ny, double _zStart, double _zStep, long long _nz, double* _pBx, double* _pBy, double* _pBz, int _nRep, int _interp, char _arraysShouldBeAllocated) //OC26042019
 	srTMagFld3d(double _xStart, double _xStep, int _nx, double _yStart, double _yStep, int _ny, double _zStart, double _zStep, int _nz, double* _pBx, double* _pBy, double* _pBz, int _nRep, int _interp, char _arraysShouldBeAllocated)
 	{
 		SetupGrid(_xStart, _xStep, _nx, _yStart, _yStep, _ny, _zStart, _zStep, _nz, _pBx, _pBy, _pBz, _nRep, _arraysShouldBeAllocated);
@@ -538,6 +544,7 @@ public:
 	//srTMagFld3d(double _xRange, int _nx, double _yRange, int _ny, double _zRange, int _nz, double* _pBx, double* _pBy, double* _pBz, int _nRep, char _arraysShouldBeAllocated, const TVector3d& inCenP) : srTMagElem(inCenP)
 	//srTMagFld3d(double _xRange, int _nx, double _yRange, int _ny, double _zRange, int _nz, double* _pX, double* _pY, double* _pZ, double* _pBx, double* _pBy, double* _pBz, int _nRep, char _arraysShouldBeAllocated, const TVector3d& inCenP) : srTMagElem(inCenP)
 	//srTMagFld3d(double _xRange, int _nx, double _yRange, int _ny, double _zRange, int _nz, double* _pX, double* _pY, double* _pZ, double* _pBx, double* _pBy, double* _pBz, int _nRep, int _interp, char _arraysShouldBeAllocated, const TVector3d& inCenP) : srTMagElem(inCenP)
+	//srTMagFld3d(double _xRange, long long _nx, double _yRange, long long _ny, double _zRange, long long _nz, double* _pX, double* _pY, double* _pZ, double* _pBx, double* _pBy, double* _pBz, int _nRep, int _interp, char _arraysShouldBeAllocated, const TVector3d& inCenP, const TVector3d& inAxV, double inAng=0) : srTMagElem(inCenP, inAxV, inAng)
 	srTMagFld3d(double _xRange, int _nx, double _yRange, int _ny, double _zRange, int _nz, double* _pX, double* _pY, double* _pZ, double* _pBx, double* _pBy, double* _pBz, int _nRep, int _interp, char _arraysShouldBeAllocated, const TVector3d& inCenP, const TVector3d& inAxV, double inAng=0) : srTMagElem(inCenP, inAxV, inAng)
 	{
 		//SetupGridFromRange(_xRange, _nx, _yRange, _ny, _zRange, _nz, _pX, _pY, _pZ, _pBx, _pBy, _pBz, _nRep, _arraysShouldBeAllocated, inCenP);
@@ -565,6 +572,7 @@ public:
 	}
 
 	void SetupGrid(double _xStart, double _xStep, int _nx, double _yStart, double _yStep, int _ny, double _zStart, double _zStep, int _nz, double* _pBx, double* _pBy, double* _pBz, int _nRep, char _arraysShouldBeAllocated)
+	//void SetupGrid(double _xStart, double _xStep, long long _nx, double _yStart, double _yStep, long long _ny, double _zStart, double _zStep, long long _nz, double* _pBx, double* _pBy, double* _pBz, int _nRep, char _arraysShouldBeAllocated)
 	{
 		xArr = yArr = zArr = 0;
 		xStart = _xStart; xStep = _xStep; nx = _nx;
@@ -602,6 +610,7 @@ public:
 	}
 
 	//void SetupGridFromRange(double _xRange, int _nx, double _yRange, int _ny, double _zRange, int _nz, double* _pX, double* _pY, double* _pZ, double* _pBx, double* _pBy, double* _pBz, int _nRep, char _arraysShouldBeAllocated, const TVector3d& inCenP)
+	//void SetupGridFromRange(double _xRange, long long _nx, double _yRange, long long _ny, double _zRange, long long _nz, double* _pX, double* _pY, double* _pZ, double* _pBx, double* _pBy, double* _pBz, int _nRep, char _arraysShouldBeAllocated)
 	void SetupGridFromRange(double _xRange, int _nx, double _yRange, int _ny, double _zRange, int _nz, double* _pX, double* _pY, double* _pZ, double* _pBx, double* _pBy, double* _pBz, int _nRep, char _arraysShouldBeAllocated) //OC150815
 	{
 		xStart = -0.5*_xRange; xEnd = 0.5*_xRange; nx = _nx; xStep = (_nx <= 1)? 0 : _xRange/(_nx - 1);
@@ -677,7 +686,8 @@ public:
 		//boundary point is only included at one side: [zStart, zEnd)
 		//periods (nRep) are taken into account
 
-		int ix = 0, ix1 = 0; 
+		//int ix = 0, ix1 = 0; 
+		long long ix = 0, ix1 = 0; //OC26042019
 		double x0 = xStart, xt = 0.;
 		double xStepLocVar = xStep;
 		if(nx > 1) 
@@ -694,18 +704,22 @@ public:
 				{
 					if(xArr[ix] > xr)
 					{
-						int ii_start = ix - 1;
+						//int ii_start = ix - 1;
+						long long ii_start = ix - 1; //OC26042019
 						ix = 0;
-						for(int ii = ii_start; ii >= 0; ii--)
+						//for(int ii = ii_start; ii >= 0; ii--)
+						for(long long ii = ii_start; ii >= 0; ii--) //OC26042019
 						{
 							if(xArr[ii] <= xr) { ix = ii; break;}
 						}
 					}
 					else
 					{
-						int ii_start = ix + 1;
+						//int ii_start = ix + 1;
+						long long ii_start = ix + 1; //OC26042019
 						ix = m_nx_mi_2;
-						for(int ii = ii_start; ii < nx; ii++)
+						//for(int ii = ii_start; ii < nx; ii++)
+						for(long long ii = ii_start; ii < nx; ii++) //OC26042019
 						{
 							if(xArr[ii] > xr) { ix = ii - 1; break;}
 						}
@@ -720,7 +734,8 @@ public:
 			xt = (xr - x0)/xStepLocVar;
 		}
 
-		int iy = 0, iy1 = 0;
+		//int iy = 0, iy1 = 0;
+		long long iy = 0, iy1 = 0; //OC26042019
 		double y0 = yStart, yt = 0.;
 		double yStepLocVar = yStep;
 		if(ny > 1) 
@@ -737,18 +752,22 @@ public:
 				{
 					if(yArr[iy] > yr)
 					{
-						int ii_start = iy - 1;
+						//int ii_start = iy - 1;
+						long long ii_start = iy - 1; //OC26042019
 						iy = 0;
-						for(int ii = ii_start; ii >= 0; ii--)
+						//for(int ii = ii_start; ii >= 0; ii--)
+						for(long long ii = ii_start; ii >= 0; ii--) //OC26042019
 						{
 							if(yArr[ii] <= yr) { iy = ii; break;}
 						}
 					}
 					else
 					{
-						int ii_start = iy + 1;
+						//int ii_start = iy + 1;
+						long long ii_start = iy + 1; //OC26042019
 						iy = m_ny_mi_2;
-						for(int ii = ii_start; ii < ny; ii++)
+						//for(int ii = ii_start; ii < ny; ii++)
+						for(long long ii = ii_start; ii < ny; ii++) //OC26042019
 						{
 							if(yArr[ii] > yr) { iy = ii - 1; break;}
 						}
@@ -763,7 +782,8 @@ public:
 			yt = (yr - y0)/yStepLocVar;
 		}
 
-		int iz = 0, iz1 = 0;
+		//int iz = 0, iz1 = 0;
+		long long iz = 0, iz1 = 0; //OC26042019
 		double z0 = zStart, zt = 0.;
 		double zStepLocVar = zStep;
 		if(nz > 1) 
@@ -771,7 +791,8 @@ public:
 			if(nz < 3) iz = 0; 
 			else 
 			{
-				iz = (int)((zr - zStart)/zStep + smallRelConst);
+				//iz = (int)((zr - zStart)/zStep + smallRelConst);
+				iz = (long long)((zr - zStart)/zStep + smallRelConst); //OC26042019
 				if(iz < 0) iz = 0;
 				else if(iz > m_nz_mi_2) iz = m_nz_mi_2;
 
@@ -780,18 +801,22 @@ public:
 				{
 					if(zArr[iz] > zr)
 					{
-						int ii_start = iz - 1;
+						//int ii_start = iz - 1;
+						long long ii_start = iz - 1; //OC26042019
 						iz = 0;
-						for(int ii = ii_start; ii >= 0; ii--)
+						//for(int ii = ii_start; ii >= 0; ii--)
+						for(long long ii = ii_start; ii >= 0; ii--) //OC26042019
 						{
 							if(zArr[ii] <= zr) { iz = ii; break;}
 						}
 					}
 					else
 					{
-						int ii_start = iz + 1;
+						//int ii_start = iz + 1;
+						long long ii_start = iz + 1; //OC26042019
 						iz = m_nz_mi_2;
-						for(int ii = ii_start; ii < nz; ii++)
+						//for(int ii = ii_start; ii < nz; ii++)
+						for(long long ii = ii_start; ii < nz; ii++) //OC26042019
 						{
 							if(zArr[ii] > zr) { iz = ii - 1; break;}
 						}
@@ -856,12 +881,14 @@ public:
 		}
 		else if(mInterp == 2)
 		{
-			int ix0 = ix, iy0 = iy, iz0 = iz;
+			//int ix0 = ix, iy0 = iy, iz0 = iz;
+			long long ix0 = ix, iy0 = iy, iz0 = iz; //OC26042019
 			if((xt >= 0.5) && (ix0 < m_nx_mi_2)) { ix0++; xt -= 1.; ix1++;}
 			if((yt >= 0.5) && (iy0 < m_ny_mi_2)) { iy0++; yt -= 1.; iy1++;}
 			if((zt >= 0.5) && (iz0 < m_nz_mi_2)) { iz0++; zt -= 1.; iz1++;}
 
-			int ixm1 = ix0 - 1, iym1 = iy0 - 1, izm1 = iz0 - 1;
+			//int ixm1 = ix0 - 1, iym1 = iy0 - 1, izm1 = iz0 - 1;
+			long long ixm1 = ix0 - 1, iym1 = iy0 - 1, izm1 = iz0 - 1; //OC26042019
 			if(ixm1 < 0) ixm1 = 0;
 			if(iym1 < 0) iym1 = 0;
 			if(izm1 < 0) izm1 = 0;
@@ -909,9 +936,12 @@ public:
 		}
 		else if(mInterp == 3)
 		{
-			int ix0 = ix, iy0 = iy, iz0 = iz;
-			int ixm1 = ix0 - 1, iym1 = iy0 - 1, izm1 = iz0 - 1;
-			int ix2 = ix1 + 1, iy2 = iy1 + 1, iz2 = iz1 + 1;
+			//int ix0 = ix, iy0 = iy, iz0 = iz;
+			//int ixm1 = ix0 - 1, iym1 = iy0 - 1, izm1 = iz0 - 1;
+			//int ix2 = ix1 + 1, iy2 = iy1 + 1, iz2 = iz1 + 1;
+			long long ix0 = ix, iy0 = iy, iz0 = iz;
+			long long ixm1 = ix0 - 1, iym1 = iy0 - 1, izm1 = iz0 - 1;
+			long long ix2 = ix1 + 1, iy2 = iy1 + 1, iz2 = iz1 + 1;
 
 			if(ixm1 < 0) 
 			{
@@ -1098,9 +1128,12 @@ public:
 		{
 			double *arAuxBx_vs_Z=0, *arAuxBy_vs_Z=0, *arAuxBz_vs_Z=0; //for spline interpolations
 			
-			int ix0 = ix, iy0 = iy, iz0 = iz;
-			int ixm1 = ix0 - 1, iym1 = iy0 - 1, izm1 = iz0 - 1;
-			int ix2 = ix1 + 1, iy2 = iy1 + 1, iz2 = iz1 + 1;
+			//int ix0 = ix, iy0 = iy, iz0 = iz;
+			//int ixm1 = ix0 - 1, iym1 = iy0 - 1, izm1 = iz0 - 1;
+			//int ix2 = ix1 + 1, iy2 = iy1 + 1, iz2 = iz1 + 1;
+			long long ix0 = ix, iy0 = iy, iz0 = iz; //OC26042019
+			long long ixm1 = ix0 - 1, iym1 = iy0 - 1, izm1 = iz0 - 1;
+			long long ix2 = ix1 + 1, iy2 = iy1 + 1, iz2 = iz1 + 1;
 			if(ixm1 < 0) ixm1 = 0;
 			if(iym1 < 0) iym1 = 0;
 			if(izm1 < 0) izm1 = 0;
@@ -1108,18 +1141,26 @@ public:
 			if(iy2 >= ny) iy2 = iy1;
 			if(iz2 >= nz) iz2 = iz1;
 			
-			pair<int,int> arPairInd[] = {
-				pair<int,int>(ix0,iym1), pair<int,int>(ix1,iym1),
-				pair<int,int>(ixm1,iy0), pair<int,int>(ix0,iy0), pair<int,int>(ix1,iy0), pair<int,int>(ix2,iy0),
-				pair<int,int>(ixm1,iy1), pair<int,int>(ix0,iy1), pair<int,int>(ix1,iy1), pair<int,int>(ix2,iy1),
-				pair<int,int>(ix0,iy2), pair<int,int>(ix1,iy2)
+			//pair<int,int> arPairInd[] = {
+			//	pair<int,int>(ix0,iym1), pair<int,int>(ix1,iym1),
+			//	pair<int,int>(ixm1,iy0), pair<int,int>(ix0,iy0), pair<int,int>(ix1,iy0), pair<int,int>(ix2,iy0),
+			//	pair<int,int>(ixm1,iy1), pair<int,int>(ix0,iy1), pair<int,int>(ix1,iy1), pair<int,int>(ix2,iy1),
+			//	pair<int,int>(ix0,iy2), pair<int,int>(ix1,iy2)
+			//};
+			pair<long long, long long> arPairInd[] = { //OC26042019
+				pair<long long, long long>(ix0,iym1), pair<long long, long long>(ix1,iym1),
+				pair<long long, long long>(ixm1,iy0), pair<long long, long long>(ix0,iy0), pair<long long, long long>(ix1,iy0), pair<long long, long long>(ix2,iy0),
+				pair<long long, long long>(ixm1,iy1), pair<long long, long long>(ix0,iy1), pair<long long, long long>(ix1,iy1), pair<long long, long long>(ix2,iy1),
+				pair<long long, long long>(ix0,iy2), pair<long long, long long>(ix1,iy2)
 			};
 
 			double arCellBx[12], arCellBy[12], arCellBz[12];
-			map<pair<int, int>, CGenMathInterp*>::const_iterator it;
+			//map<pair<int, int>, CGenMathInterp*>::const_iterator it;
+			map<pair<long long, long long>, CGenMathInterp*>::const_iterator it; //OC26042019
 			for(int i=0; i<12; i++)
 			{
-				pair<int,int> *pCurPairInd = arPairInd + i;
+				//pair<int,int> *pCurPairInd = arPairInd + i;
+				pair<long long, long long> *pCurPairInd = arPairInd + i; //OC26042019
 				//long ofst = pCurPairInd->first + (pCurPairInd->second)*perY + izm1*perZ;
 				//long ofst0 = pCurPairInd->first + (pCurPairInd->second)*perY;
 				long long ofst0 = pCurPairInd->first + (pCurPairInd->second)*perY;
@@ -1299,7 +1340,8 @@ public:
 	{
 		if(mAuxSplineDataB.empty()) return;
 
-		for(map<pair<int, int>, CGenMathInterp*>::iterator it = mAuxSplineDataB.begin(); it != mAuxSplineDataB.end(); ++it)
+		for(map<pair<long long, long long>, CGenMathInterp*>::iterator it = mAuxSplineDataB.begin(); it != mAuxSplineDataB.end(); ++it) //OC26042019
+		//for(map<pair<int, int>, CGenMathInterp*>::iterator it = mAuxSplineDataB.begin(); it != mAuxSplineDataB.end(); ++it)
 		{
 			delete[] it->second;
 			it->second = 0;

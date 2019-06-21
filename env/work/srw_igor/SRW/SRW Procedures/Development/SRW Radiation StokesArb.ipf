@@ -622,7 +622,7 @@ end
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 //
-//TEST: Calculates Flux through finite aperture of radiation taking into account electron beam emittance and energy spread
+//TEST: Calculates Flux through finite aperture of radiation from Arbitrary Source taking into account electron beam emittance and energy spread
 //by summing-up contributions from different "macro-electrons"
 //
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -839,6 +839,281 @@ do
 	 
 	 if(numDimInt == 3)
 	 	SrwWfr2Int(auxWfrName + "_rad",auxSufIntWork,7,5,1,1,obsEstart_keV,obsXmidAct,obsZmidAct,2) //extracting spectral flux for viewing
+	 endif
+	
+	if(iPt == 0)
+		SrwUtiGraphWindResize(400,10,350,200,0,0)
+		SrwUtiGraphAddFrameAndGrid()
+		
+		duplicate/O $auxIntWorkName $auxIntResName
+		
+		$auxIntResName *= multInt2Flux
+		
+		if(numDimInt == 1)
+			display $auxIntResName
+		endif
+		if(numDimInt == 2)
+			display; AppendImage $auxIntResName
+		endif
+		if(numDimInt == 3) //extract and show spectrum through finite aperture
+			duplicate/O $auxFluxDispWorkName $auxFluxDispResName
+			display $auxFluxDispResName
+		endif
+		
+		SrwUtiGraphWindResize(10,10,350,200,0,0)
+		SrwUtiGraphAddFrameAndGrid()	
+		dispOrNotWork = 1
+	else
+		//$auxIntResName *= iPt
+		$auxIntResName *= iPt/multInt2Flux
+		$auxIntResName += $auxIntWorkName
+		//$auxIntResName /= (iPt + 1)
+		$auxIntResName *= multInt2Flux/(iPt + 1)
+		
+		if(numDimInt == 3)
+			$auxFluxDispResName *= iPt
+			$auxFluxDispResName += $auxFluxDispWorkName
+			$auxFluxDispResName /= (iPt + 1)
+		endif
+	endif
+	
+	DoUpdate
+
+	savePtCount += 1
+	
+	if(savePtCount == savePeriodNpt)
+		SaveExperiment
+		savePtCount = 0
+	endif
+	
+	iPt += 1
+while(iPt < NumPt)
+end
+
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//
+//TEST: Calculates Flux through finite aperture of Bending Magnet radiation taking into account electron beam emittance and energy spread
+//by summing-up contributions from different "macro-electrons"
+//
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//proc SrwFluxBMMCCreate(RadName, ElecName, MagName, ObsName, RadCmpnType, NumPt, Mode1D, Prec1D, MethTransvEmit, iCalcMade)
+proc SrwFluxBMMCCreate(RadName, ElecName, MagName, ObsName, RadCmpnType, NumPt, MethTransvEmit, iCalcMade)
+string RadName=srwUtiGetValS("RadName", "IntME", "SrwIntArbMCCreate")
+string ElecName=srwUtiGetValS("SrwElecName", "Elec", "")+SrwElecType
+string MagName=srwUtiGetValS("SrwMagGenTotName", "Mag", "")
+string ObsName=srwUtiGetValS("SrwSmpName", "Obs", "")+SrwSmpType
+variable RadCmpnType=SrwViewRadCmpnType
+variable NumPt=srwUtiGetValN("NumPt", 100, "SrwIntArbMCCreate")
+//variable Mode1D=SrwMode
+//variable Prec1D=SrwPrec
+variable MethTransvEmit=srwUtiGetValN("MethTransvEmit",1,"SrwIntArbMCCreate")
+variable iCalcMade=srwUtiGetValN("iCalcMade",1,"SrwFluxArbMCCreate")
+prompt RadName,SrwPStoName
+prompt ElecName,SrwPElecName1,popup Wavelist("*"+SrwElecType,";","")
+prompt MagName,SrwPMagName2,popup Wavelist("*"+SrwMagConstType,";","") //+ Wavelist("*"+SrwMagContainerType,";","")
+prompt ObsName,SrwPSmpName2,popup Wavelist("*"+SrwSmpType,";","")
+prompt RadCmpnType, SrwPViewRadCmpnType, popup SrwPOPUPPolar+";Total"
+prompt NumPt,"Number of Macro-Particles"
+//prompt Mode1D,SrwPMode,popup SrwPOPUPMode
+//prompt Prec1D,"Relative Prec. for 1D Integration"
+prompt MethTransvEmit,"Method for treating Transverse Emittance",popup "by repeated integ. along traj.;by convolution"
+prompt iCalcMade,"Number of Part. treated (effective if >=0)"
+Silent 1						|	Computing the Radiation  ...
+//PauseUpdate
+
+variable ElecWavePresent = 1, MagWavePresent = 1, ObsWavePresent = 1
+if(cmpstr(ElecName,"_none_")==0)
+	ElecWavePresent = 0
+endif
+if(cmpstr(MagName,"_none_")==0)
+	MagWavePresent = 0
+endif
+if(cmpstr(ObsName,"_none_")==0)
+	ObsWavePresent = 0
+endif
+if(ElecWavePresent==0)
+	SrwElecFilament()
+	SrwElecThick()
+	if((MagWavePresent == 1) %& (ObsWavePresent == 1))
+		SrwIntArbMCCreate()
+		Return
+	endif
+endif
+if(MagWavePresent==0)
+	SrwMagPerCreate2D()
+	if(ObsWavePresent == 1)
+		SrwIntArbMCCreate()
+		Return
+	endif
+endif
+if(ObsWavePresent==0)
+	SrwStartMacrosAfterRadSmp = 3
+	SrwStartMacrosAfterRadSmp2 *= -1
+	SrwRadSamplDialog(SrwSmpType)
+	Return
+endif
+
+if(strlen(RadName)==0)
+	RadName=SrwElecName+SrwUndName+SrwSmpName
+endif
+SrwStoName=RadName
+
+srwUtiSetValS("RadName",RadName,"SrwIntArbMCCreate")
+SrwElecName=ElecName[0,strlen(ElecName)-strlen(SrwElecType)-1]
+SrwUndName=MagName[0,strlen(MagName)-strlen(SrwUndType)-1]
+SrwSmpName=ObsName[0,strlen(ObsName)-strlen(SrwSmpType)-1]
+SrwViewRadCmpnType=RadCmpnType
+SrwMagGenTotName=MagName
+srwUtiSetValN("NumPt", NumPt, "SrwIntArbMCCreate")
+//SrwMode=Mode1D
+//SrwPrec=Prec1D
+srwUtiSetValN("MethTransvEmit",MethTransvEmit,"SrwIntArbMCCreate")
+srwUtiSetValN("iCalcMade",iCalcMade,"SrwIntArbMCCreate")
+
+variable savePeriodNpt = 100 //to edit
+
+variable elecSigXe2 = $ElecName[20]   // <(x-<x>)^2> [m^2]
+variable elecMXXp = $ElecName[21]   // <(x-<x>)(x'-<x'>)>
+variable elecSigXpe2 = $ElecName[22]   // <(x'-<x'>)^2>
+
+variable elecSigZe2 = $ElecName[23]   // <(z-<z>)^2> [m^2]
+variable elecMZZp = $ElecName[24]   // <(z-<z>)(z'-<z'>)>
+variable elecSigZpe2 = $ElecName[25]   // <(z'-<z'>)^2>
+
+variable elecEnGeV = $ElecName[0]
+variable elecSigRelE = $ElecName[13]   // relative rms energy spread
+variable elecSigE_GeV = elecEnGeV*elecSigRelE
+
+variable r = $ObsName[4]   // observation distance
+
+variable elecSigXeffE2 = elecSigXe2 + r*r*elecSigXpe2 + 2*r*elecMXXp
+variable elecSigZeffE2 = elecSigZe2 + r*r*elecSigZpe2 + 2*r*elecMZZp
+variable elecSigXeff = sqrt(elecSigXeffE2)
+variable elecSigZeff = sqrt(elecSigZeffE2)
+variable elecSigXeff_mm = elecSigXeff*1000
+variable elecSigZeff_mm = elecSigZeff*1000
+
+variable obsEstart_eV = $ObsName[5]
+variable obsEend_eV = $ObsName[6]
+variable obsEnp = $ObsName[7]
+variable obsXstart_m = $ObsName[8]
+variable obsXend_m = $ObsName[9]
+variable obsXnp = $ObsName[10]
+variable obsZstart_m = $ObsName[11]
+variable obsZend_m = $ObsName[12]
+variable obsZnp = $ObsName[13]
+
+variable obsEstart_keV = obsEstart_eV*0.001
+variable obsEend_keV = obsEend_eV*0.001
+variable obsXmid_mm = 0.5*(obsXstart_m + obsXend_m)*1000
+variable obsXrange_mm = (obsXend_m - obsXstart_m)*1000
+variable obsZmid_mm = 0.5*(obsZstart_m + obsZend_m)*1000
+variable obsZrange_mm = (obsZend_m - obsZstart_m)*1000
+
+variable obsHalfXrange_mm = 0.5*obsXrange_mm
+variable obsHalfZrange_mm = 0.5*obsZrange_mm
+variable multInt2Flux = obsXrange_mm*obsZrange_mm
+
+variable obsXmidAct = obsXmid_mm, obsZmidAct = obsZmid_mm
+variable elecEnAct = elecEnGeV
+
+string auxElecName = "ElecAuxMC_ebm"
+duplicate/O $ElecName $auxElecName
+
+string auxObsName = "ObsAuxMC"
+SrwSmpCreate(auxObsName,r)
+auxObsName += "_obs"
+
+string auxWfrName = "WfrAuxMC"
+string auxSufIntWork = "Iw"
+string auxEndingInt = "_"
+variable numDimInt = 0
+//to program correctly !
+if(obsEnp > 1)
+	auxEndingInt += "e"
+	numDimInt += 1
+	if(obsXnp > 1)
+		auxEndingInt += "x"
+		numDimInt += 1
+	else
+	
+	endif
+	if(obsZnp > 1)
+		auxEndingInt += "z"
+		numDimInt += 1
+	else
+	
+	endif
+else
+	if(obsXnp > 1)
+		auxEndingInt += "x"
+		numDimInt += 1
+	endif
+	if(obsZnp > 1)
+		auxEndingInt += "z"
+		numDimInt += 1
+	endif
+endif
+
+variable SingE_or_MultiE_intens = 1 //single-e by default
+if(MethTransvEmit == 2) //by convolution
+	SingE_or_MultiE_intens = 2
+endif
+
+string auxIntWorkName = auxWfrName + auxSufIntWork + auxEndingInt
+string auxIntResName = RadName + auxEndingInt
+string auxFluxDispWorkName = auxWfrName + auxSufIntWork + "_e"
+string auxFluxDispResName = RadName + "_e"
+
+variable dispOrNotWork = 2
+if(numDimInt == 3)
+	dispOrNotWork = 1 //don't display the main wave
+	//auxIntDisp += "_e"
+endif
+//variable eStep, eStart
+
+//if(MethTransvEmit == 2) //use convolution
+//	if(IntOrFluxWork == 1)
+//		IntOrFluxWork == 2 //multi-e intensity
+//	endif
+//endif
+
+variable savePtCount = 0
+variable iPt = 0
+
+if(iCalcMade >= 0) //OC250112
+	iPt += iCalcMade
+	NumPt += iCalcMade
+endif
+
+do
+	//defining next values for transverse positions of the observation and electron energy
+	elecEnAct = elecEnGeV + gnoise(elecSigE_GeV)
+	$auxElecName[0] = elecEnAct
+	
+	if(MethTransvEmit == 2) //by convolution
+		obsXmidAct = obsXmid_mm
+		obsZmidAct = obsZmid_mm
+	else
+		//obsXmidAct = obsXmid_mm - gnoise(elecSigXeff_mm)
+		//obsZmidAct = obsZmid_mm - gnoise(elecSigZeff_mm)
+		
+		obsXmidAct = obsXmid_mm + enoise(obsHalfXrange_mm) - gnoise(elecSigXeff_mm)
+		obsZmidAct = obsZmid_mm + enoise(obsHalfZrange_mm) - gnoise(elecSigZeff_mm)
+	endif
+	SrwSmpScanXZE(auxObsName,obsXmidAct,obsXrange_mm,obsXnp,obsZmidAct,obsZrange_mm,obsZnp,obsEstart_keV,obsEend_keV,obsEnp)
+
+	//SrwMagPrec(MagName,Mode1D,0.01,Prec1D,10000,1,0,0)
+	//SrwWfrCreate(auxWfrName,auxElecName,MagName,auxObsName,1,1)
+	
+	SrwStoConstCreate(auxWfrName,auxElecName,MagName,auxObsName)
+	
+	//SrwWfr2Int(auxWfrName + "_rad",auxSufIntWork,RadCmpnType,SingE_or_MultiE_intens,8,1,obsEstart_keV,obsXmidAct,obsZmidAct,dispOrNotWork)
+	SrwSto2IntF(auxWfrName + "_ras",auxSufIntWork,RadCmpnType,1,8,obsEstart_keV,obsXmidAct,obsZmidAct,dispOrNotWork)
+	 
+	 if(numDimInt == 3)
+	 	//SrwWfr2Int(auxWfrName + "_rad",auxSufIntWork,7,5,1,1,obsEstart_keV,obsXmidAct,obsZmidAct,2) //extracting spectral flux for viewing
+		SrwSto2IntF(auxWfrName + "_ras",auxSufIntWork,7,2,8,obsEstart_keV,obsXmidAct,obsZmidAct,dispOrNotWork)
 	 endif
 	
 	if(iPt == 0)

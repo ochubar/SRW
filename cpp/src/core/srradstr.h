@@ -73,6 +73,7 @@ public:
 	int hStateRadX, hStateRadZ;
 	double eStep, eStart, xStep, xStart, zStep, zStart;
 	long ne, nx, nz;
+	//long long ne, nx, nz; //OC26042019
 
 	double xStartTr, zStartTr;
 	bool UseStartTrToShiftAtChangingRepresToCoord;
@@ -196,6 +197,7 @@ public:
 	void ProcessNxNzForPropag(srTWfrSmp* pWfrSmp, double NxNzOversamplingFactor);
 	//void ProcessNxNzForPropag(double NxNzOversamplingFactor, long& nx, long& nz);
     void CheckNxNzForSR(srTWfrSmp* pWfrSmp, double NxNzOversamplingFactor);
+	//void CheckNxNzForSR(double NxNzOversamplingFactor, long long& _nx, long long& _nz); //OC26042019
 	void CheckNxNzForSR(double NxNzOversamplingFactor, long& _nx, long& _nz);
 
 	void AllocElectronBeam();
@@ -703,15 +705,20 @@ public:
 		}
 	}
 
-	void SetupRadXorZSectFromSliceConstEorT(float* pInEx, float* pInEz, long _nx, long _nz, char vsX_or_vsZ, long iSect, float* pOutEx, float* pOutEz)
+	void SetupRadXorZSectFromSliceConstEorT(float* pInEx, float* pInEz, long long _nx, long long _nz, char vsX_or_vsZ, long long iSect, float* pOutEx, float* pOutEz) //OC26042019
+	//void SetupRadXorZSectFromSliceConstEorT(float* pInEx, float* pInEz, long _nx, long _nz, char vsX_or_vsZ, long iSect, float* pOutEx, float* pOutEz)
 	{
-		long Per = (vsX_or_vsZ == 'x')? 2 : (_nx << 1);
+		//long Per = (vsX_or_vsZ == 'x')? 2 : (_nx << 1);
+		long long Per = (vsX_or_vsZ == 'x')? 2 : (_nx << 1); //OC26042019
 		float *tOutEx = pOutEx, *tOutEz = pOutEz;
-		long StartOffset = (vsX_or_vsZ == 'x')? iSect*(_nx << 1) : (iSect << 1);
+		//long StartOffset = (vsX_or_vsZ == 'x')? iSect*(_nx << 1) : (iSect << 1);
+		long long StartOffset = (vsX_or_vsZ == 'x')? iSect*(_nx << 1) : (iSect << 1); //OC26042019
 		float *tEx = pInEx + StartOffset, *tEz = pInEz + StartOffset;
-		long nPt = (vsX_or_vsZ == 'x')? _nx : _nz;
+		//long nPt = (vsX_or_vsZ == 'x')? _nx : _nz;
+		long long nPt = (vsX_or_vsZ == 'x')? _nx : _nz; //OC26042019
 
-		for(int i=0; i<nPt; i++)
+		for(long long i=0; i<nPt; i++) //OC26042019
+		//for(int i=0; i<nPt; i++)
 		{
 			*(tOutEx++) = *tEx; *(tOutEx++) = *(tEx + 1);
 			*(tOutEz++) = *tEz; *(tOutEz++) = *(tEz + 1);
@@ -800,13 +807,15 @@ public:
 		long long PerX = ne << 1;
 		long long PerZ = PerX*nx;
 
-		int ieStart=0, ieBefEnd=ne;
+		//int ieStart=0, ieBefEnd=ne;
+		long long ieStart=0, ieBefEnd=ne; //OC26042019
 		if((ieOnly >= 0) && (ieOnly < ne))
 		{
 			ieStart = ieOnly; ieBefEnd = ieOnly + 1;
 		}
 
-		for(int ie=ieStart; ie<ieBefEnd; ie++)
+		for(long long ie=ieStart; ie<ieBefEnd; ie++) //OC26042019
+		//for(int ie=ieStart; ie<ieBefEnd; ie++)
 		{
 			if(PresT == 1)
 			{

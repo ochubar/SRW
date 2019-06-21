@@ -22,8 +22,10 @@ class srTAuxRemoveFlips {
 public:
 
 	int GenRemoveFlips(srTWaveAccessData& WaveData);
-	void RemoveFlips1D(DOUBLE* pData, long Np, long i0, double Phi0);
-	void RemoveFlips1D(float* pData, long Np, long i0, double Phi0);
+	void RemoveFlips1D(DOUBLE* pData, long long Np, long long i0, double Phi0); //OC26042019
+	//void RemoveFlips1D(DOUBLE* pData, long Np, long i0, double Phi0);
+	void RemoveFlips1D(float* pData, long long Np, long long i0, double Phi0); //OC26042019
+	//void RemoveFlips1D(float* pData, long Np, long i0, double Phi0);
 	int RemoveFlips2D_D(srTWaveAccessData& WaveData);
 	int RemoveFlips2D_F(srTWaveAccessData& WaveData);
 };

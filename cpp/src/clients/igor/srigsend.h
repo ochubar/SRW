@@ -42,12 +42,15 @@ public:
 	static int GetDoubleFromTextWave1D(waveHndl& wavH, int IndNo, double& Value);
 	static int UpdateTextWave1D(waveHndl& wavH, vector<string>* pVectStr);
 
-	static int GetArrDoubleFromNumWave1D(waveHndl wavH, long MaxNp, double*& pData, long& Np);
-	static int GetArrDoubleFromNumWave2D(waveHndl wavH, int& NumRows, int& NumCols, double*& pData);
+	static int GetArrDoubleFromNumWave1D(waveHndl wavH, long long MaxNp, double*& pData, long long& Np); //OC26042019 (port to XOP7)
+	//static int GetArrDoubleFromNumWave1D(waveHndl wavH, long MaxNp, double*& pData, long& Np);
+	static int GetArrDoubleFromNumWave2D(waveHndl wavH, long long& NumRows, long long& NumCols, double*& pData); //OC26042019 (port to XOP7)
+	//static int GetArrDoubleFromNumWave2D(waveHndl wavH, int& NumRows, int& NumCols, double*& pData);
 
 	static int ReDimNumWave1D(waveHndl wavH, int NumRows);
     static int ReDimNumWave2D(waveHndl wavH, int NumRows, int NumCols);
-    static int SetDataInNumWave(waveHndl wavH, double* pData, long Np);
+    static int SetDataInNumWave(waveHndl wavH, double* pData, long long Np); //OC26042019 (port to XOP7)
+    //static int SetDataInNumWave(waveHndl wavH, double* pData, long Np);
 
 	static int FetchNumWave(char* sWaveName, srTDataMD* pWaveData);
 	static int GetNumWaveData(waveHndl wavH, srTDataMD* pWaveData); //, int& hState);
@@ -62,8 +65,11 @@ public:
 	static int GetElecBeamTwiss(waveHndl wavH, double* pHorTwiss, double* pVertTwiss);
 	static int SetElecBeamEmitAndTwiss(waveHndl wavH, double HorEmit, double VertEmit, double* pHorTwiss, double* pVertTwiss);
 	
+	//static int GetMagFieldTransvUnif(waveHndl wavH, double FieldAbsZeroTol, double& sStart, double& sStep, long long& np, double*& pBH, bool& BHIsZero, double*& pBV, bool& BVIsZero);
 	static int GetMagFieldTransvUnif(waveHndl wavH, double FieldAbsZeroTol, double& sStart, double& sStep, long& np, double*& pBH, bool& BHIsZero, double*& pBV, bool& BVIsZero);
+	//static int GetMagField3d(waveHndl wField, double FieldZeroTolerance, double& sStart, double& sStep, long long& NpS, double& xStart, double& xStep, long long& NpX, double& zStart, double& zStep, long long& NpZ , double*& pBsData, bool& BsIsZero, double*& pBxData, bool& BxIsZero, double*& pBzData, bool& BzIsZero);
 	static int GetMagField3d(waveHndl wField, double FieldZeroTolerance, double& sStart, double& sStep, long& NpS, double& xStart, double& xStep, long& NpX, double& zStart, double& zStep, long& NpZ , double*& pBsData, bool& BsIsZero, double*& pBxData, bool& BxIsZero, double*& pBzData, bool& BzIsZero);
+	//static int GetMagField3dComponent(waveHndl wavH, double FieldZeroTolerance, double& sStart, double& sStep, long long& NpS, double& xStart, double& xStep, long long& NpX, double& zStart, double& zStep, long long& NpZ, double*& pB_Data, bool& B_IsZero);
 	static int GetMagField3dComponent(waveHndl wavH, double FieldZeroTolerance, double& sStart, double& sStep, long& NpS, double& xStart, double& xStep, long& NpX, double& zStart, double& zStep, long& NpZ, double*& pB_Data, bool& B_IsZero);
 
 	static int GetMagFieldPeriodic(waveHndl wavH, double& PerLength, double& TotLength, int& AmOfHarm, srTMagFldHarm*& MagFldHarmArr, int& TypeOfUnd, double& TaperPar_TU, double& PhaseSh_OK, int& FldErrTypeSASE, double& FldErrRMS, double& NatFocNxSASE, double& NatFocNySASE, int& TaperTypeSASE, double& TaperStartSASE, double& TaperRelFldChgSASE);
@@ -75,6 +81,7 @@ public:
 	static int GetTrjDataPointers(waveHndl wOutHorAng, waveHndl wOutHorCoor, waveHndl wOutVerAng, waveHndl wOutVerCoor, double*& pOutBtxData, double*& pOutXData, double*& pOutBtzData, double*& pOutZData, int& ns, double& sStart, double& sStep, int& hStateOutBtxData, int& hStateOutXData, int& hStateOutBtzData, int& hStateOutZData);
 	static int GetTrj3dDataPointers(waveHndl wavH_OutBtxData, waveHndl wavH_OutXData, waveHndl wavH_OutBtyData, waveHndl wavH_OutYData, waveHndl wavH_OutBtzData, waveHndl wavH_OutZData, double*& pOutBtxData, double*& pOutXData, double*& pOutBtyData, double*& pOutYData, double*& pOutBtzData, double*& pOutZData, int& ns, double& sStart, double& sStep, int& hStateOutBtxData, int& hStateOutXData, int& hStateOutBtyData, int& hStateOutYData, int& hStateOutBtzData, int& hStateOutZData);
 	static int GetPrecParamWfrSamplingForPropag(waveHndl wavH, bool& AllowAutoChoiceOfNxNzForPropag, double& NxNzOversamplingParam);
+	//static int GetWfrSampling(waveHndl wavH, double& s, double& zSt, double& zFi, long long& nz, double& xSt, double& xFi, long long& nx, double& eSt, double& eFi, long long& ne, char* PhotEnUnits, double& tSt, double& tFi, long long& nt, int& presT, double*& pSurfData, waveHndl& wSurfData, int& hStateSurfData, double* horOrtObsPlane =0, double* inNormObsPlane =0); //OC26042019 (port to XOP7)
 	static int GetWfrSampling(waveHndl wavH, double& s, double& zSt, double& zFi, int& nz, double& xSt, double& xFi, int& nx, double& eSt, double& eFi, int& ne, char* PhotEnUnits, double& tSt, double& tFi, int& nt, int& presT, double*& pSurfData, waveHndl& wSurfData, int& hStateSurfData, double* horOrtObsPlane =0, double* inNormObsPlane =0);
 	//static int GetPrecParamElectricFieldComp(waveHndl wavH, int& IntegMeth, double& RelPrecOrStep, double& sStart, double& sEnd);
 	static int GetPrecParamElectricFieldComp(waveHndl wavH, int& IntegMeth, double& RelPrecOrStep, double& sStart, double& sEnd, bool& showProgrIndic);
@@ -129,7 +136,9 @@ public:
 
 private:
 
-	static int UpdateNumberPositionInSRWRad(srTSRWRadInData* pSRWRadStructAccessData, long* RadIndices, char* CharBuf, int AmOfBytes);
+	static int UpdateNumberPositionInSRWRad(srTSRWRadInData* pSRWRadStructAccessData, IndexInt* RadIndices, char* CharBuf, int AmOfBytes); //OC06062019 (port to XOP7)
+	//static int UpdateNumberPositionInSRWRad(srTSRWRadInData* pSRWRadStructAccessData, long long* RadIndices, char* CharBuf, int AmOfBytes); //OC26042019 (port to XOP7)
+	//static int UpdateNumberPositionInSRWRad(srTSRWRadInData* pSRWRadStructAccessData, long* RadIndices, char* CharBuf, int AmOfBytes);
 	static int UpdateSrwWfrAuxData(srTSRWRadInData* pSRWRadInData);
 	static int SetupSrwWfrAuxData(srTSRWRadInData* pSRWRadInData);
 	static int UpdateTextPositionInSRWRad(srTSRWRadInData* pRad, int Index, char* Text);

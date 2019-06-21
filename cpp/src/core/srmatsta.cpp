@@ -448,7 +448,8 @@ template <class T> long long srTAuxMatStat::FindLimit1DRight(T* p0, long long n,
 
 int srTAuxMatStat::FindIntensityLimits2D(srTWaveAccessData& InWaveData, double RelPowLevel, srTWaveAccessData& OutSpotInfo)
 {
-	long Nx = (InWaveData.DimSizes)[0], Ny = (InWaveData.DimSizes)[1];
+	//long Nx = (InWaveData.DimSizes)[0], Ny = (InWaveData.DimSizes)[1];
+	long Nx = (long)((InWaveData.DimSizes)[0]), Ny = (long)((InWaveData.DimSizes)[1]); //OC28042019
 	if((Nx <= 0) || (Ny <= 0)) return INCORRECT_ARGUMENTS;
 
 	double xStart = (InWaveData.DimStartValues)[0], xStep = (InWaveData.DimSteps)[0];

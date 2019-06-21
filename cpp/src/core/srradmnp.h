@@ -30,10 +30,13 @@ extern srTIntVect gVectWarnNos;
 struct srTAuxInt2DIntegOverAzim {
 	double x0, y0, r;
 	double xMin, xStep, yMin, yStep;
-	long nx, ny;
+	//long nx, ny;
+	long long nx, ny; //OC26042019
 	float *pfI2D;
 	double *pdI2D;
 	char ordInterp;
+	double *arRectToSkipPar; //OC09032019
+	int nRectToSkip;
 };
 
 //*************************************************************************
@@ -134,7 +137,8 @@ public:
 	}
 
 	int TryToMakePhaseContinuous(srTWaveAccessData& WaveData);
-	void TryToMakePhaseContinuous1D(double* pOutPhase, long Np, long i0, float Phi0);
+	void TryToMakePhaseContinuous1D(double* pOutPhase, long long Np, long long i0, float Phi0); //OC26042019
+	//void TryToMakePhaseContinuous1D(double* pOutPhase, long Np, long i0, float Phi0);
 
 	int ExtractSingleElecIntensity1DvsE(srTRadExtract&);
 	int ExtractSingleElecIntensity1DvsX(srTRadExtract&);
@@ -149,7 +153,8 @@ public:
 	int ExtractSingleElecMutualIntensityVsXZ(srTRadExtract&);
 
 	int SetupExtractedWaveData(srTRadExtract&, srTWaveAccessData&);
-	void SetupIntCoord(char, double, long&, long&, double&);
+	void SetupIntCoord(char, double, long long&, long long&, double&); //OC26042019
+	//void SetupIntCoord(char, double, long&, long&, double&);
 
 	int ExtractFluxFromWfr(srTRadExtract& RadExtract, char s_or_m)
 	{
@@ -170,12 +175,15 @@ public:
 	int ExtractMultiElecFlux1DvsE(srTRadExtract&);
 
 	int ComputeConvolutedIntensity(srTRadExtract&);
+	//int ConvoluteWithElecBeamOverTransvCoord(float*, long long, long long);
 	int ConvoluteWithElecBeamOverTransvCoord(float*, long, long);
-	void PutConstPhotEnergySliceInExtractPlace(long, long, long, srTRadExtract&, srTRadExtract&);
+	void PutConstPhotEnergySliceInExtractPlace(long long, long long, long long, srTRadExtract&, srTRadExtract&); //OC26042019
+	//void PutConstPhotEnergySliceInExtractPlace(long, long, long, srTRadExtract&, srTRadExtract&);
 	void PropagateElecBeamMoments(srTElecBeamMoments&);
 	static void PropagateElecBeamMoments(srTElecBeamMoments& ElecBeamMom, double* p4x4PropMatr, double* p4Vect);
 
-	void PadImZerosToRealData(float*, long, long);
+	void PadImZerosToRealData(float*, long long, long long); //OC26042019
+	//void PadImZerosToRealData(float*, long, long);
 	//void ShiftData(float* pStart, long LenData, long ShiftLen)
 	void ShiftData(float* pStart, long long LenData, long long ShiftLen)
 	{
@@ -429,15 +437,39 @@ public:
 	}
 
 	static double IntCylCrd(double ph, void* par)
-	{
+	{//Function to be called by 1D integration routine
 		srTAuxInt2DIntegOverAzim *p = (srTAuxInt2DIntegOverAzim*)par;
 		double r = p->r;
-		if(p->pfI2D) return CGenMathInterp::InterpOnRegMesh2d((p->x0) + r*cos(ph), (p->y0) + r*sin(ph), p->xMin, p->xStep, p->nx, p->yMin, p->yStep, p->ny, p->pfI2D, p->ordInterp);
-		else return CGenMathInterp::InterpOnRegMesh2d((p->x0) + r*cos(ph), (p->y0) + r*sin(ph), p->xMin, p->xStep, p->nx, p->yMin, p->yStep, p->ny, p->pdI2D, p->ordInterp);
+		double xx = p->x0 + r*cos(ph), yy = p->y0 + r*sin(ph);
+		bool pointToBeUsed = true;
+		if(p->arRectToSkipPar != 0) pointToBeUsed = CheckIfPointIsOutsideRectangles(xx, yy, p->arRectToSkipPar, p->nRectToSkip);
+		if(pointToBeUsed)
+		{
+			if(p->pfI2D) return CGenMathInterp::InterpOnRegMesh2d(xx, yy, p->xMin, p->xStep, p->nx, p->yMin, p->yStep, p->ny, p->pfI2D, p->ordInterp);
+			else return CGenMathInterp::InterpOnRegMesh2d(xx, yy, p->xMin, p->xStep, p->nx, p->yMin, p->yStep, p->ny, p->pdI2D, p->ordInterp);
+		}
+		else return 0.;
+		//if(p->pfI2D) return CGenMathInterp::InterpOnRegMesh2d(x0 + r*cos(ph), y0 + r*sin(ph), p->xMin, p->xStep, p->nx, p->yMin, p->yStep, p->ny, p->pfI2D, p->ordInterp);
+		//else return CGenMathInterp::InterpOnRegMesh2d(x0 + r*cos(ph), y0 + r*sin(ph), p->xMin, p->xStep, p->nx, p->yMin, p->yStep, p->ny, p->pdI2D, p->ordInterp);
 	}
 
-	static void IntProc(srTWaveAccessData* pwI1, srTWaveAccessData* pwI2, double* arPar);
-	static void Int2DIntegOverAzim(srTWaveAccessData* pwI1, srTWaveAccessData* pwI2, double* arPar);
+	static bool CheckIfPointIsOutsideRectangles(double x, double y, double* arRectPar, int nRect)
+	{
+		double x0, halfDx, y0, halfDy;
+		double *tRectPar = arRectPar;
+		for(int i=0; i<nRect; i++)
+		{
+			x0 = *(tRectPar++); halfDx = *(tRectPar++);
+			y0 = *(tRectPar++); halfDy = *(tRectPar++);
+			if(((x0 - halfDx) <= x) && (x <= (x0 + halfDx)) && ((y0 - halfDy) <= y) && (y <= (y0 + halfDy))) return false;
+		}
+		return true;
+	}
+
+	static void IntProc(srTWaveAccessData* pwI1, srTWaveAccessData* pwI2, double* arPar, int nPar); //OC09032019
+	//static void IntProc(srTWaveAccessData* pwI1, srTWaveAccessData* pwI2, double* arPar);
+	static void Int2DIntegOverAzim(srTWaveAccessData* pwI1, srTWaveAccessData* pwI2, double* arPar, int nPar); //OC09032019
+	//static void Int2DIntegOverAzim(srTWaveAccessData* pwI1, srTWaveAccessData* pwI2, double* arPar);
 
 	static void ComponInteg(srTDataMD* pIntensOrigData, srTDataMD* pIntegParData, srTDataMD* pIntegResData);
 	static void ComponIntegVsPhotEn(srTDataMD* pIntensOrigData, double eMin, double eMax, srTDataMD* pIntegResData);

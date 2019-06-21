@@ -50,7 +50,8 @@ class srTWfrSmp : public CGenObject {
 public:
 
 	double LambStart, LambEnd, xStart, xEnd, yStart, yEnd, zStart, zEnd, tStart, tEnd;
-	int nLamb, nx, ny, nz, nt;
+	long nLamb, nx, ny, nz, nt;
+	//long long nLamb, nx, ny, nz, nt;
 
 	char AllowAutoChoiceOfNxNzForPropagat;
 	double NxNzOversamplingParam;
@@ -89,7 +90,8 @@ public:
 	srTCoordOrAngPresentation CoordOrAngPresentation;
 	char AngPresToSpeedUpCoordPres;
 
-	srTWfrSmp(double s, double hSt, double hFi, int hN, double vSt, double vFi, int vN, double* pSurfData, double eSt, double eFi, int eN, const char* PhotEnUnit, double tSt=0, double tFi=0, int tN=0, int presT =0, double* horOrtObsPlane =0, double* inNormObsPlane =0)
+	srTWfrSmp(double s, double hSt, double hFi, long hN, double vSt, double vFi, long vN, double* pSurfData, double eSt, double eFi, long eN, const char* PhotEnUnit, double tSt=0, double tFi=0, long tN=0, int presT =0, double* horOrtObsPlane =0, double* inNormObsPlane =0)
+	//srTWfrSmp(double s, double hSt, double hFi, long long hN, double vSt, double vFi, long long vN, double* pSurfData, double eSt, double eFi, long long eN, const char* PhotEnUnit, double tSt=0, double tFi=0, long long tN=0, int presT =0, double* horOrtObsPlane =0, double* inNormObsPlane =0) //OC26042019
 	{
 		Initialize();
 

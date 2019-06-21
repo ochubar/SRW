@@ -227,7 +227,7 @@ BEGIN
 	"Incorrect input parameters for calculation of statistical characteristics of intensity.\0", //190
 	"Incorrect input parameters for processing intensity distributions.\0", //191
 
-	"\0"						// NOTE: NULL required to terminate the resource.
+	0,						// NOTE: 0 required to terminate the resource.
 END
 
 1200 STR# /* SRW Warnings */
@@ -236,16 +236,16 @@ BEGIN
 	"Too large Optical Klystron phase shift parameter. Resulting precision may be low.\0",
 	"Too few periods in the undulator. Resulting precision may be low.\0",
 
-	"\0"
+	0,
 END
 
 1100 XOPI						// XOPI - Describes general XOP properties to IGOR. 
 BEGIN
-	XOP_VERSION,				// Version number of host XOP system.
-	DEV_SYS_CODE,				// Code for development system used to make XOP
-	0,							// True if XOP requires hierarchical menus
-	0,							// True if XOP requires math coprocessor
-	0							// True if XOP requires MMU
+	XOP_VERSION,					// Version number of host XOP system.
+	DEV_SYS_CODE,					// Code for development system used to make XOP.
+	XOP_FEATURE_FLAGS,				// Tells Igor about XOP features
+	XOPI_RESERVED,					// Reserved - must be zero.
+	XOP_TOOLKIT_VERSION				// XOP Toolkit version.
 END
 
 1100 XOPF						// Describes functions that the XOP adds to IGOR.
@@ -647,5 +647,5 @@ BEGIN
 		WAVE_TYPE,
 		0,						// End of parameters.
 
-	"\0"							// NOTE: NULL required to terminate the resource.
+	0,							// NOTE: NULL required to terminate the resource.
 END

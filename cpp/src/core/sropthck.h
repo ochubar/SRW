@@ -225,13 +225,16 @@ public:
 	 //Getting complex reflecivity coefficients for Sigma and Pi components of the electric field
 	 //Log scale case yet to implement
 
-		int ne = m_reflData.DimSizes[0];
+		//int ne = m_reflData.DimSizes[0];
+		long ne = (long)(m_reflData.DimSizes[0]); //OC28042019
 		double eStart = m_reflData.DimStartValues[0];
 		double eStep = m_reflData.DimSteps[0];
-		int nAng = m_reflData.DimSizes[1];
+		//int nAng = m_reflData.DimSizes[1];
+		long nAng = (long)(m_reflData.DimSizes[1]); //OC28042019
 		double angStart = m_reflData.DimStartValues[1];
 		double angStep = m_reflData.DimSteps[1];
-		int nComp = m_reflData.DimSizes[2];
+		//int nComp = m_reflData.DimSizes[2];
+		int nComp = (int)(m_reflData.DimSizes[2]); //OC28042019
 
 		const long perPhotEn = 2;
 		//long perAng = perPhotEn*ne;
@@ -833,11 +836,13 @@ public:
 	{
 		//double xLocStart = m_surfData.DimStartValues[0];
 		double xLocStep = m_surfData.DimSteps[0];
-		long xNp = m_surfData.DimSizes[0];
+		//long xNp = m_surfData.DimSizes[0];
+		long xNp = (long)(m_surfData.DimSizes[0]); //OC28042019
 		horDim = xLocStep*(xNp - 1);
 
 		double yLocStep = m_surfData.DimSteps[1];
-		long yNp = m_surfData.DimSizes[1];
+		//long yNp = m_surfData.DimSizes[1];
+		long yNp = (long)(m_surfData.DimSizes[1]); //OC28042019
 		vertDim = yLocStep*(yNp - 1);
 	}
 	//inline void CalcOutputFrame(); //virtual in srTShapedOptElem

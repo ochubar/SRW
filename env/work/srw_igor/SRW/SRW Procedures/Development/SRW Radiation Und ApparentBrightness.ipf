@@ -616,6 +616,8 @@ variable genFact = 0.5 + 0.5*exp(a_sigE2d2)*(1 - erf(sqrt(a_sigE2d2)))
 if(dEperE >= 0)
 	//return 1
 	return genFact
+	//OCTEST
+	//print "K=", sqrt(K1e2+K2e2), "srwBrilUndPhotEnDetunCor return:", genFact
 endif
 
 //variable corArg = nHarm*KK*sqrt(abs(dEperE)/(1 + KK*KK/2))
@@ -624,6 +626,9 @@ endif
 
 variable relArg = auxMult*dEperE
 variable res = exp(relArg)*genFact
+
+//OCTEST
+//print "K=", sqrt(K1e2+K2e2), "srwBrilUndPhotEnDetunCor return:", res
 
 return res
 end
@@ -794,6 +799,8 @@ variable normEnSpr = N*Harm*relEnSpr
 variable factDetunAndEnSpr = Pi/2
 if(univFluxWaveExists == 1)
 	factDetunAndEnSpr = srwUtiInterp2DBilin(normDetun, normEnSpr, $nmUnivFlux)
+	//OCTEST
+	//print "Harmonic #", Harm, "  factDetunAndEnSpr=", factDetunAndEnSpr
 endif
 
 variable invSqrt2 = 1/sqrt(2)

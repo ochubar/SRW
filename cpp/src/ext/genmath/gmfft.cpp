@@ -135,6 +135,7 @@ long CGenMathFFT::LenGoodNum10000s = 11;
 //*************************************************************************
 
 void CGenMathFFT::NextCorrectNumberForFFT(long& n)
+//void CGenMathFFT::NextCorrectNumberForFFT(long long& n) //OC26042019
 {
 	if(n < 4)
 	{

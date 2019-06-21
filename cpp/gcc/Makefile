@@ -46,16 +46,16 @@ lib:	$(OBJ)
 	rm -f *.o
 
 %.o: $(SRW_SRC_LIB_DIR)/%.cpp
-	$(CC) $(CFLAGS) -c $<  
+	$(CXX) $(CFLAGS) -c $<  
 
 %.o: $(SH_SRC_PARSE_DIR)/%.cpp
-	$(CC) $(CFLAGS) -c $<  
+	$(CXX) $(CFLAGS) -c $<  
 
 %.o: $(SH_SRC_GEN_MATH_DIR)/%.cpp
-	$(CC) $(CFLAGS) -c $<  
+	$(CXX) $(CFLAGS) -c $<  
 
 %.o: $(SRW_SRC_GEN_DIR)/%.cpp
-	$(CC) $(CFLAGS) -c $<  
+	$(CXX) $(CFLAGS) -c $<  
 
 %.o: $(SRW_SRC_GENESIS_DIR)/%.c
 	$(CC) $(CFLAGS) -c $<  

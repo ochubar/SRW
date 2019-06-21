@@ -25,7 +25,7 @@ double srTCalcUtils::Pi = 3.14159265358979;
 
 double srTCalcUtils::ConvertWavelengthM_ToPhotEnergy(double WavelengthM, int iOutUnit)
 {
-	//iOutUnit = 1- keV; 2- eV; 3- 1/cm; 4- Å; 5- nm; 6- µm; 7- mm
+	//iOutUnit = 1- keV; 2- eV; 3- 1/cm; 4- A; 5- nm; 6- um; 7- mm
 	//const double Mult = 1.239854;
 	const double Mult = 1.239842; //following "X-ray Data Booklet"
 	double OutRes = WavelengthM;

@@ -1267,15 +1267,18 @@ EXP int CALL srwlUtiIntInf(double* arInf, char* pcData, char typeData, SRWLRadMe
 
 //-------------------------------------------------------------------------
 
-EXP int CALL srwlUtiIntProc(char* pcI1, char typeI1, SRWLRadMesh* pMesh1, char* pcI2, char typeI2, SRWLRadMesh* pMesh2, double* arPar)
+EXP int CALL srwlUtiIntProc(char* pcI1, char typeI1, SRWLRadMesh* pMesh1, char* pcI2, char typeI2, SRWLRadMesh* pMesh2, double* arPar, int nPar) //OC09032019
+//EXP int CALL srwlUtiIntProc(char* pcI1, char typeI1, SRWLRadMesh* pMesh1, char* pcI2, char typeI2, SRWLRadMesh* pMesh2, double* arPar)
 {//OC13112018
 	if((pcI1 == 0) || ((typeI1 != 'f') && (typeI1 != 'd')) || (pMesh1 == 0) || 
-	   (pcI2 == 0) || ((typeI2 != 'f') && (typeI2 != 'd')) || (pMesh2 == 0) || (arPar == 0)) return SRWL_INCORRECT_PARAM_FOR_INT_PROC;
+	   (pcI2 == 0) || ((typeI2 != 'f') && (typeI2 != 'd')) || (pMesh2 == 0) || (arPar == 0) || (nPar <= 0)) return SRWL_INCORRECT_PARAM_FOR_INT_PROC; //OC09032019
+	   //(pcI2 == 0) || ((typeI2 != 'f') && (typeI2 != 'd')) || (pMesh2 == 0) || (arPar == 0)) return SRWL_INCORRECT_PARAM_FOR_INT_PROC;
 
 	try 
 	{
 		srTWaveAccessData wI1(pcI1, typeI1, pMesh1), wI2(pcI2, typeI2, pMesh2);
-		srTRadGenManip::IntProc(&wI1, &wI2, arPar);
+		srTRadGenManip::IntProc(&wI1, &wI2, arPar, nPar); //OC09032019
+		//srTRadGenManip::IntProc(&wI1, &wI2, arPar);
 	}
 	catch(int erNo)
 	{

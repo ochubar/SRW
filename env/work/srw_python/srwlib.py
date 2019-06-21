@@ -36,6 +36,7 @@ from srwl_uti_cryst import *
 # Global Constants
 #****************************************************************************
 #****************************************************************************
+
 _Pi = 3.14159265358979
 _ElCh = 1.60217646263E-19 #1.602189246E-19 #Electron Charge [Q]
 _ElMass_kg = 9.1093818872E-31 #9.10953447E-31 #Electron Mass in [kg]
@@ -3184,7 +3185,8 @@ class SRWLOptWG(SRWLOpt):
 class SRWLOptT(SRWLOpt):
     """Optical Element: Transmission (generic)"""
     
-    def __init__(self, _nx=1, _ny=1, _rx=1e-03, _ry=1e-03, _arTr=None, _extTr=0, _Fx=1e+23, _Fy=1e+23, _x=0, _y=0, _ne=1, _eStart=0, _eFin=0):
+    def __init__(self, _nx=1, _ny=1, _rx=1e-03, _ry=1e-03, _arTr=None, _extTr=0, _Fx=1e+23, _Fy=1e+23, _x=0, _y=0, _ne=1, _eStart=0, _eFin=0, _alloc_base=[0]): #OC14042019
+    #def __init__(self, _nx=1, _ny=1, _rx=1e-03, _ry=1e-03, _arTr=None, _extTr=0, _Fx=1e+23, _Fy=1e+23, _x=0, _y=0, _ne=1, _eStart=0, _eFin=0):
         """
         :param _nx: number of transmission data points in the horizontal direction
         :param _ny: number of transmission data points in the vertical direction
@@ -3203,7 +3205,8 @@ class SRWLOptT(SRWLOpt):
         
         self.arTr = _arTr #complex C-aligned data array (of 2*ne*nx*ny length) storing amplitude transmission and optical path difference as function of transverse position
         if((_arTr is None) or ((len(_arTr) != _ne*_nx*_ny*2) and (_ne*_nx*_ny > 0))):
-            self.allocate(_ne, _nx, _ny)
+            self.allocate(_ne, _nx, _ny, _alloc_base) #OC14042019
+            #self.allocate(_ne, _nx, _ny)
             #print(_ne, _nx, _ny)
 
         #self.ne = _ne #number of transmission data points vs photon energy
@@ -3235,7 +3238,8 @@ class SRWLOptT(SRWLOpt):
         #self.y = _y
         #if _ne > 1: _Fx, _Fy should be arrays vs photon energy?
 
-    def allocate(self, _ne, _nx, _ny):
+    def allocate(self, _ne, _nx, _ny, _alloc_base=[0]): #OC14042019
+    #def allocate(self, _ne, _nx, _ny):
         #self.ne = _ne
         #self.nx = _nx
         #self.ny = _ny
@@ -3248,7 +3252,11 @@ class SRWLOptT(SRWLOpt):
             self.mesh = SRWLRadMesh(0, 0, _ne, 0, 0, _nx, 0, 0, _ny)
 
         nTot = 2*_ne*_nx*_ny #total array length to store amplitude transmission and optical path difference
-        self.arTr = array('d', [0]*nTot)
+        #self.arTr = array('d', [0]*nTot)
+        
+        lenBase = len(_alloc_base) #OC14042019
+        if(lenBase > 1): nTot = int(round(nTot/lenBase)) #OC14042019
+        self.arTr = srwl_uti_array_alloc('d', nTot, _alloc_base) #OC14042019
 
     def get_data(self, _typ, _dep=3, _e=0, _x=0, _y=0):
         """Returns Transmission Data Characteristic
@@ -3418,8 +3426,7 @@ class SRWLOptMir(SRWLOpt):
         self.Fx = 0 #i.e. focal lengths are not set
         self.Fy = 0
 
-    def set_all(self,
-                _size_tang=1, _size_sag=1, _ap_shape='r', _sim_meth=2, _npt=100, _nps=100, _treat_in_out=1, _ext_in=0, _ext_out=0,
+    def set_all(self, _size_tang=1, _size_sag=1, _ap_shape='r', _sim_meth=2, _npt=100, _nps=100, _treat_in_out=1, _ext_in=0, _ext_out=0,
                 _nvx=0, _nvy=0, _nvz=-1, _tvx=1, _tvy=0, _x=0, _y=0,
                 _refl=1, _n_ph_en=1, _n_ang=1, _n_comp=1, _ph_en_start=1000., _ph_en_fin=1000., _ph_en_scale_type='lin', _ang_start=0, _ang_fin=0, _ang_scale_type='lin'):
         """
@@ -3724,6 +3731,11 @@ class SRWLOptCryst(SRWLOpt):
         #:param _aPsi: crystal yaw angle (John's)
         #:param _aThe: crystal theta angle (John's)
         #"""
+
+        #DEBUG
+        #print(_d_sp, _psi0r, _psi0i, _psi_hr, _psi_hi, _psi_hbr, _psi_hbi, _tc, _ang_as, _nvx, _nvy, _nvz, _tvx, _tvy, _uc)
+        #END DEBUG
+        
         self.dSp = _d_sp
         self.psi0r = _psi0r
         self.psi0i = _psi0i
@@ -5022,6 +5034,211 @@ def srwl_opt_setup_surf_height_2d(_height_prof_data, _dim, _ang, _ang_r=0, _amp_
     return optSlopeErr
 
 #****************************************************************************
+def srwl_opt_setup_bumps(_ampl, _sx, _sy, _n, _delta, _atten_len, _rx, _ry, _xc=0, _yc=0, _nx=1001, _ny=1001, _n_sig=4, _ampl_min=None, _sx_min=None, _sy_min=None, _seed=None):
+    """
+    Setup Transmission type Optical Element which simulates a set of Gaussian-shape "Bumps" randomly placed in transverse plane
+    :param _ampl: amplitude of bumps [m] or list of min. and max. amplitudes
+    :param _sx: horizontal FWHM size of bumps [m] or list of min. and max. horizontal sizes
+    :param _sy: vertical FWHM size of bumps [m] or list of min. and max. vertical sizes
+    :param _n: number of bumps or list of numbers of bumps of different types
+    :param _delta: refractive index decrement of bump material or list of refractive index decrements of bump materials
+    :param _atten_len: attenuation length of bump material [m] or list of attenuation lengths of bump materials
+    :param _rx: horizontal coordiate range over which bumps are distributed [m]
+    :param _ry: vertical coordiate range over which bumps are distributed [m]
+    :param _xc: horizontal coordinate of center [m] of the interval / range over bumps are applied [m]
+    :param _yc: vertical coordinate of center [m] of the interval / range over bumps are applied [m]
+    :param _nx: number of points vs horizontal position to represent the transmission element
+    :param _ny: number of points vs vertical position to represent the transmission element
+    :param _n_sig: number of sigmas of each Gaussian to take into acount on each side of center position (i.e. only these x, y values will be used:  -_n_sig*sigX < x < _n_sig*sigX, -_n_sig*sigY < y < _n_sig*sigY)
+    :param _ampl_min: minimal amplitude of bumps [m]; if it defined, _ampl is treated as maximal amplitude, and the bump amplitude is evenly and randomly distributed between the two values
+    :param _sx_min: minimal horizontal FWHM size of bumps [m]; if it defined, _sx is treated as maximal horizonatl size, and the bump horizontal size is evenly and randomly distributed between the two values
+    :param _sy_min: minimal vertical FWHM size of bumps [m]; if it defined, _sy is treated as maximal vertical size, and the bump vertical size is evenly and randomly distributed between the two values
+    :param _seed: integer number to be used to seed random placing of bumps (in None, the seeding will be made from current time)
+    :return: transmission (SRWLOptT) type optical element which simulates a set of Gaussian-shape "Bumps" randomly placed in transverse plane
+    """
+
+    def SortPair(_pair, _mult=1):
+        x1 = _pair[0]*_mult
+        x2 = _pair[1]*_mult
+        if(x1 > x2):
+            aux = x1
+            x1 = x2
+            x2 = aux
+        return [x1, x2]
+
+    multRMS = 1./(2.*sqrt(2.*log(2.)))
+
+    amplIsList = (isinstance(_ampl, list) or isinstance(_ampl, array))
+    sizeIsList = ((isinstance(_sx, list) or isinstance(_sx, array)) and (isinstance(_sy, list) or isinstance(_sy, array)))
+    nIsList = (isinstance(_n, list) or isinstance(_n, array))
+    deltaIsList = (isinstance(_delta, list) or isinstance(_delta, array))
+    attLenIsList = (isinstance(_atten_len, list) or isinstance(_atten_len, array))
+
+    if((amplIsList or sizeIsList or deltaIsList or attLenIsList) and (not nIsList)):
+        raise Exception("Inconsistent definition of numbers of bumps of different type (_n may need to be a list / array)") 
+
+    arN = _n if(nIsList) else [_n]
+    lenArN = len(arN)
+
+    arAmpl = _ampl 
+    if(not amplIsList):
+        arAmpl = [[_ampl,_ampl]]*lenArN if(_ampl_min is None) else [[_ampl_min,_ampl]]*lenArN
+        #TEST
+        #print(arAmpl)
+
+    arSx = _sx 
+    arSy = _sy 
+    if(not sizeIsList): 
+        arSx = [[_sx,_sx]]*lenArN if(_sx_min is None) else [[_sx_min,_sx]]*lenArN
+        arSy = [[_sy,_sy]]*lenArN if(_sy_min is None) else [[_sy_min,_sy]]*lenArN
+
+    #TEST
+    #print('arSx=', arSx)
+
+    arAmplAux = []
+    arSxAux = []
+    arSyAux = []
+    for i in range(lenArN):
+        arAmplAux.append(SortPair(arAmpl[i]))
+        arSxAux.append(SortPair(arSx[i], multRMS))
+        arSyAux.append(SortPair(arSy[i], multRMS))
+
+    arAmpl = arAmplAux
+    arSx = arSxAux
+    arSy = arSyAux
+
+    #TEST
+    #print('arSx', arSx)
+
+    arDelta = _delta if(deltaIsList) else [_delta]*lenArN
+    arAttLen = _atten_len if(attLenIsList) else [_atten_len]*lenArN
+
+    if(len(arAmpl) != lenArN): raise Exception("Inconsistent definition of bump amplitudes") 
+    if((len(arSx) != lenArN) or (len(arSy) != lenArN)): raise Exception("Inconsistent definition of bump sizes") 
+    if(len(arDelta) != lenArN): raise Exception("Inconsistent definition of bump material refractive index decrement(s)") 
+    if(len(arAttLen) != lenArN): raise Exception("Inconsistent definition of bump material attenuation length(s)") 
+
+    #sigXmax = abs(_sx)*multRMS
+    #sigXmin = sigXmax
+    #if(_sx_min is not None): sigXmin = abs(_sx_min)*multRMS
+    #if(sigXmin > sigXmax):
+    #    aux = sigXmin
+    #    sigXmin = sigXmax
+    #    sigXmax = aux
+
+    #sigYmax = abs(_sy)*multRMS
+    #sigYmin = sigYmax
+    #if(_sy_min is not None): sigYmin = abs(_sy_min)*multRMS
+    #if(sigYmin > sigYmax):
+    #    aux = sigYmin
+    #    sigYmin = sigYmax
+    #    sigYmax = aux
+
+    #aMax = abs(_ampl)
+    #aMin = aMax
+    #if(_ampl_min is not None): aMin = abs(_ampl_min)
+    #if(aMin > aMax):
+    #    aux = aMin
+    #    aMin = aMax
+    #    aMax = aux
+
+    halfRx = 0.5*_rx
+    xStart = _xc - halfRx
+    xEnd = _xc + halfRx
+    xStep = _rx/(_nx - 1)
+    halfRy = 0.5*_ry
+    yStart = _yc - halfRy
+    yEnd = _yc + halfRy
+    yStep = _ry/(_ny - 1)
+
+    perX = 2
+    perY = perX*_nx
+    op = SRWLOptT(_nx, _ny, _rx, _ry, _alloc_base=[1,0])
+    #op = SRWLOptT(_nx, _ny, _rx, _ry)
+    #DEBUG
+    #print('srwl_opt_setup_bumps: op.arTr memory allocation finished, len(op.arTr)=', len(op.arTr))
+    #for i in range(20): print(op.arTr[i])
+
+    if(_seed is None): random.seed(datetime.datetime.now())
+    else: random.seed(_seed)
+
+    #ofst = 0
+    #for iy in range(_ny):
+    #    for ix in range(_nx):
+    #        op.arTr[ofst] = 1 #amplitude transmission
+    #        op.arTr[ofst + 1] = 0 #optical path difference
+    #        ofst += 2
+    #DEBUG
+    #print('srwl_opt_setup_bumps: initialization of op.arTr finished')
+
+    for ii in range(lenArN):
+        #invAttenLen = 1./_atten_len
+        invAttenLen = 1./arAttLen[ii]
+        delta = arDelta[ii]
+
+        amplMinMax = arAmpl[ii]
+        aMin = amplMinMax[0]
+        aMax = amplMinMax[1]
+
+        sigXMinMax = arSx[ii]
+        sigXmin = sigXMinMax[0]
+        sigXmax = sigXMinMax[1]
+
+        sigYMinMax = arSy[ii]
+        sigYmin = sigYMinMax[0]
+        sigYmax = sigYMinMax[1]
+
+        nBumps = arN[ii]
+
+        #DEBUG
+        #print('aMin=', aMin, ' aMax=', aMax)
+        #print('sigXmin=', sigXmin, ' sigXmax=', sigXmax)
+        #print('sigYmin=', sigYmin, ' sigYmax=', sigYmax)
+        #print(nBumps)
+        #print('delta=', delta, ' AttLen=', arAttLen[ii])
+
+        for i in range(nBumps):
+        #for i in range(_n):
+            a = aMin if(aMin == aMax) else random.uniform(aMin, aMax)
+            xb = random.uniform(xStart, xEnd)
+            yb = random.uniform(yStart, yEnd)
+            xbSig = sigXmin if(sigXmin == sigXmax) else random.uniform(sigXmin, sigXmax)
+            ybSig = sigYmin if(sigYmin == sigYmax) else random.uniform(sigYmin, sigYmax)
+            xbHalfR = _n_sig*xbSig
+            ybHalfR = _n_sig*ybSig
+
+            inv2XbSigE2 = 0.5/(xbSig*xbSig)
+            inv2YbSigE2 = 0.5/(ybSig*ybSig)
+
+            ixStart = int((xb - xbHalfR - xStart)/xStep + 1.e-09)
+            if(ixStart < 0): ixStart = 0
+            ixEnd = int((xb + xbHalfR - xStart)/xStep + 1.e-09) + 1
+            if(ixEnd >= _nx): ixEnd = _nx
+
+            iyStart = int((yb - ybHalfR - yStart)/yStep + 1.e-09)
+            if(iyStart < 0): iyStart = 0
+            iyEnd = int((yb + ybHalfR - yStart)/yStep + 1.e-09) + 1
+            if(iyEnd >= _ny): iyEnd = _ny
+
+            dy = yStart + iyStart*yStep - yb
+            for iy in range(iyStart, iyEnd):
+
+                argY = -dy*dy*inv2YbSigE2
+                iy_perY = iy*perY
+
+                dx = xStart + ixStart*xStep - xb
+                for ix in range(ixStart, ixEnd):
+
+                    dPath = a*exp(argY - dx*dx*inv2XbSigE2)
+                    ofst = iy_perY + ix*perX
+                    op.arTr[ofst] *= exp(-0.5*dPath*invAttenLen) #amplitude transmission
+                    op.arTr[ofst + 1] += -delta*dPath #optical path difference
+
+                    dx += xStep
+                dy += yStep
+    return op
+
+#****************************************************************************
 def srwl_opt_setup_gen_transm(_func_path, _delta, _atten_len, _rx, _ry, _xc=0, _yc=0, _ext_tr=0, _fx=0, _fy=0, _e_start=0, _e_fin=0, _nx=1001, _ny=1001):
     """
     Setup Transmission type Optical Element similar to one simulating CRL, but with arbitrary optical path in material over hor. and vert. positions, defined by external function _func_path(x, y)
@@ -5694,23 +5911,36 @@ def srwl_uti_read_mag_fld_3d(_fpath, _scom='#'):
 
 #**********************Auxiliary function to allocate array
 #(to walk-around the problem that simple allocation "array(type, [0]*n)" at large n is usually very time-consuming)
-def srwl_uti_array_alloc(_type, _n):
+def srwl_uti_array_alloc(_type, _n, _list_base=[0]): #OC14042019
+#def srwl_uti_array_alloc(_type, _n):
     nPartMax = 10000000 #to tune
     #print('srwl_uti_array_alloc: array requested:', _n)
+    lenBase = len(_list_base) #OC14042019
+    nTrue = _n*lenBase #OC14042019
     
-    if(_n <= nPartMax): return array(_type, [0]*_n)
+    if(nTrue <= nPartMax): return array(_type, _list_base*_n)
+    #if(_n <= nPartMax): return array(_type, [0]*_n)
         #resAr = array(_type, [0]*_n)
         #print('Array requested:', _n, 'Allocated:', len(resAr))
         #return resAr
 
-    nEqualParts = int(_n/nPartMax)
-    nResid = int(_n - nEqualParts*nPartMax)
-    resAr = array(_type, [0]*nPartMax)
+    nPartMax_d_lenBase = int(nPartMax/lenBase) #OC14042019
+
+    nEqualParts = int(_n/nPartMax_d_lenBase) #OC14042019
+    #nEqualParts = int(_n/nPartMax)
+
+    nResid = int(_n - nEqualParts*nPartMax_d_lenBase) #OC14042019
+    #nResid = int(_n - nEqualParts*nPartMax)
+
+    resAr = array(_type, _list_base*nPartMax_d_lenBase) #OC14042019
+    #resAr = array(_type, [0]*nPartMax)
+
     if(nEqualParts > 1):
         auxAr = deepcopy(resAr)
         for i in range(nEqualParts - 1): resAr.extend(auxAr)
     if(nResid > 0):
-        auxAr = array(_type, [0]*nResid)
+        auxAr = array(_type, _list_base*nResid) #OC14042019
+        #auxAr = array(_type, [0]*nResid)
         resAr.extend(auxAr)
 
     #print('Array requested:', _n, 'Allocated:', len(resAr))
@@ -6072,6 +6302,7 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
     #self.arOpt = []
     #self.arProp = []
     #print('_file_bkp=',_file_bkp)
+    #print('srwl_wfr_emit_prop_multi_e: _e_ph_integ=', _e_ph_integ)
 
     nProc = 1
     rank = 1
@@ -7831,7 +8062,7 @@ function performs convolution of 1D or 2D data wave with 1D or 2D Gaussian (as d
        _inSig[0]: RMS size of teh Gaussian in first dimension
        _inSig[1]: (optional) RMS size of a 2D Gaussian in second dimension
        _inSig[2]: (optional) coefficient before cross-term in exponent argument of a 2D Gaussian
-       i.e. _inSig[] = [sigX, sigY, alp} defines a "tilted" normalized 2D Gaussian (vs x, y): 
+       i.e. _inSig[] = [sigX, sigY, alp] defines a "tilted" normalized 2D Gaussian (vs x, y): 
        (sqrt(1 - (alp*sigX*sigY)**2)/(2*Pi*sigX*sigY))*exp(-x**2/(2*sigX**2) - y**2/(2*sigY^2) - alp*x*y)
 """
 helpUtiIntInf = """UtiIntInf(_inData, _inMesh, _inPrec)
@@ -7878,6 +8109,8 @@ function performs misc. operations on intensity distribution (or similar C-align
                    _inPrec[6] maximal azimuthal angle for the integration [rad]; if _inPrec[6] == _inPrec[5], the integration will be done over 2*Pi 
                    _inPrec[7] horizontal coordinate of center point around which the azimuthal integration should be done
                    _inPrec[8] vertical coordinate of center point around which the azimuthal integration should be done
+                   _inPrec[9] list of rectangular areas to be omitted from averaging / integration: [[x0,x_width,y0,y_width],...]
+                   
 """
 helpUtiUndFromMagFldTab = """UtiUndFromMagFldTab(_undMagFldC, _inMagFldC, _inPrec)
 function attempts to create periodic undulator structure from tabulated magnetic field

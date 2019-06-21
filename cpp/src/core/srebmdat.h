@@ -45,9 +45,11 @@ public:
 
 	float *pElecDistr;
 	//waveHndl wElecDistr;
-	char** wElecDistr;
+	//char** wElecDistr;
+	void** wElecDistr; //OC26042019 (port to XOP7)
 	int hStateElecDistr;
-	long nTotMacroPart; //(number of macro-particles) x (number of slices vs time)
+	//long nTotMacroPart; //(number of macro-particles) x (number of slices vs time)
+	long long nTotMacroPart; //OC26042019 (port to XOP7)
 
 	char InputWasModified;
 

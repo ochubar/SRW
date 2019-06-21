@@ -134,20 +134,35 @@ def uti_plot2d1d(ar2d, x_range, y_range, x=0, y=0, labels=('Horizontal Position'
     :param tuple units: [x-axis, y-axis, z-axis]
     :param graphs_joined: switch specifying whether the 2d plot and 1d cuts have to be displayed in one panel or separately
     """
+    
     #if '_backend' not in locals(): uti_plot_init() #?
     if(units is not None): #checking / re-scaling x, y
+
+        #OC17032019
+        xRangeOrig = x_range[1] - x_range[0]
+        yStartOrig = y_range[1] - y_range[0]
+        
         x_range, x_unit = uti_plot_com.rescale_dim(x_range, units[0])
         y_range, y_unit = uti_plot_com.rescale_dim(y_range, units[1])
+
+        #OC17032019
+        if(x != 0): x *= (x_range[1] - x_range[0])/xRangeOrig
+        if(y != 0): y *= (y_range[1] - y_range[0])/yRangeOrig
+        
         units = [x_unit, y_unit,  units[2]]
 
         strTitle = labels[2]
         label2D = (labels[0] + ' [' + units[0]+ ']', labels[1] + ' [' + units[1] + ']', strTitle)
 
-        strTitle = 'At ' + labels[1] + ': ' + str(y)
+        #strTitle = 'At ' + labels[1] + ': ' + str(y)
+        strTitle = 'At ' + labels[1] + ': ' + str(round(y, 6)) #OC17032019
+        
         if y != 0: strTitle += ' ' + units[1]
         label1X = (labels[0] + ' [' + units[0] + ']', labels[2] + ' [' + units[2] + ']', strTitle)
 
-        strTitle = 'At ' + labels[0] + ': ' + str(x)
+        #strTitle = 'At ' + labels[0] + ': ' + str(x)
+        strTitle = 'At ' + labels[0] + ': ' + str(round(x, 6)) #OC17032019
+        
         if x != 0: strTitle += ' ' + units[0]
         label1Y = (labels[1] + ' [' + units[1] + ']', labels[2] + ' [' + units[2] + ']', strTitle)
         

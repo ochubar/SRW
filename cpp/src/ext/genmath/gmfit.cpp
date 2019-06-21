@@ -11,12 +11,14 @@
  * @version 1.0
  ***************************************************************************/
 
-#include "gmfit.h"
+//#include "gmfit.h" //OC04062019 (moved down)
 //#include "srercode.h"
 
 #ifdef __IGOR_PRO__
 #include "srigintr.h"
 #endif
+
+#include "gmfit.h" //OC04062019 (moved down)
 
 #define SWAP(a,b) {swap=(a);(a)=(b);(b)=swap;}
 

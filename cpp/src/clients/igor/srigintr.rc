@@ -7,7 +7,7 @@
 //
 // Generated from the TEXTINCLUDE 2 resource.
 //
-#include "afxres.h"
+#include "winresrc.h"
 
 /////////////////////////////////////////////////////////////////////////////
 #undef APSTUDIO_READONLY_SYMBOLS
@@ -29,7 +29,7 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 
 VS_VERSION_INFO VERSIONINFO
  FILEVERSION 1,0,0,1
- PRODUCTVERSION 1,0,0,1
+ PRODUCTVERSION 6,2,0,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -77,7 +77,7 @@ END
 
 2 TEXTINCLUDE DISCARDABLE 
 BEGIN
-    "#include ""afxres.h""\r\n"
+    "#include ""winresrc.h""\r\n"
     "\0"
 END
 

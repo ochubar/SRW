@@ -562,7 +562,9 @@ SrwElecFilament("SOLEIL_ShortSect",2.75,0.5,0,0,0,0,0);SrwElecThick("SOLEIL_Shor
 SrwElecFilament("SOLEIL_BM1DEG",2.75,0.5,0,0,0,0,0);SrwElecThick("SOLEIL_BM1DEG"+SrwElecType,0.001016,3.73,0.037,0.603,16.53,0.776,0.931,0.039,-0.088)
 SrwElecFilament("SOLEIL_BM4DEG",2.75,0.5,0,0,0,0,0);SrwElecThick("SOLEIL_BM4DEG"+SrwElecType,0.001016,3.73,0.037,0.375,16.01,0.024,0.899,0.021,-0.037)
 SrwElecFilament("DIAMOND_LowBeta",3,0.3,0,0,0,0,0);SrwElecThick("DIAMOND_LowBeta"+SrwElecType,0.001,2.7965,0.0243202,2.28286,2.51447,0,0,0,0)
-SrwElecFilament("NSLSII_LowBeta_Day1",3,0.5,0,0,0,0,0);SrwElecThick("NSLSII_LowBeta_Day1"+SrwElecType,0.00089,0.9,0.008,2.02,1.06,0,0,0,0)
+//SrwElecFilament("NSLSII_LowBeta_Day1",3,0.5,0,0,0,0,0);SrwElecThick("NSLSII_LowBeta_Day1"+SrwElecType,0.00089,0.9,0.008,2.02,1.06,0,0,0,0)
+SrwElecFilament("NSLSII_LowBeta_Day1",3,0.5,0,0,0,0,0);SrwElecThick("NSLSII_LowBeta_Day1"+SrwElecType,0.00089,0.9,0.008,1.84,1.17,0,0,0,0)
+
 SrwElecFilament("NSLSII_HighBeta_Day1",3,0.5,0,0,0,0,0);SrwElecThick("NSLSII_HighBeta_Day1"+SrwElecType,0.00089,0.9,0.008,20.85,3.4,0,0,0,0)
 SrwElecFilament("NSLSII_BM_Day1",3,0.5,0,0,0,0,0);SrwElecThick("NSLSII_BM_Day1"+SrwElecType,0.00089,0.9,0.008,1.5,22.5,0,-0.9,0.137,-0.1)
 SrwElecFilament("NSLSII_TPW_Day1",3,0.5,0,0,0,0,0);SrwElecThick("NSLSII_TPW_Day1"+SrwElecType,0.00089,0.9,0.008,2.956,19.653,1.932,-0.806,0.137,-0.105)
@@ -1361,6 +1363,136 @@ KillWaves/Z AuxWaveUtiConvWavesW2C
 end
 
 //+++++++++++++++++++++++++++++++++++++++
+//Finds average value of a scaled 2D wave around a given point
+//Added to make ~same type of calculation as SrwUtiConvWaveWithInterv2D(),
+//but eventually more robust. Can be used e.g. to take into account 
+//the effect of finite pixel size of a detector.
+//+++++++++++++++++++++++++++++++++++++++
+function SrwUtiAvgValNearPtWave2D(w, x, y, dx, dy, [xwStart, xwStep, ywStart, ywStep])
+wave w
+variable x, y, dx, dy
+variable xwStart, xwStep, ywStart, ywStep //mesh parameters of the w wave, to avoid repetitive calls to dimoffset, dimdelta
+
+if(ParamIsDefault(xwStart)) 
+	xwStart = dimoffset(w, 0)
+endif
+if(ParamIsDefault(xwStep)) 
+	xwStep = dimdelta(w, 0)
+endif
+if(ParamIsDefault(ywStart)) 
+	ywStart = dimoffset(w, 1)
+endif
+if(ParamIsDefault(ywStep)) 
+	ywStep = dimdelta(w, 1)
+endif
+
+variable dxHalf = 0.5*dx
+variable xStart = x - dxHalf, xEnd = x + dxHalf
+
+variable fpStart = (xStart - xwStart)/xwStep
+variable pStart = trunc(fpStart)
+if(fpStart - pStart > 0)
+	pStart += 1
+endif
+variable fpEnd = (xEnd - xwStart)/xwStep
+variable pEnd = trunc(fpEnd)
+if(fpEnd - pEnd == 0)
+	pEnd -= 1
+endif
+if(pEnd < pStart)
+	return 0
+endif
+
+variable dyHalf = 0.5*dy
+variable yStart = y - dyHalf, yEnd = y + dyHalf
+
+variable fqStart = (yStart - ywStart)/ywStep
+variable qStart = trunc(fqStart)
+if(fqStart - qStart > 0)
+	qStart += 1
+endif
+variable fqEnd = (yEnd - ywStart)/ywStep
+variable qEnd = trunc(fqEnd)
+if(fqEnd - qEnd == 0)
+	qEnd -= 1
+endif
+if(qEnd < qStart)
+	return 0
+endif
+
+//print pStart, pEnd, qStart, qEnd
+variable ip, iq, sumVal = 0
+for(iq = qStart; iq <= qEnd; iq += 1)
+	for(ip = pStart; ip <= pEnd; ip += 1)
+		sumVal += w[ip][iq]
+	endfor
+endfor
+variable np = (pEnd - pStart + 1)*(qEnd - qStart + 1)
+//print np
+return sumVal/np
+end
+
+//+++++++++++++++++++++++++++++++++++++++
+//Calculates statistical relative standard deviation of one scaled wave from another
+//+++++++++++++++++++++++++++++++++++++++
+function SrwUtiStdDevWaves1D(w1, w2, [iStart1, iEnd1, iSkipStart1, iSkipEnd1])
+wave w1, w2
+variable iStart1, iEnd1
+variable iSkipStart1, iSkipEnd1
+
+variable npw1 = dimsize(w1, 0)
+variable xStart1 = dimoffset(w1, 0)
+variable xStep1= dimdelta(w1, 0)
+
+if(ParamIsDefault(iStart1))
+	iStart1 = 0
+endif
+if(ParamIsDefault(iEnd1))
+	iEnd1 = npw1 - 1
+endif
+
+if(ParamIsDefault(iSkipStart1))
+	iSkipStart1 = -1
+endif
+if(ParamIsDefault(iSkipEnd1))
+	iSkipEnd1 = -1
+endif
+
+variable treatSkip = 0
+if(iSkipStart1 <= iSkipEnd1)
+	if((iStart1 <= iSkipStart1) && (iSkipStart1 <= iEnd1))
+		if((iStart1 <= iSkipEnd1) && (iSkipEnd1 <= iEnd1))
+			treatSkip = 1
+		endif
+	endif
+endif
+
+variable i, s2 = 0, v2, dv, useThisPt
+variable xx = xStart1 + iStart1*xStep1
+
+for(i = iStart1; i <= iEnd1; i += 1)
+	useThisPt = 1
+	if(treatSkip > 0)
+		if((iSkipStart1 <= i) && (i <= iSkipEnd1))
+			useThisPt = 0
+		endif
+	endif
+
+	if(useThisPt > 0)
+		v2 = w2(xx)
+		dv = w1(xx) - v2
+		s2 += dv*dv/(v2*v2)
+		//s2 += abs(dv/v1)
+	endif
+	
+	xx += xStep1
+endfor
+variable np = iEnd1 - iStart1 + 1
+return sqrt(s2/np)
+//return s2/np
+end
+
+//+++++++++++++++++++++++++++++++++++++++
 //Integrate 2D wave partially
 //by O.Marcouille
 //+++++++++++++++++++++++++++++++++++++++
@@ -2064,17 +2196,21 @@ variable ny = dimsize(w, 1)
 variable ystep = dimdelta(w, 1)
 variable ymax = ymin + (ny - 1)*ystep
 
-if(x < xmin)
-	x = xmin
-endif
-if(x > xmax)
-	x = xmax
-endif
-if(y < ymin)
-	y = ymin
-endif
-if(y > ymax)
-	y = ymax
+//if(x < xmin)
+//	x = xmin
+//endif
+//if(x > xmax)
+//	x = xmax
+//endif
+//if(y < ymin)
+//	y = ymin
+//endif
+//if(y > ymax)
+//	y = ymax
+//endif
+//OC23112017
+if((x < xmin) || (x > xmax) || (y < ymin) || (y > ymax))
+	return 0
 endif
 
 variable x0 = xmin + trunc((x - xmin)/xstep)*xstep
@@ -3106,7 +3242,6 @@ if((meth == 2) %| (meth == 3)) //Make separate envelopes for non-overlapping cur
 							endif
 							
 							if((xCur >= xStartEnv) %& (xCur <= xEndEnv))
-							
 								xPrev = xCur
 								if(k > 0)
 									xPrev = $nmWaveArgCur[k - 1]
@@ -3126,15 +3261,17 @@ if((meth == 2) %| (meth == 3)) //Make separate envelopes for non-overlapping cur
 								xTestEnv = $nmWaveEnvArg[iTestEnv]
 								yTestEnv = $nmWaveEnv[iTestEnv]
 							
-								FindLevel/P/Q $nmWaveArgCur, xTestEnv
-								yCur = $nmWaveCur[V_LevelX]
-								if(yCur > yTestEnv)
-									$nmWaveEnv[iTestEnv] = yCur
+								if((xStart <= xTestEnv) && (xTestEnv <= xEnd)) //OC17012019
+									FindLevel/P/Q $nmWaveArgCur, xTestEnv
+									yCur = $nmWaveCur[V_LevelX]
+									if(yCur > yTestEnv)
+										$nmWaveEnv[iTestEnv] = yCur
+									endif
 								endif
 								
 								//make small loops over neighbouring points
 								if(iTestEnv > 0)
-									kEnv = iTestEnv - 1
+									kEnv = iTestEnv - 1									
 									do
 										xAux = $nmWaveEnvArg[kEnv]
 										if((xAux >= xStartEnv) %& (xAux <= xEndEnv))
@@ -3488,22 +3625,59 @@ return sumPath
 end
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// E.g.: "#5000.0 #Initial Photon Energy [eV]" -> 5000.
+// E.g.: "#5000.0 #Initial Photon Energy [eV]" -> "5000.0 ".
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-function SrwUtiParseNumBwSep(str, sep)
-string str, sep
+function/S SrwUtiGetStrBwSep(str, sep, [sep2])
+string str, sep, sep2
+
+//print str
+//print sep //, sep2
+//return str
+
 variable i1stSep = strsearch(str, sep, 0)
 if(i1stSep < 0)
-	return 0
+	return ""
 endif
 variable iStartNum = i1stSep + strlen(sep)
+
+if(ParamIsDefault(sep2) == 0)
+	sep = sep2
+endif
+
 variable i2ndSep = strsearch(str, sep, iStartNum)
 if(i2ndSep < 0)
 	i2ndSep = strlen(str)
 endif
-string sNum = str[iStartNum, i2ndSep - 1]
-	//print sNum
-return str2num(sNum)
+return str[iStartNum, i2ndSep - 1]
+end
+
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// E.g.: "#5000.0 #Initial Photon Energy [eV]" -> 5000.
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+function SrwUtiParseNumBwSep(str, sep, [separ2])
+string str, sep, separ2
+
+//variable i1stSep = strsearch(str, sep, 0)
+//if(i1stSep < 0)
+//	return 0
+//endif
+//variable iStartNum = i1stSep + strlen(sep)
+//
+//if(ParamIsDefault(sep2) == 0)
+//	sep = sep2
+//endif
+//
+//variable i2ndSep = strsearch(str, sep, iStartNum)
+//if(i2ndSep < 0)
+//	i2ndSep = strlen(str)
+//endif
+//string sNum = str[iStartNum, i2ndSep - 1]
+
+if(ParamIsDefault(separ2))
+	return str2num(SrwUtiGetStrBwSep(str, sep))
+else
+	return str2num(SrwUtiGetStrBwSep(str, sep, sep2=separ2))
+endif
 end
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -3569,6 +3743,11 @@ variable vertPosStart = SrwUtiParseNumBwSep($nmHeader[iVertPosStart], sep)
 variable vertPosEnd = SrwUtiParseNumBwSep($nmHeader[iVertPosEnd], sep)
 variable vertPosN = SrwUtiParseNumBwSep($nmHeader[iVertPosN], sep)
 
+//Using units defined in the input file
+string strInUnitPhEn = SrwUtiGetStrBwSep($nmHeader[iPhEnStart], "[", sep2="]")
+string strInUnitHorPos = SrwUtiGetStrBwSep($nmHeader[iHorPosStart], "[", sep2="]")
+string strInUnitVertPos = SrwUtiGetStrBwSep($nmHeader[iVertPosStart], "[", sep2="]")
+
 variable nStokes = 1
 string sTestStokesN = $nmHeader[iStokesN]
 
@@ -3590,16 +3769,20 @@ if(cmpstr(sTestSymbStokesN, "#") == 0)
 endif
 //currently, this proc reads only first Stokes component (s0) -- to upgrade
 
-variable isMutual = 0
+variable isMutual = 0, isCmplx = 0
 string sEnt = $nmHeader[0]
 if(cmpstr(sEnt[0, 6], "#Mutual") == 0)
 	isMutual = 1
+endif
+if(cmpstr(sEnt[0, 14], "#Complex Mutual") == 0)
+	isMutual = 1
+	isCmplx = 1
 endif
 
 //print phEnStart, phEnEnd, phEnN, horPosStart, horPosEnd, horPosN
 
 variable nVal = phEnN*horPosN*vertPosN
-if(isMutual == 1)
+if(isMutual != 0)
 	if(phEnN == 1)
 		if(horPosN == 1)
 			nVal = vertPosN*vertPosN
@@ -3610,11 +3793,16 @@ if(isMutual == 1)
 		endif
 	endif
 endif
+if(isCmplx != 0)
+	nVal *= 2
+endif
 
 //print iDataStart
 
 string nmFlatWave = "wAuxFlatUtiLoadAndPlotData"
 //LoadWave/Q/A/J/O/B="N=wAuxFlatUtiLoadAndPlotData;"/L={0, 10, phEnN*horPosN*vertPosN, 0, 1}/K=1 sFilePath
+
+//print iDataStart, nVal
 LoadWave/Q/A/J/O/B="N=wAuxFlatUtiLoadAndPlotData;"/L={0, iDataStart, nVal, 0, 1}/K=1 sFilePath
 
 variable numDim = 0, arg1Start = 0, arg1End = 0, arg1N = 0, arg2Start = 0, arg2End = 0, arg2N = 0, arg3Start = 0, arg3End = 0, arg3N = 0
@@ -3625,6 +3813,9 @@ if(phEnN > 1)
 	arg1End = phEnEnd
 	arg1N = phEnN
 	strUnit1 = "eV"
+	if(strlen(strInUnitPhEn) > 0)
+		strUnit1 = strInUnitPhEn
+	endif
 	strLabel1 = "Photon Energy"
 	strLabel2 = "Intensity"
 endif
@@ -3636,13 +3827,25 @@ if(horPosN > 1)
 		arg2N = horPosN
 		strUnit2 = "m"
 		strLabel2 = "Horizontal Position"
+		if(strlen(strInUnitHorPos) > 0)
+			strUnit2 = strInUnitHorPos
+			if(cmpstr(strInUnitHorPos, "rad") == 0)
+				strLabel2 = "Horizontal Angle"
+			endif
+		endif
 	else
 		arg1Start = horPosStart
 		arg1End = horPosEnd
 		arg1N = horPosN
 		strUnit1 = "m"
 		strLabel1 = "Horizontal Position"
-		strLabel2 = "Intensity"
+		strLabel2 = "Intensity"		
+		if(strlen(strInUnitHorPos) > 0)
+			strUnit1 = strInUnitHorPos
+			if(cmpstr(strInUnitHorPos, "rad") == 0)
+				strLabel1 = "Horizontal Angle"
+			endif
+		endif
 		if(isMutual != 0)
 			numDim += 1
 			arg2Start = horPosStart
@@ -3650,6 +3853,12 @@ if(horPosN > 1)
 			arg2N = horPosN
 			strUnit2 = "m"
 			strLabel2 = "Horizontal Position (conj.)"
+			if(strlen(strInUnitHorPos) > 0)
+				strUnit2 = strInUnitHorPos
+				if(cmpstr(strInUnitHorPos, "rad") == 0)
+					strLabel1 = "Horizontal Angle (conj.)"
+				endif
+			endif
 		endif
 	endif
 endif
@@ -3661,12 +3870,21 @@ if(vertPosN > 1)
 			arg3End = vertPosEnd
 			arg3N = vertPosN
 			strUnit3 = "m"
+			if(strlen(strInUnitVertPos) > 0)
+				strUnit3 = strInUnitVertPos
+			endif
 		else
 			arg2Start = vertPosStart
 			arg2End = vertPosEnd
 			arg2N = vertPosN
 			strUnit2 = "m"
 			strLabel2 = "Vertical Position"
+			if(strlen(strInUnitVertPos) > 0)
+				strUnit2 = strInUnitVertPos
+				if(cmpstr(strInUnitVertPos, "rad") == 0)
+					strLabel2 = "Vertical Angle"
+				endif
+			endif
 		endif
 	else
 		if(horPosN > 1)
@@ -3675,13 +3893,25 @@ if(vertPosN > 1)
 			arg2N = vertPosN
 			strUnit2 = "m"
 			strLabel2 = "Vertical Position"
+			if(strlen(strInUnitVertPos) > 0)
+				strUnit2 = strInUnitVertPos
+				if(cmpstr(strInUnitVertPos, "rad") == 0)
+					strLabel2 = "Vertical Angle"
+				endif
+			endif
 		else
 			arg1Start = vertPosStart
 			arg1End = vertPosEnd
 			arg1N = vertPosN
 			strUnit1 = "m"
 			strLabel1 = "Vertical Position"
-			strLabel2 = "Intensity"
+			strLabel2 = "Intensity"			
+			if(strlen(strInUnitVertPos) > 0)
+				strUnit1 = strInUnitVertPos
+				if(cmpstr(strInUnitVertPos, "rad") == 0)
+					strLabel1 = "Vertical Angle"
+				endif
+			endif
 			if(isMutual != 0)
 				numDim += 1
 				arg2Start = vertPosStart
@@ -3689,6 +3919,12 @@ if(vertPosN > 1)
 				arg2N = vertPosN
 				strUnit2 = "m"
 				strLabel2 = "Vertical Position (conj.)"
+				if(strlen(strInUnitVertPos) > 0)
+					strUnit2 = strInUnitVertPos
+					if(cmpstr(strInUnitVertPos, "rad") == 0)
+						strLabel2 = "Vertical Angle (conj.)"
+					endif
+				endif
 			endif
 		endif	
 	endif			
@@ -3697,6 +3933,16 @@ endif
 string nmWaveMDx = nmWaveMD + "x"
 string nmWaveMDy = nmWaveMD + "y"
 //print numDim, strLabel1, strLabel2
+
+string nmReWaveMD, nmImWaveMD, nmReWaveMDx, nmImWaveMDx, nmReWaveMDy, nmImWaveMDy
+if(isCmplx != 0)
+	nmReWaveMD = "re" + nmWaveMD
+	nmImWaveMD = "im" + nmWaveMD
+	nmReWaveMDx = "re" + nmWaveMDx
+	nmImWaveMDx = "im" + nmWaveMDx
+	nmReWaveMDy = "re" + nmWaveMDy
+	nmImWaveMDy = "im" + nmWaveMDy
+endif
 
 if(numDim == 1)
 	make/O/N=(arg1N) $nmWaveMD
@@ -3710,32 +3956,72 @@ if(numDim == 1)
 	endif
 endif
 if(numDim == 2)
-	make/O/N=(arg1N, arg2N) $nmWaveMD
-	$nmWaveMD = $nmFlatWave[arg1N*q + p]
-	SetScale/I x arg1Start, arg1End, strUnit1, $nmWaveMD
-	SetScale/I y arg2Start, arg2End, strUnit2, $nmWaveMD
-	if(disp == 2)
-		display; appendimage $nmWaveMD
-		Label bottom strLabel1
-		Label left strLabel2
+	if(isCmplx == 0)
+		make/O/N=(arg1N, arg2N) $nmWaveMD
+		$nmWaveMD = $nmFlatWave[arg1N*q + p]
+	else
+		make/O/N=(arg1N, arg2N) $nmReWaveMD, $nmImWaveMD
+		$nmReWaveMD = $nmFlatWave[(2*arg1N)*q + 2*p]
+		$nmImWaveMD = $nmFlatWave[(2*arg1N)*q + 2*p + 1]
 	endif
 	
-	make/O/N=(arg1N) $nmWaveMDx
-	SetScale/I x arg1Start, arg1End, strUnit1, $nmWaveMDx
-	$nmWaveMDx = $nmWaveMD(x)(yc)
-	if(disp == 2)
-		display $nmWaveMDx
-		Label bottom strLabel1
-		SrwUtiGraphAddFrameAndGrid()
+	if(isCmplx == 0)
+		SetScale/I x arg1Start, arg1End, strUnit1, $nmWaveMD
+		SetScale/I y arg2Start, arg2End, strUnit2, $nmWaveMD
+		if(disp == 2)
+			display; appendimage $nmWaveMD
+			Label bottom strLabel1
+			Label left strLabel2
+		endif
+	else
+		SetScale/I x arg1Start, arg1End, strUnit1, $nmReWaveMD, $nmImWaveMD
+		SetScale/I y arg2Start, arg2End, strUnit2, $nmReWaveMD, $nmImWaveMD
+		if(disp == 2)
+			display; appendimage $nmReWaveMD
+			Label bottom strLabel1
+			Label left strLabel2
+			display; appendimage $nmImWaveMD
+			Label bottom strLabel1
+			Label left strLabel2
+		endif
 	endif
 
-	make/O/N=(arg2N) $nmWaveMDy
-	SetScale/I x arg2Start, arg2End, strUnit2, $nmWaveMDy
-	$nmWaveMDy = $nmWaveMD(xc)(x)
-	if(disp == 2)	
-		display $nmWaveMDy
-		Label bottom strLabel2
-		SrwUtiGraphAddFrameAndGrid()
+	if(isCmplx == 0)	
+		make/O/N=(arg1N) $nmWaveMDx
+		SetScale/I x arg1Start, arg1End, strUnit1, $nmWaveMDx
+		$nmWaveMDx = $nmWaveMD(x)(yc)
+		if(disp == 2)
+			display $nmWaveMDx
+			Label bottom strLabel1
+			SrwUtiGraphAddFrameAndGrid()
+		endif
+		make/O/N=(arg2N) $nmWaveMDy
+		SetScale/I x arg2Start, arg2End, strUnit2, $nmWaveMDy
+		$nmWaveMDy = $nmWaveMD(xc)(x)
+		if(disp == 2)	
+			display $nmWaveMDy
+			Label bottom strLabel2
+			SrwUtiGraphAddFrameAndGrid()
+		endif
+	else
+		make/O/N=(arg1N) $nmReWaveMDx, $nmImWaveMDx
+		SetScale/I x arg1Start, arg1End, strUnit1, $nmReWaveMDx, $nmImWaveMDx
+		$nmReWaveMDx = $nmReWaveMD(x)(yc)
+		$nmImWaveMDx = $nmImWaveMD(x)(yc)
+		if(disp == 2)
+			display $nmReWaveMDx, $nmImWaveMDx
+			Label bottom strLabel1
+			SrwUtiGraphAddFrameAndGrid()
+		endif
+		make/O/N=(arg2N) $nmReWaveMDy, $nmImWaveMDy
+		SetScale/I x arg2Start, arg2End, strUnit2, $nmReWaveMDy, $nmImWaveMDy
+		$nmReWaveMDy = $nmReWaveMD(xc)(x)
+		$nmImWaveMDy = $nmImWaveMD(xc)(x)
+		if(disp == 2)	
+			display $nmReWaveMDy, $nmImWaveMDy
+			Label bottom strLabel2
+			SrwUtiGraphAddFrameAndGrid()
+		endif
 	endif
 endif
 if(numDim == 3)
@@ -3770,7 +4056,145 @@ endif
 end
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//Conversion from Mutial Intensity to (rogtated) Degree of Coherence function
+//FInd Transverse Coherence Length from Degree of Coherence (1D cut)
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+function srwUtiCohLenFromDegCoh(wDC)
+wave wDC
+
+FindLevels wDC, 0.5
+wave W_FindLevels
+variable nLev = dimsize(W_FindLevels, 0) 
+variable i=0, curX, prevX, iFirstPos = -1
+do 
+	curX = W_FindLevels[i]
+	
+	if((i > 0) && (prevX < 0) && (curX > 0))
+		iFirstPos = i
+		break
+	endif
+	prevX = curX
+	i += 1
+while(i < nLev)
+if(iFirstPos < 0)
+	return -1
+else
+	return curX - prevX
+endif
+
+end
+
+
+
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//Conversion from Mutial Intensity to (rotated) Degree of Coherence function
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+proc SrwUtiCmplxMutInt2RotDegCoh(nmResDegCoh, nmInReMutInt, nmInImMutInt, rel_thresh, new_disp)
+string nmResDegCoh = srwUtiGetValS("nmResDegCoh", "wDegCoh", "SrwUtiMutInt2RotDegCoh")
+string nmInReMutInt = srwUtiGetValS("nmInReMutInt", "wInReMutInt", "SrwUtiMutInt2RotDegCoh")
+string nmInImMutInt = srwUtiGetValS("nmInImMutInt", "wInImMutInt", "SrwUtiMutInt2RotDegCoh")
+variable rel_thresh = srwUtiGetValN("rel_thresh", 1e-04, "SrwUtiMutInt2RotDegCoh")
+variable new_disp = srwUtiGetValN("new_disp", 1, "SrwUtiMutInt2RotDegCoh")
+prompt nmResDegCoh, "Name of Degree of Coherence wave to create"
+prompt nmInReMutInt, "Name of Mutual Intensity wave, Re part", popup Wavelist("*",";","TEXT:0,DIMS:2")
+prompt nmInImMutInt, "Name of Mutual Intensity wave, Im part", popup Wavelist("*",";","TEXT:0,DIMS:2")
+prompt rel_thresh, "Relative Regularization Threshold"
+prompt new_disp, "New Display?", popup "No;Yes"
+Silent 1						|	...
+PauseUpdate
+
+srwUtiSetValS("nmResDegCoh", nmResDegCoh, "SrwUtiMutInt2RotDegCoh")
+srwUtiSetValS("nmInReMutInt", nmInReMutInt, "SrwUtiMutInt2RotDegCoh")
+srwUtiSetValS("nmInImMutInt", nmInImMutInt, "SrwUtiMutInt2RotDegCoh")
+srwUtiSetValN("rel_thresh", rel_thresh, "SrwUtiMutInt2RotDegCoh")
+srwUtiSetValN("new_disp", new_disp, "SrwUtiMutInt2RotDegCoh")
+
+string nmInMutInt = nmInReMutInt
+
+variable xStart = dimoffset($nmInMutInt, 0)
+variable xNp = dimsize($nmInMutInt, 0)
+variable xStep = dimdelta($nmInMutInt, 0)
+variable xEnd = xStart + (xNp - 1)*xStep
+variable xc = 0.5*(xStart + xEnd)
+variable xRange = xEnd - xStart
+
+variable yStart = dimoffset($nmInMutInt, 1)
+variable yNp = dimsize($nmInMutInt, 1)
+variable yStep = dimdelta($nmInMutInt, 1)
+variable yEnd = yStart + (yNp - 1)*yStep
+variable yc = 0.5*(yStart + yEnd)
+variable yRange = yEnd - yStart
+
+variable xNpNew = 2*xNp - 1, yNpNew = 2*yNp - 1
+
+//make/O/D/N=(xNpNew, yNpNew) wInReMutIntAux, wInImMutIntAux
+//variable xHalfNp = round(xNp*0.5), yHalfNp = round(yNp*0.5)
+//SetScale/P x xStart - xHalfNp*xStep, xStep, "m", wInReMutIntAux, wInImMutIntAux
+//SetScale/P y yStart - yHalfNp*yStep, yStep, "m", wInReMutIntAux, wInImMutIntAux
+//wInReMutIntAux = $nmInReMutInt(x)(y)*srwUtiNonZeroIntervB(x, xStart, xEnd)*srwUtiNonZeroIntervB(y, yStart, yEnd)
+//wInImMutIntAux = $nmInImMutInt(x)(y)*srwUtiNonZeroIntervB(x, xStart, xEnd)*srwUtiNonZeroIntervB(y, yStart, yEnd)
+//duplicate/O wInReMutIntAux wMutCohNonRot
+
+make/O/D/N=(xNpNew, yNpNew) wMutCohNonRot
+variable xHalfNp = round(xNp*0.5), yHalfNp = round(yNp*0.5)
+SetScale/P x xStart - xHalfNp*xStep, xStep, "m", wMutCohNonRot
+SetScale/P y yStart - yHalfNp*yStep, yStep, "m", wMutCohNonRot
+
+variable abs_thresh = rel_thresh*abs($nmInMutInt(0)(0))
+//print abs_thresh
+
+//wMutCohNonRot = abs(wInMutCohRes(x)(y))/(sqrt(abs(wInMutCohRes(x)(x)*wInMutCohRes(y)(y))) + abs_thresh)
+wMutCohNonRot = (sqrt(($nmInReMutInt(x)(y))^2 + ($nmInImMutInt(x)(y))^2)/(sqrt(abs($nmInReMutInt(x)(x)*$nmInReMutInt(y)(y))) + abs_thresh))*srwUtiNonZeroIntervB(x, xStart, xEnd)*srwUtiNonZeroIntervB(y, yStart, yEnd)
+
+duplicate/O $nmInMutInt $nmResDegCoh
+
+$nmResDegCoh = srwUtiInterp2DBilin(x+y, x-y, wMutCohNonRot)
+//$nmResDegCoh = srwUtiNan2Num($nmResDegCoh(x)(y), 0)
+
+string nmInMutIntCut = nmInMutInt + "x"
+string nmResDegCohCut = nmResDegCoh + "cut"
+string nmResDegCohCut0 = nmResDegCoh + "cut_aux"
+
+duplicate/O $nmInMutIntCut $nmResDegCohCut
+$nmResDegCohCut = $nmResDegCoh(0)(x)
+
+duplicate/O $nmResDegCohCut $nmResDegCohCut0
+$nmResDegCohCut0 = $nmResDegCoh(x)(0)
+
+if(new_disp > 1)
+	display; appendimage $nmResDegCoh
+	Label bottom "(x + x*)/2"; Label left "(x - x*)/2"
+	display $nmResDegCohCut0; SrwUtiGraphAddFrameAndGrid()
+	Label bottom "(x + x*)/2"; Label left "Degree of Coherence"
+	display $nmResDegCohCut; SrwUtiGraphAddFrameAndGrid()
+	Label bottom "(x - x*)/2"; Label left "Degree of Coherence"
+endif
+
+//Determining Coherence Length
+FindLevels $nmResDegCohCut, 0.5
+
+variable nLev = dimsize(W_FindLevels, 0) 
+variable i=0, curX, prevX, iFirstPos = -1
+do 
+	curX = W_FindLevels[i]
+	
+	if((i > 0) && (prevX < 0) && (curX > 0))
+		iFirstPos = i
+		break
+	endif
+	prevX = curX
+	i += 1
+while(i < nLev)
+if(iFirstPos < 0)
+	print "Coherence Length can't be determined"
+else
+	print "Estimated Coherence Length:", curX - prevX, "m"
+endif
+
+KillWaves/Z wMutCohNonRot
+end
+
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//Conversion from Mutial Intensity to (rotated) Degree of Coherence function
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 proc SrwUtiMutInt2RotDegCoh(nmResDegCoh, nmInMutInt, rel_thresh, new_disp)
 string nmResDegCoh = srwUtiGetValS("nmResDegCoh", "wDegCoh", "SrwUtiMutInt2RotDegCoh")
@@ -3826,11 +4250,15 @@ variable abs_thresh = rel_thresh*abs($nmInMutInt(0)(0))
 //wMutCohNonRot = abs($nmInMutInt(x)(y))/(sqrt(abs($nmInMutInt(x)(x)*$nmInMutInt(y)(y))) + abs_thresh)
 wMutCohNonRot = abs(wInMutCohRes(x)(y))/(sqrt(abs(wInMutCohRes(x)(x)*wInMutCohRes(y)(y))) + abs_thresh)
 
+//TEST
+//wMutCohNonRot = abs(wInMutCohRes(x)(y))
+
 //$nmResDegCoh = wMutCohNonRot(x + y)(x - y)
 //$nmResDegCoh = Interp2D(wMutCohNonRot, x+y, x-y)
 $nmResDegCoh = srwUtiInterp2DBilin(x+y, x-y, wMutCohNonRot)
 
 //$nmResDegCoh = wMutCohNonRot(x)(y)
+
 $nmResDegCoh = srwUtiNan2Num($nmResDegCoh(x)(y), 0)
 
 string nmInMutIntCut = nmInMutInt + "x"
@@ -3850,5 +4278,26 @@ if(new_disp > 1)
 	Label bottom "(x + x*)/2"; Label left "Degree of Coherence"
 	display $nmResDegCohCut; SrwUtiGraphAddFrameAndGrid()
 	Label bottom "(x - x*)/2"; Label left "Degree of Coherence"
+endif
+
+//Determining Coherence Length
+FindLevels $nmResDegCohCut, 0.5
+
+variable nLev = dimsize(W_FindLevels, 0) 
+variable i=0, curX, prevX, iFirstPos = -1
+do 
+	curX = W_FindLevels[i]
+	
+	if((i > 0) && (prevX < 0) && (curX > 0))
+		iFirstPos = i
+		break
+	endif
+	prevX = curX
+	i += 1
+while(i < nLev)
+if(iFirstPos < 0)
+	print "Coherence Length can't be determined"
+else
+	print "Estimated Coherence Length:", curX - prevX, "m"
 endif
 end

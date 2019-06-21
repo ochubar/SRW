@@ -70,7 +70,7 @@
     <ProjectGuid>{B04ABD04-7AC6-4516-B8A7-E2CBC18B4333}</ProjectGuid>
     <RootNamespace>SRWLClientPython</RootNamespace>
     <Keyword>Win32Proj</Keyword>
-    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.10586.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release_Py2x|Win32'" Label="Configuration">
@@ -811,6 +811,9 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\src\clients\python\srwlpy.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\src\clients\python\pyparse.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

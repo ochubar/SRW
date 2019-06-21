@@ -55,6 +55,7 @@ CGenMathInterp::CGenMathInterp(int MethNo, double xStart, double xStep, double *
 //-------------------------------------------------------------------------
 
 void CGenMathInterp::InitCubicSpline(double *x, double *y, int np)
+//void CGenMathInterp::InitCubicSpline(double *x, double *y, long long np)
 {
 	mSplineY2Arr = new double[np];
     InterpCubicSplinePrep(x, y, np, mSplineY2Arr);
@@ -75,6 +76,7 @@ void CGenMathInterp::InitCubicSpline(double *x, double *y, int np)
 //-------------------------------------------------------------------------
 
 void CGenMathInterp::InitCubicSplineU(double xStart, double xStep, double *y, int np)
+//void CGenMathInterp::InitCubicSplineU(double xStart, double xStep, double *y, long long np)
 {
 	mArgStart = xStart;
 	mArgStep = xStep;
@@ -115,8 +117,8 @@ void CGenMathInterp::InterpCubicSplinePrep(double *x, double *y, int n, double *
 	//u=vector(1,n-1);
 	u = new double[n - 1];
 
-	//if(yp1 > 0.99e30) y2[1]=u[1]=0.0; //The lower boundary condition is set either to be “natural”
-	if(yp1 > 0.99e30) y2[0]=u[0]=0.0; //The lower boundary condition is set either to be “natural”
+	//if(yp1 > 0.99e30) y2[1]=u[1]=0.0; //The lower boundary condition is set either to be "natural"
+	if(yp1 > 0.99e30) y2[0]=u[0]=0.0; //The lower boundary condition is set either to be "natural"
 	else 
 	{ //or else to have a specified first derivative.
 		//y2[1] = -0.5;
@@ -139,7 +141,7 @@ void CGenMathInterp::InterpCubicSplinePrep(double *x, double *y, int n, double *
 		u[i] = (6.0*u[i]/(x[i+1] - x[i-1]) - sig*u[i-1])/p;
 	}
 
-	if(ypn > 0.99e30) qn=un=0.0; //The upper boundary condition is set either to be “natural” 
+	if(ypn > 0.99e30) qn=un=0.0; //The upper boundary condition is set either to be "natural"
 	else 
 	{ //or else to have a specified first derivative.
 		qn = 0.5;
@@ -174,7 +176,7 @@ void CGenMathInterp::InterpCubicSplinePrepU(double xStart, double xStep, double 
 
 	double *u = new double[n - 1];
 
-	if(yp1 > 0.99e30) y2[0]=u[0]=0.0; //The lower boundary condition is set either to be “natural”
+	if(yp1 > 0.99e30) y2[0]=u[0]=0.0; //The lower boundary condition is set either to be "natural"
 	else 
 	{ //or else to have a specified first derivative.
 		//y2[1] = -0.5;
@@ -202,7 +204,7 @@ void CGenMathInterp::InterpCubicSplinePrepU(double xStart, double xStep, double 
 		u[i] = (3.*u[i]/xStep - 0.5*u[i-1])/p;
 	}
 
-	if(ypn > 0.99e+30) qn=un=0.; //The upper boundary condition is set either to be “natural” 
+	if(ypn > 0.99e+30) qn=un=0.; //The upper boundary condition is set either to be "natural"
 	else 
 	{ //or else to have a specified first derivative.
 		qn = 0.5;
@@ -245,7 +247,7 @@ double CGenMathInterp::InterpCubicSpline(double *xa, double *ya, double *y2a, in
 	} //klo and khi now bracket the input value of x.
 
 	h = xa[khi] - xa[klo];
-	//if(h == 0.0) nrerror("Bad xa input to routine splint"); //The xa’s must be distinct.
+	//if(h == 0.0) nrerror("Bad xa input to routine splint"); //The xa's must be distinct.
 	//if(h == 0.0) { *y = *ya; return;}
 	if(h == 0.0) return *ya;
 

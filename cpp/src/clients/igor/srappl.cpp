@@ -47,7 +47,9 @@ int srTApplication::Make1DFFT(srTHandleOfOneWaveStruct* pInputOneWaveStruct)
 	{
 		Send.FinishWorkingWithWave(&WaveAccessData); return NT_FP32_COMPLEX_WAVE_REQUIRED;
 	}
-	long Nx = *(WaveAccessData.DimSizes);
+	//long Nx = *(WaveAccessData.DimSizes);
+	long Nx = (long)(*(WaveAccessData.DimSizes));
+	//long long Nx = *(WaveAccessData.DimSizes);
 	if(((Nx>>1)<<1) != Nx) 
 	{
 		Send.FinishWorkingWithWave(&WaveAccessData); return WAVE_SIZES_SHOULD_BE_EVEN;
@@ -97,8 +99,10 @@ int srTApplication::Make2DFFT(srTHandleOfOneWaveStruct* pInputOneWaveStruct)
 		Send.Finish2DFFT(&WaveAccessData); return NT_FP32_COMPLEX_WAVE_REQUIRED;
 	}
 
-	long Nx = *(WaveAccessData.DimSizes);
-	long Ny = *(WaveAccessData.DimSizes + 1);
+	//long Nx = *(WaveAccessData.DimSizes);
+	//long Ny = *(WaveAccessData.DimSizes + 1);
+	long Nx = (long)(*(WaveAccessData.DimSizes)); //OC28042019
+	long Ny = (long)(*(WaveAccessData.DimSizes + 1));
 	if((((Nx>>1)<<1) != Nx) || (((Ny>>1)<<1) != Ny)) 
 	{
 		Send.Finish2DFFT(&WaveAccessData); return WAVE_SIZES_SHOULD_BE_EVEN;
@@ -151,7 +155,8 @@ int srTApplication::FindAverageDistanceToSource(srTTrjDat& TrjDat, double& Robs,
 	double *zArr = TmpDataStorage + (TrjDat.LenFieldData*3);
 	TrjDat.CompTotalTrjDataTrjDisp(TrjDat.sStart, sEnd, TrjDat.LenFieldData, BtxArr, BtzArr, xArr, zArr, DistUnits);
 
-	int Len_mi_1 = TrjDat.LenFieldData - 1;
+	//int Len_mi_1 = TrjDat.LenFieldData - 1;
+	long long Len_mi_1 = TrjDat.LenFieldData - 1;
 	double *pBtx = BtxArr + Len_mi_1, *pBtz = BtzArr + Len_mi_1, *pX = xArr + Len_mi_1, *pZ = zArr + Len_mi_1;
 	double RobsLoc = RadInt.DistrInfoDat.yStart - sEnd;
 	double InvRobsLoc = 1./RobsLoc;
@@ -219,6 +224,7 @@ int srTApplication::FindAverageDistanceToSource(srTTrjDat& TrjDat, double& Robs,
 int srTApplication::CheckNxNzForSR(double Robs, double xElAtYsrc, double zElAtYsrc, double MultFactor, srTWfrSmp& DistrInfoDat)
 {
 	long Nx = DistrInfoDat.nx, Nz = DistrInfoDat.nz;
+	//long long Nx = DistrInfoDat.nx, Nz = DistrInfoDat.nz; //OC26042019
 	if((Nx > 0) && (Nz > 0)) return 0;
 
 	const int SmallestN = 8;

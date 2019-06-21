@@ -4,7 +4,7 @@ WELCOME TO
 
                 SYNCHROTRON RADIATION WORKSHOP (SRW)
 
-CURRENT VERSION: SRW 3.963
+CURRENT VERSION: SRW 3.965
 
 ====================================
 WHAT SRW CAN DO? 
@@ -28,13 +28,7 @@ Current version of SRW enables the following:
 ====================================
 CONFIGURATION REQUIRED
 
-To use the SRW, you should have one of the following configurations:
-
-- PowerMac with (at least) 32 M of memory, system 8.0 or later and a license of Igor Pro 3.1x/4.x (see http://www.wavemetrics.com).
-
-- PC running Windows 95/98/NT4/2000/XP with (at least) 32 M of memory and a license of Igor Pro 3.1x/4.x.
-
-The SR Propagation-related computations require 64 M of RAM installed in the computer and at least 30 M partitioned for the Igor Pro (Mac OS).
+To use the SRW, you should have a license of Igor Pro 6.x/7.x/8.x and Mac running OSX or PC running Windows 7 or higher.
 
 ====================================
 PREVIOUS VERSION SHOULD BE DE-INSTALLED
@@ -42,13 +36,33 @@ PREVIOUS VERSION SHOULD BE DE-INSTALLED
 Before making any steps for installation of the new version, make sure that the previous version of SRW is completely de-installed from your system. This means that: 
 
 Any aliases (shortcuts) of files and folders (or the files and folders itself) which have "SRW" in their names, should be removed from the following folders of your Igor Pro installation:
-"Igor Pro Folder"
-"Igor Pro Folder:Igor Extensions"
-"Igor Pro Folder:Igor Help Files"
-"Igor Pro Folder:Igor Procedures"
+"Igor Pro (x) Folder"
+"Igor Pro (x) Folder:Igor Extensions"
+"Igor Pro (x) Folder:Igor Extensions (64-bit)"
+"Igor Pro (x) Folder:Igor Help Files"
+"Igor Pro (x) Folder:Igor Procedures"
 
 ====================================
-SRW INSTALLATION ON A POWER MACINTOSH
+SRW INSTALLATION ON WINDOWS (for Igor 7/8, 32- and 64-bit)
+
+1. Download SRW zip-file.
+
+2. Quit Igor Pro, if it is running.
+
+3. Unzip and place the folder "SRW" as it is to the "Igor Pro (x) Folder" where your license of the Igor Pro is installed (e.g. it can be in C:\Program Files\WaveMetrics\Igor Pro 8 Folder).
+
+4. Find the folder "SRW Procedures" inside the "SRW" folder. Make a shortcut to this folder and move the shortcut in "Igor Pro (x) Folder:Igor Procedures".
+
+5. Find the file "SRW.xop" inside the "SRW" folder. Make a shortcut to this file and move the shortcut in "Igor Pro (x) Folder:Igor Extensions".
+
+6. Find the file "SRW64.xop" inside the "SRW" folder. Make a shortcut to this file and move the shortcut in "Igor Pro (x) Folder:Igor Extensions (64-bit)".
+
+7. Find the file "SRW Macro Help.ifn" inside the "SRW:SRW Help" folder. Make a shortcut to this file and move the shortcut in "Igor Pro Folder:Igor Help Files".
+
+8. Start Igor Pro. At the first start after the SRW installation, Igor may show a dialog box suggesting to compile the help file "SRW Macro Help.ifn". Choose to compile it. Finally, you should obtain inside Igor new menu item(s) named "SRW...".
+
+====================================
+SRW INSTALLATION ON MAC OSX (for Igor 6 32-bit only)
 
 1. Download the archived SRW distribution (*.DMG) file for Macintosh.
 
@@ -69,17 +83,6 @@ SRW INSTALLATION ON A POWER MACINTOSH
 9. (Re)Start Igor Pro. At the first start after the SRW installation, Igor may show a dialog box suggesting to compile the help file "SRW Macro Help.ifn". Choose to compile it. Finally, you should obtain inside Igor new menu item(s) named "SRW...".
 
 ====================================
-SRW INSTALLATION ON A PC UNDER WINDOWS 95/98/NT4/2000/XP
-
-1. Download the self-extracting SRW distribution executable file for Windows.
-
-2. Quit Igor Pro, if it is running.
-
-3. Run the self-extracting executable file. The installation utility will ask you to specify / confirm the location of Igor Pro, and will try to perform necessary actions for proper installation of SRW (i.e. create SRW folder inside the Igor Pro folder and create shortcuts to SRW files in Igor Pro sub-folders).
-
-4. Start Igor Pro. At the first start after the SRW installation, Igor may show a dialog box suggesting to compile the help file "SRW Macro Help.ifn". Choose to compile it. Finally, you should obtain new menu item(s) named "SRW..." in the Igor menu.
-
-====================================
 GETTING STARTED
 
 The first thing we recommend to do after the installation is to start Igor Pro and choose "Help->Introduction" in the menu SRW...
@@ -89,13 +92,8 @@ After this, one can try examples from the part of SRW of one's interest, e.g. "S
 For convenience, the SRW help file "SRW Help.ifn" in the format of Igor Pro notebook can be printed out and used as a hard copy of SRW documentation.
 
 ====================================
-COMPATIBILITY WITH PREVIOUS VERSIONS
-
-SRW 3.x IS NOT fully compatible with previous versions. The names and arguments of some macro commands related to the SR computation were modified. However, since the principles of the code organization did not change, we hope that users can easily trace the changes and modify accordingly their own macro commands where SRW is used.
-
-====================================
 Authors:
 Oleg CHUBAR (chubar@bnl.gov)
 Pascal ELLEAUME (elleaume@esrf.fr)
 
-December 2010
+June 2019

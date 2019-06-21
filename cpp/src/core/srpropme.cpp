@@ -559,7 +559,8 @@ return cos(ph) + cmplx(0,1)*sin(ph)
 
 int srTPropagMultiE::ReallocateStokesAccordingToWfr(srTWfrSmp& WfrSmp, srTStokesStructAccessData& OutStokes)
 {
-	int OldNe = OutStokes.ne, OldNx = OutStokes.nx, OldNz = OutStokes.nz;
+	//int OldNe = OutStokes.ne, OldNx = OutStokes.nx, OldNz = OutStokes.nz;
+	long long OldNe = OutStokes.ne, OldNx = OutStokes.nx, OldNz = OutStokes.nz; //OC26042019
 
 	OutStokes.eStart = WfrSmp.LambStart;
 	OutStokes.eStep = 0;

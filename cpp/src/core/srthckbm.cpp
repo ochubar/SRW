@@ -393,16 +393,19 @@ void srTRadIntThickBeam::FillInSymPartsOfResults(char FinalResAreSymOverX, char 
 	long long PerY = PerZ*(pStokes->nz);
 	char SymWithRespectToXax, SymWithRespectToZax;
 
-	int HalfNz = (pStokes->nz) >> 1, Nz_mi_1 = (pStokes->nz) - 1;
+	//int HalfNz = (pStokes->nz) >> 1, Nz_mi_1 = (pStokes->nz) - 1;
+	long long HalfNz = (pStokes->nz) >> 1, Nz_mi_1 = (pStokes->nz) - 1; //OC26042019
 	if(FinalResAreSymOverZ && FinalResAreSymOverX)
 	{
 		if((HalfNz << 1) != (pStokes->nz)) HalfNz++;
 	}
 	//int izStart = ((HalfNz << 1) == (pStokes->nz))? HalfNz : (HalfNz + 1);
 
-	int HalfNx = (pStokes->nx) >> 1, Nx_mi_1 = (pStokes->nx) - 1;
+	//int HalfNx = (pStokes->nx) >> 1, Nx_mi_1 = (pStokes->nx) - 1;
+	long long HalfNx = (pStokes->nx) >> 1, Nx_mi_1 = (pStokes->nx) - 1; //OC26042019
 	//int ixStart = ((HalfNx << 1) == (pStokes->nx))? HalfNx : (HalfNx + 1);
-	int iy, iz, ix;
+	//int iy, iz, ix;
+	long long iy, iz, ix; //OC26042019
 
 	if(FinalResAreSymOverZ)
 	{
@@ -482,7 +485,8 @@ void srTRadIntThickBeam::FillInSymPartsOfResults(char FinalResAreSymOverX, char 
 
 //*************************************************************************
 
-void srTRadIntThickBeam::CopySymEnergySlice(float* pOrigData, float* pSymData, long Ne, char SymWithRespectToXax, char SymWithRespectToZax)
+void srTRadIntThickBeam::CopySymEnergySlice(float* pOrigData, float* pSymData, long long Ne, char SymWithRespectToXax, char SymWithRespectToZax) //OC26042019
+//void srTRadIntThickBeam::CopySymEnergySlice(float* pOrigData, float* pSymData, long Ne, char SymWithRespectToXax, char SymWithRespectToZax)
 {
 	char ChangeSignS2 = !(SymWithRespectToXax && SymWithRespectToZax);
 	char ChangeSignS3 = SymWithRespectToXax;

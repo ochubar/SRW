@@ -31,7 +31,8 @@
 //	#pragma pack(2)
 //#endif
 
-#include "XOPStructureAlignmentTwoByte.h"	// All structures passed between Igor and XOP are two-byte aligned.
+//#include "XOPStructureAlignmentTwoByte.h"	// All structures passed between Igor and XOP are two-byte aligned.
+#pragma pack(2) //OC26042019 (port to XOP7), to check on Mac OSX !
 
 //*************************************************************************
 
@@ -213,7 +214,8 @@ static int srWfrCSR(void* p_void)
 
 		double arPrecParam[8];
 		double *pPrecParam = arPrecParam;
-		long auxNp = 0;
+		//long auxNp = 0;
+		long long auxNp = 0; //OC26042019 (port to XOP7)
         ProcErr(srTIgorSend::GetArrDoubleFromNumWave1D(pStr->wIntPar, 8, pPrecParam, auxNp));
 
 		ProcErr(csrElecFldCompExt(&SRWRadInData, iElecBeam, iMagFld, iWfrSmp, arPrecParam));
@@ -395,14 +397,14 @@ static int srElecBeamPropag(void* p_void)
 		vector<string> OptElemInfo;
 		ProcErr(srTIgorSend::GetVectorOfStrings(pStr->wOptElem, &OptElemInfo));
 		
-		int AmOfStrings = OptElemInfo.size();
+		int AmOfStrings = (int)OptElemInfo.size();
 		if(AmOfStrings == 0) return 0;
         char** DescrArr = new char*[AmOfStrings];
 		for(int i=0; i<AmOfStrings; i++) 
 		{
 			const char* CurStr = OptElemInfo[i].c_str();
 			if(CurStr == 0) continue;
-			int CurLen = strlen(CurStr);
+			int CurLen = (int)strlen(CurStr);
 			if(CurLen == 0) continue;
 			DescrArr[i] = new char[CurLen + 1];
 			strcpy(DescrArr[i], CurStr);
@@ -447,7 +449,7 @@ static int srVerNo(void* p_void)
 	char cVersionStr[200];
     srUtiVerNo(cVersionStr);
 
-	long LenVersionStr = strlen(cVersionStr);
+	long LenVersionStr = (long)strlen(cVersionStr);
     Handle VersionStr = NewHandle(LenVersionStr);
 	strncpy(*VersionStr, cVersionStr, LenVersionStr);
 	((srTIgorVersionStruct*)p_void)->result = VersionStr;
@@ -950,7 +952,8 @@ static int srUtiRandGsn(void* p_void)
 		p->res = 0;
 		if(p->n <= 0) return 0;
 
-        long nGsn = 0;
+        //long nGsn = 0;
+        long long nGsn = 0; //OC26042019 (port to XOP7)
 		ProcErr(srTIgorSend::GetArrDoubleFromNumWave1D(p->wGsn, -1, pGsn, nGsn));
 		if((pGsn == 0) || (nGsn < p->n)) 
 		{
@@ -959,7 +962,8 @@ static int srUtiRandGsn(void* p_void)
 			nGsn = (int)(p->n);
 		}
 
-        int NumDims = 0, NumCols = 0;
+        //int NumDims = 0, NumCols = 0;
+        long long NumDims = 0, NumCols = 0; //OC26042019 (port to XOP7)
 		ProcErr(srTIgorSend::GetArrDoubleFromNumWave2D(p->wXcSig, NumDims, NumCols, pXcSig));
 		if((pXcSig == 0) || (NumDims <= 0) || (NumCols < 2)) throw INCORRECT_GAUSS_CENTERS_SIGMAS;
 		double *pXc = pXcSig, *pSigma = pXcSig + NumDims;
@@ -1059,7 +1063,8 @@ static int srUtiTrfOptMir(void* p_void)
         srTIgorUtiTrfOptMir *p = (srTIgorUtiTrfOptMir*)p_void;
 
         double *pPointAndAng=0;
-        long nPointAndAng = 0;
+        //long nPointAndAng = 0;
+        long long nPointAndAng = 0; //OC26042019 (port to XOP7)
 		ProcErr(srTIgorSend::GetArrDoubleFromNumWave1D(p->wPointAndAng, -1, pPointAndAng, nPointAndAng));
 		if((nPointAndAng < 5) || (pPointAndAng == 0)) return 0;
 
@@ -1208,7 +1213,8 @@ static int srOptThinTransmCharExtract(void* p_void)
 
 		double ParData[10];
 		double *pParData = ParData;
-		long LenParData = 7;
+		//long LenParData = 7;
+		long long LenParData = 7; //OC26042019 (port to XOP7)
         ProcErr(srTIgorSend::GetArrDoubleFromNumWave1D(p->wExtractPar, 10, pParData, LenParData));
 
 		ProcErr(srTIgorSend::GetAndSetOptElem(&iOptElem, &iWfrAux, p->wOptElem, NULL));
@@ -1243,153 +1249,201 @@ static int srOptThinTransmCharExtract(void* p_void)
 	Igor calls this at startup time to find the address of the
 	XFUNCs added by this XOP. See XOP manual regarding "Direct XFUNCs".
 */
-static long RegisterFunction()
+static long long RegisterFunction() //OC26042019 (port to XOP7)
+//static long RegisterFunction()
 {
-	int funcIndex;
+	//int funcIndex;
+	XOPIORecParam funcIndex; //OC26042019 (port to XOP7)
 
 	funcIndex = GetXOPItem(0);		// Which function is Igor asking about?
 	switch (funcIndex) {
 		case 0:
-			return((long)srLoop);
+			//return((long)srLoop);
+			return((XOPIORecResult)srLoop); //OC26042019 (port to XOP7)
 			break;
 		case 1:
-			return((long)srWfrFromTrj);
+			//return((long)srWfrFromTrj);
+			return((XOPIORecResult)srWfrFromTrj);
 			break;
 		case 2:
-			return((long)srWfrIsotrSrc);
+			//return((long)srWfrIsotrSrc);
+			return((XOPIORecResult)srWfrIsotrSrc);
 			break;
 		case 3:
-			return((long)srWfrGsnBeam);
+			//return((long)srWfrGsnBeam);
+			return((XOPIORecResult)srWfrGsnBeam);
 			break;
 		case 4:
-			return((long)srWfrSASE);
+			//return((long)srWfrSASE);
+			return((XOPIORecResult)srWfrSASE);
 			break;
 		case 5:
-			return((long)srTraj);
+			//return((long)srTraj);
+			return((XOPIORecResult)srTraj);
 			break;
 		case 6:
-			return((long)srVerNo);
+			//return((long)srVerNo);
+			return((XOPIORecResult)srVerNo);
 			break;
 		case 7:
-			return((long)srRadMom);
+			//return((long)srRadMom);
+			return((XOPIORecResult)srRadMom);
 			break;
 		case 8:
-			return((long)srFFT1D);
+			//return((long)srFFT1D);
+			return((XOPIORecResult)srFFT1D);
 			break;
 		case 9:
-			return((long)srFFT2D);
+			//return((long)srFFT2D);
+			return((XOPIORecResult)srFFT2D);
 			break;
 		case 10:
-			return((long)srRadResizeXZ);
+			//return((long)srRadResizeXZ);
+			return((XOPIORecResult)srRadResizeXZ);
 			break;
 		case 11:
-			return((long)srObsSetNxNz);
+			//return((long)srObsSetNxNz);
+			return((XOPIORecResult)srObsSetNxNz);
 			break;
 		case 12:
-			return((long)srRadPropag);
+			//return((long)srRadPropag);
+			return((XOPIORecResult)srRadPropag);
 			break;
 		case 13:
-			return((long)srWfrPropag);
+			//return((long)srWfrPropag);
+			return((XOPIORecResult)srWfrPropag);
 			break;
 		case 14:
-			return((long)srRadExtract);
+			//return((long)srRadExtract);
+			return((XOPIORecResult)srRadExtract);
 			break;
 		case 15:
-			return((long)srStokesUnd);
+			//return((long)srStokesUnd);
+			return((XOPIORecResult)srStokesUnd);
 			break;
 		case 16:
-			return((long)srStokesWig);
+			//return((long)srStokesWig);
+			return((XOPIORecResult)srStokesWig);
 			break;
 		case 17:
-			return((long)srStokesConst);
+			//return((long)srStokesConst);
+			return((XOPIORecResult)srStokesConst);
 			break;
 		case 18:
-			return((long)srPowDens);
+			//return((long)srPowDens);
+			return((XOPIORecResult)srPowDens);
 			break;
 		case 19:
-			return((long)srUtiInterTime);
+			//return((long)srUtiInterTime);
+			return((XOPIORecResult)srUtiInterTime);
 			break;
 		case 20:
 			//return((long)srOptThinGenSetup);
-			return((long)srOptElemSetup);
+			//return((long)srOptElemSetup);
+			return((XOPIORecResult)srOptElemSetup);
 			break;
 		case 21:
-			return((long)srOptMatConst);
+			//return((long)srOptMatConst);
+			return((XOPIORecResult)srOptMatConst);
 			break;
 		case 22:
-			return((long)srOptZonePlateSpecSetup);
+			//return((long)srOptZonePlateSpecSetup);
+			return((XOPIORecResult)srOptZonePlateSpecSetup);
 			break;
 		case 23:
-			return((long)srUtiSpotInfo);
+			//return((long)srUtiSpotInfo);
+			return((XOPIORecResult)srUtiSpotInfo);
 			break;
 		case 24:
-			return((long)srUtiWfrLimits);
+			//return((long)srUtiWfrLimits);
+			return((XOPIORecResult)srUtiWfrLimits);
 			break;
 		case 25:
-			return((long)srUtiRemoveFlips);
+			//return((long)srUtiRemoveFlips);
+			return((XOPIORecResult)srUtiRemoveFlips);
 			break;
 		case 26:
-			return((long)srUtiMagRad);
+			//return((long)srUtiMagRad);
+			return((XOPIORecResult)srUtiMagRad);
 			break;
 		case 27:
-			return((long)srUtiMagCritPhotEn);
+			//return((long)srUtiMagCritPhotEn);
+			return((XOPIORecResult)srUtiMagCritPhotEn);
 			break;
 		case 28:
-			return((long)srUtiUndK);
+			//return((long)srUtiUndK);
+			return((XOPIORecResult)srUtiUndK);
 			break;
 		case 29:
-			return((long)srUtiUndFundPhotEn);
+			//return((long)srUtiUndFundPhotEn);
+			return((XOPIORecResult)srUtiUndFundPhotEn);
 			break;
 		case 30:
-			return((long)srKn);
+			//return((long)srKn);
+			return((XOPIORecResult)srKn);
 			break;
 		case 31:
-			return((long)srElecBeamPropag);
+			//return((long)srElecBeamPropag);
+			return((XOPIORecResult)srElecBeamPropag);
 			break;
 		case 32:
-			return((long)srMagArb2Per);
+			//return((long)srMagArb2Per);
+			return((XOPIORecResult)srMagArb2Per);
 			break;
 		case 33:
-			return((long)srStokesArb);
+			//return((long)srStokesArb);
+			return((XOPIORecResult)srStokesArb);
 			break;
 		case 34:
-			return((long)srUtiTrfOptMir);
+			//return((long)srUtiTrfOptMir);
+			return((XOPIORecResult)srUtiTrfOptMir);
 			break;
 		case 35:
-			return((long)srUti3DView);
+			//return((long)srUti3DView);
+			return((XOPIORecResult)srUti3DView);
 			break;
 		case 36:
-			return((long)srRadPropagStokesMultiE);
+			//return((long)srRadPropagStokesMultiE);
+			return((XOPIORecResult)srRadPropagStokesMultiE);
 			break;
 		//case 37:
 		//	return((long)srWfrEmitPropagStokesMultiE);
 		//	break;
 		case 37:
-			return((long)srWfrEmitPropag);
+			//return((long)srWfrEmitPropag);
+			return((XOPIORecResult)srWfrEmitPropag);
 			break;
 		case 38:
-			return((long)srWfrReflect);
+			//return((long)srWfrReflect);
+			return((XOPIORecResult)srWfrReflect);
 			break;
 		case 39:
-			return((long)srWfrSetRepres);
+			//return((long)srWfrSetRepres);
+			return((XOPIORecResult)srWfrSetRepres);
 			break;
 		case 40:
-			return((long)srUtiIntKnXn);
+			//return((long)srUtiIntKnXn);
+			return((XOPIORecResult)srUtiIntKnXn);
 			break;
 		case 41:
-			return((long)srRadIntensInteg);
+			//return((long)srRadIntensInteg);
+			return((XOPIORecResult)srRadIntensInteg);
 			break;
 		case 42:
-			return((long)srOptThinTransmCharExtract);
+			//return((long)srOptThinTransmCharExtract);
+			return((XOPIORecResult)srOptThinTransmCharExtract);
 			break;
 		case 43:
-			return((long)srWfrCSR);
+			//return((long)srWfrCSR);
+			return((XOPIORecResult)srWfrCSR);
 			break;
 		case 44:
-			return((long)srTraj3d);
+			//return((long)srTraj3d);
+			return((XOPIORecResult)srTraj3d);
 			break;
 		case 45:
-			return((long)srUtiRandGsn);
+			//return((long)srUtiRandGsn);
+			return((XOPIORecResult)srUtiRandGsn);
 			break;
 		//case 45:
 		//	return((long)srOptThickMirGenSetup);
@@ -1408,7 +1462,8 @@ static long RegisterFunction()
 */
 static int DoFunction()
 {
-	int funcIndex;
+	//int funcIndex;
+	XOPIORecParam funcIndex; //OC26042019 (port to XOP7)
 	void *p;				// Pointer to structure containing function parameters and result.
 	int err;
 
@@ -1573,7 +1628,8 @@ static int DoFunction()
 static void
 XOPEntry(void)
 {	
-	long result = 0;
+	//long result = 0;
+	long long result = 0; //OC26042019 (port to XOP7)
 
 	switch (GetXOPMessage()) {
 		case FUNCTION:						// Our external function being invoked ?
@@ -1600,7 +1656,8 @@ XOPEntry(void)
 	ioRecHandle to the address to be called for future messages.
 */
 //HOST_IMPORT void main(IORecHandle ioRecHandle)
-HOST_IMPORT int main(IORecHandle ioRecHandle) //OC030110, required for GCC 4.2 Mac OSX
+//HOST_IMPORT int main(IORecHandle ioRecHandle) //OC030110, required for GCC 4.2 Mac OSX
+HOST_IMPORT int XOPMain(IORecHandle ioRecHandle) //OC28042019 // The use of XOPMain rather than main means this XOP requires Igor Pro 6.20 or later
 {
 	//#ifdef applec					// For MPW C for 68K only.
 	//	void _DATAINIT(void);
@@ -1619,8 +1676,15 @@ HOST_IMPORT int main(IORecHandle ioRecHandle) //OC030110, required for GCC 4.2 M
 	XOPInit(ioRecHandle);							// Do standard XOP initialization.
 	SetXOPEntry(XOPEntry);							// Set entry point for future calls.
 	
-	if(igorVersion < 200) SetXOPResult(OLD_IGOR);
-	else SetXOPResult(0L);
+	//if(igorVersion < 200) SetXOPResult(OLD_IGOR);
+	if(igorVersion < 620) //OC28042019
+	{
+		SetXOPResult(OLD_IGOR);
+		return EXIT_FAILURE;
+	}
+	//else SetXOPResult(0L);
+	
+	SetXOPResult(0L);
 	
 	SetXOPType(RESIDENT | IDLES);
 	SR.Initialize();
@@ -1630,7 +1694,8 @@ HOST_IMPORT int main(IORecHandle ioRecHandle) //OC030110, required for GCC 4.2 M
 	srUtiWfrExtModifFuncSet(&(srTIgorSend::WfrModify));
 	srUtiOptElemGetInfByNameFuncSet(&(srTIgorSend::GetOptElemInfByName));
 
-	return 0;
+	//return 0;
+	return EXIT_SUCCESS; //OC28042019
 }
 
 //*************************************************************************
@@ -1644,6 +1709,7 @@ HOST_IMPORT int main(IORecHandle ioRecHandle) //OC030110, required for GCC 4.2 M
 //	#pragma pack()
 //#endif
 
-#include "XOPStructureAlignmentReset.h"	// All structures passed between Igor and XOP are two-byte aligned.
+//#include "XOPStructureAlignmentReset.h"	// All structures passed between Igor and XOP are two-byte aligned.
+#pragma pack() //OC26042019 (port to XOP7) to check on Mac OSX !
 
 //*************************************************************************

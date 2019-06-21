@@ -4928,7 +4928,8 @@ int srTGenOptElem::GenExtractPhase(srTWaveAccessData& InWaveAccessData, double* 
 	}
 	else
 	{
-		long nx = InWaveAccessData.DimSizes[0], nz = InWaveAccessData.DimSizes[1];
+		//long nx = InWaveAccessData.DimSizes[0], nz = InWaveAccessData.DimSizes[1];
+		long nx = (long)(InWaveAccessData.DimSizes[0]), nz = (long)(InWaveAccessData.DimSizes[1]); //OC28042019
 
 		double* AuxMagArrayX = new double[nx];
 		if(AuxMagArrayX == 0) return MEMORY_ALLOCATION_FAILURE;

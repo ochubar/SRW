@@ -814,11 +814,14 @@ void srTRadIntPowerDensity::FillInSymPartsOfResults(char FinalResAreSymOverX, ch
 	long long PerZ = PerX*DistrInfoDat.nx;
 	char SymWithRespectToXax, SymWithRespectToZax;
 
-	int HalfNz = DistrInfoDat.nz >> 1, Nz_mi_1 = DistrInfoDat.nz - 1;
+	//int HalfNz = DistrInfoDat.nz >> 1, Nz_mi_1 = DistrInfoDat.nz - 1;
+	long long HalfNz = DistrInfoDat.nz >> 1, Nz_mi_1 = DistrInfoDat.nz - 1; //OC26042019
 	//int izStart = ((HalfNz << 1) == DistrInfoDat.nz)? HalfNz : (HalfNz + 1);
-	int HalfNx = DistrInfoDat.nx >> 1, Nx_mi_1 = DistrInfoDat.nx - 1;
+	//int HalfNx = DistrInfoDat.nx >> 1, Nx_mi_1 = DistrInfoDat.nx - 1;
+	long long HalfNx = DistrInfoDat.nx >> 1, Nx_mi_1 = DistrInfoDat.nx - 1; //OC26042019
 	//int ixStart = ((HalfNx << 1) == DistrInfoDat.nx)? HalfNx : (HalfNx + 1);
-	int iz, ix;
+	//int iz, ix;
+	long long iz, ix; //OC26042019
 
 	if(FinalResAreSymOverZ)
 	{
@@ -914,11 +917,13 @@ int srTRadIntPowerDensity::TreatFiniteElecBeamEmittance(srTPowDensStructAccessDa
 
 	long NxAux = (long)(Resize.pxm*PowDensAccessData.nx);
 	long NzAux = (long)(Resize.pzm*PowDensAccessData.nz);
+	//long long NxAux = (long long)(Resize.pxm*PowDensAccessData.nx); //OC26042019
+	//long long NzAux = (long long)(Resize.pzm*PowDensAccessData.nz);
 	CGenMathFFT2D FFT;
 	FFT.NextCorrectNumberForFFT(NxAux);
 	FFT.NextCorrectNumberForFFT(NzAux);
 
-	float* AuxConvData = new float[NxAux*NzAux << 1];
+	float* AuxConvData = new float[((long long)NxAux)*((long long)NzAux) << 1];
 	if(AuxConvData == 0) return MEMORY_ALLOCATION_FAILURE;
 
 	ConstructDataForConv(PowDensAccessData, AuxConvData, NxAux, NzAux);
@@ -950,18 +955,21 @@ void srTRadIntPowerDensity::DetermineSingleElecPowDensEffSizes(srTPowDensStructA
 	float xStep = (float)((DistrInfoDat.nx > 1)? (DistrInfoDat.xEnd - DistrInfoDat.xStart)/(DistrInfoDat.nx - 1) : 0.);
 	float zStep = (float)((DistrInfoDat.nz > 1)? (DistrInfoDat.zEnd - DistrInfoDat.zStart)/(DistrInfoDat.nz - 1) : 0.);
 
-	long nz_mi_1 = DistrInfoDat.nz - 1, nx_mi_1 = DistrInfoDat.nx - 1;
+	//long nz_mi_1 = DistrInfoDat.nz - 1, nx_mi_1 = DistrInfoDat.nx - 1;
+	long long nz_mi_1 = DistrInfoDat.nz - 1, nx_mi_1 = DistrInfoDat.nx - 1; //OC26042019
 	float *tPowDens = PowDensAccessData.pBasePowDens;
 	float z = (float)DistrInfoDat.zStart;
 	float ze2 = z*z;
 	float wz = 0.5;
-	for(int iz=0; iz<DistrInfoDat.nz; iz++)
+	for(long long iz=0; iz<DistrInfoDat.nz; iz++) //OC26042019
+	//for(int iz=0; iz<DistrInfoDat.nz; iz++)
 	{
 		if(iz == nz_mi_1) wz = 0.5;
 		
 		float x = (float)DistrInfoDat.xStart;
 		float xe2 = x*x;
-		for(int ix=0; ix<DistrInfoDat.nx; ix++)
+		for(long long ix=0; ix<DistrInfoDat.nx; ix++) //OC26042019
+		//for(int ix=0; ix<DistrInfoDat.nx; ix++)
 		{
 			//float PowDens = wz*(*tPowDens);
 			float PowDens = wz*(*(tPowDens++)); // ??
@@ -1012,9 +1020,12 @@ void srTRadIntPowerDensity::DetermineResizeBeforeConv(double MxxElecEff, double 
 //*************************************************************************
 
 void srTRadIntPowerDensity::ConstructDataForConv(srTPowDensStructAccessData& PowDensAccessData, float* NewData, long NewNx, long NewNz)
+//void srTRadIntPowerDensity::ConstructDataForConv(srTPowDensStructAccessData& PowDensAccessData, float* NewData, long long NewNx, long long NewNz)
 {
-	long ixDat = (NewNx - PowDensAccessData.nx) >> 1;
-	long izDat = (NewNz - PowDensAccessData.nz) >> 1;
+	//long ixDat = (NewNx - PowDensAccessData.nx) >> 1;
+	//long izDat = (NewNz - PowDensAccessData.nz) >> 1;
+	long long ixDat = (NewNx - PowDensAccessData.nx) >> 1; //OC26042019
+	long long izDat = (NewNz - PowDensAccessData.nz) >> 1;
 
 	//long OffsetXp = ixDat + PowDensAccessData.nx;
 	//long OffsetZp = izDat + PowDensAccessData.nz;
@@ -1094,6 +1105,7 @@ void srTRadIntPowerDensity::ConstructDataForConv(srTPowDensStructAccessData& Pow
 //*************************************************************************
 
 int srTRadIntPowerDensity::PerformConvolutionWithGaussian(float* ConvData, long NewNx, long NewNz, double MxxElecEff, double MzzElecEff)
+//int srTRadIntPowerDensity::PerformConvolutionWithGaussian(float* ConvData, long long NewNx, long long NewNz, double MxxElecEff, double MzzElecEff)
 {
 	int result;
 	double xStep = (DistrInfoDat.nx > 1)? (DistrInfoDat.xEnd - DistrInfoDat.xStart)/(DistrInfoDat.nx - 1) : 0.;
@@ -1157,6 +1169,7 @@ int srTRadIntPowerDensity::PerformConvolutionWithGaussian(float* ConvData, long 
 //*************************************************************************
 
 void srTRadIntPowerDensity::ExtractFinalDataAfterConv(float* AuxConvData, long NxAux, long NzAux, srTPowDensStructAccessData& PowDensAccessData)
+//void srTRadIntPowerDensity::ExtractFinalDataAfterConv(float* AuxConvData, long long NxAux, long long NzAux, srTPowDensStructAccessData& PowDensAccessData)
 {
 	//long ixDat = (NxAux - PowDensAccessData.nx) >> 1;
 	//long izDat = (NzAux - PowDensAccessData.nz) >> 1;

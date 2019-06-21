@@ -15,8 +15,8 @@
 
 //*************************************************************************
 
-//int srTCompProgressIndicator::InitializeIndicator(long InTotalAmOfOutPoints, double InUpdateTimeInt_s, char CountCallsInside)
 int srTCompProgressIndicator::InitializeIndicator(long long InTotalAmOfOutPoints, double InUpdateTimeInt_s, char CountCallsInside)
+//int srTCompProgressIndicator::InitializeIndicator(long InTotalAmOfOutPoints, double InUpdateTimeInt_s, char CountCallsInside)
 {
 	TotalAmOfOutPoints = InTotalAmOfOutPoints;
 
@@ -24,7 +24,8 @@ int srTCompProgressIndicator::InitializeIndicator(long long InTotalAmOfOutPoints
 #ifdef __IGOR_PRO__
 
 	int result;
-	if(result = SetIgorIntVar("IgorTotAmOfPo", TotalAmOfOutPoints, 0)) return result;
+	//if(result = SetIgorIntVar("IgorTotAmOfPo", TotalAmOfOutPoints, 0)) return result;
+	if(result = SetIgorIntVar("IgorTotAmOfPo", (long)TotalAmOfOutPoints, 0)) return result; //OC26042019
 	if(result = XOPCommand("NewPanel/W=(3.75,43.25,163,85)/K=2 as \" \"")) return result;
 	//if(result = XOPCommand("String IgorIndicatorPanelWinName = WinName(0,64)")) return result;
 	if(result = XOPCommand("String/G IgorIndicatorPanelWinName = WinName(0,64)")) return result;

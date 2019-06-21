@@ -211,6 +211,7 @@ int srTRadIntPeriodic::ComputeTotalStokesDistr(srTStokesStructAccessData* pStoke
 
 		double eStart = DistrInfoDat.LambStart, eFin = DistrInfoDat.LambEnd;
 		long Ne = DistrInfoDat.nLamb;
+		//long long Ne = DistrInfoDat.nLamb; //OC26042019
 		srTEnergyAzimuthGrid EnAzGrid; // Keep it as local
 		if(result = DeduceGridOverPhotonEnergyAndAzimuth(n, eStart, eFin, Ne, EnAzGrid)) return result;
 		if(result = EnAzGrid.SetUpCosAndSinLookUpArrays()) return result;
@@ -434,7 +435,8 @@ void srTRadIntPeriodic::FillInSymPartsOfResults(char FinalResAreSymOverX, char F
 {
 	//long PerX = DistrInfoDat.nLamb << 2; //This is for IGOR version data alignment
 	//long PerZ = PerX*DistrInfoDat.nx;
-	long PerX=0;
+	//long PerX=0;
+	long long PerX=0; //OC26042019
 	if(pStokesAccessData != 0)
 	{//This is for IGOR version data alignment
 		PerX = DistrInfoDat.nLamb << 2; 
@@ -443,7 +445,8 @@ void srTRadIntPeriodic::FillInSymPartsOfResults(char FinalResAreSymOverX, char F
 	{//This is for SRWLib version data alignment
 		PerX = DistrInfoDat.nLamb; //This is for IGOR version data alignment
 	}
-	long PerZ = PerX*DistrInfoDat.nx;
+	//long PerZ = PerX*DistrInfoDat.nx;
+	long long PerZ = PerX*DistrInfoDat.nx; //OC26042019
 
 	char SymWithRespectToXax, SymWithRespectToZax;
 	int HalfNz = DistrInfoDat.nz >> 1, Nz_mi_1 = DistrInfoDat.nz - 1;
@@ -462,14 +465,16 @@ void srTRadIntPeriodic::FillInSymPartsOfResults(char FinalResAreSymOverX, char F
 			SymWithRespectToXax = 0; SymWithRespectToZax = 1;
 			for(iz=0; iz<HalfNz; iz++)
 			{
-				long izPerZ = iz*PerZ;
+				long long izPerZ = iz*PerZ;
 				for(ix=0; ix<HalfNx; ix++)
 				{
 					//float* pOrigData = StokesAccessData.pBaseSto + izPerZ + ix*PerX;
 					//float* pSymData = StokesAccessData.pBaseSto + izPerZ + (Nx_mi_1 - ix)*PerX;
 					//CopySymEnergySlice(pOrigData, pSymData, SymWithRespectToXax, SymWithRespectToZax);
-					long ofstOrigData = izPerZ + ix*PerX;
-					long ofstSymData = izPerZ + (Nx_mi_1 - ix)*PerX;
+					//long ofstOrigData = izPerZ + ix*PerX;
+					//long ofstSymData = izPerZ + (Nx_mi_1 - ix)*PerX;
+					long long ofstOrigData = izPerZ + ix*PerX; //OC28042019
+					long long ofstSymData = izPerZ + (Nx_mi_1 - ix)*PerX;
 					if(pStokesAccessData != 0) //OC080812
 					{
 						float* pOrigData = pStokesAccessData->pBaseSto + ofstOrigData;
@@ -486,15 +491,19 @@ void srTRadIntPeriodic::FillInSymPartsOfResults(char FinalResAreSymOverX, char F
 		SymWithRespectToXax = 1; SymWithRespectToZax = 0;
 		for(iz=0; iz<HalfNz; iz++)
 		{
-			long izPerZ = iz*PerZ, BufZ = (Nz_mi_1 - iz)*PerZ;
+			//long izPerZ = iz*PerZ, BufZ = (Nz_mi_1 - iz)*PerZ;
+			long long izPerZ = iz*PerZ, BufZ = (Nz_mi_1 - iz)*PerZ; //OC28042019
 			for(ix=0; ix<DistrInfoDat.nx; ix++)
 			{
-				long ixPerX = ix*PerX;
+				//long ixPerX = ix*PerX;
+				long long ixPerX = ix*PerX; //OC28042019
 				//float* pOrigData = StokesAccessData.pBaseSto + izPerZ + ixPerX;
 				//float* pSymData = StokesAccessData.pBaseSto + BufZ + ixPerX;
 				//CopySymEnergySlice(pOrigData, pSymData, SymWithRespectToXax, SymWithRespectToZax);
-				long ofstOrigData = izPerZ + ixPerX;
-				long ofstSymData = BufZ + ixPerX;
+				//long ofstOrigData = izPerZ + ixPerX;
+				//long ofstSymData = BufZ + ixPerX;
+				long long ofstOrigData = izPerZ + ixPerX; //OC28042019
+				long long ofstSymData = BufZ + ixPerX;
 				if(pStokesAccessData != 0) //OC080812
 				{
 					float* pOrigData = pStokesAccessData->pBaseSto + ofstOrigData;
@@ -513,14 +522,17 @@ void srTRadIntPeriodic::FillInSymPartsOfResults(char FinalResAreSymOverX, char F
 		SymWithRespectToXax = 0; SymWithRespectToZax = 1;
 		for(iz=0; iz<DistrInfoDat.nz; iz++)
 		{
-			long izPerZ = iz*PerZ;
+			//long izPerZ = iz*PerZ;
+			long long izPerZ = iz*PerZ; //OC28042019
 			for(ix=0; ix<HalfNx; ix++)
 			{
 				//float* pOrigData = StokesAccessData.pBaseSto + izPerZ + ix*PerX;
 				//float* pSymData = StokesAccessData.pBaseSto + izPerZ + (Nx_mi_1 - ix)*PerX;
 				//CopySymEnergySlice(pOrigData, pSymData, SymWithRespectToXax, SymWithRespectToZax);
-				long ofstOrigData = izPerZ + ix*PerX;
-				long ofstSymData = izPerZ + (Nx_mi_1 - ix)*PerX;
+				//long ofstOrigData = izPerZ + ix*PerX;
+				//long ofstSymData = izPerZ + (Nx_mi_1 - ix)*PerX;
+				long long ofstOrigData = izPerZ + ix*PerX; //OC28042019
+				long long ofstSymData = izPerZ + (Nx_mi_1 - ix)*PerX;
 				if(pStokesAccessData != 0) //OC080812
 				{
 					float* pOrigData = pStokesAccessData->pBaseSto + ofstOrigData;
@@ -965,6 +977,7 @@ int srTRadIntPeriodic::FilamentTreatEnergySpreadAndFiniteNumberOfPeriods(int n, 
 
 	double eStart = DistrInfoDat.LambStart, eFin = DistrInfoDat.LambEnd;
 	long Ne = DistrInfoDat.nLamb;
+	//long long Ne = DistrInfoDat.nLamb; //OC26042019
 	srTEnergyAzimuthGrid EnAzGridLoc; // Keep it as local
 	EnAzGridLoc.EnsureEnResolvingObsPixels = 0;
 	if(result = DeduceGridOverPhotonEnergyAndAzimuth(n, eStart, eFin, Ne, EnAzGridLoc)) return result;
@@ -1257,6 +1270,8 @@ void srTRadIntPeriodic::CorrectGridToAllowRangeResizeOnTheOtherSide(srTEnergyAzi
 	double eStepOld = (EnAzGrid.eFin - EnAzGrid.eStart)/(EnAzGrid.Ne - 1);
 	long Ne = EnAzGrid.NeExtraLeft + EnAzGrid.Ne + EnAzGrid.NeExtraRight;
 	long HalfNe = Ne >> 1;
+	//long long Ne = EnAzGrid.NeExtraLeft + EnAzGrid.Ne + EnAzGrid.NeExtraRight; //OC26042019
+	//long long HalfNe = Ne >> 1;
 	//double emOld = eStepOld*HalfNe;
 
 	long AmOfStepsLeftFromCritEn = long((EnAzGrid.eCritForHarm - EnAzGrid.eStart)/eStepOld + 1.E-06);
@@ -1266,6 +1281,7 @@ void srTRadIntPeriodic::CorrectGridToAllowRangeResizeOnTheOtherSide(srTEnergyAzi
 	double StepRatOld_mi_1;
 	double eStepNew, StepRatNew;
 	long Nq;
+	//long long Nq; //OC26042019
 	int &Multip = EnAzGrid.EnergyAdjustFinGridPar.Multip;
 	if(::fabs(StepRatOld - 1.) < RelTol)
 	{
@@ -1634,6 +1650,7 @@ double srTRadIntPeriodic::EstimateTaperResCurveWidth(int n)
 //*************************************************************************
 
 int srTRadIntPeriodic::DeduceGridOverPhotonEnergyAndAzimuth(int n, double& eStart, double& eFin, long& ne, srTEnergyAzimuthGrid& EnAzGrid)
+//int srTRadIntPeriodic::DeduceGridOverPhotonEnergyAndAzimuth(int n, double& eStart, double& eFin, long long& ne, srTEnergyAzimuthGrid& EnAzGrid) //OC26042019
 {
 	double eMinEff, eMaxEff, PhiMinEff, PhiMaxEff;
 	EstimateEnergyAndPhiObsLimits(n, eMinEff, eMaxEff, PhiMinEff, PhiMaxEff);
@@ -2296,6 +2313,7 @@ void srTRadIntPeriodic::FindPhiIntervalForVectors(TVector2d* Vectors, int LenVec
 //*************************************************************************
 
 void srTRadIntPeriodic::CorrectGridForPassingThroughCritEnergy(int n, double& eStart, double& eStep, long& ne)
+//void srTRadIntPeriodic::CorrectGridForPassingThroughCritEnergy(int n, double& eStart, double& eStep, long long& ne) //OC26042019
 {
 	if(ne < 20) return; // Steer this to avoid fluctuations
 

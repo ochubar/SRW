@@ -45,32 +45,47 @@ II.2.2. The SRW for IGOR Pro examples can be tested from "SRWE" and "SRWP" menus
 III. Compiling and testing SRW Library and its Python binding on Linux.
 ------------------------------------------------------------------
 III.1. Compiling SRW library and Python binding.
-	This can be done either using Python "distutils" (see section II.1.1 below) or without it (see section II.1.2).
+	This can be done either using Python "setuptools" module (see section III.1.1 below) or without it (see section III.1.2).
 
-III.1.1. Compiling using Python "distutils" module.
-	Make sure the "distutils" module of the Python version you would like to use is properly installed and configured. If this is done, the compilation and installation is simple:
+III.1.1. Compiling using Python "setuptools" module.
+	Make sure the "setuptools" module of the Python version you would like to use is properly installed and configured. If this is done, the compilation and installation is simple:
 	cd SRW_Dev
 	make all
-	To compile SRW library supporting OpenMP based parallel calculations (e.g. for XFEL applications) use add "MODE=omp" after "make all":
+	To compile SRW library supporting OpenMP based parallel calculations (e.g. for XFEL applications) add "MODE=omp" after "make all":
 	make all MODE=omp
 	This should compile libsrw.a and srwlpy.so, and copy srwlpy.so to SRW_Dev/env/work/srw_python/
 
-III.1.2. Compiling without "distutils".
+III.1.2. Compiling without "setuptools".
 
-III.1.2.1. Download and compile fftw-2.1.5 library as required for SRW.
-	Download fftw-2.1.5.tar.gz from FFTW site (probably http://www.fftw.org/download.html) and place it to SRW_Dev/ext_lib:
+III.1.2.1. Download and compile fftw-2.1.5 or/and fftw-3.3.8 library as required for SRW.
+	Make sure files fftw-3.3.8.tar.gz and fftw-2.1.5.tar.gz are located in SRW_Dev/ext_lib directory (if necessary, download these files from FFTW site, probably http://www.fftw.org/download.html). 
+	Do the following to compile fftw-3.3.8 for using single-precision numbers as required for most FFT-based operations in SRW:
+	cd SRW_Dev/ext_lib
+	tar -zxvf fftw-3.3.8.tar.gz
+	cd fftw-3.3.8
+	./configure --enable-float --with-pic
+	Manually (using editor) add -fPIC option to CFLAGS in Makefile
+	make -j8 && cp .libs/libfftw3f.a ../
+
+	Do the following to compile fftw-3.3.8 for using double-precision numbers required for some FFT-based operations in SRW:
+	cd SRW_Dev/ext_lib
+	tar -zxvf fftw-3.3.8.tar.gz
+	cd fftw-3.3.8
+	./configure --with-pic
+	Manually (using editor) add -fPIC option to CFLAGS in Makefile
+	make -j8 && cp .libs/libfftw3.a ../
+
+	Do the following to compile fftw-2.1.5 for using single-precision numbers required for supporting OpenMP based parallel calculations in SRW:
 	cd SRW_Dev/ext_lib
 	tar -zxvf fftw-2.1.5.tar.gz
 	cd fftw-2.1.5
 	./configure --enable-float --with-pic
 	Manually (using editor) add -fPIC option to CFLAGS in Makefile
-	make
-	make install
-	cp fftw/.libs/libfftw.a SRW_Dev/ext_lib/
+	make -j8 && cp fftw/.libs/libfftw.a ../
 
-III.1.2.2. Compile the SRW library and Python binding.
+III.1.2.2. Compiling the SRW library and Python binding.
 	cd SRW_Dev/cpp/gcc
-	Make sure Python 3.2 or higher (or Python 2.7) is installed. 
+	Make sure Python 3.3 or higher (or Python 2.7) is installed. 
 	In the SRW_Dev/cpp/gcc/Makefile, modify/correct PYPATH and PYFLAGS variables, i.e. specify path to Python header and library files. Depending on Linux environment, it may also be necessary to modify the name of compiler to be used, e.g.:
 	CC  = gcc
 	CXX = g++
@@ -79,7 +94,7 @@ III.1.2.2. Compile the SRW library and Python binding.
 	After this, execute the following:
 	rm libsrw.a
 	make all
-	To compile SRW library supporting OpenMP based parallel calculations (e.g. for XFEL applications) use add "MODE=omp" after "make all":
+	To compile SRW library in the mode supporting OpenMP based parallel calculations (e.g. for XFEL applications) add "MODE=omp" after "make all":
 	make all MODE=omp
 	Then copy srwlpy.so to SRW_Dev/env/work/srw_python/:
 	cp srwlpy.so ../../env/work/srw_python/
@@ -97,8 +112,22 @@ III.2. Checking the examples.
 
 IV. Compiling and testing SRW Library and its Python binding on Mac OSX.
 ------------------------------------------------------------------
-	Try to follow the steps described in section III, describing options for compiling and testing SRW on Linux. 
-	We were informed that the actions described in III.1.2.2 lead to successful compilation with gcc/g++ provided by Xcode 10.1, after the following modifications in SRW_Dev/cpp/gcc/Makefile:
+	Try to follow the steps described in section III (describing options for compiling and testing SRW on Linux). 
+
+	We were informed that the actions described in III.1.1 lead to successful compilation on OSX 10.14.5 after the following modifications in SRW_Dev/cpp/gcc/Makefile:
+	Change CXX variable as follows:
+	#CXX = c++
+	CXX = g++ -stdlib=libc++ -mmacosx-version-min=10.9
+
+	Make sure to explicitly use the C++ compiler (CXX) for compiling all *.cpp files, e.g.:
+	%.o: $(SH_SRC_PARSE_DIR)/%.cpp
+        	$(CXX) $(CFLAGS) -c $<
+
+	It may be necessary also to set also the CC variable to came value as CXX (?):
+	#CC = cc
+	CC = g++ -stdlib=libc++ -mmacosx-version-min=10.9
+
+	Previously, we were informed that the actions described in III.1.2.2 lead to successful compilation with gcc/g++ provided by Xcode 10.1, after the following modifications in SRW_Dev/cpp/gcc/Makefile:
 	CC  = gcc
 	CXX = g++
 	#CC  = cc

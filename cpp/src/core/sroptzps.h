@@ -105,7 +105,7 @@ public:
 	{// e in eV; Length in m !!!
 	 // Operates on Coord. side !!!
 		double xRel = EXZ.x - TransvCenPoint.x, zRel = EXZ.z - TransvCenPoint.y;
-		long Nx = (ZonePlateNumData.DimSizes)[0], Nz = (ZonePlateNumData.DimSizes)[1];
+		long Nx = (long)((ZonePlateNumData.DimSizes)[0]), Nz = (long)((ZonePlateNumData.DimSizes)[1]);
 		long Nxmi2 = Nx - 2, Nzmi2 = Nz - 2;
 		double xStart = (ZonePlateNumData.DimStartValues)[0], zStart = (ZonePlateNumData.DimStartValues)[1];
 		double xStep = (ZonePlateNumData.DimSteps)[0], zStep = (ZonePlateNumData.DimSteps)[1];
@@ -143,7 +143,7 @@ public:
 	{// e in eV; Length in m !!!
 	 // Operates on Coord. side !!!
 		double xRel = EXZ.x - TransvCenPoint.x, zRel = EXZ.z - TransvCenPoint.y;
-		long Nx = (ZonePlateNumData.DimSizes)[0], Nz = (ZonePlateNumData.DimSizes)[1];
+		long Nx = (long)((ZonePlateNumData.DimSizes)[0]), Nz = (long)((ZonePlateNumData.DimSizes)[1]);
 		long Nxmi2 = Nx - 2, Nzmi2 = Nz - 2;
 		double xStart = (ZonePlateNumData.DimStartValues)[0], zStart = (ZonePlateNumData.DimStartValues)[1];
 		double xStep = (ZonePlateNumData.DimSteps)[0], zStep = (ZonePlateNumData.DimSteps)[1];

@@ -232,7 +232,8 @@ inline double srTRadInt::IntegrateDistrLine(int kk)
 		Step = (DistrInfoDat.nz > 1)? (DistrInfoDat.zEnd - DistrInfoDat.zStart)/(DistrInfoDat.nz - 1) : 0.;
 	else Step = (DistrInfoDat.nx > 1)? (DistrInfoDat.xEnd - DistrInfoDat.xStart)/(DistrInfoDat.nx - 1) : 0.;
 
-	int nn = (DistrInfoDat.IntegrDistrMap == MapVsHor)? DistrInfoDat.nz : DistrInfoDat.nx;
+	//int nn = (DistrInfoDat.IntegrDistrMap == MapVsHor)? DistrInfoDat.nz : DistrInfoDat.nx;
+	long long nn = (DistrInfoDat.IntegrDistrMap == MapVsHor)? DistrInfoDat.nz : DistrInfoDat.nx; //OC26042019
 	double* LocDistrPtr = &(RadDistrPhotonFluxHorPol[kk*nn]);
 	double LocSum = 0.5*(*(LocDistrPtr++));
 	for(int k=1; k<(nn - 1); k++) LocSum += *(LocDistrPtr++);
@@ -684,7 +685,8 @@ inline void srTRadInt::ReformatRadDistrCompRes()
 
 	if(DistrInfoDat.DistrValType == StokesParam)
 	{
-		int TotAmOfData = DistrInfoDat.nLamb * DistrInfoDat.ny * DistrInfoDat.nz * DistrInfoDat.nx;
+		//int TotAmOfData = DistrInfoDat.nLamb * DistrInfoDat.ny * DistrInfoDat.nz * DistrInfoDat.nx;
+		long long TotAmOfData = DistrInfoDat.nLamb * DistrInfoDat.ny * DistrInfoDat.nz * DistrInfoDat.nx; //OC26042019
 		double s0, s1, s2, s3;
 
 		complex<double>* LocHorPolTravers = RadDistrFieldFourierHorPol;

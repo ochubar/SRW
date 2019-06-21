@@ -1,7 +1,0 @@
-Xcode 2.2 creates the libXOPSupport.a file in the build/Debug directory
-(or build/Release if you build the release configuration).
-
-Previous versions of Xcode created it in the project directory (the parent of build).
-Consequently, existing XOP projects look for it in the project directory. Thus,
-after rebuilding the library, you must move the libXOPSupport.a file from the
-Debug (or Release) directory to the project directory.

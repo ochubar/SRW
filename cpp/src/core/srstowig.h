@@ -186,11 +186,16 @@ public:
 	void DetermineSingleElecDistrEffSizes1D(float* CmpnArr, char VsXorZ, double& M_Cen);
 	void DetermineResizeBeforeConv2D(double MxxElecEff, double MzzElecEff, double MxxPowSingleE, double MzzPowSingleE, srTRadResize& Resize);
 	void DetermineResizeBeforeConv1D(double M_ElecEff, double M_DistrSingleE, char VsXorZ, srTRadResize1D& Resize);
-	void ConstructDataForConv2D(float* CmpnArr, float* NewData, long NewNx, long NewNz);
-	void ConstructDataForConv1D(float* CmpnArr, float* AuxConvData, long NpOld, long NpNew);
+	void ConstructDataForConv2D(float* CmpnArr, float* NewData, long long NewNx, long long NewNz); //OC26042019
+	//void ConstructDataForConv2D(float* CmpnArr, float* NewData, long NewNx, long NewNz);
+	void ConstructDataForConv1D(float* CmpnArr, float* AuxConvData, long long NpOld, long long NpNew); //OC26042019
+	//void ConstructDataForConv1D(float* CmpnArr, float* AuxConvData, long NpOld, long NpNew);
+	//int PerformConvolutionWithGaussian2D(float* ConvData, long long NewNx, long long NewNz, double MxxElecEff, double MzzElecEff);
 	int PerformConvolutionWithGaussian2D(float* ConvData, long NewNx, long NewNz, double MxxElecEff, double MzzElecEff);
+	//int PerformConvolutionWithGaussian1D(float* AuxConvData, long long NpAux, double M_ElecEff, char VsXorZ);
 	int PerformConvolutionWithGaussian1D(float* AuxConvData, long NpAux, double M_ElecEff, char VsXorZ);
-	void ExtractDataAfterConv2D(float* AuxConvData, long NxAux, long NzAux, float* CmpnArr);
+	void ExtractDataAfterConv2D(float* AuxConvData, long long NxAux, long long NzAux, float* CmpnArr); //OC26042019
+	//void ExtractDataAfterConv2D(float* AuxConvData, long NxAux, long NzAux, float* CmpnArr);
 	//void ExtractDataAfterConv1D(float* AuxConvData, long NpAux, long Np, float* CmpnArr);
 	void ExtractDataAfterConv1D(float* AuxConvData, long long NpAux, long long Np, float* CmpnArr);
 	void SuppressNegativeValues(float* StokesCmpnArr);

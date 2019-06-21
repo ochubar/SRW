@@ -390,6 +390,7 @@ EXP int CALL srMagFldConstSet(int* i, double BH, double BV)
 //-------------------------------------------------------------------------
 
 EXP int CALL srMagFldTrUnifSet(int* i, double sStart, double sStep, int np, double* pBh, double* pBv)
+//EXP int CALL srMagFldTrUnifSet(int* i, double sStart, double sStep, long long np, double* pBh, double* pBv) //OC26042019
 {
 	try 
 	{ 
@@ -403,6 +404,7 @@ EXP int CALL srMagFldTrUnifSet(int* i, double sStart, double sStep, int np, doub
 //-------------------------------------------------------------------------
 
 EXP int CALL srMagFld3dSet(int* i, double xStart, double xStep, int nx, double yStart, double yStep, int ny, double zStart, double zStep, int nz, double* pBx, double* pBy, double* pBz)
+//EXP int CALL srMagFld3dSet(int* i, double xStart, double xStep, long long nx, double yStart, double yStep, long long ny, double zStart, double zStep, long long nz, double* pBx, double* pBy, double* pBz)
 {
 	try 
 	{
@@ -444,6 +446,7 @@ EXP int CALL srGausBeamSet(int* i, double SpecFlux, int Polar, double sigX, int 
 //-------------------------------------------------------------------------
 
 EXP int CALL srWfrSmpSet(int* i, double s, double hSt, double hFi, int hN, double vSt, double vFi, int vN, double* pSurfData, double eSt, double eFi, int eN, char* PhotEnUnit, double tSt, double tFi, int tN, int presT, double* horOrtObsPlane, double* inNormObsPlane)
+//EXP int CALL srWfrSmpSet(int* i, double s, double hSt, double hFi, long long hN, double vSt, double vFi, long long vN, double* pSurfData, double eSt, double eFi, long long eN, char* PhotEnUnit, double tSt, double tFi, long long tN, int presT, double* horOrtObsPlane, double* inNormObsPlane) //OC26042019
 {
 	try 
 	{ 
