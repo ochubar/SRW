@@ -3314,8 +3314,10 @@ def srwl_uti_std_options():
         ['und_phm', 's', 'p1', 'undulator phase move mode'],
         ['und2_phm', 's', 'p1', 'second undulator phase move mode'],
 
-        ['und_ior', 'f', 1, 'interpolaton order of tabulated undulator magnetic field'],
-        ['und2_ior', 'f', 1, 'interpolaton order of second tabulated undulator magnetic field'],
+        #['und_ior', 'f', 1, 'interpolaton order of tabulated undulator magnetic field'],
+        #['und2_ior', 'f', 1, 'interpolaton order of second tabulated undulator magnetic field'],
+        ['und_ior', 'f', 3, 'interpolaton order of tabulated undulator magnetic field'], #OC03082019
+        ['und2_ior', 'f', 3, 'interpolaton order of second tabulated undulator magnetic field'], #OC03082019
 
         ['und_sx', 'i', 1, 'undulator horizontal magnetic field symmetry vs longitudinal position'],
         ['und2_sx', 'i', 1, 'undulator horizontal magnetic field symmetry vs longitudinal position'],
