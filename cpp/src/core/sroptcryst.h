@@ -10,6 +10,8 @@
  *
  * @author J.Sutter, A.Suvorov, O.Chubar
  * @version 1.0
+ * @author A.Rodriguez-Fernandez, I.Petrov, L.Samoylova
+ * @version 2.0 #Laue
  ***************************************************************************/
 
 #ifndef __SROPTCRYST_H
@@ -52,9 +54,13 @@ class srTOptCryst : public srTGenOptElem {
 	//TVector3d m_nv; // horizontal, vertical and longitudinal coordinates of outward normal to crystal surface in the frame of incident beam
 	TVector3d m_tv; // horizontal, vertical and longitudinal coordinates of central tangential vector [m] in the frame of incident beam
 	TVector3d m_sv; // horizontal, vertical and longitudinal coordinates of central saggital vector [m] in the frame of incident beam
+	TVector3d v_nv; //* horizontal, vertical and longitudinal coordinates of outward normal to crystal surface in the frame of incident beam */ //ARF06062019 Introduce Vector3d& v_nv,
 	
-	char m_uc; // crystal use case: 1- Bragg Reflection, 2- Bragg Transmission (Laue cases to be added)
-
+	int m_uc; // crystal use case: 1- Bragg Reflection, 2- Bragg Transmission 
+	// case: 3- Laue, 4- Laue Transmission ARF08052019 change char to 
+	
+	int m_ug; //ARF2305219 This variable define Laue (2) or Bragg (1)
+	
 	// TRANSFORMATION MATRIX
 	double m_RXtLab[3][3]; // RXtLab: 3x3 orthogonal matrix that converts components of a 3x1 vector in crystal coordinates to components in lab coordinates. 
 	double m_RLabXt[3][3]; // RLabXt: transpose of RXtLab: converts components of a 3x1 vector in lab coordinates to components in crystal coordinates. 
@@ -68,10 +74,13 @@ class srTOptCryst : public srTGenOptElem {
 	double m_PolTrn[2][2]; // 2x2 transformation matrix of the polarizations from (e1X,e2X) to (sg0X,pi0X).
 	double m_InvPolTrn[2][2]; //OC06092016
 	double m_HXAi[3]; // Reciprocal lattice vector coordinates
+	double m_HXAi_bee[3]; //ARF03062019 Reciprocal lattice vector coordinates in beam coordinates
 
 	double m_sg0X[3];
 	double m_cos2t; //cos(2.*thBrd); 
-
+	double thBrd; //ARF23052019 to calculate the gamma0 and gammaH
+	double alphrd; //ARF23052019 to calculate the gamma0 and gammaH
+    
 	srTOptCrystMeshTrf *m_pMeshTrf;
 	double m_eStartAux, m_eStepAux, m_ne;
 	//bool m_xStartIsConstInSlicesE, m_zStartIsConstInSlicesE;
@@ -80,6 +89,7 @@ public:
 
 	srTOptCryst(const SRWLOptCryst& srwlCr)
 	{
+		const double pi = 4.*atan(1.);
 		m_dA = srwlCr.dSp; //crystal reflecting planes d-spacing (units: [A] ?)
 
 		//m_psi0r = srwlCr.psi0r;
@@ -98,19 +108,43 @@ public:
 		//OC180314: the Miller indices are removed after discussion with A. Suvorov (because these are only required for the m_dA, and it is used as input parameter)
 
 		//m_tc = srwlCr.tc;
+		
 		m_thicum = srwlCr.tc*1e+06; //assuming srwlCr.tc in [m]
-		double alphrd = srwlCr.angAs; //asymmetry angle [rad]
+		
+		//Geometry
+        	m_uc = (int) srwlCr.uc; //OC05092016
+		if((m_uc < 1) || (m_uc > 4)) throw IMPROPER_OPTICAL_COMPONENT_MIRROR_USE_CASE; //ARF 08052019 Change m_uc>2 to 4 for adding Laue cases.
+		// Input #7: Whether to calculate the transmitted beam as well as the diffracted 
+		// beam. itrans = 0 for NO, itrans = 1 for YES.
+		m_ug = 1; //Bragg case ARF22053019
+		if ((m_uc == 3) || (m_uc == 4)) m_ug = 2; //Laue case ARF22053019
+            
+		m_itrans = 0; //OC: make it input variable
+		if ((m_uc == 2) || (m_uc == 4))  m_itrans = 1; //OC05092016 //ARF05082019 add m_uc == 4
+		
+		alphrd = srwlCr.angAs; //asymmetry angle [rad]
 
 		// From Input #5: reciprocal lattice vector coordinates 
-		m_HXAi[0] = 0.;
-		m_HXAi[1] = cos(alphrd) / m_dA;
-		m_HXAi[2] = -sin(alphrd) / m_dA;
+		if (m_ug == 1)
+        	{
+			m_HXAi[0] = 0.;
+			m_HXAi[1] = cos(alphrd) / m_dA;
+			m_HXAi[2] = -sin(alphrd) / m_dA;
+        	}
+        	else if (m_ug == 2)
+        	{
+			//IP14062019 change recipr. lat. vector for Laue
+			m_HXAi[0] = 0.;
+			m_HXAi[1] = -sin(alphrd) / m_dA;
+			m_HXAi[2] = -cos(alphrd) / m_dA;
+        	}
 
 		if(srwlCr.nvz == 0) throw IMPROPER_OPTICAL_COMPONENT_ORIENT;
 		
-		TVector3d v_nv(srwlCr.nvx, srwlCr.nvy, srwlCr.nvz); /* horizontal, vertical and longitudinal coordinates of outward normal to crystal surface in the frame of incident beam */
-		v_nv.Normalize();
-		double nv[] = { v_nv.x, v_nv.y, v_nv.z };
+		v_nv.x = srwlCr.nvx; v_nv.y = srwlCr.nvy; v_nv.z = srwlCr.nvz; 
+		v_nv.Normalize();        
+		double nv[] = { v_nv.x, v_nv.y, v_nv.z }; //ARF change from double nv[] = { v_nv.x, v_nv.y, v_nv.z };
+		v_nv.x = nv[0];v_nv.y = nv[1];v_nv.z = nv[2]; //ARF06062019 Introduce Vector3d& v_nv,
 
 		if((srwlCr.tvx == 0) && (srwlCr.tvy == 0)) throw IMPROPER_OPTICAL_COMPONENT_ORIENT;
 
@@ -118,9 +152,12 @@ public:
 		//v_tv.z = (-v_nv.x*v_tv.x - v_nv.y*v_tv.y) / v_nv.z;
 		//v_tv.Normalize();
 		//double tv[] = { v_tv.x, v_tv.y, v_tv.z };
+		
 		m_tv.x = srwlCr.tvx; m_tv.y = srwlCr.tvy; /* horizontal and vertical coordinates of central tangential vector [m] in the frame of incident beam */
 		m_tv.z = (-v_nv.x*m_tv.x - v_nv.y*m_tv.y) / v_nv.z;
+		
 		m_tv.Normalize();
+		
 		double tv[] = { m_tv.x, m_tv.y, m_tv.z };
 
 		//sv[0] = nv[1] * tv[2] - nv[2] * tv[1];
@@ -129,14 +166,7 @@ public:
 		double sv[] = { nv[1] * tv[2] - nv[2] * tv[1], nv[2] * tv[0] - nv[0] * tv[2], nv[0] * tv[1] - nv[1] * tv[0] };
 		m_sv.x = sv[0]; m_sv.y = sv[1]; m_sv.z = sv[2]; 
 
-		m_uc = srwlCr.uc; //OC05092016
-		if((m_uc < 1) || (m_uc > 2)) throw IMPROPER_OPTICAL_COMPONENT_MIRROR_USE_CASE;
-
-		// Input #7: Whether to calculate the transmitted beam as well as the diffracted 
-		// beam. itrans = 0 for NO, itrans = 1 for YES. 
-		m_itrans = 0; //OC: make it input variable
-		if(m_uc == 2) m_itrans = 1; //OC05092016
-
+		
 		// RXtLab: 3x3 orthogonal matrix that converts components of a 3x1 vector 
 		// in crystal coordinates to components in lab coordinates. 
 		for(int i = 0; i < 3; i++)
@@ -154,10 +184,23 @@ public:
 		double uBrd = m_RLabXt[0][2] * m_HXAi[0] + m_RLabXt[1][2] * m_HXAi[1] + m_RLabXt[2][2] * m_HXAi[2];
 		double uHX = sqrt(m_HXAi[0] * m_HXAi[0] + m_HXAi[1] * m_HXAi[1] + m_HXAi[2] * m_HXAi[2]);
 		double uRL = sqrt(m_RLabXt[0][2] * m_RLabXt[0][2] + m_RLabXt[1][2] * m_RLabXt[1][2] + m_RLabXt[2][2] * m_RLabXt[2][2]);
-		const double pi = 4.*atan(1.);
-		double thBrd = acos(uBrd / uHX / uRL) - pi / 2.;
+		
+		thBrd = acos(uBrd / uHX / uRL) - pi / 2.;
 		//printf("Bragg angle = %f\n",thBrd*180./pi); 
 		m_cos2t = cos(2.*thBrd);
+
+		if (m_ug == 1)
+        	{
+            		m_HXAi_bee[0] = 0; //ARF03062019 Change definition for the calculation of bee
+            		m_HXAi_bee[1] = cos(thBrd) / m_dA; //ARF03062019 Change definition for the calculation of bee
+            		m_HXAi_bee[2] = - sin(thBrd) / m_dA; //ARF03062019 Change definition for the calculation of bee
+        	}
+        	else if (m_ug == 2)
+        	{
+            		m_HXAi_bee[0] = 0; //ARF03062019 Change definition for the calculation of bee
+            		m_HXAi_bee[1] = - sin(thBrd) / m_dA; //IP14062019 for Laue pi/2 rotation of rec. vector from Bragg
+            		m_HXAi_bee[2] = - cos(thBrd) / m_dA; //IP14062019 
+	        }
 
 		// Conversion of polarization vector components to crystal frame: 
 		//e1X[0] = RLabXt[0][0];
@@ -256,7 +299,7 @@ public:
 **/
 	}
 
-	void FindDefOutFrameVect(double phEn, double hn, double ht, TVector3d& tv, TVector3d& sv, TVector3d& vZ1, TVector3d& vX1)
+	void FindDefOutFrameVect(double phEn, double hn, double ht, TVector3d& nv, TVector3d& tv, TVector3d& sv, TVector3d& vZ1, TVector3d& vX1) //ARF06062019 Introduce Vector3d& nv,
 	{
 		const double eAconv = 12398.4193009;
 		double lam0Br = eAconv/phEn; //wavelength in [A]
@@ -886,7 +929,8 @@ public:
 		// deviation parameter Adev and normalized deviation parameter zeeC (as 
 		// defined by Zachariasen gamma0, b, alpha and z.) 
 		double gamma0 = -u0X[1];
-		double bee = 1. / (1. + m_HXAi[1] / k0wXAi[1]);
+		double bee = 1. / (1. + (m_HXAi_bee[1] * m_RXtLab[1][1] + m_HXAi_bee[2] * m_RXtLab[2][1]) / k0wXAi[1]); //ARF03062019 change from: double bee = 1. / (1. + m_HXAi[1] / k0wXAi[1]);
+		
 		double dotkH = k0wXAi[0] * m_HXAi[0] + k0wXAi[1] * m_HXAi[1] + k0wXAi[2] * m_HXAi[2];
 		double Adev = (2.*dotkH + 1. / (m_dA*m_dA)) / (k0Ai*k0Ai);
 		complex<double> zeeC = 0.5*((1. - bee)*m_psi0c + bee*Adev);
@@ -900,60 +944,49 @@ public:
 		complex<double> x2C = (-zeeC - sqrqzC) / m_psimhc;
 		//complex<double> ph1C = 2.*pi*iC*k0Ai*del1C*(m_thicum*1.E+04)/gamma0;
 		//complex<double> ph2C = 2.*pi*iC*k0Ai*del2C*(m_thicum*1.E+04)/gamma0;
-		complex<double> aux_phC = 2.*pi*iC*k0Ai*(m_thicum*1.E+04) / gamma0;
+		complex<double> aux_phC = 2.*pi*iC*k0Ai*(m_thicum*1.E+04) / gamma0;//m_thicum goes to A
 		complex<double> ph1C = aux_phC*del1C;
 		complex<double> ph2C = aux_phC*del2C;
 
 		complex<double> DHsgC, Cph1C, Cph2C, D0trsC;
-		if(real(ph1C) > logDBMax) DHsgC = x2C;
-		else if(real(ph2C) > logDBMax) DHsgC = x1C;
-		else
-		{
-			Cph1C = exp(ph1C);
-			Cph2C = exp(ph2C);
-			DHsgC = x1C*x2C*(Cph2C - Cph1C)/(Cph2C*x2C - Cph1C*x1C);
-		}
-
-		//double re_ph1C = real(ph1C), re_ph2C = real(ph2C);
-		//if(re_ph1C > logDBMax) DHsgC = x2C;
-		//else if(re_ph2C > logDBMax) DHsgC = x1C;
-		//else
-		//{
-		//	if(re_ph1C < -logDBMax) 
-		//	{
-		//		Cph1C = complex<double>(0, 0);
-		//	}
-		//	else Cph1C = exp(ph1C);
-
-		//	if(re_ph2C < -logDBMax) 
-		//	{
-		//		Cph2C = complex<double>(0, 0);
-		//	}
-		//	else Cph2C = exp(ph2C);
-
-		//	if((re_ph1C < -logDBMax) && (re_ph2C < -logDBMax)) 
-		//	{
-		//		DHsgC = complex<double>(0, 0); //?
-		//	}
-		//	else DHsgC = x1C*x2C*(Cph2C - Cph1C)/(Cph2C*x2C - Cph1C*x1C);
-		//}
-
-		if(m_itrans == 1)
-		{
-			// calculate the complex reflectivity D0trsC of the transmitted beam. 
-			if(real(ph1C) > logDBMax)
+		Cph1C = exp(ph1C);
+		Cph2C = exp(ph2C);
+		
+		if(m_ug == 1) //Bragg cases ARF080519
+        	{
+            		//if(real(ph1C) > logDBMax) DHsgC = x2C;
+            		//else if(real(ph2C) > logDBMax) DHsgC = x1C;
+            		//else
+            		//{
+            		//    DHsgC = x1C * x2C * (Cph2C - Cph1C)/(Cph2C * x2C - Cph1C * x1C);
+            		//}
+            		DHsgC = x1C * x2C * (Cph2C - Cph1C)/(Cph2C * x2C - Cph1C * x1C);
+			
+			if(m_itrans == 1)
 			{
-				Cph2C = exp(ph2C);
-				D0trsC = -Cph2C*(x2C - x1C)/x1C;
+                		// calculate the complex reflectivity D0trsC of the transmitted beam. 
+                		//if(real(ph1C) > logDBMax)
+                		//{
+                		//    D0trsC = -Cph2C * (x2C - x1C)/x1C;
+                		//}
+                		//else if(real(ph2C) > logDBMax)
+                		//{
+                		//    D0trsC = +Cph1C * (x2C - x1C)/x2C;
+                		//}
+  			        //else D0trsC = Cph1C * Cph2C * (x2C - x1C)/(Cph2C * x2C - Cph1C * x1C);
+                		D0trsC = Cph1C * Cph2C * (x2C - x1C)/(Cph2C * x2C - Cph1C * x1C);
+            		}
+        	}        
+      		//ARF 080519 See Zachariansen
+        	else if(m_ug == 2) //Laue cases ARF080519
+        	{
+            		DHsgC = x1C * x2C * (Cph1C - Cph2C)/(x2C - x1C); //Laue Reflection
+            		// Transmission
+            		if(m_itrans == 1)
+            		{
+                		D0trsC = (Cph1C * x2C - Cph2C * x1C)/(x2C - x1C); // Laue Transmission
 			}
-			else if(real(ph2C) > logDBMax)
-			{
-				Cph1C = exp(ph1C);
-				D0trsC = +Cph1C*(x2C - x1C)/x2C;
-			}
-			else D0trsC = Cph1C*Cph2C*(x2C - x1C)/(Cph2C*x2C - Cph1C*x1C);
-		}
-
+        
 		// Calculate the complex reflectivity DHpiC for pi polarization: 
 		//cos2t = cos(2.*thBrd); //OC: moved to members m_cos2t
 		queC = bee*m_psihc*m_psimhc*m_cos2t*m_cos2t;
@@ -964,32 +997,44 @@ public:
 		x2C = (-zeeC - sqrqzC) / (m_psimhc*m_cos2t);
 		ph1C = 2.*pi*iC*k0Ai*del1C*(m_thicum*1.E+04) / gamma0;
 		ph2C = 2.*pi*iC*k0Ai*del2C*(m_thicum*1.E+04) / gamma0;
+		Cph1C = exp(ph1C);
+        	Cph2C = exp(ph2C);
 
 		complex<double> DHpiC, D0trpC;
-		if(real(ph1C) > logDBMax) DHpiC = x2C;
-		else if(real(ph2C) > logDBMax) DHpiC = x1C;
-		else
-		{
-			Cph1C = exp(ph1C);
-			Cph2C = exp(ph2C);
-			DHpiC = x1C*x2C*(Cph2C - Cph1C)/(Cph2C*x2C - Cph1C*x1C);
-		}
-
-		if(m_itrans == 1)
-		{
-			// calculate the complex reflectivity D0trpC of the transmitted beam. 
-			if (real(ph1C) > logDBMax)
-			{
-				Cph2C = exp(ph2C);
-				D0trpC = -Cph2C*(x2C - x1C)/x1C;
-			}
-			else if (real(ph2C) > logDBMax)
-			{
-				Cph1C = exp(ph1C);
-				D0trpC = +Cph1C*(x2C - x1C)/x2C;
-			}
-			else D0trpC = Cph1C*Cph2C*(x2C - x1C)/(Cph2C*x2C - Cph1C*x1C);
-		}
+		
+		if (m_ug == 1) //Bragg cases if introduced ARF080519
+        	{
+            		//if(real(ph1C) > logDBMax) DHpiC = x2C;
+            		//else if(real(ph2C) > logDBMax) DHpiC = x1C;
+            		//else
+            		//{
+            		//    DHpiC = x1C*x2C*(Cph2C - Cph1C)/(Cph2C*x2C - Cph1C*x1C);
+            		//}
+            		DHpiC = x1C*x2C*(Cph2C - Cph1C)/(Cph2C*x2C - Cph1C*x1C);
+            		if(m_itrans == 1)
+            		{
+		                // calculate the complex reflectivity D0trpC of the transmitted beam. 
+                	//if (real(ph1C) > logDBMax)
+                	//{
+                	//    D0trpC = -Cph2C*(x2C - x1C)/x1C;
+               		//}
+               		//else if (real(ph2C) > logDBMax)
+                	//{
+                	//    D0trpC = +Cph1C*(x2C - x1C)/x2C;
+                	//}
+                	//else D0trpC = Cph1C*Cph2C*(x2C - x1C)/(Cph2C*x2C - Cph1C*x1C);
+	                D0trpC = Cph1C*Cph2C*(x2C - x1C)/(Cph2C*x2C - Cph1C*x1C);
+        		}
+        	} 
+        	else if(m_ug == 2) //Laue cases ARF080519
+        	{
+            		DHpiC = x1C * x2C * (Cph1C - Cph2C)/(x2C - x1C); //Laue Reflection	
+        	 	//Transmission            
+            		if(m_itrans == 1)
+            		{
+                		D0trpC = (Cph1C * x2C - Cph2C*x1C)/(x2C - x1C); // Laue Transmission	
+			 }
+        	}
 
 		// Calculate the diffracted amplitudes: 
 		complex<double> EHSPCs = DHsgC*EInSPs;
@@ -1079,6 +1124,36 @@ public:
 			*(EPtrs.pEzRe) = (float)(Ety.real());
 			*(EPtrs.pEzIm) = (float)(Ety.imag());
 		}
+		
+		else if(m_uc == 3) //ARF08019:Laue Reflection LD
+		{
+			complex<double> Ehx = sgH[0]*EHSPCs + piH[0]*EHSPCp;
+			complex<double> Ehy = sgH[1]*EHSPCs + piH[1]*EHSPCp;
+			complex<double> Ehz = sgH[2]*EHSPCs + piH[2]*EHSPCp; //Longitudinal component not used (?)
+		
+			//Transverse components of the output electric field in the frame of the output beam:
+			*(EPtrs.pExRe) = (float)(asymFact*Ehx.real());
+			*(EPtrs.pExIm) = (float)(asymFact*Ehx.imag());
+			*(EPtrs.pEzRe) = (float)(asymFact*Ehy.real());
+			*(EPtrs.pEzIm) = (float)(asymFact*Ehy.imag());
+		}
+		else if(m_uc == 4) //ARF08019:Laue Transmission (i.e. Forward Bragg Diffraction (FLD))
+		{
+			//DEBUG
+			//complex<double> DHsgC_p_D0trsC = DHsgC + D0trsC;
+			//complex<double> DHsgCae2_p_D0trsCae2 = DHsgC.real()*DHsgC.real() + DHsgC.imag()*DHsgC.imag() + D0trsC.real()*D0trsC.real() + D0trsC.imag()*D0trsC.imag();
+			//END DEBUG
+
+			complex<double> Etx = m_InvPolTrn[0][0]*E0tSPs + m_InvPolTrn[0][1]*E0tSPp;
+			complex<double> Ety = m_InvPolTrn[1][0]*E0tSPs + m_InvPolTrn[1][1]*E0tSPp;
+		
+			//Transverse components of the output electric field in the frame of the output beam:
+			*(EPtrs.pExRe) = (float)(Etx.real());
+			*(EPtrs.pExIm) = (float)(Etx.imag());
+			*(EPtrs.pEzRe) = (float)(Ety.real());
+			*(EPtrs.pEzIm) = (float)(Ety.imag());
+		}
+
 
 		//OCTEST111014
 		//double testI1 = (*(EPtrs.pExRe))*(*(EPtrs.pExRe)) + (*(EPtrs.pExIm))*(*(EPtrs.pExIm)) + 
