@@ -53,7 +53,8 @@ AddCStringToHandle(						// Concatenates C string to handle.
 	char *theStr,
 	Handle theHand)
 {
-	return PtrAndHand(theStr, theHand, strlen(theStr));
+	//return PtrAndHand(theStr, theHand, strlen(theStr));
+	return WMPtrAndHand(theStr, theHand, strlen(theStr)); //OC13112019 (port to XOP8 on MAC)
 }
 
 //*************************************************************************
@@ -450,7 +451,8 @@ static int srVerNo(void* p_void)
     srUtiVerNo(cVersionStr);
 
 	long LenVersionStr = (long)strlen(cVersionStr);
-    Handle VersionStr = NewHandle(LenVersionStr);
+    //Handle VersionStr = NewHandle(LenVersionStr);
+    Handle VersionStr = WMNewHandle(LenVersionStr);  //OC13112019 (port to XOP 8 on MAC)
 	strncpy(*VersionStr, cVersionStr, LenVersionStr);
 	((srTIgorVersionStruct*)p_void)->result = VersionStr;
 	return 0;
@@ -935,12 +937,15 @@ static int srUtiUndFundPhotEn(void* p_void)
 
 struct srTIgorUtiRandGsnInputStruct {
     waveHndl wGsn;
-	DOUBLE meth;
-	DOUBLE init;
-	DOUBLE n;
+	//DOUBLE meth;
+	//DOUBLE init;
+	//DOUBLE n;
+	double meth, init, n; //OC26112019 (related to SRW port to IGOR XOP 8 on Mac)
+
     waveHndl wXcSig;
 
-	DOUBLE res; //first gsn number
+	//DOUBLE res; //first gsn number
+	double res; //OC26112019 (related to SRW port to IGOR XOP 8 on Mac)
 };
 static int srUtiRandGsn(void* p_void)
 {
@@ -994,12 +999,12 @@ static int srKn(void* p_void)
 //*************************************************************************
 
 struct srTIgorUtiIntKnXnInputStruct {
-	DOUBLE prec;
-	DOUBLE x2;
-	DOUBLE x1;
-	DOUBLE type;
-
-	DOUBLE res;
+	//DOUBLE prec;
+	//DOUBLE x2;
+	//DOUBLE x1;
+	//DOUBLE type;
+	//DOUBLE res;
+	double prec, x2, x1, type, res; //OC26112019 (related to SRW port to IGOR XOP 8 on Mac)
 };
 static int srUtiIntKnXn(void* p_void)
 {
@@ -1054,7 +1059,8 @@ struct srTIgorUtiTrfOptMir {
     waveHndl wVect;
     waveHndl wMatr;
 	waveHndl wPointAndAng;
-	DOUBLE d; //return
+	//DOUBLE d; //return
+	double d; //OC26112019 (related to SRW port to IGOR XOP 8 on Mac)
 };
 static int srUtiTrfOptMir(void* p_void)
 {

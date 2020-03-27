@@ -88,6 +88,8 @@ public:
 		return 0;
 	}
 
+	//int PropagateRadiationSimple(srTSRWRadStructAccessData* pRadAccessData, void* pBuf=0) //OC06092019
+	//OC01102019 (restored)
 	int PropagateRadiationSimple(srTSRWRadStructAccessData* pRadAccessData)
 	{
 		int result;
@@ -101,7 +103,8 @@ public:
 		return TraverseRad1D(pSect1D);
 	}
 
-	void RadPointModifier(srTEXZ& EXZ, srTEFieldPtrs& EPtrs)
+	void RadPointModifier(srTEXZ& EXZ, srTEFieldPtrs& EPtrs, void* pBufVars=0) //OC29082019
+	//void RadPointModifier(srTEXZ& EXZ, srTEFieldPtrs& EPtrs)
 	{// e in eV; Length in m !!!
 	 // Operates on Coord. side !!!
 		double xRel = EXZ.x - TransvCenPoint.x, zRel = EXZ.z - TransvCenPoint.y;
@@ -139,7 +142,9 @@ public:
 			*(EPtrs.pEzRe) = NewEzRe; *(EPtrs.pEzIm) = NewEzIm; 
 		}
 	}
-  	void RadPointModifier1D(srTEXZ& EXZ, srTEFieldPtrs& EPtrs)
+
+  	void RadPointModifier1D(srTEXZ& EXZ, srTEFieldPtrs& EPtrs, void* pBufVars=0) //OC06092019
+  	//void RadPointModifier1D(srTEXZ& EXZ, srTEFieldPtrs& EPtrs)
 	{// e in eV; Length in m !!!
 	 // Operates on Coord. side !!!
 		double xRel = EXZ.x - TransvCenPoint.x, zRel = EXZ.z - TransvCenPoint.y;

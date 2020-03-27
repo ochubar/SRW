@@ -62,7 +62,8 @@ class srTTrjDat : public srTGenTrjDat {
 	double** IntBtx2PlnCf;
 	double** IntBtz2PlnCf;
 
-	DOUBLE *IntBtxE2Arr, *IntBtzE2Arr;
+	//DOUBLE *IntBtxE2Arr, *IntBtzE2Arr;
+	double *IntBtxE2Arr, *IntBtzE2Arr; //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
 
 	//int m_estimMinNpForRadInteg; //OC220112
 	long long m_estimMinNpForRadInteg; //OC220112
@@ -201,7 +202,8 @@ public:
 	int ComputeInterpolatingStructureFromTrj(SRWLPrtTrj* pTrj);
 	int ComputeInterpolatingStructure_FromTrj1D(char x_or_z);
 	int ComputeInterpolatingStructureFromTrj1D(char x_or_z, const SRWLPrtTrj& trj);
-	inline void CoefsPol5thOrder(double h, DOUBLE* pf0, double* pCoef);
+	inline void CoefsPol5thOrder(double h, double* pf0, double* pCoef); //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
+	//inline void CoefsPol5thOrder(double h, DOUBLE* pf0, double* pCoef);
 
 	inline void CompCorrectionsForTrjDataDerived();
 
@@ -254,7 +256,8 @@ public:
 	inline void FindOffestAndRelArg(double Arg, srTWaveAccessDataD1D& TrjInData, long long& Offset, double& RelArg);
 	//inline void FindOffestAndRelArgFromTrj(double Arg, const SRWLPrtTrj& trj, long& Offset, double& RelArg);
 	inline void FindOffestAndRelArgFromTrj(double Arg, const SRWLPrtTrj& trj, long long& Offset, double& RelArg);
-	inline void InterpFuncAndDerivs(double h, double x, DOUBLE* pf0, double& f, double& dfdx, double& d2fdx2, double& d3fdx3);
+	inline void InterpFuncAndDerivs(double h, double x, double* pf0, double& f, double& dfdx, double& d2fdx2, double& d3fdx3); //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
+	//inline void InterpFuncAndDerivs(double h, double x, DOUBLE* pf0, double& f, double& dfdx, double& d2fdx2, double& d3fdx3);
 	inline int AllocateQuadPhaseTermsArrFromTrj();
 	inline int AllocateQuadPhaseTermsArrFromTrj(const SRWLPrtTrj& trj);
 	inline void DeallocateQuadPhaseTermsArr();
@@ -845,7 +848,8 @@ inline void srTTrjDat::TrjCoordAngField(double s, char x_or_z, double& x, double
 	double sr, d2xds2, d3xds3;
 	FindOffestAndRelArg(s, TrjInData, StartInd, sr);
 
-	DOUBLE *pfArr = TrjInData.pData + StartInd;
+	//DOUBLE *pfArr = TrjInData.pData + StartInd;
+	double *pfArr = TrjInData.pData + StartInd; //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
 	InterpFuncAndDerivs(TrjInData.Step, sr, pfArr, x, dxds, d2xds2, d3xds3);
 
 	B = d2xds2*InvBetaNormConst;
@@ -891,14 +895,16 @@ inline void srTTrjDat::CompTrjDataAndFieldWithDerAtPoint_FromTrj(char x_or_z, do
 inline void srTTrjDat::CompTrjDataAndFieldWithDerAtPoint_FromTrjInitial(char x_or_z, double s, double& dBds, double& B, double& Bt, double& Crd, double& IntBtE2)
 {// for computing SR from Trajectory
 	srTWaveAccessDataD1D &TrjInData = (x_or_z == 'x')? xTrjInData : zTrjInData; 
-	DOUBLE *pIntBtE2Arr = (x_or_z == 'x')? IntBtxE2Arr : IntBtzE2Arr; 
+	//DOUBLE *pIntBtE2Arr = (x_or_z == 'x')? IntBtxE2Arr : IntBtzE2Arr; 
+	double *pIntBtE2Arr = (x_or_z == 'x')? IntBtxE2Arr : IntBtzE2Arr; //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
 
 	//long StartInd;
 	long long StartInd;
 	double sr, d2xds2, d3xds3;
 	FindOffestAndRelArg(s, TrjInData, StartInd, sr);
 
-	DOUBLE *pfArr = TrjInData.pData + StartInd;
+	//DOUBLE *pfArr = TrjInData.pData + StartInd;
+	double *pfArr = TrjInData.pData + StartInd; //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
 	InterpFuncAndDerivs(TrjInData.Step, sr, pfArr, Crd, Bt, d2xds2, d3xds3);
 
 	B = d2xds2*InvBetaNormConst;
@@ -996,7 +1002,8 @@ inline void srTTrjDat::FindOffestAndRelArgFromTrj(double Arg, const SRWLPrtTrj& 
 
 //*************************************************************************
 
-inline void srTTrjDat::InterpFuncAndDerivs(double h, double x, DOUBLE* pf0, double& f, double& dfdx, double& d2fdx2, double& d3fdx3)
+inline void srTTrjDat::InterpFuncAndDerivs(double h, double x, double* pf0, double& f, double& dfdx, double& d2fdx2, double& d3fdx3) //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
+//inline void srTTrjDat::InterpFuncAndDerivs(double h, double x, DOUBLE* pf0, double& f, double& dfdx, double& d2fdx2, double& d3fdx3)
 {
 	double f0 = *pf0, f1 = *(pf0+1), f2 = *(pf0+2), f3 = *(pf0+3), f4 = *(pf0+4), f5 = *(pf0+5);
 
@@ -1026,7 +1033,8 @@ inline void srTTrjDat::InterpFuncAndDerivs(double h, double x, DOUBLE* pf0, doub
 
 //*************************************************************************
 
-inline void srTTrjDat::CoefsPol5thOrder(double h, DOUBLE* pf0, double* pCoef)
+inline void srTTrjDat::CoefsPol5thOrder(double h, double* pf0, double* pCoef) //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
+//inline void srTTrjDat::CoefsPol5thOrder(double h, DOUBLE* pf0, double* pCoef)
 {
 	double f0 = *pf0, f1 = *(pf0+1), f2 = *(pf0+2), f3 = *(pf0+3), f4 = *(pf0+4), f5 = *(pf0+5);
 
@@ -1053,9 +1061,11 @@ inline int srTTrjDat::AllocateQuadPhaseTermsArrFromTrj()
 	DeallocateQuadPhaseTermsArr();
 	if((xTrjInData.pData == 0) || (zTrjInData.pData == 0)) return TRJ_CMPN_WERE_NOT_SETUP;
 
-	IntBtxE2Arr = new DOUBLE[xTrjInData.np];
+	//IntBtxE2Arr = new DOUBLE[xTrjInData.np];
+	IntBtxE2Arr = new double[xTrjInData.np]; //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
 	if(IntBtxE2Arr == 0) return MEMORY_ALLOCATION_FAILURE;
-	IntBtzE2Arr = new DOUBLE[zTrjInData.np];
+	//IntBtzE2Arr = new DOUBLE[zTrjInData.np];
+	IntBtzE2Arr = new double[zTrjInData.np]; //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
 	if(IntBtzE2Arr == 0) return MEMORY_ALLOCATION_FAILURE;
 	return 0;
 }
@@ -1066,9 +1076,11 @@ inline int srTTrjDat::AllocateQuadPhaseTermsArrFromTrj(const SRWLPrtTrj& trj)
 {
 	DeallocateQuadPhaseTermsArr();
 
-	IntBtxE2Arr = new DOUBLE[trj.np];
+	//IntBtxE2Arr = new DOUBLE[trj.np];
+	IntBtxE2Arr = new double[trj.np]; //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
 	if(IntBtxE2Arr == 0) return MEMORY_ALLOCATION_FAILURE;
-	IntBtzE2Arr = new DOUBLE[trj.np];
+	//IntBtzE2Arr = new DOUBLE[trj.np];
+	IntBtzE2Arr = new double[trj.np]; //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
 	if(IntBtzE2Arr == 0) return MEMORY_ALLOCATION_FAILURE;
 	return 0;
 }

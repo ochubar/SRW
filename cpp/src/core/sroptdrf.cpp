@@ -346,17 +346,31 @@ int srTDriftSpace::PropagateRadiationMeth_1(srTSRWRadStructAccessData* pRadAcces
 
 //*************************************************************************
 
+//int srTDriftSpace::PropagateRadiationSimple_PropToWaist(srTSRWRadStructAccessData* pRadAccessData, srTDriftPropBufVars* pBufVars) //OC06092019
+//OC01102019 (restored)
 int srTDriftSpace::PropagateRadiationSimple_PropToWaist(srTSRWRadStructAccessData* pRadAccessData)
 {// e in eV; Length in m !!!
 	int result;
 
 	pRadAccessData->SetNonZeroWavefrontLimitsToFullRange(); //OCtest271214
 
-	SetupPropBufVars_PropToWaist(pRadAccessData);
+	srTDriftPropBufVars BufVars; //OC29082019
+	//if(pBufVars == 0) pBufVars = &BufVars; //OC06092019
+	//SetupPropBufVars_PropToWaist(pRadAccessData, pBufVars); //OC06092019
+	//OC01102019 (restored)
+	SetupPropBufVars_PropToWaist(pRadAccessData, &BufVars);
+	//SetupPropBufVars_PropToWaist(pRadAccessData);
+
 	if(pRadAccessData->Pres != 0) if(result = SetRadRepres(pRadAccessData, 0)) return result;
 
-	PropBufVars.PassNo = 1;
-	if(result = TraverseRadZXE(pRadAccessData)) return result;
+	//pBufVars->PassNo = 1; //OC06092019
+	//OC01102019 (restored)
+	BufVars.PassNo = 1;
+	//PropBufVars.PassNo = 1;
+	//if(result = TraverseRadZXE(pRadAccessData, pBufVars)) return result; //OC06092019
+	//OC01102019 (restored)
+	if(result = TraverseRadZXE(pRadAccessData, &BufVars)) return result; //OC29082019
+	//if(result = TraverseRadZXE(pRadAccessData)) return result;
 
 	//OC240114 (commented-out)
 	//if(result = ResizeBeforePropToWaistIfNecessary(pRadAccessData)) return result;
@@ -386,10 +400,26 @@ int srTDriftSpace::PropagateRadiationSimple_PropToWaist(srTSRWRadStructAccessDat
 	srTDataPtrsForWfrEdgeCorr DataPtrsForWfrEdgeCorr;
 	if(result = SetupWfrEdgeCorrData(pRadAccessData, pRadAccessData->pBaseRadX, pRadAccessData->pBaseRadZ, DataPtrsForWfrEdgeCorr)) return result;
 
+#if !defined(_FFTW3) && defined(_WITH_OMP) //OC29082019
+	if(m_frwPlan2DFFT != 0)
+	{
+		FFT2DInfo.pData = pRadAccessData->pBaseRadX;
+		if(result = FFT2D.Make2DFFT(FFT2DInfo, &m_frwPlan2DFFT)) return result;
+		FFT2DInfo.pData = pRadAccessData->pBaseRadZ;
+		if(result = FFT2D.Make2DFFT(FFT2DInfo, &m_frwPlan2DFFT)) return result;
+	}
+#else
+//OCTEST01102019: commented-out the above (to see if this will fix problem of TD calcs)
 	FFT2DInfo.pData = pRadAccessData->pBaseRadX;
 	if(result = FFT2D.Make2DFFT(FFT2DInfo)) return result;
 	FFT2DInfo.pData = pRadAccessData->pBaseRadZ;
 	if(result = FFT2D.Make2DFFT(FFT2DInfo)) return result;
+#endif
+
+	//FFT2DInfo.pData = pRadAccessData->pBaseRadX;
+	//if(result = FFT2D.Make2DFFT(FFT2DInfo)) return result;
+	//FFT2DInfo.pData = pRadAccessData->pBaseRadZ;
+	//if(result = FFT2D.Make2DFFT(FFT2DInfo)) return result;
 
 	//To remove this?
 	if(DataPtrsForWfrEdgeCorr.WasSetup)
@@ -407,8 +437,14 @@ int srTDriftSpace::PropagateRadiationSimple_PropToWaist(srTSRWRadStructAccessDat
 	pRadAccessData->xStep = FFT2DInfo.xStepTr*LambdaM_Length;
 	pRadAccessData->zStep = FFT2DInfo.yStepTr*LambdaM_Length;
 
-	PropBufVars.PassNo = 2;
-	if(result = TraverseRadZXE(pRadAccessData)) return result;
+	//pBufVars->PassNo = 2; //OC06092019
+	//OC01102019 (restored)
+	BufVars.PassNo = 2; //OC30082019
+	//PropBufVars.PassNo = 2;
+	//if(result = TraverseRadZXE(pRadAccessData, pBufVars)) return result; //OC06092019
+	//OC01102019 (restored)
+	if(result = TraverseRadZXE(pRadAccessData, &BufVars)) return result; //OC30082019
+	//if(result = TraverseRadZXE(pRadAccessData)) return result;
 
 	pRadAccessData->UnderSamplingX = 1; // Assuming successful propagation to waist
 	pRadAccessData->UnderSamplingZ = 1;
@@ -417,17 +453,125 @@ int srTDriftSpace::PropagateRadiationSimple_PropToWaist(srTSRWRadStructAccessDat
 }
 
 //*************************************************************************
+int srTDriftSpace::PropagateRadiationSimple_PropToWaistBeyondParax(srTSRWRadStructAccessData* pRadAccessData) //OC10112019
+{// e in eV; Length in m !!!
+	int result = 0;
 
+	pRadAccessData->SetNonZeroWavefrontLimitsToFullRange(); //not necessary?
+
+	srTDriftPropBufVars BufVars;
+	SetupPropBufVars_PropToWaistBeyondParax(pRadAccessData, &BufVars);
+
+	if(pRadAccessData->Pres != 0) if(result = SetRadRepres(pRadAccessData, 0)) return result;
+
+	pRadAccessData->TreatQuadPhaseTerm('r');  //OC17122019
+	//pRadAccessData->TreatQuadPhaseTermTerm('r');
+
+	double xcOrig = pRadAccessData->xc, zcOrig = pRadAccessData->zc;
+	double InvLambdaM = (pRadAccessData->eStart)*806546.577258;
+	double InvLambdaM_d_Rx = InvLambdaM/(pRadAccessData->RobsX);
+	double InvLambdaM_d_Rz = InvLambdaM/(pRadAccessData->RobsZ);
+	pRadAccessData->xStep *= InvLambdaM_d_Rx;
+	pRadAccessData->zStep *= InvLambdaM_d_Rz;
+	pRadAccessData->xStart = (pRadAccessData->xStart - xcOrig)*InvLambdaM_d_Rx;
+	pRadAccessData->zStart = (pRadAccessData->zStart - zcOrig)*InvLambdaM_d_Rz;
+	if(result = TraverseRadZXE(pRadAccessData, &BufVars)) return result;
+
+	CGenMathFFT2DInfo FFT2DInfo;
+	FFT2DInfo.xStep = pRadAccessData->xStep;
+	FFT2DInfo.yStep = pRadAccessData->zStep;
+	FFT2DInfo.xStart = pRadAccessData->xStart;
+	FFT2DInfo.yStart = pRadAccessData->zStart;
+	FFT2DInfo.Nx = pRadAccessData->nx;
+	FFT2DInfo.Ny = pRadAccessData->nz;
+	FFT2DInfo.Dir = -1;
+	FFT2DInfo.UseGivenStartTrValues = 0;
+
+	CGenMathFFT2D FFT2D;
+
+	//To remove this?
+	srTDataPtrsForWfrEdgeCorr DataPtrsForWfrEdgeCorr;
+	if(result = SetupWfrEdgeCorrData(pRadAccessData, pRadAccessData->pBaseRadX, pRadAccessData->pBaseRadZ, DataPtrsForWfrEdgeCorr)) return result;
+
+#if !defined(_FFTW3) && defined(_WITH_OMP) //OC29082019
+	if(m_frwPlan2DFFT != 0)
+	{
+		FFT2DInfo.pData = pRadAccessData->pBaseRadX;
+		if(result = FFT2D.Make2DFFT(FFT2DInfo, &m_frwPlan2DFFT)) return result;
+		FFT2DInfo.pData = pRadAccessData->pBaseRadZ;
+		if(result = FFT2D.Make2DFFT(FFT2DInfo, &m_frwPlan2DFFT)) return result;
+	}
+#else
+//OCTEST01102019: commented-out the above (to see if this will fix problem of TD calcs)
+	FFT2DInfo.pData = pRadAccessData->pBaseRadX;
+	if(result = FFT2D.Make2DFFT(FFT2DInfo)) return result;
+	FFT2DInfo.pData = pRadAccessData->pBaseRadZ;
+	if(result = FFT2D.Make2DFFT(FFT2DInfo)) return result;
+#endif
+
+	//To remove this?
+	if(DataPtrsForWfrEdgeCorr.WasSetup)
+	{
+		MakeWfrEdgeCorrection(pRadAccessData, pRadAccessData->pBaseRadX, pRadAccessData->pBaseRadZ, DataPtrsForWfrEdgeCorr);
+		DataPtrsForWfrEdgeCorr.DisposeData();
+	}
+
+	//Perform Electric Field data mirroring, if necessary
+	int sx=1, sz=1;
+	double xStartNew = FFT2DInfo.xStartTr + xcOrig;
+	double xStepNew = FFT2DInfo.xStepTr;
+	double zStartNew = FFT2DInfo.yStartTr + zcOrig;
+	double zStepNew = FFT2DInfo.yStepTr;
+	if(FFT2DInfo.xStepTr < 0)
+	{
+		sx = -1;
+		xStartNew = -FFT2DInfo.xStartTr + xcOrig; //?
+		xStepNew = -FFT2DInfo.xStepTr;
+	}
+	if(FFT2DInfo.yStepTr < 0)
+	{
+		sz = -1;
+		zStartNew = -FFT2DInfo.yStartTr + zcOrig; //?
+		zStepNew = -FFT2DInfo.yStepTr;
+	}
+	if((sx < 0) || (sz < 0)) pRadAccessData->MirrorFieldData(sx, sz);
+
+	//Updating mesh parameters
+	pRadAccessData->xStart = xStartNew;
+	pRadAccessData->zStart = zStartNew;
+	pRadAccessData->xStep = xStepNew;
+	pRadAccessData->zStep = zStepNew;
+
+	return 0;
+}
+
+//*************************************************************************
+
+//int srTDriftSpace::PropagateRadiationSimple_PropFromWaist(srTSRWRadStructAccessData* pRadAccessData, srTDriftPropBufVars* pBufVars) //OC06092019
+//OC01102019 (restored)
 int srTDriftSpace::PropagateRadiationSimple_PropFromWaist(srTSRWRadStructAccessData* pRadAccessData)
 {//Should be very similar to PropagateRadiationSimple_PropToWaist, consider merging
 	int result = 0;
 	
-	SetupPropBufVars_PropFromWaist(pRadAccessData);
+	srTDriftPropBufVars BufVars; //OC29082019
+	//if(pBufVars == 0) pBufVars = &BufVars; //OC06092019
+	//SetupPropBufVars_PropFromWaist(pRadAccessData, pBufVars); //OC06092019
+	//OC01102019 (restored)
+	SetupPropBufVars_PropFromWaist(pRadAccessData, &BufVars);
+	//SetupPropBufVars_PropFromWaist(pRadAccessData);
 	if(pRadAccessData->Pres != 0) if(result = SetRadRepres(pRadAccessData, 0)) return result;
 
-	LocalPropMode = 2; // prop. from waist
-	PropBufVars.PassNo = 1;
-	if(result = TraverseRadZXE(pRadAccessData)) return result;
+	//OC30082019: commented-out: not needed here, since it is set in ChooseLocalPropMode(...); is it thread-safe?
+	//LocalPropMode = 2; // prop. from waist
+
+	//PropBufVars.PassNo = 1;
+	//if(result = TraverseRadZXE(pRadAccessData)) return result;
+	//OC01102019 (restored)
+	BufVars.PassNo = 1;
+	if(result = TraverseRadZXE(pRadAccessData, &BufVars)) return result;
+	//OC06092019
+	//pBufVars->PassNo = 1;
+	//if(result = TraverseRadZXE(pRadAccessData, pBufVars)) return result;
 
 	double InvLambda_m = pRadAccessData->eStart*806546.577258;
 	double InvLambda_m_d_Length = InvLambda_m/Length;
@@ -444,36 +588,63 @@ int srTDriftSpace::PropagateRadiationSimple_PropFromWaist(srTSRWRadStructAccessD
 	FFT2DInfo.UseGivenStartTrValues = 0;
 
 	//OCTEST (commented-out "edge correction")
-	//srTDataPtrsForWfrEdgeCorr DataPtrsForWfrEdgeCorr;
-	//if(result = SetupWfrEdgeCorrData(pRadAccessData, pRadAccessData->pBaseRadX, pRadAccessData->pBaseRadZ, DataPtrsForWfrEdgeCorr)) return result;
+	//OC01102019 (uncommented)
+	srTDataPtrsForWfrEdgeCorr DataPtrsForWfrEdgeCorr;
+	if(result = SetupWfrEdgeCorrData(pRadAccessData, pRadAccessData->pBaseRadX, pRadAccessData->pBaseRadZ, DataPtrsForWfrEdgeCorr)) return result;
 
 	CGenMathFFT2D FFT2D;
+
+	//OC01102019 (commented-out)
+	//FFT2DInfo.pData = pRadAccessData->pBaseRadX;
+	//if(result = FFT2D.Make2DFFT(FFT2DInfo)) return result;
+	//FFT2DInfo.pData = pRadAccessData->pBaseRadZ;
+	//if(result = FFT2D.Make2DFFT(FFT2DInfo)) return result;
+
+#if !defined(_FFTW3) && defined(_WITH_OMP) //OC01102019
+	if(m_frwPlan2DFFT != 0)
+	{
+		FFT2DInfo.pData = pRadAccessData->pBaseRadX;
+		if(result = FFT2D.Make2DFFT(FFT2DInfo, &m_frwPlan2DFFT)) return result;
+		FFT2DInfo.pData = pRadAccessData->pBaseRadZ;
+		if(result = FFT2D.Make2DFFT(FFT2DInfo, &m_frwPlan2DFFT)) return result;
+	}
+#else
 	FFT2DInfo.pData = pRadAccessData->pBaseRadX;
 	if(result = FFT2D.Make2DFFT(FFT2DInfo)) return result;
 	FFT2DInfo.pData = pRadAccessData->pBaseRadZ;
 	if(result = FFT2D.Make2DFFT(FFT2DInfo)) return result;
+#endif
 
 	//OCTEST (commented-out "edge correction")
-	//if(DataPtrsForWfrEdgeCorr.WasSetup)
-	//{
-	//	MakeWfrEdgeCorrection(pRadAccessData, pRadAccessData->pBaseRadX, pRadAccessData->pBaseRadZ, DataPtrsForWfrEdgeCorr);
-	//	DataPtrsForWfrEdgeCorr.DisposeData();
-	//}
+	//OC01102019 (uncommented)
+	if(DataPtrsForWfrEdgeCorr.WasSetup)
+	{
+		MakeWfrEdgeCorrection(pRadAccessData, pRadAccessData->pBaseRadX, pRadAccessData->pBaseRadZ, DataPtrsForWfrEdgeCorr);
+		DataPtrsForWfrEdgeCorr.DisposeData();
+	}
 
-// Re-scaling
+	//Re-scaling
 	pRadAccessData->xStart = (FFT2DInfo.xStartTr)*LambdaM_Length;
 	pRadAccessData->zStart = (FFT2DInfo.yStartTr)*LambdaM_Length;
 	pRadAccessData->xStep = FFT2DInfo.xStepTr*LambdaM_Length;
 	pRadAccessData->zStep = FFT2DInfo.yStepTr*LambdaM_Length;
 
-	PropBufVars.PassNo = 2;
-	if(result = TraverseRadZXE(pRadAccessData)) return result;
+	//PropBufVars.PassNo = 2;
+	//if(result = TraverseRadZXE(pRadAccessData)) return result;
+	//OC01102019 (restored)
+	BufVars.PassNo = 2;
+	if(result = TraverseRadZXE(pRadAccessData, &BufVars)) return result;
+	//OC06092019
+	//pBufVars->PassNo = 2;
+	//if(result = TraverseRadZXE(pRadAccessData, pBufVars)) return result;
 
 	return result;
 }
 
 //*************************************************************************
 
+//int srTDriftSpace::PropagateRadiationSimple_AnalytTreatQuadPhaseTerm(srTSRWRadStructAccessData* pRadAccessData, srTDriftPropBufVars* pBufVars) //OC06092019
+//OC01102019 (restored)
 int srTDriftSpace::PropagateRadiationSimple_AnalytTreatQuadPhaseTerm(srTSRWRadStructAccessData* pRadAccessData)
 {// e in eV; Length in m !!!
 	int result = 0;
@@ -482,7 +653,13 @@ int srTDriftSpace::PropagateRadiationSimple_AnalytTreatQuadPhaseTerm(srTSRWRadSt
 	//double start;
 	//get_walltime(&start);
 
-	SetupPropBufVars_AnalytTreatQuadPhaseTerm(pRadAccessData);
+	srTDriftPropBufVars BufVars; //OC30082019
+	//if(pBufVars == 0) pBufVars = &BufVars; //OC06092019
+
+	//OC01102019 (restored)
+	SetupPropBufVars_AnalytTreatQuadPhaseTerm(pRadAccessData, &BufVars);
+	//SetupPropBufVars_AnalytTreatQuadPhaseTerm(pRadAccessData, pBufVars); //OC06092019
+	//SetupPropBufVars_AnalytTreatQuadPhaseTerm(pRadAccessData);
 
 	//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
 	//srwlPrintTime(":PropagateRadiationSimple_AnalytTreatQuadPhaseTerm:SetupPropBufVars_AnalytTreatQuadPhaseTerm",&start);
@@ -492,8 +669,14 @@ int srTDriftSpace::PropagateRadiationSimple_AnalytTreatQuadPhaseTerm(srTSRWRadSt
 	//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
 	//srwlPrintTime(":PropagateRadiationSimple_AnalytTreatQuadPhaseTerm:SetRadRepres 1",&start);
 
-	PropBufVars.PassNo = 1; //Remove quadratic term from the Phase in coord. repres.
-	if(result = TraverseRadZXE(pRadAccessData)) return result;
+	//pBufVars->PassNo = 1; //OC06092019
+	//OC01102019 (restored)
+	BufVars.PassNo = 1; //OC30082019
+	//PropBufVars.PassNo = 1; //Remove quadratic term from the Phase in coord. repres.
+	//if(result = TraverseRadZXE(pRadAccessData, pBufVars)) return result; //OC06092019
+	//OC01102019 (restored)
+	if(result = TraverseRadZXE(pRadAccessData, &BufVars)) return result; //OC30082019
+	//if(result = TraverseRadZXE(pRadAccessData)) return result;
 
 	//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
 	//srwlPrintTime(":PropagateRadiationSimple_AnalytTreatQuadPhaseTerm:TraverseRadZXE 1",&start);
@@ -516,8 +699,14 @@ int srTDriftSpace::PropagateRadiationSimple_AnalytTreatQuadPhaseTerm(srTSRWRadSt
 	//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
 	//srwlPrintTime(":PropagateRadiationSimple_AnalytTreatQuadPhaseTerm:SetRadRepres 2",&start);
 
-	PropBufVars.PassNo = 2; //Loop in angular repres.
-	if(result = TraverseRadZXE(pRadAccessData)) return result;
+	//pBufVars->PassNo = 2; //OC06092019
+	//OC01102019 (restored)
+	BufVars.PassNo = 2; //OC30082019
+	//PropBufVars.PassNo = 2; //Loop in angular repres.
+	//if(result = TraverseRadZXE(pRadAccessData, pBufVars)) return result; //OC06092019
+	//OC01102019 (restored)
+	if(result = TraverseRadZXE(pRadAccessData, &BufVars)) return result; //OC30082019
+	//if(result = TraverseRadZXE(pRadAccessData)) return result;
 
 	//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
 	//srwlPrintTime(":PropagateRadiationSimple_AnalytTreatQuadPhaseTerm:TraverseRadZXE 2",&start);
@@ -544,36 +733,63 @@ int srTDriftSpace::PropagateRadiationSimple_AnalytTreatQuadPhaseTerm(srTSRWRadSt
 	//double kx = (pRadAccessData->RobsX + Length)/pRadAccessData->RobsX;
 	//pRadAccessData->xStart = kx*(pRadAccessData->xStart) - (Length/pRadAccessData->RobsX)*(pRadAccessData->xc);
 	//pRadAccessData->xStep *= kx;
-	pRadAccessData->xStart = PropBufVars.kx_AnalytTreatQuadPhaseTerm*(pRadAccessData->xStart) - PropBufVars.kxc_AnalytTreatQuadPhaseTerm*(pRadAccessData->xc);
-	pRadAccessData->xStep *= PropBufVars.kx_AnalytTreatQuadPhaseTerm;
+	//pRadAccessData->xStart = PropBufVars.kx_AnalytTreatQuadPhaseTerm*(pRadAccessData->xStart) - PropBufVars.kxc_AnalytTreatQuadPhaseTerm*(pRadAccessData->xc);
+	//pRadAccessData->xStep *= PropBufVars.kx_AnalytTreatQuadPhaseTerm;
+	//OC01102019
+	pRadAccessData->xStart = BufVars.kx_AnalytTreatQuadPhaseTerm*(pRadAccessData->xStart) - BufVars.kxc_AnalytTreatQuadPhaseTerm*(pRadAccessData->xc);
+	pRadAccessData->xStep *= BufVars.kx_AnalytTreatQuadPhaseTerm;
+	//OC06092019
+	//pRadAccessData->xStart = (pBufVars->kx_AnalytTreatQuadPhaseTerm)*(pRadAccessData->xStart) - (pBufVars->kxc_AnalytTreatQuadPhaseTerm)*(pRadAccessData->xc);
+	//pRadAccessData->xStep *= pBufVars->kx_AnalytTreatQuadPhaseTerm;
 
 	//double kz = (pRadAccessData->RobsZ + Length)/pRadAccessData->RobsZ;
 	//pRadAccessData->zStart = kz*(pRadAccessData->zStart) - (Length/pRadAccessData->RobsZ)*(pRadAccessData->zc);
 	//pRadAccessData->zStep *= kz;
-	pRadAccessData->zStart = PropBufVars.kz_AnalytTreatQuadPhaseTerm*(pRadAccessData->zStart) - PropBufVars.kzc_AnalytTreatQuadPhaseTerm*(pRadAccessData->zc);
-	pRadAccessData->zStep *= PropBufVars.kz_AnalytTreatQuadPhaseTerm;
+	//pRadAccessData->zStart = PropBufVars.kz_AnalytTreatQuadPhaseTerm*(pRadAccessData->zStart) - PropBufVars.kzc_AnalytTreatQuadPhaseTerm*(pRadAccessData->zc);
+	//pRadAccessData->zStep *= PropBufVars.kz_AnalytTreatQuadPhaseTerm;
+	//OC01102019
+	pRadAccessData->zStart = BufVars.kz_AnalytTreatQuadPhaseTerm*(pRadAccessData->zStart) - BufVars.kzc_AnalytTreatQuadPhaseTerm*(pRadAccessData->zc);
+	pRadAccessData->zStep *= BufVars.kz_AnalytTreatQuadPhaseTerm;
+	//OC06092019
+	//pRadAccessData->zStart = (pBufVars->kz_AnalytTreatQuadPhaseTerm)*(pRadAccessData->zStart) - (pBufVars->kzc_AnalytTreatQuadPhaseTerm)*(pRadAccessData->zc);
+	//pRadAccessData->zStep *= pBufVars->kz_AnalytTreatQuadPhaseTerm;
 
-	PropBufVars.PassNo = 3; //Add new quadratic term to the Phase in coord. repres.
-	if(result = TraverseRadZXE(pRadAccessData)) return result;
+	//pBufVars->PassNo = 3; //OC06092019
+	//OC01102019 (restored)
+	BufVars.PassNo = 3; //OC30082019
+	//PropBufVars.PassNo = 3; //Add new quadratic term to the Phase in coord. repres.
+	//if(result = TraverseRadZXE(pRadAccessData, pBufVars)) return result; //OC06092019
+	//OC01102019 (restored)
+	if(result = TraverseRadZXE(pRadAccessData, &BufVars)) return result; //OC30082019
+	//if(result = TraverseRadZXE(pRadAccessData)) return result;
 
 	//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
 	//srwlPrintTime(":PropagateRadiationSimple_AnalytTreatQuadPhaseTerm:TraverseRadZXE 3",&start);
 
 	//pRadAccessData->MirrorFieldData(sign(kx), sign(kz));
-	pRadAccessData->MirrorFieldData((int)sign(PropBufVars.kx_AnalytTreatQuadPhaseTerm), (int)sign(PropBufVars.kz_AnalytTreatQuadPhaseTerm));
+	//pRadAccessData->MirrorFieldData((int)sign(pBufVars->kx_AnalytTreatQuadPhaseTerm), (int)sign(pBufVars->kz_AnalytTreatQuadPhaseTerm)); //OC06092019
+	//OC01102019 (restored)
+	pRadAccessData->MirrorFieldData((int)sign(BufVars.kx_AnalytTreatQuadPhaseTerm), (int)sign(BufVars.kz_AnalytTreatQuadPhaseTerm)); //OC30082019
+	//pRadAccessData->MirrorFieldData((int)sign(PropBufVars.kx_AnalytTreatQuadPhaseTerm), (int)sign(PropBufVars.kz_AnalytTreatQuadPhaseTerm));
 
 	//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
 	//srwlPrintTime(":PropagateRadiationSimple_AnalytTreatQuadPhaseTerm:MirrorFieldData",&start);
 
 	//if(kx < 0)
-	if(PropBufVars.kx_AnalytTreatQuadPhaseTerm < 0)
+	//if((pBufVars->kx_AnalytTreatQuadPhaseTerm) < 0) //OC06092019
+	//OC01102019 (restored)
+	if(BufVars.kx_AnalytTreatQuadPhaseTerm < 0) //OC30082019
+	//if(PropBufVars.kx_AnalytTreatQuadPhaseTerm < 0)
 	{
 		double xEnd = pRadAccessData->xStart + (pRadAccessData->nx - 1)*pRadAccessData->xStep; //or nx ???
 		pRadAccessData->xStart = xEnd;
 		pRadAccessData->xStep *= -1;
 	}
 	//if(kz < 0)
-	if(PropBufVars.kz_AnalytTreatQuadPhaseTerm < 0)
+	//if((pBufVars->kz_AnalytTreatQuadPhaseTerm) < 0) //OC06092019
+	//OC01102019 (restored)
+	if(BufVars.kz_AnalytTreatQuadPhaseTerm < 0) //OC30082019
+	//if(PropBufVars.kz_AnalytTreatQuadPhaseTerm < 0)
 	{
 		double zEnd = pRadAccessData->zStart + (pRadAccessData->nz - 1)*pRadAccessData->zStep; //or nz ???
 		pRadAccessData->zStart = zEnd;
@@ -586,27 +802,40 @@ int srTDriftSpace::PropagateRadiationSimple_AnalytTreatQuadPhaseTerm(srTSRWRadSt
 
 //*************************************************************************
 
-void srTDriftSpace::SetupPropBufVars_AnalytTreatQuadPhaseTerm(srTSRWRadStructAccessData* pRadAccessData)
+void srTDriftSpace::SetupPropBufVars_AnalytTreatQuadPhaseTerm(srTSRWRadStructAccessData* pRadAccessData, srTDriftPropBufVars* pBufVars) //OC30082019
+//void srTDriftSpace::SetupPropBufVars_AnalytTreatQuadPhaseTerm(srTSRWRadStructAccessData* pRadAccessData)
 {// Compute any necessary buf. vars
 
 	//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
 	//double start;
 	//get_walltime(&start);
 
-	PropBufVars.xc = pRadAccessData->xc;
-	PropBufVars.zc = pRadAccessData->zc;
-	PropBufVars.invRx = PropBufVars.invRz = 0;
-	PropBufVars.Pi_d_LambdaM_d_Rx = PropBufVars.Pi_d_LambdaM_d_Rz = 0;
-	PropBufVars.Lx = PropBufVars.Lz = 0;
-	PropBufVars.invRxL = PropBufVars.invRzL = 1./Length;
+	//PropBufVars.xc = pRadAccessData->xc;
+	//PropBufVars.zc = pRadAccessData->zc;
+	//PropBufVars.invRx = PropBufVars.invRz = 0;
+	//PropBufVars.Pi_d_LambdaM_d_Rx = PropBufVars.Pi_d_LambdaM_d_Rz = 0;
+	//PropBufVars.Lx = PropBufVars.Lz = 0;
+	//PropBufVars.invRxL = PropBufVars.invRzL = 1./Length;
+	//OC30082019
+	pBufVars->xc = pRadAccessData->xc;
+	pBufVars->zc = pRadAccessData->zc;
+	pBufVars->invRx = pBufVars->invRz = 0;
+	pBufVars->Pi_d_LambdaM_d_Rx = pBufVars->Pi_d_LambdaM_d_Rz = 0;
+	pBufVars->Lx = pBufVars->Lz = 0;
+	pBufVars->invRxL = pBufVars->invRzL = 1./Length;
 
 	const double infLarge = 1E+23;
 	double Pi_d_LambdaM = pRadAccessData->eStart*2.53384080189E+06;
 
-	PropBufVars.kx_AnalytTreatQuadPhaseTerm = infLarge;
-	PropBufVars.kxc_AnalytTreatQuadPhaseTerm = infLarge;
-	PropBufVars.kz_AnalytTreatQuadPhaseTerm = infLarge;
-	PropBufVars.kzc_AnalytTreatQuadPhaseTerm = infLarge;
+	//PropBufVars.kx_AnalytTreatQuadPhaseTerm = infLarge;
+	//PropBufVars.kxc_AnalytTreatQuadPhaseTerm = infLarge;
+	//PropBufVars.kz_AnalytTreatQuadPhaseTerm = infLarge;
+	//PropBufVars.kzc_AnalytTreatQuadPhaseTerm = infLarge;
+	//OC30082019
+	pBufVars->kx_AnalytTreatQuadPhaseTerm = infLarge;
+	pBufVars->kxc_AnalytTreatQuadPhaseTerm = infLarge;
+	pBufVars->kz_AnalytTreatQuadPhaseTerm = infLarge;
+	pBufVars->kzc_AnalytTreatQuadPhaseTerm = infLarge;
 
 	//double Lx_eff_max, Lz_eff_max, trueRx, trueRz;
 	//EstimateTrueWfrRadAndMaxLeff_AnalytTreatQuadPhaseTerm(pRadAccessData, trueRx, trueRz, Lx_eff_max, Lz_eff_max);
@@ -619,9 +848,13 @@ void srTDriftSpace::SetupPropBufVars_AnalytTreatQuadPhaseTerm(srTSRWRadStructAcc
 	//OC151014 (commented-out for complicance with steady-state simulations for IXS at EXFEL)
 
 	//testOC30092011
-	if(!PropBufVars.UseExactRxRzForAnalytTreatQuadPhaseTerm)
+	//if(!pBufVars->UseExactRxRzForAnalytTreatQuadPhaseTerm) //OC30082019
+	if(!UseExactRxRzForAnalytTreatQuadPhaseTerm) //OC01102019
+	//if(!PropBufVars.UseExactRxRzForAnalytTreatQuadPhaseTerm)
 	{
-		if(PropBufVars.AnalytTreatSubType == 1) 
+		//if(pBufVars->AnalytTreatSubType == 1) //OC30082019
+		if(AnalytTreatSubType == 1) //OC01102019
+		//if(PropBufVars.AnalytTreatSubType == 1) 
 		{
 			EstimateWfrRadToSub_AnalytTreatQuadPhaseTerm(pRadAccessData, trueRx, trueRz);
 
@@ -629,7 +862,9 @@ void srTDriftSpace::SetupPropBufVars_AnalytTreatQuadPhaseTerm(srTSRWRadStructAcc
 			//srwlPrintTime(":SetupPropBufVars_AnalytTreatQuadPhaseTerm:EstimateWfrRadToSub_AnalytTreatQuadPhaseTerm",&start);
 		}
 		//OC15102011 -- under testing (disadvantage of the previous version is the dependence of "trueR" on statistical moments)
-		else if(PropBufVars.AnalytTreatSubType == 2) 
+		//else if(pBufVars->AnalytTreatSubType == 2) //OC30082019
+		else if(AnalytTreatSubType == 2) //OC01102019
+		//else if(PropBufVars.AnalytTreatSubType == 2) 
 		{
 			EstimateWfrRadToSub2_AnalytTreatQuadPhaseTerm(pRadAccessData, trueRx, trueRz); //OC22042013 (uncommented)
 		
@@ -642,51 +877,77 @@ void srTDriftSpace::SetupPropBufVars_AnalytTreatQuadPhaseTerm(srTSRWRadStructAcc
 	if(trueRx != 0) 
 	{
 		//PropBufVars.invRx = 1./pRadAccessData->RobsX;
-		PropBufVars.invRx = 1./trueRx;
-		PropBufVars.Pi_d_LambdaM_d_Rx = Pi_d_LambdaM*PropBufVars.invRx;
+		//PropBufVars.invRx = 1./trueRx;
+		//PropBufVars.Pi_d_LambdaM_d_Rx = Pi_d_LambdaM*PropBufVars.invRx;
+		//OC30082019
+		pBufVars->invRx = 1./trueRx;
+		pBufVars->Pi_d_LambdaM_d_Rx = Pi_d_LambdaM*(pBufVars->invRx);
 
 		//PropBufVars.kx_AnalytTreatQuadPhaseTerm = (pRadAccessData->RobsX + Length)/pRadAccessData->RobsX;
 		//PropBufVars.kxc_AnalytTreatQuadPhaseTerm = Length/pRadAccessData->RobsX;
-		PropBufVars.kx_AnalytTreatQuadPhaseTerm = (trueRx + Length)/trueRx;
-		PropBufVars.kxc_AnalytTreatQuadPhaseTerm = Length/trueRx;
+		//PropBufVars.kx_AnalytTreatQuadPhaseTerm = (trueRx + Length)/trueRx;
+		//PropBufVars.kxc_AnalytTreatQuadPhaseTerm = Length/trueRx;
+		//OC30082019
+		//pBufVars->kx_AnalytTreatQuadPhaseTerm = (trueRx + Length)/trueRx;
+		pBufVars->kx_AnalytTreatQuadPhaseTerm = (trueRx + Length)*(pBufVars->invRx);
+		pBufVars->kxc_AnalytTreatQuadPhaseTerm = Length/trueRx;
 
 		//if(-Length != pRadAccessData->RobsX)
 		if(-Length != trueRx)
 		{
-			PropBufVars.Lx = Length/(1. + Length*PropBufVars.invRx);
-			//PropBufVars.invRxL = 1./(Length + pRadAccessData->RobsX);
-			PropBufVars.invRxL = 1./(Length + trueRx);
+			//PropBufVars.Lx = Length/(1. + Length*PropBufVars.invRx);
+			////PropBufVars.invRxL = 1./(Length + pRadAccessData->RobsX);
+			//PropBufVars.invRxL = 1./(Length + trueRx);
+			//OC30082019
+			pBufVars->Lx = Length/(1. + Length*(pBufVars->invRx));
+			pBufVars->invRxL = 1./(Length + trueRx);
 		}
 		else 
 		{
-			PropBufVars.Lx = infLarge;
-			PropBufVars.invRxL = infLarge;
+			//PropBufVars.Lx = infLarge;
+			//PropBufVars.invRxL = infLarge;
+			//OC30082019
+			pBufVars->Lx = infLarge;
+			pBufVars->invRxL = infLarge;
 		}
 	}
 
 	//if(pRadAccessData->RobsZ != 0) 
 	if(trueRz != 0) 
 	{
-		//PropBufVars.invRz = 1./pRadAccessData->RobsZ;
-		PropBufVars.invRz = 1./trueRz;
-		PropBufVars.Pi_d_LambdaM_d_Rz = Pi_d_LambdaM*PropBufVars.invRz;
+		////PropBufVars.invRz = 1./pRadAccessData->RobsZ;
+		//PropBufVars.invRz = 1./trueRz;
+		//PropBufVars.Pi_d_LambdaM_d_Rz = Pi_d_LambdaM*PropBufVars.invRz;
+		//OC30082019
+		pBufVars->invRz = 1./trueRz;
+		pBufVars->Pi_d_LambdaM_d_Rz = Pi_d_LambdaM*(pBufVars->invRz);
 
-		//PropBufVars.kz_AnalytTreatQuadPhaseTerm = (pRadAccessData->RobsZ + Length)/pRadAccessData->RobsZ;
-		//PropBufVars.kzc_AnalytTreatQuadPhaseTerm = Length/pRadAccessData->RobsZ;
-		PropBufVars.kz_AnalytTreatQuadPhaseTerm = (trueRz + Length)/trueRz;
-		PropBufVars.kzc_AnalytTreatQuadPhaseTerm = Length/trueRz;
+		////PropBufVars.kz_AnalytTreatQuadPhaseTerm = (pRadAccessData->RobsZ + Length)/pRadAccessData->RobsZ;
+		////PropBufVars.kzc_AnalytTreatQuadPhaseTerm = Length/pRadAccessData->RobsZ;
+		//PropBufVars.kz_AnalytTreatQuadPhaseTerm = (trueRz + Length)/trueRz;
+		//PropBufVars.kzc_AnalytTreatQuadPhaseTerm = Length/trueRz;
+		//OC30082019
+		//pBufVars->kz_AnalytTreatQuadPhaseTerm = (trueRz + Length)/trueRz;
+		pBufVars->kz_AnalytTreatQuadPhaseTerm = (trueRz + Length)*(pBufVars->invRz);
+		pBufVars->kzc_AnalytTreatQuadPhaseTerm = Length/trueRz;
 
 		//if(-Length != pRadAccessData->RobsZ)
 		if(-Length != trueRz)
 		{
-			PropBufVars.Lz = Length/(1. + Length*PropBufVars.invRz);
-			//PropBufVars.invRzL = 1./(Length + pRadAccessData->RobsZ);
-			PropBufVars.invRzL = 1./(Length + trueRz);
+			//PropBufVars.Lz = Length/(1. + Length*PropBufVars.invRz);
+			////PropBufVars.invRzL = 1./(Length + pRadAccessData->RobsZ);
+			//PropBufVars.invRzL = 1./(Length + trueRz);
+			//OC30082019
+			pBufVars->Lz = Length/(1. + Length*(pBufVars->invRz));
+			pBufVars->invRzL = 1./(Length + trueRz);
 		}
 		else 
 		{
-			PropBufVars.Lz = infLarge;
-			PropBufVars.invRzL = infLarge;
+			//PropBufVars.Lz = infLarge;
+			//PropBufVars.invRzL = infLarge;
+			//OC30082019
+			pBufVars->Lz = infLarge;
+			pBufVars->invRzL = infLarge;
 		}
 	}
 
@@ -727,9 +988,11 @@ void srTDriftSpace::SetupPropBufVars_AnalytTreatQuadPhaseTerm(srTSRWRadStructAcc
 	}
 **/
 
-	PropBufVars.sqrt_LxLz_d_L = ::sqrt(::fabs(PropBufVars.Lx*PropBufVars.Lz))/Length;
-	PropBufVars.phase_term_signLxLz = 0.25*3.141592653589793*(2. - sign(PropBufVars.Lx) - sign(PropBufVars.Lz));
-
+	//PropBufVars.sqrt_LxLz_d_L = ::sqrt(::fabs(PropBufVars.Lx*PropBufVars.Lz))/Length;
+	//PropBufVars.phase_term_signLxLz = 0.25*3.141592653589793*(2. - sign(PropBufVars.Lx) - sign(PropBufVars.Lz));
+	//OC30082019
+	pBufVars->sqrt_LxLz_d_L = ::sqrt(::fabs((pBufVars->Lx)*(pBufVars->Lz)))/Length;
+	pBufVars->phase_term_signLxLz = 0.25*3.141592653589793*(2. - sign(pBufVars->Lx) - sign(pBufVars->Lz));
 	// Continue for more buf vars
 }
 
@@ -1244,14 +1507,26 @@ int srTDriftSpace::PropagateRadiationSimple_NumIntFresnel(srTSRWRadStructAccessD
 
 //*************************************************************************
 
+//int srTDriftSpace::PropagateRadiationSimple1D_PropToWaist(srTRadSect1D* pSect1D, srTDriftPropBufVars* pBufVars) //OC06092019
+//OC01102019 (restored)
 int srTDriftSpace::PropagateRadiationSimple1D_PropToWaist(srTRadSect1D* pSect1D)
 {
 	int result;
-	SetupPropBufVars_PropToWaist(pSect1D);
+	srTDriftPropBufVars BufVars; //OC06092019
+	//if(pBufVars == 0) pBufVars = &BufVars; //OC06092019
+	//OC01102019 (commented-out / restored)
+
+	//SetupPropBufVars_PropToWaist(pSect1D, pBufVars); //OC06092019
+	SetupPropBufVars_PropToWaist(pSect1D, &BufVars); //OC01102019
+	//SetupPropBufVars_PropToWaist(pSect1D);
 	if(pSect1D->Pres != 0) if(result = SetRadRepres1D(pSect1D, 0)) return result;
 
-	PropBufVars.PassNo = 1;
-	if(result = TraverseRad1D(pSect1D)) return result;
+	//pBufVars->PassNo = 1; //OC06092019
+	BufVars.PassNo = 1; //OC01102019
+	//PropBufVars.PassNo = 1;
+	//if(result = TraverseRad1D(pSect1D, pBufVars)) return result; //OC06092019
+	if(result = TraverseRad1D(pSect1D, &BufVars)) return result; //OC01102019
+	//if(result = TraverseRad1D(pSect1D)) return result;
 
 	if(result = ResizeBeforePropToWaistIfNecessary1D(pSect1D)) return result;
 
@@ -1304,8 +1579,14 @@ int srTDriftSpace::PropagateRadiationSimple1D_PropToWaist(srTRadSect1D* pSect1D)
 	pSect1D->ArgStart = (FFT1DInfo.xStartTr + qCen)*LambdaM_Length;
 	pSect1D->ArgStep = FFT1DInfo.xStepTr*LambdaM_Length;
 
-	PropBufVars.PassNo = 2;
-	if(result = TraverseRad1D(pSect1D)) return result;
+	//PropBufVars.PassNo = 2;
+	//if(result = TraverseRad1D(pSect1D)) return result;
+	//OC06092019
+	//pBufVars->PassNo = 2;
+	//if(result = TraverseRad1D(pSect1D, pBufVars)) return result;
+	//OC01102019
+	BufVars.PassNo = 2;
+	if(result = TraverseRad1D(pSect1D, &BufVars)) return result;
 
 	if(AuxCont != 0) delete[] AuxCont;
 	return 0;

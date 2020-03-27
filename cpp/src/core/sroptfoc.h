@@ -61,8 +61,11 @@ public:
 		pRadAccessData->RobsXAbsErr *= (MagnX*MagnX);
 		pRadAccessData->RobsZAbsErr *= (MagnZ*MagnZ);
 
-		pRadAccessData->xc = (pRadAccessData->xc - TransvCenPoint.x)*MagnX;
-		pRadAccessData->zc = (pRadAccessData->zc - TransvCenPoint.y)*MagnZ;
+		//pRadAccessData->xc = (pRadAccessData->xc - TransvCenPoint.x)*MagnX;
+		//pRadAccessData->zc = (pRadAccessData->zc - TransvCenPoint.y)*MagnZ;
+		//OC09112019 (thanks to Wen Hu!)
+		pRadAccessData->xc = TransvCenPoint.x - (TransvCenPoint.x - pRadAccessData->xc)*MagnX;
+		pRadAccessData->zc = TransvCenPoint.y - (TransvCenPoint.y - pRadAccessData->zc)*MagnZ;
 
 		m_wfrRadWasProp = true;
 		return 0;
@@ -107,6 +110,8 @@ public:
 	}
 
 	//int PropagateRadiationMeth_0(srTSRWRadStructAccessData* pRadAccessData)
+	//int PropagateRadiationSingleE_Meth_0(srTSRWRadStructAccessData* pRadAccessData, srTSRWRadStructAccessData* pPrevRadDataSingleE, void* pBuf=0) //OC06092019
+	//OC01102019 (restored)
 	int PropagateRadiationSingleE_Meth_0(srTSRWRadStructAccessData* pRadAccessData, srTSRWRadStructAccessData* pPrevRadDataSingleE)
 	{
 		int result = 0;
@@ -190,6 +195,8 @@ public:
 		return 0;
 	}
 
+	//int PropagateRadiationSimple(srTSRWRadStructAccessData* pRadAccessData, void* pBuf=0) //OC06092019
+	//OC01102019 (restored)
 	int PropagateRadiationSimple(srTSRWRadStructAccessData* pRadAccessData)
 	{
 		int result;
@@ -205,7 +212,8 @@ public:
 		return 0;
 	}
 
-	void RadPointModifier(srTEXZ& EXZ, srTEFieldPtrs& EPtrs)
+	void RadPointModifier(srTEXZ& EXZ, srTEFieldPtrs& EPtrs, void* pBufVars=0) //OC29082019
+	//void RadPointModifier(srTEXZ& EXZ, srTEFieldPtrs& EPtrs)
 	{// e in eV; Length in m !!!
 	 // Operates on Coord. side !!!
 		//double Pi_d_Lambda_m = EXZ.e*2.533840802E+06;
@@ -223,7 +231,8 @@ public:
 		*(EPtrs.pEzRe) = NewEzRe; *(EPtrs.pEzIm) = NewEzIm; 
 	}
 
-  	void RadPointModifier1D(srTEXZ& EXZ, srTEFieldPtrs& EPtrs)
+  	void RadPointModifier1D(srTEXZ& EXZ, srTEFieldPtrs& EPtrs, void* pBuf=0) //OC06092019
+  	//void RadPointModifier1D(srTEXZ& EXZ, srTEFieldPtrs& EPtrs)
 	{// e in eV; Length in m !!!
 	 // Operates on Coord. side !!!
 		double Pi_d_Lambda_m = EXZ.e*2.533840802E+06;

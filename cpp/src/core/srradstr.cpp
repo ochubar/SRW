@@ -1219,12 +1219,14 @@ void srTSRWRadStructAccessData::CopyStatMomData(double* pInMomX, double* pInMomZ
 
 //*************************************************************************
 
-void srTSRWRadStructAccessData::CopyElectronBeamData(DOUBLE* pInElecBeam)
+void srTSRWRadStructAccessData::CopyElectronBeamData(double* pInElecBeam) //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
+//void srTSRWRadStructAccessData::CopyElectronBeamData(DOUBLE* pInElecBeam)
 {
 	if((pInElecBeam != 0) && (pElecBeam != 0)) 
 	{
 		const int LenElecData = 30; // to steer
-		DOUBLE *tElecBeam = pElecBeam, *tInElecBeam = pInElecBeam;
+		//DOUBLE *tElecBeam = pElecBeam, *tInElecBeam = pInElecBeam;
+		double *tElecBeam = pElecBeam, *tInElecBeam = pInElecBeam; //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
 		for(int i=0; i<LenElecData; i++) *(tElecBeam++) = *(tInElecBeam++);
 		ElectronBeamEmulated = true;
 	}
@@ -1232,12 +1234,14 @@ void srTSRWRadStructAccessData::CopyElectronBeamData(DOUBLE* pInElecBeam)
 
 //*************************************************************************
 
-void srTSRWRadStructAccessData::Copy4x4PropMatrData(DOUBLE* pIn4x4PropMatr)
+void srTSRWRadStructAccessData::Copy4x4PropMatrData(double* pIn4x4PropMatr) //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
+//void srTSRWRadStructAccessData::Copy4x4PropMatrData(DOUBLE* pIn4x4PropMatr)
 {
 	if((pIn4x4PropMatr != 0) && (p4x4PropMatr != 0))
 	{
 		const int Len4x4PropMatr = 20; //OC fix 16082004 //16; // to steer 
-		DOUBLE *t4x4PropMatr = p4x4PropMatr, *tIn4x4PropMatr = pIn4x4PropMatr;
+		//DOUBLE *t4x4PropMatr = p4x4PropMatr, *tIn4x4PropMatr = pIn4x4PropMatr;
+		double *t4x4PropMatr = p4x4PropMatr, *tIn4x4PropMatr = pIn4x4PropMatr; //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
 		for(int i=0; i<Len4x4PropMatr; i++) *(t4x4PropMatr++) = *(tIn4x4PropMatr++);
 		PropMatrWasEmulated = true;
 	}
@@ -1245,12 +1249,14 @@ void srTSRWRadStructAccessData::Copy4x4PropMatrData(DOUBLE* pIn4x4PropMatr)
 
 //*************************************************************************
 
-void srTSRWRadStructAccessData::CopyWfrAuxData(DOUBLE* pInWfrAuxData)
+void srTSRWRadStructAccessData::CopyWfrAuxData(double* pInWfrAuxData) //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
+//void srTSRWRadStructAccessData::CopyWfrAuxData(DOUBLE* pInWfrAuxData)
 {
 	if((pInWfrAuxData != 0) && (pWfrAuxData != 0))
 	{
 		const int LenWfrAuxData = 12; // to steer
-		DOUBLE *tWfrAuxData = pWfrAuxData, *tInWfrAuxData = pInWfrAuxData;
+		//DOUBLE *tWfrAuxData = pWfrAuxData, *tInWfrAuxData = pInWfrAuxData;
+		double *tWfrAuxData = pWfrAuxData, *tInWfrAuxData = pInWfrAuxData; //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
 		for(int i=0; i<LenWfrAuxData; i++) *(tWfrAuxData++) = *(tInWfrAuxData++);
 		WfrAuxDataWasEmulated = true;
 	}
@@ -1332,16 +1338,20 @@ srTSRWRadStructAccessData::srTSRWRadStructAccessData(srTSRWRadStructAccessData* 
 	if(InRadStruct.pElecBeam != 0) 
 	{
 		const int LenElecData = 30; // to steer
-		pElecBeam = new DOUBLE[LenElecData << 1];
-		DOUBLE *tElecBeam = pElecBeam, *tInElecBeam = InRadStruct.pElecBeam;
+		//pElecBeam = new DOUBLE[LenElecData << 1];
+		//DOUBLE *tElecBeam = pElecBeam, *tInElecBeam = InRadStruct.pElecBeam;
+		pElecBeam = new double[LenElecData << 1]; //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
+		double *tElecBeam = pElecBeam, *tInElecBeam = InRadStruct.pElecBeam;
 		for(int i=0; i<LenElecData; i++) *(tElecBeam++) = *(tInElecBeam++);
 		ElectronBeamEmulated = true;
 	}
 	if(InRadStruct.p4x4PropMatr != 0)
 	{
 		const int Len4x4PropMatr = 16; // to steer
-		p4x4PropMatr = new DOUBLE[Len4x4PropMatr << 1];
-		DOUBLE *t4x4PropMatr = p4x4PropMatr, *tIn4x4PropMatr = InRadStruct.p4x4PropMatr;
+		//p4x4PropMatr = new DOUBLE[Len4x4PropMatr << 1];
+		//DOUBLE *t4x4PropMatr = p4x4PropMatr, *tIn4x4PropMatr = InRadStruct.p4x4PropMatr;
+		p4x4PropMatr = new double[Len4x4PropMatr << 1]; //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
+		double *t4x4PropMatr = p4x4PropMatr, *tIn4x4PropMatr = InRadStruct.p4x4PropMatr;
 		for(int i=0; i<Len4x4PropMatr; i++) *(t4x4PropMatr++) = *(tIn4x4PropMatr++);
 		PropMatrWasEmulated = true;
 	}
@@ -1378,8 +1388,10 @@ srTSRWRadStructAccessData::srTSRWRadStructAccessData(srTSRWRadStructAccessData* 
 	if(InRadStruct.pWfrAuxData != 0)
 	{
 		const int LenWfrAuxData = 12; // to steer
-		pWfrAuxData = new DOUBLE[LenWfrAuxData];
-		DOUBLE *tWfrAuxData = pWfrAuxData, *tInWfrAuxData = InRadStruct.pWfrAuxData;
+		//pWfrAuxData = new DOUBLE[LenWfrAuxData];
+		//DOUBLE *tWfrAuxData = pWfrAuxData, *tInWfrAuxData = InRadStruct.pWfrAuxData;
+		pWfrAuxData = new double[LenWfrAuxData]; //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
+		double *tWfrAuxData = pWfrAuxData, *tInWfrAuxData = InRadStruct.pWfrAuxData;
 		for(int i=0; i<LenWfrAuxData; i++) *(tWfrAuxData++) = *(tInWfrAuxData++);
 		WfrAuxDataWasEmulated = true;
 	}
@@ -1433,15 +1445,19 @@ srTSRWRadStructAccessData::srTSRWRadStructAccessData(const srTSRWRadStructAccess
 		if(ElectronBeamEmulated && (inRad.pElecBeam != 0))
 		{
 			const int LenElecData = 30; // to steer
-			pElecBeam = new DOUBLE[LenElecData << 1];
-			DOUBLE *tElecBeam = pElecBeam, *tInElecBeam = inRad.pElecBeam;
+			//pElecBeam = new DOUBLE[LenElecData << 1];
+			//DOUBLE *tElecBeam = pElecBeam, *tInElecBeam = inRad.pElecBeam;
+			pElecBeam = new double[LenElecData << 1]; //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
+			double *tElecBeam = pElecBeam, *tInElecBeam = inRad.pElecBeam;
 			for(int i=0; i<LenElecData; i++) *(tElecBeam++) = *(tInElecBeam++);
 		}
 		if(PropMatrWasEmulated && (inRad.p4x4PropMatr != 0))
 		{
 			const int Len4x4PropMatr = 16; // to steer
-			p4x4PropMatr = new DOUBLE[Len4x4PropMatr << 1];
-			DOUBLE *t4x4PropMatr = p4x4PropMatr, *tIn4x4PropMatr = inRad.p4x4PropMatr;
+			//p4x4PropMatr = new DOUBLE[Len4x4PropMatr << 1];
+			//DOUBLE *t4x4PropMatr = p4x4PropMatr, *tIn4x4PropMatr = inRad.p4x4PropMatr;
+			p4x4PropMatr = new double[Len4x4PropMatr << 1]; //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
+			double *t4x4PropMatr = p4x4PropMatr, *tIn4x4PropMatr = inRad.p4x4PropMatr;
 			for(int i=0; i<Len4x4PropMatr; i++) *(t4x4PropMatr++) = *(tIn4x4PropMatr++);
 		}
 		if(MomWereEmulated)
@@ -1472,8 +1488,10 @@ srTSRWRadStructAccessData::srTSRWRadStructAccessData(const srTSRWRadStructAccess
 		if(WfrAuxDataWasEmulated && (inRad.pWfrAuxData != 0))
 		{
 			const int LenWfrAuxData = 12; // to steer
-			pWfrAuxData = new DOUBLE[LenWfrAuxData];
-			DOUBLE *tWfrAuxData = pWfrAuxData, *tInWfrAuxData = inRad.pWfrAuxData;
+			//pWfrAuxData = new DOUBLE[LenWfrAuxData];
+			//DOUBLE *tWfrAuxData = pWfrAuxData, *tInWfrAuxData = inRad.pWfrAuxData;
+			pWfrAuxData = new double[LenWfrAuxData]; //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
+			double *tWfrAuxData = pWfrAuxData, *tInWfrAuxData = inRad.pWfrAuxData;
 			for(int i=0; i<LenWfrAuxData; i++) *(tWfrAuxData++) = *(tInWfrAuxData++);
 		}
 	}
@@ -1662,11 +1680,13 @@ void srTSRWRadStructAccessData::FindMinMaxReE(srTMinMaxEParam& a)
 void srTSRWRadStructAccessData::AllocElectronBeam()
 {
 	int MaxLenElecBeam = 50;
-	pElecBeam = new DOUBLE[MaxLenElecBeam];
+	//pElecBeam = new DOUBLE[MaxLenElecBeam];
+	pElecBeam = new double[MaxLenElecBeam]; //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
 	if(pElecBeam == 0) throw MEMORY_ALLOCATION_FAILURE;
 	ElectronBeamEmulated = 1;
 	
-	DOUBLE *tElecBeam = pElecBeam;
+	//DOUBLE *tElecBeam = pElecBeam;
+	double *tElecBeam = pElecBeam; //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
 	for(int i=0; i<MaxLenElecBeam; i++) *(tElecBeam++) = 0.;
 }
 
@@ -1676,12 +1696,14 @@ int srTSRWRadStructAccessData::EmulateElectronBeamStruct(srTEbmDat& EbmDat)
 {
 	if(pElecBeam == 0)
 	{
-		pElecBeam = new DOUBLE[50];
+		//pElecBeam = new DOUBLE[50];
+		pElecBeam = new double[50]; //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
 		if(pElecBeam == 0) return MEMORY_ALLOCATION_FAILURE;
 		ElectronBeamEmulated = 1;
 	}
 	
-	DOUBLE *tElecBeam = pElecBeam;
+	//DOUBLE *tElecBeam = pElecBeam;
+	double *tElecBeam = pElecBeam; //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
 	for(int i=0; i<50; i++) *(tElecBeam++) = 0.;
 	
 	*pElecBeam = EbmDat.Energy;
@@ -1714,11 +1736,13 @@ int srTSRWRadStructAccessData::EmulateElectronBeamStruct(const SRWLPartBeam& srw
 	const int nValElecBeam = 60;
 	if(pElecBeam == 0)
 	{
-		pElecBeam = new DOUBLE[nValElecBeam];
+		//pElecBeam = new DOUBLE[nValElecBeam];
+		pElecBeam = new double[nValElecBeam]; //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
 		if(pElecBeam == 0) return MEMORY_ALLOCATION_FAILURE;
 		ElectronBeamEmulated = 1;
 	}
-	DOUBLE *tElecBeam = pElecBeam;
+	//DOUBLE *tElecBeam = pElecBeam;
+	double *tElecBeam = pElecBeam; //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
 	for(int i=0; i<nValElecBeam; i++) *(tElecBeam++) = 0.;
 
 	const double elecEn0 = 0.51099890221e-03; //[GeV]
@@ -1761,11 +1785,13 @@ int srTSRWRadStructAccessData::EmulateElectronBeamStruct(srTGsnBeam& GsnBeam)
 {
 	if(pElecBeam == 0)
 	{
-		pElecBeam = new DOUBLE[50];
+		//pElecBeam = new DOUBLE[50];
+		pElecBeam = new double[50]; //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
 		if(pElecBeam == 0) return MEMORY_ALLOCATION_FAILURE;
 		ElectronBeamEmulated = 1;
 	}
-	DOUBLE *tElecBeam = pElecBeam;
+	//DOUBLE *tElecBeam = pElecBeam;
+	double *tElecBeam = pElecBeam; //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
 	for(int i=0; i<50; i++) *(tElecBeam++) = 0.;
 	
     srTEbmDat& EbmDat = GsnBeam.EbmDat;
@@ -2106,7 +2132,8 @@ void srTSRWRadStructAccessData::SetRadSamplingFromObs(srTWfrSmp& DistrInfoDat)
 void srTSRWRadStructAccessData::Alloc4x4PropMatr()
 {
 	const int Len4x4PropMatr = 20; //OC modified 16082004 //16; // to steer
-	p4x4PropMatr = new DOUBLE[Len4x4PropMatr << 1];
+	//p4x4PropMatr = new DOUBLE[Len4x4PropMatr << 1];
+	p4x4PropMatr = new double[Len4x4PropMatr << 1]; //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
 	PropMatrWasEmulated = true;
 }
 
@@ -2128,7 +2155,8 @@ void srTSRWRadStructAccessData::AllocStatMom()
 void srTSRWRadStructAccessData::AllocWfrAux()
 {
 	const int LenWfrAuxData = 12; // to steer
-	pWfrAuxData = new DOUBLE[LenWfrAuxData];
+	//pWfrAuxData = new DOUBLE[LenWfrAuxData];
+	pWfrAuxData = new double[LenWfrAuxData]; //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
 	WfrAuxDataWasEmulated = true;
 }
 
@@ -3317,7 +3345,8 @@ int srTSRWRadStructAccessData::ShiftWfrByInterpolVsXZ(double shiftX, double shif
 		}
 		else if(pBaseRadZ != 0) PolComp = 'z';
 		
-		TreatQuadPhaseTermTerm('r', PolComp);
+		TreatQuadPhaseTerm('r', PolComp);  //OC17122019
+		//TreatQuadPhaseTermTerm('r', PolComp);
 		WaveFrontTermWasTreated = true;
 	}
 
@@ -3502,7 +3531,8 @@ int srTSRWRadStructAccessData::ShiftWfrByInterpolVsXZ(double shiftX, double shif
 	xc += shiftX; 
 	zc += shiftZ;
 
-	if(WaveFrontTermWasTreated) TreatQuadPhaseTermTerm('a', PolComp);
+	if(WaveFrontTermWasTreated) TreatQuadPhaseTerm('a', PolComp); //OC17122019
+	//if(WaveFrontTermWasTreated) TreatQuadPhaseTermTerm('a', PolComp);
 
 	//OC180813: don't correct it here; will be corrected in sep. function
 	xc -= shiftX; 
@@ -4158,6 +4188,792 @@ void srTSRWRadStructAccessData::GetIntMesh(char dep, SRWLRadMesh& mesh) //OC2308
 		mesh.yStart = zStart; 
 		mesh.yFin = zStart + zStep*(nz - 1);
 	}
+}
+
+//*************************************************************************
+
+//void srTSRWRadStructAccessData::UpdateMeshParams(SRWLRadMesh& mesh)
+//{//OC05022020
+//	//double eStep, eStart, xStep, xStart, zStep, zStart;
+//	//long ne, nx, nz;
+//}
+
+//*************************************************************************
+
+void srTSRWRadStructAccessData::Resize(SRWLRadMesh& mesh, double* arPar) //OC26012020
+{
+	double relTol = 1.e-06; //To tune
+	double absTol = 0.;
+
+	long neNew = mesh.ne, nxNew = mesh.nx, nzNew = mesh.ny;
+	double eRangeNew = mesh.eFin - mesh.eStart;
+	double xRangeNew = mesh.xFin - mesh.xStart;
+	double zRangeNew = mesh.yFin - mesh.yStart;
+
+	double eStepNew = (neNew <= 1)? 0. : eRangeNew/(neNew - 1);
+	double xStepNew = (nxNew <= 1)? 0. : xRangeNew/(nxNew - 1);
+	double zStepNew = (nzNew <= 1)? 0. : zRangeNew/(nzNew - 1);
+
+	bool resizeIsReqVsE = true, resizeIsReqVsX = true, resizeIsReqVsZ = true;
+	double eTol = relTol*eStepNew;
+	//if((neNew == ne) && (fabs(mesh.eStart - eStart) <= eTol) && (fabs(eStepNew - eStep) <= eTol)) resizeIsReqVsE = false;
+	if(((neNew == ne) && (fabs(mesh.eStart - eStart) <= eTol) && (fabs(eStepNew - eStep) <= eTol)) || (ne <= 1)) resizeIsReqVsE = false;
+	double xTol = relTol*xStepNew;
+	//if((nxNew == nx) && (fabs(mesh.xStart - xStart) <= xTol) && (fabs(xStepNew - xStep) <= xTol)) resizeIsReqVsX = false;
+	if(((nxNew == nx) && (fabs(mesh.xStart - xStart) <= xTol) && (fabs(xStepNew - xStep) <= xTol)) || (nx <= 1)) resizeIsReqVsX = false;
+	double zTol = relTol*zStepNew;
+	//if((nzNew == nz) && (fabs(mesh.yStart - zStart) <= zTol) && (fabs(zStepNew - zStep) <= zTol)) resizeIsReqVsZ = false;
+	if(((nzNew == nz) && (fabs(mesh.yStart - zStart) <= zTol) && (fabs(zStepNew - zStep) <= zTol)) || (nz <= 1)) resizeIsReqVsZ = false;
+	
+	if(!(resizeIsReqVsE || resizeIsReqVsX || resizeIsReqVsZ)) return;
+
+	bool resizeIsOnlyVsE = resizeIsReqVsE && (!resizeIsReqVsX) && (!resizeIsReqVsZ);
+	bool resizeIsOnlyVsXZ = (!resizeIsReqVsE) && (resizeIsReqVsX || resizeIsReqVsZ);
+	if(!(resizeIsOnlyVsE || resizeIsOnlyVsXZ)) throw RESIZE_NOT_SUPPORTED_WITH_SUCH_PARAMS;
+
+	int res = 0;
+	bool useOtherSideFFT = false;
+	if(arPar != 0)
+	{
+		if(arPar[0] != 0.) useOtherSideFFT = true;
+	}
+
+	if(useOtherSideFFT && resizeIsOnlyVsE) throw RESIZE_NOT_SUPPORTED_WITH_SUCH_PARAMS; //Temporary, until implemented
+
+	//long nxOld = SRWRadStructAccessData.nx;
+	//long nzOld = SRWRadStructAccessData.nz;
+	double xStartOld = xStart, zStartOld = zStart;
+
+	//double xStartNew = mesh.xStart;
+	//double zStartNew = mesh.yStart;
+	double xStartNewReal = mesh.xStart;
+	double zStartNewReal = mesh.yStart;
+	double xFinNewReal = mesh.xFin;
+	double zFinNewReal = mesh.yFin;
+	double xStepNewReal = xStepNew;
+	double zStepNewReal = zStepNew;
+
+	if(useOtherSideFFT)
+	{
+		char ToRepres = (Pres == 0)? 'a' : 'c';
+		//char ToRepres = (Pres == 0)? 1 : 0;
+
+		double xcNew = 0.5*(mesh.xStart + mesh.xFin + xStepNewReal);
+		//double xcNew = 0.5*(mesh.xStart + mesh.xFin);
+		//double xStartNewAux = xStart - xcNew;
+		xStart -= xcNew;
+		double xShift = xStart - xStartOld;
+		xWfrMin += xShift; xWfrMax += xShift;
+
+		double zcNew = 0.5*(mesh.yStart + mesh.yFin + zStepNewReal);
+		//double zcNew = 0.5*(mesh.yStart + mesh.yFin);
+		//double zStartNewAux = zStart - zcNew;
+		zStart -= zcNew;
+		double zShift = zStart - zStartOld;
+		zWfrMin += zShift; zWfrMax += zShift;
+
+		//if(result = SetRadRepres(&SRWRadStructAccessData, ToRepres)) return result;
+		if(res = SetRepresCA(ToRepres)) throw res;
+		//To check!
+		//Treat photon energy as well?
+
+		//mesh.xStart = -0.5/xStepNew;
+		mesh.xStart = -0.5*nxNew/xRangeNew;
+		xStepNew = -mesh.xStart/(nxNew >> 1);
+		//mesh.xFin = mesh.xStart + xStepNew*(nxNew + 1);
+		mesh.xFin = mesh.xStart + xStepNew*nxNew;
+
+		//mesh.yStart = -0.5/zStepNew;
+		mesh.yStart = -0.5*nzNew/zRangeNew;
+		zStepNew = -mesh.yStart/(nzNew >> 1);
+		//mesh.yFin = mesh.yStart + zStepNew*(nzNew + 1);
+		mesh.yFin = mesh.yStart + zStepNew*nzNew;
+	}
+
+	bool ExIsReq = pBaseRadX != 0;
+	bool EzIsReq = pBaseRadZ != 0;
+	if(!(ExIsReq || EzIsReq)) return;
+
+	long long TotAmOfNewData = ((long long)mesh.ne)*((long long)mesh.nx)*((long long)mesh.ny) << 1;
+	long long TotAmOfOldData = ((long long)ne)*((long long)nx)*((long long)nz) << 1;
+
+	float *pOldRadX=0, *pOldRadZ=0, *pNewRadX=0, *pNewRadZ=0;
+	bool ModifNeNxNzIsReq = false;
+
+	long neOld = ne, nxOld = nx, nzOld = nz;
+	if(TotAmOfNewData >= TotAmOfOldData)
+	{
+		if(ExIsReq)
+		{
+			pOldRadX = new float[TotAmOfOldData];
+			if(pOldRadX == 0) throw MEMORY_ALLOCATION_FAILURE;
+		}
+		if(EzIsReq)
+		{
+			pOldRadZ = new float[TotAmOfOldData];
+			if(pOldRadZ == 0) throw MEMORY_ALLOCATION_FAILURE;
+		}
+
+		ne = neNew; nx = nxNew; nz = nzNew;
+		float *tOldRadX = pOldRadX, *tOldRadZ = pOldRadZ;
+		float *tBaseRadX = pBaseRadX, *tBaseRadZ = pBaseRadZ;
+
+		if(ExIsReq && EzIsReq)
+		{
+			for(long long i=0; i<TotAmOfOldData; i++) { *(tOldRadX++) = *(tBaseRadX++); *(tOldRadZ++) = *(tBaseRadZ++);}
+			if(TotAmOfNewData > TotAmOfOldData) { if(res = ModifyWfrNeNxNz(0)) throw res;}
+			pNewRadX = pBaseRadX; pNewRadZ = pBaseRadZ;
+		}
+		else if(ExIsReq)
+		{
+			for(long long i=0; i<TotAmOfOldData; i++) *(tOldRadX++) = *(tBaseRadX++);
+			if(TotAmOfNewData > TotAmOfOldData) { if(res = ModifyWfrNeNxNz('x')) throw res;}
+			pNewRadX = pBaseRadX;
+		}
+		else
+		{
+			for(long long i=0; i<TotAmOfOldData; i++) *(tOldRadZ++) = *(tBaseRadZ++);
+			if(TotAmOfNewData > TotAmOfOldData) { if(res = ModifyWfrNeNxNz('z')) throw res;}
+			pNewRadZ = pBaseRadZ;
+		}
+	}
+	else //if(TotAmOfNewData < TotAmOfOldData)
+	{
+		if(ExIsReq)
+		{
+			pNewRadX = new float[TotAmOfNewData];
+			if(pNewRadX == 0) throw MEMORY_ALLOCATION_FAILURE;
+			pOldRadX = pBaseRadX;
+		}
+		if(EzIsReq)
+		{
+			pNewRadZ = new float[TotAmOfNewData];
+			if(pNewRadZ == 0) throw MEMORY_ALLOCATION_FAILURE;
+			pOldRadZ = pBaseRadZ;
+		}
+		ModifNeNxNzIsReq = true;
+	}
+	//else if(!((neNew == neOld) && (nxNew == nxOld) && (nyNew == nyOld)))
+	//{
+	//}
+
+	SRWLRadMesh oldMesh;
+	oldMesh.eStart = eStart;
+	oldMesh.eFin = eStart + eStep*(neOld - 1);
+	oldMesh.ne = neOld;
+	oldMesh.xStart = xStart;
+	oldMesh.xFin = xStart + xStep*(nxOld - 1);
+	oldMesh.nx = nxOld;
+	oldMesh.yStart = zStart;
+	oldMesh.yFin = zStart + zStep*(nzOld - 1);
+	oldMesh.ny = nzOld;
+	oldMesh.zStart = yStart;
+
+	//perform interpolation of pOldRadX, pOldRadZ and place results to pNewRadX, pNewRadZ
+	if(resizeIsOnlyVsXZ) ResizeCoreXZ(oldMesh, pOldRadX, pOldRadZ, mesh, pNewRadX, pNewRadZ, arPar);
+	else if(resizeIsOnlyVsE) ResizeCoreE(oldMesh, pOldRadX, pOldRadZ, mesh, pNewRadX, pNewRadZ, arPar);
+	
+	if(ModifNeNxNzIsReq)
+	{
+		float *tNewRadX = pNewRadX, *tNewRadZ = pNewRadZ;
+		ne = neNew; nx = nxNew; nz = nzNew;
+		if(ExIsReq && EzIsReq)
+		{
+			if(res = ModifyWfrNeNxNz(0)) throw res;
+			float *tBaseRadX = pBaseRadX, *tBaseRadZ = pBaseRadZ;
+			for(long long i=0; i<TotAmOfNewData; i++) { *(tBaseRadX++) = *(tNewRadX++); *(tBaseRadZ++) = *(tNewRadZ++);}
+		}
+		else if(ExIsReq)
+		{
+			if(res = ModifyWfrNeNxNz('x')) throw res;
+			float *tBaseRadX = pBaseRadX;
+			for(long long i=0; i<TotAmOfNewData; i++) *(tBaseRadX++) = *(tNewRadX++);
+		}
+		else
+		{
+			if(res = ModifyWfrNeNxNz('z')) throw res;
+			float *tBaseRadZ = pBaseRadZ;
+			for(long long i=0; i<TotAmOfNewData; i++) *(tBaseRadZ++) = *(tNewRadZ++);
+		}
+		if(pNewRadX != 0) delete[] pNewRadX;
+		if(pNewRadZ != 0) delete[] pNewRadZ;
+	}
+	else
+	{
+		if(pOldRadX != 0) delete[] pOldRadX;
+		if(pOldRadZ != 0) delete[] pOldRadZ;
+	}
+
+	if(useOtherSideFFT)
+	{
+		char ToRepres = (Pres == 0)? 'a' : 'c';
+		//char ToRepres = (Pres == 0)? 1 : 0;
+		if(res = SetRepresCA(ToRepres)) throw res;
+
+		xStart = xStartNewReal;
+		zStart = zStartNewReal;
+
+		mesh.xStart = xStartNewReal;
+		mesh.yStart = zStartNewReal;
+		mesh.xFin = xFinNewReal;
+		mesh.yFin = zFinNewReal;
+		//To check!
+	}
+
+	eStart = mesh.eStart;
+	eStep = eStepNew;
+	xStart = mesh.xStart;
+	xStep = xStepNewReal;
+	zStart = mesh.yStart;
+	zStep = zStepNewReal;
+}
+
+//*************************************************************************
+
+void srTSRWRadStructAccessData::ResizeCoreXZ(SRWLRadMesh& oldMesh, float* pOldRadX, float* pOldRadZ, SRWLRadMesh& newMesh, float* pNewRadX, float* pNewRadZ, double* arPar)
+{//Re-write of int srTGenOptElem::RadResizeCore(srTSRWRadStructAccessData& OldRadAccessData, srTSRWRadStructAccessData& NewRadAccessData, srTRadResize& RadResizeStruct, char PolComp)
+	if(((pOldRadX == 0) && (pOldRadZ == 0)) || ((pNewRadX == 0) && (pNewRadZ == 0))) return;
+
+	bool TreatPolCompX = ((pOldRadX != 0) && (pNewRadX != 0));
+	bool TreatPolCompZ = ((pOldRadZ != 0) && (pNewRadZ != 0));
+	if((!TreatPolCompX) && (!TreatPolCompZ)) return;
+	char polComp = 0; //will be set only if necessary
+
+	long nxNew = newMesh.nx, nzNew = newMesh.ny;
+	long nxNew_mi_1 = nxNew - 1, nzNew_mi_1 = nzNew - 1;
+	//long neNew = newMesh.ne, nxNew = newMesh.nx, nzNew = newMesh.ny;
+	//long neNew_mi_1 = neNew - 1, nxNew_mi_1 = nxNew - 1, nzNew_mi_1 = nzNew - 1;
+	//double eStepNew = (neNew <= 1)? 0. : (newMesh.eFin - newMesh.eStart)/neNew_mi_1;
+	double xStepNew = (nxNew <= 1)? 0. : (newMesh.xFin - newMesh.xStart)/nxNew_mi_1;
+	double zStepNew = (nzNew <= 1)? 0. : (newMesh.yFin - newMesh.yStart)/nzNew_mi_1;
+
+	//double eStartNew = newMesh.eStart;
+	double xStartNew = newMesh.xStart;
+	double zStartNew = newMesh.yStart;
+
+	//double eStartOld = oldMesh.eStart;
+	double xStartOld = oldMesh.xStart;
+	double zStartOld = oldMesh.yStart;
+
+	//long ne_mi_1Old = oldMesh.ne - 1;
+	long nx_mi_1Old = oldMesh.nx - 1;
+	long nz_mi_1Old = oldMesh.ny - 1;
+	//long ne_mi_2Old = ne_mi_1Old - 1;
+	long nx_mi_2Old = nx_mi_1Old - 1;
+	long nz_mi_2Old = nz_mi_1Old - 1;
+
+	//double eStepOld = 0., eStepInvOld = 0.;
+	//if(oldMesh.ne > 1)
+	//{
+	//	eStepOld = (oldMesh.eFin - oldMesh.eStart)/ne_mi_1Old;
+	//	eStepInvOld = 1./eStepOld;
+	//}
+	double xStepOld = 0., xStepInvOld = 0.;
+	if(oldMesh.nx > 1)
+	{
+		xStepOld = (oldMesh.xFin - oldMesh.xStart)/nx_mi_1Old;
+		xStepInvOld = 1./xStepOld;
+	}
+	double zStepOld = 0., zStepInvOld = 0.;
+	if(oldMesh.ny > 1)
+	{
+		zStepOld = (oldMesh.yFin - oldMesh.yStart)/nz_mi_1Old;
+		zStepInvOld = 1./zStepOld;
+	}
+
+	double relTol = 1.e-06;
+	//double eTol = DistRelTol*eStepNew;
+	double xTol = relTol*xStepNew;
+	double zTol = relTol*zStepNew;
+
+	//bool interpVsE_isReq = (neNew != oldMesh.ne) || (fabs(eStartNew - eStartOld) > eTol) || (fabs(eStepNew - eStepOld) > eTol);
+	//bool interpVsX_isReq = (nxNew != oldMesh.nx) || (fabs(xStartNew - xStartOld) > xTol) || (fabs(xStepNew - xStepOld) > xTol);
+	//bool interpVsZ_isReq = (nzNew != oldMesh.ny) || (fabs(zStartNew - zStartOld) > zTol) || (fabs(zStepNew - zStepOld) > zTol);
+	//if(!(interpVsE_isReq || interpVsX_isReq || interpVsZ_isReq)) return;
+	//if(!(interpVsX_isReq || interpVsZ_isReq)) return;
+
+	//long ieStart = 0;
+	//if(newMesh.eStart < oldMesh.eStart) 
+	//{ 
+	//	ieStart = (long)((oldMesh.eStart - newMesh.eStart)/eStepNew - 1.e-13);
+	//	if(newMesh.eStart + (ieStart + 0.1)*eStepNew < oldMesh.eStart) ieStart++;
+	//	if(ieStart < 0) ieStart = 0;
+	//}
+	//long ieFin = neNew_mi_1;
+	//if(oldMesh.eFin < newMesh.eFin) 
+	//{ 
+	//	ieFin = (long)((oldMesh.eFin - newMesh.eStart)/eStepNew + 1.e-13);
+	//	if(ieFin >= newMesh.ne) ieFin = neNew_mi_1;
+	//}
+	long ixStart = 0;
+	if(newMesh.xStart < oldMesh.xStart) 
+	{ 
+		ixStart = (long)((oldMesh.xStart - newMesh.xStart)/xStepNew - 1.e-13);
+		if(newMesh.xStart + (ixStart + 0.1)*xStepNew < oldMesh.xStart) ixStart++;
+		if(ixStart < 0) ixStart = 0;
+	}
+	long ixFin = nxNew_mi_1;
+	if(oldMesh.xFin < newMesh.xFin) 
+	{ 
+		ixFin = (long)((oldMesh.xFin - newMesh.xStart)/xStepNew + 1.e-13);
+		if(ixFin >= newMesh.nx) ixFin = nxNew_mi_1;
+	}
+	long izStart = 0;
+	if(newMesh.yStart < oldMesh.yStart) 
+	{ 
+		izStart = (long)((oldMesh.yStart - newMesh.yStart)/zStepNew - 1.e-13);
+		if(newMesh.yStart + (izStart + 0.1)*zStepNew < oldMesh.yStart) izStart++;
+		if(izStart < 0) izStart = 0;
+	}
+	long izFin = nzNew_mi_1;
+	if(oldMesh.yFin < newMesh.yFin) 
+	{ 
+		izFin = (long)((oldMesh.yFin - newMesh.yStart)/zStepNew + 1.e-13);
+		if(izFin >= newMesh.ny) izFin = nzNew_mi_1;
+	}
+
+	//if((ieStart > 0) || (ieFin < neNew_mi_1) || (ixStart > 0) || (ixFin < nxNew_mi_1) || (izStart > 0) || (izFin < nzNew_mi_1))
+	if((ixStart > 0) || (ixFin < nxNew_mi_1) || (izStart > 0) || (izFin < nzNew_mi_1))
+	{
+		//long long TotAmOfNewData = ((long long)neNew)*((long long)nxNew)*((long long)nzNew) << 1;
+		long long TotAmOfNewData = ((long long)newMesh.ne)*((long long)nxNew)*((long long)nzNew) << 1;
+		if(TreatPolCompX)
+		{
+			float *tNewRadX = pNewRadX;
+			for(long long i=0; i<TotAmOfNewData; i++) *(tNewRadX++) = 0.;
+		}
+		if(TreatPolCompZ)
+		{
+			float *tNewRadZ = pNewRadZ;
+			for(long long i=0; i<TotAmOfNewData; i++) *(tNewRadZ++) = 0.;
+		}
+	}
+
+	bool WaveFrontTermWasTreated = 0;
+	bool allowTreatQuadPhaseTerm = true;
+	if(arPar != 0)
+	{
+		if(arPar[1] == 0.) allowTreatQuadPhaseTerm = false;
+	}
+	//bool OrigWfrQuadTermCanBeTreatedAtResizeX = OldRadAccessData.WfrQuadTermCanBeTreatedAtResizeX;
+	//bool OrigWfrQuadTermCanBeTreatedAtResizeZ = OldRadAccessData.WfrQuadTermCanBeTreatedAtResizeZ;
+
+	if(allowTreatQuadPhaseTerm && QuadPhaseTermCanBeTreated())
+	{
+		//NewRadAccessData.WfrQuadTermCanBeTreatedAtResizeX = OldRadAccessData.WfrQuadTermCanBeTreatedAtResizeX;
+		//NewRadAccessData.WfrQuadTermCanBeTreatedAtResizeZ = OldRadAccessData.WfrQuadTermCanBeTreatedAtResizeZ;
+
+		//TreatStronglyOscillatingTerm(OldRadAccessData, 'r', PolComp);
+		if(!TreatPolCompZ) polComp = 'x';
+		else if(!TreatPolCompX) polComp = 'z';
+		TreatQuadPhaseTerm('r', polComp);
+
+		//NewRadAccessData.wfrReffX = OldRadAccessData.wfrReffX;
+		//NewRadAccessData.wfrReffZ = OldRadAccessData.wfrReffZ;
+		WaveFrontTermWasTreated = true;
+	}
+
+	//long long PerX_New = neNew << 1;
+	//long long PerX_New = newMesh.ne << 1;
+	long long PerX = newMesh.ne << 1;
+	//long long PerZ_New = PerX_New*nxNew;
+	long long PerZ_New = PerX*nxNew;
+	long long izPerZ_New, ixPerX_New_p_Two_ie;
+
+	//long long PerX_Old = oldMesh.ne << 1;
+	//long long PerZ_Old = PerX_Old*oldMesh.nx;
+	long long PerZ_Old = PerX*oldMesh.nx;
+
+	bool UseLowOrderInterp_PolCompX, UseLowOrderInterp_PolCompZ;
+	bool FieldShouldBeZeroedDueToX, FieldShouldBeZeroedDueToZ, FieldShouldBeZeroed;
+
+	float *pEX0_New = 0, *pEZ0_New = 0;
+	if(TreatPolCompX) pEX0_New = pNewRadX;
+	if(TreatPolCompZ) pEZ0_New = pNewRadZ;
+
+	float *pEX_StartForX_New, *pEZ_StartForX_New;
+	float *pEX_New, *pEZ_New;
+
+	//double eAbs, eRel, xAbs, xRel, zAbs, zRel;
+	double xAbs, xRel, zAbs, zRel;
+	//long iecOld, ieStOld, iecOld_mi_ieStOld;
+	long ixcOld, ixStOld, ixcOld_mi_ixStOld;
+	long izcOld, izStOld, izcOld_mi_izStOld;
+	//long ieStOldPrev = -1000, ixStOldPrev = -1000, izStOldPrev = -1000;
+	long ixStOldPrev = -1000, izStOldPrev = -1000;
+
+	srTInterpolAux01 InterpolAux01;
+	srTInterpolAux02 InterpolAux02[4], InterpolAux02I[2];
+	srTInterpolAuxF AuxF[4], AuxFI[2];
+	float BufF[4], BufFI[2];
+
+	for(long ie=0; ie<newMesh.ne; ie++) //Loop over New Mesh points
+	{
+		long long two_ie = ie << 1;
+
+		for(long iz=izStart; iz<=izFin; iz++)
+		{
+			zAbs = zStartNew + iz*zStepNew;
+
+			FieldShouldBeZeroedDueToZ = false;
+			if(WfrEdgeCorrShouldBeDone)
+			{
+				if((zAbs < zWfrMin - zTol) || (zAbs > zWfrMax + zTol)) FieldShouldBeZeroedDueToZ = true;
+			}
+
+			izcOld = (long)((zAbs - zStartOld)*zStepInvOld + 1.E-06);
+			zRel = zAbs - (zStartOld + izcOld*zStepOld);
+
+			if(izcOld == nz_mi_1Old) { izStOld = izcOld - 3; zRel += 2.*zStepOld; }
+			else if(izcOld == nz_mi_2Old) { izStOld = izcOld - 2; zRel += zStepOld; }
+			else if(izcOld == 0) { izStOld = izcOld; zRel -= zStepOld; }
+			else izStOld = izcOld - 1;
+
+			zRel *= zStepInvOld;
+
+			izcOld_mi_izStOld = izcOld - izStOld;
+			izPerZ_New = iz*PerZ_New;
+
+			pEX_StartForX_New = 0; pEZ_StartForX_New = 0;
+			if(TreatPolCompX) pEX_StartForX_New = pEX0_New + izPerZ_New;
+			if(TreatPolCompZ) pEZ_StartForX_New = pEZ0_New + izPerZ_New;
+
+			for(long ix=ixStart; ix<=ixFin; ix++)
+			{
+				ixPerX_New_p_Two_ie = ix*PerX + two_ie;
+				//ixPerX_New_p_Two_ie = ix*PerX_New + two_ie;
+				pEX_New = 0; pEZ_New = 0;
+				if(TreatPolCompX) pEX_New = pEX_StartForX_New + ixPerX_New_p_Two_ie;
+				if(TreatPolCompZ) pEZ_New = pEZ_StartForX_New + ixPerX_New_p_Two_ie;
+
+				xAbs = xStartNew + ix*xStepNew;
+
+				FieldShouldBeZeroedDueToX = false;
+				if(WfrEdgeCorrShouldBeDone)
+				{
+					if((xAbs < xWfrMin - xTol) || (xAbs > xWfrMax + xTol)) FieldShouldBeZeroedDueToX = true;
+				}
+				FieldShouldBeZeroed = (FieldShouldBeZeroedDueToX || FieldShouldBeZeroedDueToZ);
+
+				ixcOld = (long)((xAbs - xStartOld)*xStepInvOld + 1.E-06);
+				xRel = xAbs - (xStartOld + ixcOld*xStepOld);
+
+				if(ixcOld == nx_mi_1Old) { ixStOld = ixcOld - 3; xRel += 2.*xStepOld; }
+				else if(ixcOld == nx_mi_2Old) { ixStOld = ixcOld - 2; xRel += xStepOld; }
+				else if(ixcOld == 0) { ixStOld = ixcOld; xRel -= xStepOld; }
+				else ixStOld = ixcOld - 1;
+
+				xRel *= xStepInvOld;
+
+				ixcOld_mi_ixStOld = ixcOld - ixStOld;
+
+				if((izStOld != izStOldPrev) || (ixStOld != ixStOldPrev))
+				{
+					UseLowOrderInterp_PolCompX = false; UseLowOrderInterp_PolCompZ = false;
+
+					long long TotOffsetOld = izStOld*PerZ_Old + ixStOld*PerX + two_ie;
+					//long long TotOffsetOld = izStOld*PerZ_Old + ixStOld*PerX_Old + two_ie;
+
+					if(TreatPolCompX)
+					{
+						float *pExSt_Old = pOldRadX + TotOffsetOld;
+						srTGenOptElem::GetCellDataForInterpol(pExSt_Old, PerX, PerZ_Old, AuxF);
+						//srTGenOptElem::GetCellDataForInterpol(pExSt_Old, PerX_Old, PerZ_Old, AuxF);
+						srTGenOptElem::SetupCellDataI(AuxF, AuxFI);
+						UseLowOrderInterp_PolCompX = srTGenOptElem::CheckForLowOrderInterp(AuxF, AuxFI, ixcOld_mi_ixStOld, izcOld_mi_izStOld, &InterpolAux01, InterpolAux02, InterpolAux02I);
+						if(!UseLowOrderInterp_PolCompX)
+						{
+							for(int i=0; i<2; i++)
+							{
+								srTGenOptElem::SetupInterpolAux02(AuxF + i, &InterpolAux01, InterpolAux02 + i);
+							}
+							srTGenOptElem::SetupInterpolAux02(AuxFI, &InterpolAux01, InterpolAux02I);
+						}
+					}
+					if(TreatPolCompZ)
+					{
+						float* pEzSt_Old = pOldRadZ + TotOffsetOld;
+						srTGenOptElem::GetCellDataForInterpol(pEzSt_Old, PerX, PerZ_Old, AuxF+2);
+						//srTGenOptElem::GetCellDataForInterpol(pEzSt_Old, PerX_Old, PerZ_Old, AuxF+2);
+						srTGenOptElem::SetupCellDataI(AuxF+2, AuxFI+1);
+						UseLowOrderInterp_PolCompZ = srTGenOptElem::CheckForLowOrderInterp(AuxF+2, AuxFI+1, ixcOld_mi_ixStOld, izcOld_mi_izStOld, &InterpolAux01, InterpolAux02+2, InterpolAux02I+1);
+						if(!UseLowOrderInterp_PolCompZ)
+						{
+							for(int i=0; i<2; i++)
+							{
+								srTGenOptElem::SetupInterpolAux02(AuxF+2+i, &InterpolAux01, InterpolAux02+2+i);
+							}
+							srTGenOptElem::SetupInterpolAux02(AuxFI+1, &InterpolAux01, InterpolAux02I+1);
+						}
+					}
+					ixStOldPrev = ixStOld; izStOldPrev = izStOld;
+				}
+
+				if(TreatPolCompX)
+				{
+					if(UseLowOrderInterp_PolCompX)
+					{
+						srTGenOptElem::InterpolF_LowOrder(InterpolAux02, xRel, zRel, BufF, 0);
+						srTGenOptElem::InterpolFI_LowOrder(InterpolAux02I, xRel, zRel, BufFI, 0);
+					}
+					else
+					{
+						srTGenOptElem::InterpolF(InterpolAux02, xRel, zRel, BufF, 0);
+						srTGenOptElem::InterpolFI(InterpolAux02I, xRel, zRel, BufFI, 0);
+					}
+					(*BufFI) *= AuxFI->fNorm;
+					srTGenOptElem::ImproveReAndIm(BufF, BufFI);
+					if(FieldShouldBeZeroed) { *BufF = 0.; *(BufF+1) = 0.; }
+					*pEX_New = *BufF;
+					*(pEX_New+1) = *(BufF+1);
+				}
+				if(TreatPolCompZ)
+				{
+					if(UseLowOrderInterp_PolCompZ)
+					{
+						srTGenOptElem::InterpolF_LowOrder(InterpolAux02, xRel, zRel, BufF, 2);
+						srTGenOptElem::InterpolFI_LowOrder(InterpolAux02I, xRel, zRel, BufFI, 1);
+					}
+					else
+					{
+						srTGenOptElem::InterpolF(InterpolAux02, xRel, zRel, BufF, 2);
+						srTGenOptElem::InterpolFI(InterpolAux02I, xRel, zRel, BufFI, 1);
+					}
+					(*(BufFI+1)) *= (AuxFI+1)->fNorm;
+					srTGenOptElem::ImproveReAndIm(BufF+2, BufFI+1);
+					if(FieldShouldBeZeroed) { *(BufF+2) = 0.; *(BufF+3) = 0.; }
+					*pEZ_New = *(BufF+2);
+					*(pEZ_New+1) = *(BufF+3);
+				}
+			}
+		}
+	}
+	if(WaveFrontTermWasTreated) TreatQuadPhaseTerm('a', polComp);
+}
+
+//*************************************************************************
+
+void srTSRWRadStructAccessData::ResizeCoreE(SRWLRadMesh& oldMesh, float* pOldRadX, float* pOldRadZ, SRWLRadMesh& newMesh, float* pNewRadX, float* pNewRadZ, double* arPar)
+{
+	if(((pOldRadX == 0) && (pOldRadZ == 0)) || ((pNewRadX == 0) && (pNewRadZ == 0))) return;
+
+	bool TreatPolCompX = ((pOldRadX != 0) && (pNewRadX != 0));
+	bool TreatPolCompZ = ((pOldRadZ != 0) && (pNewRadZ != 0));
+	if((!TreatPolCompX) && (!TreatPolCompZ)) return;
+	char polComp = 0; //will be set only if necessary
+
+	long neNew = newMesh.ne;
+	long neNew_mi_1 = neNew - 1;
+	double eStepNew = (neNew <= 1)? 0. : (newMesh.eFin - newMesh.eStart)/neNew_mi_1;
+
+	double eStartNew = newMesh.eStart;
+	double eStartOld = oldMesh.eStart;
+
+	long ne_mi_1Old = oldMesh.ne - 1;
+	long ne_mi_2Old = ne_mi_1Old - 1;
+
+	double eStepOld = 0., eStepInvOld = 0.;
+	if(oldMesh.ne > 1)
+	{
+		eStepOld = (oldMesh.eFin - oldMesh.eStart)/ne_mi_1Old;
+		eStepInvOld = 1./eStepOld;
+	}
+
+	double relTol = 1.e-06;
+	double eTol = relTol*eStepNew;
+
+	long ieStart = 0;
+	if(newMesh.eStart < oldMesh.eStart) 
+	{ 
+		ieStart = (long)((oldMesh.eStart - newMesh.eStart)/eStepNew - 1.e-13);
+		if(newMesh.eStart + (ieStart + 0.1)*eStepNew < oldMesh.eStart) ieStart++;
+		if(ieStart < 0) ieStart = 0;
+	}
+	long ieFin = neNew_mi_1;
+	if(oldMesh.eFin < newMesh.eFin) 
+	{ 
+		ieFin = (long)((oldMesh.eFin - newMesh.eStart)/eStepNew + 1.e-13);
+		if(ieFin >= newMesh.ne) ieFin = neNew_mi_1;
+	}
+
+	if((ieStart > 0) || (ieFin < neNew_mi_1))
+	{
+		long long TotAmOfNewData = ((long long)neNew)*((long long)newMesh.nx)*((long long)newMesh.ny) << 1;
+		if(TreatPolCompX)
+		{
+			float *tNewRadX = pNewRadX;
+			for(long long i=0; i<TotAmOfNewData; i++) *(tNewRadX++) = 0.;
+		}
+		if(TreatPolCompZ)
+		{
+			float *tNewRadZ = pNewRadZ;
+			for(long long i=0; i<TotAmOfNewData; i++) *(tNewRadZ++) = 0.;
+		}
+	}
+
+	bool WaveFrontTermWasTreated = 0;
+	bool allowTreatQuadPhaseTerm = true;
+	if(arPar != 0)
+	{
+		if(arPar[1] == 0.) allowTreatQuadPhaseTerm = false;
+	}
+
+	if(allowTreatQuadPhaseTerm && QuadPhaseTermCanBeTreated())
+	{
+		//NewRadAccessData.WfrQuadTermCanBeTreatedAtResizeX = OldRadAccessData.WfrQuadTermCanBeTreatedAtResizeX;
+		//NewRadAccessData.WfrQuadTermCanBeTreatedAtResizeZ = OldRadAccessData.WfrQuadTermCanBeTreatedAtResizeZ;
+
+		//TreatStronglyOscillatingTerm(OldRadAccessData, 'r', PolComp);
+		if(!TreatPolCompZ) polComp = 'x';
+		else if(!TreatPolCompX) polComp = 'z';
+		TreatQuadPhaseTerm('r', polComp);
+
+		//NewRadAccessData.wfrReffX = OldRadAccessData.wfrReffX;
+		//NewRadAccessData.wfrReffZ = OldRadAccessData.wfrReffZ;
+		WaveFrontTermWasTreated = true;
+	}
+
+	long long PerX_New = neNew << 1;
+	long long PerZ_New = PerX_New*newMesh.nx;
+	//long long izPerZ_New, ixPerX_New_p_Two_ie;
+
+	long long PerX_Old = oldMesh.ne << 1;
+	long long PerZ_Old = PerX_Old*oldMesh.nx;
+
+	bool UseLowOrderInterp_PolCompX, UseLowOrderInterp_PolCompZ;
+	//bool FieldShouldBeZeroedDueToX, FieldShouldBeZeroedDueToZ, FieldShouldBeZeroed;
+
+	float *pEX0_New = 0, *pEZ0_New = 0;
+	if(TreatPolCompX) pEX0_New = pNewRadX;
+	if(TreatPolCompZ) pEZ0_New = pNewRadZ;
+
+	//float *pEX_StartForX_New, *pEZ_StartForX_New;
+	//float *pEX_New, *pEZ_New;
+
+	double eAbs, eRel;
+	//double xAbs, xRel, zAbs, zRel;
+	long iecOld, ieStOld, iecOld_mi_ieStOld;
+	//long ixcOld, ixStOld, ixcOld_mi_ixStOld;
+	//long izcOld, izStOld, izcOld_mi_izStOld;
+	long ieStOldPrev = -1000;
+	//long ixStOldPrev = -1000, izStOldPrev = -1000;
+
+	srTInterpolAux01_1D InterpolAux01;
+	srTInterpolAux02_1D InterpolAux02[4], InterpolAux02I[2];
+	srTInterpolAuxF_1D AuxF[4], AuxFI[2];
+	float BufF[4], BufFI[2];
+	int res=0;
+	long long TotOffsetOld;
+
+	for(long iz=0; iz<newMesh.ny; iz++)
+	{
+		long long iz_PerZ_New = iz*PerZ_New;
+		long long iz_PerZ_Old = iz*PerZ_Old;
+
+		for(long ix=0; ix<newMesh.nx; ix++)
+		{
+			//if(res = srYield.Check()) return res;
+
+			long long iz_PerZ_New_p_ix_PerX_New = iz_PerZ_New + ix*PerX_New;
+			long long iz_PerZ_Old_p_ix_PerX_Old = iz_PerZ_Old + ix*PerX_Old;
+
+			ieStOldPrev = -1000;
+
+			for(int ie=ieStart; ie<=ieFin; ie++)
+			{
+				long long ofstNew = iz_PerZ_New_p_ix_PerX_New + (ie << 1);
+				float *pEX_New = pEX0_New + ofstNew;
+				float *pEZ_New = pEZ0_New + ofstNew;
+
+				eAbs = eStartNew + ie*eStepNew;
+
+				iecOld = long((eAbs - eStartOld)*eStepInvOld + 1.E-08);
+				eRel = eAbs - (eStartOld + iecOld*eStepOld);
+
+				if(iecOld == ne_mi_1Old) { ieStOld = iecOld - 3; eRel += 2.*eStepOld; }
+				else if(iecOld == ne_mi_2Old) { ieStOld = iecOld - 2; eRel += eStepOld; }
+				else if(iecOld == 0) { ieStOld = iecOld; eRel -= eStepOld; }
+				else ieStOld = iecOld - 1;
+
+				eRel *= eStepInvOld;
+				iecOld_mi_ieStOld = iecOld - ieStOld;
+
+				if(ieStOld != ieStOldPrev)
+				{
+					UseLowOrderInterp_PolCompX = 0, UseLowOrderInterp_PolCompZ = 0;
+					TotOffsetOld = iz_PerZ_Old_p_ix_PerX_Old + (ieStOld << 1);
+
+					if(TreatPolCompX)
+					{
+						float *pExSt_Old = pOldRadX + TotOffsetOld;
+						srTGenOptElem::GetCellDataForInterpol1D(pExSt_Old, 2, AuxF);
+						srTGenOptElem::SetupCellDataI1D(AuxF, AuxFI);
+						UseLowOrderInterp_PolCompX = srTGenOptElem::CheckForLowOrderInterp1D(AuxF, AuxFI, iecOld_mi_ieStOld, &InterpolAux01, InterpolAux02, InterpolAux02I);
+						if(!UseLowOrderInterp_PolCompX)
+						{
+							for(int i=0; i<2; i++)
+							{
+								srTGenOptElem::SetupInterpolAux02_1D(AuxF + i, &InterpolAux01, InterpolAux02 + i);
+							}
+							srTGenOptElem::SetupInterpolAux02_1D(AuxFI, &InterpolAux01, InterpolAux02I);
+						}
+					}
+					if(TreatPolCompZ)
+					{
+						float *pEzSt_Old = pOldRadZ + TotOffsetOld;
+						srTGenOptElem::GetCellDataForInterpol1D(pEzSt_Old, 2, AuxF + 2);
+						srTGenOptElem::SetupCellDataI1D(AuxF + 2, AuxFI + 1);
+						UseLowOrderInterp_PolCompZ = srTGenOptElem::CheckForLowOrderInterp1D(AuxF + 2, AuxFI + 1, iecOld_mi_ieStOld, &InterpolAux01, InterpolAux02 + 2, InterpolAux02I + 1);
+						if(!UseLowOrderInterp_PolCompZ)
+						{
+							for(int i=0; i<2; i++)
+							{
+								srTGenOptElem::SetupInterpolAux02_1D(AuxF + 2 + i, &InterpolAux01, InterpolAux02 + 2 + i);
+							}
+							srTGenOptElem::SetupInterpolAux02_1D(AuxFI + 1, &InterpolAux01, InterpolAux02I + 1);
+						}
+					}
+					ieStOldPrev = ieStOld;
+				}
+
+				if(TreatPolCompX)
+				{
+					if(UseLowOrderInterp_PolCompX)
+					{
+						srTGenOptElem::InterpolF_LowOrder1D(InterpolAux02, eRel, BufF, 0);
+						srTGenOptElem::InterpolFI_LowOrder1D(InterpolAux02I, eRel, BufFI, 0);
+					}
+					else
+					{
+						srTGenOptElem::InterpolF1D(InterpolAux02, eRel, BufF, 0);
+						srTGenOptElem::InterpolFI1D(InterpolAux02I, eRel, BufFI, 0);
+					}
+					(*BufFI) *= AuxFI->fNorm;
+					srTGenOptElem::ImproveReAndIm(BufF, BufFI);
+					*pEX_New = *BufF;
+					*(pEX_New + 1) = *(BufF + 1);
+				}
+				if(TreatPolCompZ)
+				{
+					if(UseLowOrderInterp_PolCompZ)
+					{
+						srTGenOptElem::InterpolF_LowOrder1D(InterpolAux02, eRel, BufF, 2);
+						srTGenOptElem::InterpolFI_LowOrder1D(InterpolAux02I, eRel, BufFI, 1);
+					}
+					else
+					{
+						srTGenOptElem::InterpolF1D(InterpolAux02, eRel, BufF, 2);
+						srTGenOptElem::InterpolFI1D(InterpolAux02I, eRel, BufFI, 1);
+					}
+					*(BufFI + 1) *= (AuxFI + 1)->fNorm;
+					srTGenOptElem::ImproveReAndIm(BufF + 2, BufFI + 1);
+					*pEZ_New = *(BufF + 2);
+					*(pEZ_New + 1) = *(BufF + 3);
+				}
+			}
+		}
+	}
+	if(WaveFrontTermWasTreated) TreatQuadPhaseTerm('r', polComp);
 }
 
 //*************************************************************************

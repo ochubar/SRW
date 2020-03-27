@@ -4,8 +4,8 @@
 # Contains a set of member objects and functions for simulating basic operation and characteristics
 # of a complete user beamline in a synchrotron radiation source.
 # Under development!!!
-# Authors/Contributors: O.C., Maksim Rakitin
-# v 0.09
+# Authors/Contributors: O.C., Maksim Rakitin, An He
+# v 0.10
 #############################################################################
 
 from __future__ import print_function #Python 2.7 compatibility
@@ -14,6 +14,7 @@ from srwl_uti_mag import *
 from srwl_uti_und import *
 from uti_plot import *
 import uti_math
+import uti_io
 #import optparse #MR081032016 #Consider placing import argparse here
 import time
 
@@ -762,9 +763,10 @@ class SRWLBeamline(object):
         #    raise Exception('Incorrect optics container (SRWLOptC) structure')
 
         if(_op is None): #OC16122018
-            if(_v.op_func is None):
-                raise Exception('Optics container structure (SRWLOptC) or function for setting it up is not defined')
-            else: _op = _v.op_func(_v) #assuming _v.op_func is reference to set_optics function of virtual beamline script
+            if(_v is not None):
+                if(_v.op_func is None):
+                    raise Exception('Optics container structure (SRWLOptC) or function for setting it up is not defined')
+                else: _op = _v.op_func(_v) #assuming _v.op_func is reference to set_optics function of virtual beamline script
 
         #print(_v)
         if(_v is not None): #OC28042018
@@ -1122,7 +1124,10 @@ class SRWLBeamline(object):
         if _pr:
             print('Gaussian beam electric field calculation ... ', end='')
             t0 = time.time();
-            
+        
+        #TEST
+        #print(wfr.mesh.zStart)
+        
         #srwl.CalcElecFieldGaussian(wfr, self.gsnBeam, [_samp_fact])
         srwl.CalcElecFieldGaussian(wfr, locGsnBeam, [_samp_fact]) #OC16102017
         #if _pr: print('completed (lasted', round(time.time() - t0, 2), 's)')
@@ -1230,7 +1235,7 @@ class SRWLBeamline(object):
 
         if _pr:
             print('Spherical wave electric field calculation ... ', end='')
-            t0 = time.time();
+            t0 = time.time()
             
         #srwl.CalcElecFieldPointSrc(wfr, self.ptSrc, [_samp_fact])
         srwl.CalcElecFieldPointSrc(wfr, locPtSrc, [_samp_fact])
@@ -2814,12 +2819,29 @@ class SRWLBeamline(object):
                 _z_fin = _v.pw_zf,
                 _mag_type = _v.pw_mag,
                 _fname= os.path.join(_v.fdir, _v.pw_fn) if(len(_v.pw_fn) > 0) else '')
+
+        #---calculate bemline optics orientations and save it to file
+        if(len(_v.op_fno) > 0): #OC23032020
+            avgPhEn = _v.w_e
+            if(_v.w_ef > 0): avgPhEn = 0.5*(_v.w_e + _v.w_ef)
+            self.set_optics(_op, _v)
+            opOrientData = self.optics.get_orient_lab_fr(_e=avgPhEn, _r=_v.op_r)
+            if(opOrientData is not None): #OC29012020
+                if(len(opOrientData) > 0):
+                    uti_io.write_ascii_data_rows(_file_path=os.path.join(_v.fdir, _v.op_fno), _rows=opOrientData, _str_sep='\t',
+                                                 _str_head='#Types of optical elements and Cartesian coordinates of their center positions and base vectors (t, s, n) in the Lab frame')
             
         #---calculate single-e and multi-e intensity distributions (before and after wavefront propagation through a beamline)
         if(_v.si or _v.ws or _v.gi or _v.wg or _v.wm):
             #if(_v.ws or _v.wg or _v.wm): self.set_optics(_op)
-            if(_v.ws or _v.wg or _v.wm): self.set_optics(_op, _v) #OC28042018
-            
+            if(_v.ws or _v.wg or _v.wm):
+
+                #self.set_optics(_op, _v) #OC28042018
+                needSetOptics = False #OC23032020
+                if not hasattr(self, 'optics'): needSetOptics = True
+                elif self.optics is None: needSetOptics = True
+                if needSetOptics: self.set_optics(_op, _v)
+                
             ef = _v.w_e
             if(_v.w_ef > 0): ef = _v.w_ef
             mesh_w = SRWLRadMesh(
@@ -3122,7 +3144,13 @@ class SRWLBeamline(object):
 
             plotOK = True
 
-        if (_v.sm == True) and (len(_v.sm_pl) > 0):
+        #print(_v.sm)
+        #print(_v.sm_pl)
+        
+        if (_v.sm) and (len(_v.sm_pl) > 0): #OC05082019
+        #if (_v.sm == True) and (len(_v.sm_pl) > 0):
+
+            #print('printing multi-e flux')
             sValType = 'Flux'; sValUnit = 'ph/s/.1%bw'
             if(_v.sm_type == 2):
                 sValType = 'Flux per Unit Surface'; sValUnit = 'ph/s/.1%bw/mm^2'
@@ -3315,8 +3343,8 @@ def srwl_uti_std_options():
         ['und2_phm', 's', 'p1', 'second undulator phase move mode'],
 
         #['und_ior', 'f', 1, 'interpolaton order of tabulated undulator magnetic field'],
-        #['und2_ior', 'f', 1, 'interpolaton order of second tabulated undulator magnetic field'],
         ['und_ior', 'f', 3, 'interpolaton order of tabulated undulator magnetic field'], #OC03082019
+        #['und2_ior', 'f', 1, 'interpolaton order of second tabulated undulator magnetic field'],
         ['und2_ior', 'f', 3, 'interpolaton order of second tabulated undulator magnetic field'], #OC03082019
 
         ['und_sx', 'i', 1, 'undulator horizontal magnetic field symmetry vs longitudinal position'],
@@ -3538,6 +3566,7 @@ def srwl_uti_std_options():
     #Optics parameters
         ['op_r', 'f', 30., 'longitudinal position of the first optical element [m]'],
         ['op_dp', 'f', 0., 'length of drift space to be applied after propagation through a beamline [m]'],
+        ['op_fno', 's', '', 'file name for saving orientations of optical elements in the lab frame'],
 
     #Detector parameters
         ['d_x', 'f', 0., 'central horizontal position [m] of detector active area'],

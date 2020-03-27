@@ -178,7 +178,9 @@ inline int srTApplication::ComputeTrajectory()
 	double sSt = TrjDat.sStart;
 	double sFi = sSt + TrjDat.sStep*(TrjDat.LenFieldData - 1);
 	char DistUnits = 1; // m for coord.
-	DOUBLE *Loc_pOutBtxData, *Loc_pOutXData, *Loc_pOutBtzData, *Loc_pOutZData;
+	double *Loc_pOutBtxData, *Loc_pOutXData, *Loc_pOutBtzData, *Loc_pOutZData; //OC26112019 (related to SRW port to IGOR XOP 8 on Mac)
+	//DOUBLE *Loc_pOutBtxData, *Loc_pOutXData, *Loc_pOutBtzData, *Loc_pOutZData;
+
 	Send.ShowOutTrjDataPointers(Loc_pOutBtxData, Loc_pOutXData, Loc_pOutBtzData, Loc_pOutZData);
 	TrjDat.CompTotalTrjDataTrjDisp(sSt, sFi, TrjDat.LenFieldData, (double*)Loc_pOutBtxData, (double*)Loc_pOutBtzData, (double*)Loc_pOutXData, (double*)Loc_pOutZData, DistUnits);
 	Send.FinishTrjOutFormat1();

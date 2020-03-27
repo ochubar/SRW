@@ -35,6 +35,8 @@ double srTGenOptElem::CheckMemoryAvailable()
 
 //*************************************************************************
 
+//int srTGenOptElem::PropagateRadiationMeth_0(srTSRWRadStructAccessData* pRadAccessData, void* pBuf) //OC06092019
+//OC01102019 (restored)
 int srTGenOptElem::PropagateRadiationMeth_0(srTSRWRadStructAccessData* pRadAccessData) 
 {//Moved from derived classes: loops over E, calls derived PropagateRadiationSingleE_Meth_0
  //This propagation method doesn't allow for true wavefront "resizing/resampling" 
@@ -111,6 +113,8 @@ int srTGenOptElem::PropagateRadiationMeth_0(srTSRWRadStructAccessData* pRadAcces
 			pPrevRadDataSingleE->pMomZ = pRadDataSingleE->pMomZ;
 		}
 
+		//if(result = PropagateRadiationSingleE_Meth_0(pRadDataSingleE, pPrevRadDataSingleE, pBuf)) return result; //from derived classes
+		//OC01102019 (restored)
 		if(result = PropagateRadiationSingleE_Meth_0(pRadDataSingleE, pPrevRadDataSingleE)) return result; //from derived classes
 
 		if(pRadDataSingleE != pRadAccessData)
@@ -132,6 +136,7 @@ int srTGenOptElem::PropagateRadiationMeth_0(srTSRWRadStructAccessData* pRadAcces
 	if((pRadAccessData->RobsX != 0) && (pRadAccessData->RobsXAbsErr == 0)) pRadAccessData->RobsXAbsErr = ::fabs(0.1*pRadAccessData->RobsX);
 	if((pRadAccessData->RobsZ != 0) && (pRadAccessData->RobsZAbsErr == 0)) pRadAccessData->RobsZAbsErr = ::fabs(0.1*pRadAccessData->RobsZ);
 
+	//OCTEST (commented-out)
 	if(gridParamWereModifInSlices)
 	{//to test!
 		if(result = ReInterpolateWfrDataOnNewTransvMesh(vRadSlices, pRadDataSingleE, pRadAccessData)) return result;
@@ -141,11 +146,14 @@ int srTGenOptElem::PropagateRadiationMeth_0(srTSRWRadStructAccessData* pRadAcces
 	if((pPrevRadDataSingleE != 0) && (pPrevRadDataSingleE != pRadAccessData)) delete pPrevRadDataSingleE;
 
 #else //OC31102018: modified by SY at parallelizing SRW via OpenMP
+//#ifdef SWITCH_OFF //OCTEST
 
 	if(pRadAccessData->ne == 1)
 	{
 		//SY: nothing more is actually needed in this case
-		return PropagateRadiationSingleE_Meth_0(pRadAccessData, 0); //from derived classes
+		
+		return PropagateRadiationSingleE_Meth_0(pRadAccessData, 0); //OC01102019 (restored) //from derived classes
+		//return PropagateRadiationSingleE_Meth_0(pRadAccessData, 0, pBuf); //OC06092019
 
 		//OC31102018: added by SY (for profiling?) at parallelizing SRW via OpenMP
 		//srwlPrintTime(": PropagateRadiationMeth_0 : PropagateRadiationSingleE_Meth_0 - single",&start);
@@ -181,6 +189,12 @@ int srTGenOptElem::PropagateRadiationMeth_0(srTSRWRadStructAccessData* pRadAcces
 
 	//OC31102018: added by SY (for profiling?) at parallelizing SRW via OpenMP
 	//srwlPrintTime(": PropagateRadiationMeth_0 : before cycle",&start);
+
+#ifndef _FFTW3 //OC28082019
+	//It looks like with FFTW2, this plan has to be shared among all threads:
+	m_frwPlan2DFFT = fftw2d_create_plan(pRadAccessData->nz, pRadAccessData->nx, FFTW_FORWARD, FFTW_IN_PLACE | FFTW_THREADSAFE);
+	m_bckwPlan2DFFT = fftw2d_create_plan(pRadAccessData->nz, pRadAccessData->nx, FFTW_BACKWARD, FFTW_IN_PLACE | FFTW_THREADSAFE);
+#endif
 
 	//SY: we cannot do it in parallel if previous field is needed (which is not the case in the current version of SRW)
 	#pragma omp parallel if (pPrevRadDataSingleE == 0)
@@ -222,9 +236,12 @@ int srTGenOptElem::PropagateRadiationMeth_0(srTSRWRadStructAccessData* pRadAcces
 					pPrevRadDataSingleE->pMomX = pRadDataSingleE->pMomX;
 					pPrevRadDataSingleE->pMomZ = pRadDataSingleE->pMomZ;
 				}
+
+				//if(results[ie] = PropagateRadiationSingleE_Meth_0(pRadDataSingleE, pPrevRadDataSingleE, pBuf)) continue; //OC06092019
+				//OC01102019 (restored)
 				if(results[ie] = PropagateRadiationSingleE_Meth_0(pRadDataSingleE, pPrevRadDataSingleE)) continue; //from derived classes
 
-				if(results[ie] = UpdateGenRadStructSliceConstE_Meth_0(pRadDataSingleE, ie, pRadAccessData,1)) continue;
+				if(results[ie] = UpdateGenRadStructSliceConstE_Meth_0(pRadDataSingleE, ie, pRadAccessData, 1)) continue;
 				//the above doesn't change the transverse grid parameters in *pRadAccessData
 
 				//vRadSlices.push_back(*pRadDataSingleE); //this automatically calls destructor, which can eventually delete "emulated" structs!
@@ -251,7 +268,7 @@ int srTGenOptElem::PropagateRadiationMeth_0(srTSRWRadStructAccessData* pRadAcces
 	//srwlPrintTime(str,&start);
 
 	//SY: update limits and Radii (cannot be done in parallel)
-	for(int ie = 0; ie < neOrig; ie++) if(result = UpdateGenRadStructSliceConstE_Meth_0(pRadSlices[ie], ie, pRadAccessData,2)) return result;
+	for(int ie = 0; ie < neOrig; ie++) if(result = UpdateGenRadStructSliceConstE_Meth_0(pRadSlices[ie], ie, pRadAccessData, 2)) return result;
 
 	//OC31102018: added by SY (for profiling?) at parallelizing SRW via OpenMP
 	//srwlPrintTime(":PropagateRadiationMeth_0 : UpdateGenRadStructSliceConstE_Meth_0:",&start);
@@ -279,6 +296,12 @@ int srTGenOptElem::PropagateRadiationMeth_0(srTSRWRadStructAccessData* pRadAcces
 	delete[] gridParamWereModif;
 
 	if(pPrevRadDataSingleE != 0) delete pPrevRadDataSingleE;
+
+#ifndef _FFTW3 //OC28082019
+	//It looks like with FFTW2, this plan has to be shared among all threads:
+	if(m_frwPlan2DFFT != 0) { fftwnd_destroy_plan(m_frwPlan2DFFT); m_frwPlan2DFFT = 0;}
+	if(m_bckwPlan2DFFT != 0) { fftwnd_destroy_plan(m_bckwPlan2DFFT); m_bckwPlan2DFFT = 0;}
+#endif
 
 #endif
 

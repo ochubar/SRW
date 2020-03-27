@@ -32,7 +32,7 @@ strOpTrFileName = 'ex08_res_op_tr_crl.dat' #file name for output optical transmi
 strOpPathDifFileName = 'ex08_res_op_path_dif_crl.dat' #file name for optical path difference data
 
 #***********Undulator
-numPer = 72.5 #Number of ID Periods (without counting for terminations
+numPer = 72 #72.5 #Number of ID Periods (without counting for terminations
 undPer = 0.033 #Period Length [m]
 Bx = 0 #Peak Horizontal field [T]
 By = 0.3545 #Peak Vertical field [T]

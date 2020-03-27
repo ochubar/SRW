@@ -550,7 +550,7 @@ def integ_ar_2d(_ar, _ar_align, _x_grid, _y_grid, _x_lim=None, _y_lim=None):
 #****************************************************************************
 def matr_prod(_A, _B):
     """
-    Multiplies matrix _A by matrix _B 
+    Multiplies matrix _A by matrix or by vector _B 
     """
     # Matrix multiplication
     B0 = _B[0]
@@ -573,6 +573,15 @@ def matr_prod(_A, _B):
     return C
 
 #****************************************************************************
+def matr_transp(_A):
+    """
+    Returns transposed matrix
+    """
+    lenA = len(_A)
+    lenA0 = len(_A[0])
+    return [[_A[i][j] for i in range(lenA)] for j in range(lenA0)]
+
+#****************************************************************************
 def matr_print(_A):
     """
     Prints matrix _A
@@ -581,18 +590,67 @@ def matr_print(_A):
         print(_A[i])
 
 #****************************************************************************
-def matr_3x3_det(_M):
+def matr3x3_det(_M):
     S0 = _M[0]; S1 = _M[1]; S2 = _M[2]
     return S0[0]*S1[1]*S2[2] + S0[1]*S1[2]*S2[0] + S0[2]*S1[0]*S2[1] - S0[2]*S1[1]*S2[0] - S0[0]*S1[2]*S2[1] - S0[1]*S1[0]*S2[2]
 
+def matr_3x3_det(_M):
+    return matr3x3_det(_M)
+
 #****************************************************************************
-def matr_3x3_inv(_M):
+def matr3x3_inv(_M):
     S0 = _M[0]; S1 = _M[1]; S2 = _M[2]
     invDet = 1./(S0[0]*S1[1]*S2[2] + S0[1]*S1[2]*S2[0] + S0[2]*S1[0]*S2[1] - S0[2]*S1[1]*S2[0] - S0[0]*S1[2]*S2[1] - S0[1]*S1[0]*S2[2])
     S0i = [invDet*(S1[1]*S2[2] - S1[2]*S2[1]), invDet*(-S0[1]*S2[2] + S0[2]*S2[1]), invDet*(S0[1]*S1[2] - S0[2]*S1[1])]
     S1i = [invDet*(-S1[0]*S2[2] + S1[2]*S2[0]), invDet*(S0[0]*S2[2] - S0[2]*S2[0]), invDet*(-S0[0]*S1[2] + S0[2]*S1[0])]
     S2i = [invDet*(S1[0]*S2[1] - S1[1]*S2[0]), invDet*(-S0[0]*S2[1] + S0[1]*S2[0]), invDet*(S0[0]*S1[1] - S0[1]*S1[0])]
     return [S0i, S1i, S2i]
+
+def matr_3x3_inv(_M):
+    return matr3x3_inv(_M)
+
+#****************************************************************************
+def vect_prod_s(_V1, _V2):
+    """
+    Returns scalar product of vectors V1 and V2
+    """
+    sizeV1 = len(_V1)
+    sizeV2 = len(_V2)
+    sizeV = sizeV1 if(sizeV1 < sizeV2) else sizeV2
+    res = 0
+    for i in range(sizeV): res += _V1[i]*_V2[i]
+    return res
+
+#****************************************************************************
+def vect3_prod_v(_V1, _V2):
+    """
+    Returns vector product of 3d vectors V1 and V2
+    """
+    return [_V1[1]*_V2[2] - _V1[2]*_V2[1], _V1[2]*_V2[0] - _V1[0]*_V2[2], _V1[0]*_V2[1] - _V1[1]*_V2[0]]
+
+#****************************************************************************
+def vect_norm(_V):
+    """
+    Returns vector norm (/length)
+    """
+    return sqrt(sum(n**2 for n in _V))
+
+#****************************************************************************
+def vect_normalize(_V):
+    """
+    Normalizes vector (in place, i.e. without creating new vector)
+    """
+    invNorm = 1./vect_norm(_V)
+    for i in range(len(_V)): _V[i] *= invNorm
+    return _V
+
+#****************************************************************************
+def vect_mult(_V, _a):
+    """
+    Multiplies vector _V (in place) by number _a
+    """
+    for i in range(len(_V)): _V[i] *= _a
+    return _V
 
 #****************************************************************************
 def trf_rotation(_V, _ang, _P):

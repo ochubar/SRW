@@ -31,7 +31,7 @@ strIntPropSE_OutFileName = 'ex10_res_int_prop_se.dat' #file name for output prop
 strIntPropME_OutFileName = 'ex10_res_int_prop_me.dat' #file name for output propagated multi-electron SR intensity data
 
 #***********Undulator
-numPer = 71.5 #Number of ID Periods (without counting for terminations
+numPer = 71 #71.5 #Number of ID Periods (without counting for terminations
 undPer = 0.021 #Period Length [m]
 By = 0.80371 #Peak Vertical field [T]
 phBy = 0 #Initial Phase of the Vertical field component

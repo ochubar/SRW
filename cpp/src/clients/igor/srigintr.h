@@ -20,6 +20,12 @@
 
 #ifdef __IGOR_PRO__
 #include "XOPStandardHeaders.h"			// Include ANSI headers, Mac headers, IgorXOP.h, XOP.h and XOPSupport.h
+
+//OCTEST
+//#ifndef DOUBLE
+//typedef double DOUBLE;
+//#endif
+
 #else
 #include "srigorre.h"
 #endif
@@ -256,7 +262,8 @@ struct srTHandleOfSRWRadStruct {
 //*************************************************************************
 
 struct srTHandleOfOneWaveStruct {
-	DOUBLE p1;
+	//DOUBLE p1;
+	double p1; //OC26112019 (related to SRW port to IGOR XOP 8 on Mac)
 	waveHndl WaveHndl;
 // For operations on a single wave
 };
@@ -279,18 +286,20 @@ struct srTIgorExtractPhaseInputStruct {
 //*************************************************************************
 
 struct srTIgorRadResizeInputStruct {
-	DOUBLE MethNo;
-	DOUBLE pzd;
-	DOUBLE pzm;
-	DOUBLE pxd;
-	DOUBLE pxm;
+	//DOUBLE MethNo;
+	//DOUBLE pzd;
+	//DOUBLE pzm;
+	//DOUBLE pxd;
+	//DOUBLE pxm;
+	double MethNo, pzd, pzm, pxd, pxm; //OC26112019 (related to SRW port to IGOR XOP 8 on Mac)
 	waveHndl wRad;
 };
 
 //*************************************************************************
 
 struct srTIgorObsSetNxNzInputStruct {
-	DOUBLE p1;
+	//DOUBLE p1;
+	double p1; //OC26112019 (related to SRW port to IGOR XOP 8 on Mac)
 
 	waveHndl wObservation;
 	waveHndl wMagnField;
@@ -300,8 +309,9 @@ struct srTIgorObsSetNxNzInputStruct {
 //*************************************************************************
 
 struct srTIgorRadPropagInputStruct {
-	DOUBLE AuxPar1;
-	DOUBLE MethNo;
+	//DOUBLE AuxPar1;
+	//DOUBLE MethNo;
+	double AuxPar1, MethNo; //OC26112019 (related to SRW port to IGOR XOP 8 on Mac)
 	waveHndl wOptElem;
 	waveHndl wRad;
 };
@@ -340,7 +350,8 @@ struct srTHandleOfTextStruct {
 //*************************************************************************
 
 struct srTIgorUtiInterTimeInputStruct {
-	DOUBLE Delta;
+	//DOUBLE Delta;
+	double Delta; //OC26112019 (related to SRW port to IGOR XOP 8 on Mac)
 };
 
 //*************************************************************************
@@ -352,13 +363,13 @@ struct srTIgorUtiInterTimeInputStruct {
 //*************************************************************************
 
 struct srTIgorOptMatConstInputStruct {
-	DOUBLE PhotEn;
-	DOUBLE Density;
-	DOUBLE AtomNum; // Second arg
-	DOUBLE MatNo; // First arg
-
-	DOUBLE Delta; // return Re
-	DOUBLE AttenLength; // return Im
+	//DOUBLE PhotEn;
+	//DOUBLE Density;
+	//DOUBLE AtomNum; // Second arg
+	//DOUBLE MatNo; // First arg
+	//DOUBLE Delta; // return Re
+	//DOUBLE AttenLength; // return Im
+	double PhotEn, Density, AtomNum, MatNo, Delta, AttenLength; //OC26112019 (related to SRW port to IGOR XOP 8 on Mac)
 };
 
 //*************************************************************************
@@ -379,7 +390,8 @@ struct srTIgorUtiSpotInfoInputStruct {
 //*************************************************************************
 
 struct srTIgorUtiWrfLimitsInputStruct {
-	DOUBLE PowLevel;
+	//DOUBLE PowLevel;
+	double PowLevel; //OC26112019 (related to SRW port to IGOR XOP 8 on Mac)
 	waveHndl wData;
 	Handle InfoName; // Return
 };
@@ -393,51 +405,51 @@ struct srTIgorUtiRemoveFlipsInputStruct {
 //*************************************************************************
 
 struct srTIgorUtiMagRadInputStruct {
-	DOUBLE OutUnit; // 1- mm; 2- m; 3- km;
-	DOUBLE ElecEnergy;
-	DOUBLE Bconst;
-
-	DOUBLE Rmag;
+	//DOUBLE OutUnit; // 1- mm; 2- m; 3- km;
+	//DOUBLE ElecEnergy;
+	//DOUBLE Bconst;
+	//DOUBLE Rmag;
+	double OutUnit, ElecEnergy, Bconst, Rmag; //OC26112019 (related to SRW port to IGOR XOP 8 on Mac)
 };
 
 //*************************************************************************
 
 struct srTIgorUtiMagCritPhotEnInputStruct {
-	DOUBLE OutUnit; // 1- ; 2- ; 3- ; ...
-	DOUBLE ElecEnergy;
-	DOUBLE Bconst;
-
-	DOUBLE CritPhotEn;
+	//DOUBLE OutUnit; // 1- ; 2- ; 3- ; ...
+	//DOUBLE ElecEnergy;
+	//DOUBLE Bconst;
+	//DOUBLE CritPhotEn;
+	double OutUnit, ElecEnergy, Bconst, CritPhotEn; //OC26112019 (related to SRW port to IGOR XOP 8 on Mac)
 };
 
 //*************************************************************************
 
 struct srTIgorUtiUndKInputStruct {
-	DOUBLE Period;
-	DOUBLE Bpeak;
-
-	DOUBLE K;
+	//DOUBLE Period;
+	//DOUBLE Bpeak;
+	//DOUBLE K;
+	double Period, Bpeak, K; //OC26112019 (related to SRW port to IGOR XOP 8 on Mac)
 };
 
 //*************************************************************************
 
 struct srTIgorUtiUndFundPhotEnInputStruct {
-	DOUBLE OutUnit; // 1- ; 2- ; 3- ; ...
-	DOUBLE ElecEnergy;
-	DOUBLE Period;
-	DOUBLE Bpeak;
-
-	DOUBLE FundPhotEn;
+	//DOUBLE OutUnit; // 1- ; 2- ; 3- ; ...
+	//DOUBLE ElecEnergy;
+	//DOUBLE Period;
+	//DOUBLE Bpeak;
+	//DOUBLE FundPhotEn;
+	double OutUnit, ElecEnergy, Period, Bpeak, FundPhotEn; //OC26112019 (related to SRW port to IGOR XOP 8 on Mac)
 };
 
 //*************************************************************************
 
 struct srTIgorKmuInputStruct {
-	DOUBLE x;
-	DOUBLE mu;
-	DOUBLE nInt;
-
-	DOUBLE Kmu;
+	//DOUBLE x;
+	//DOUBLE mu;
+	//DOUBLE nInt;
+	//DOUBLE Kmu;
+	double x, mu, nInt, Kmu; //OC26112019 (related to SRW port to IGOR XOP 8 on Mac)
 };
 
 //*************************************************************************
@@ -460,7 +472,8 @@ struct srTIgorElecEnergyModul {
 //*************************************************************************
 //TEST
 struct srTIgor3DViewInputStruct {
-	DOUBLE TransvScaleFact;
+	//DOUBLE TransvScaleFact;
+	double TransvScaleFact; //OC26112019 (related to SRW port to IGOR XOP 8 on Mac)
 	waveHndl wOptElem;
 	waveHndl wObservation;
 	waveHndl wMagFld;

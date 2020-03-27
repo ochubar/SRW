@@ -214,6 +214,31 @@ public:
 		return res;
 	}
 
+	template <class T> static double FindCoordValForCurveLength(T* pT, double (T::*pdYdX)(double), double curveLen, double xStart, double xStep, int nxMax) //OC01122019
+	{//finds x value for which the y(x) curve length, starting from y(xStart) in the direction given by xStep is equal to curveLen
+		
+		double abs_xStep = ::fabs(xStep);
+		double dYdX = (pT->*pdYdX)(xStart);
+		double curveLenEst = 0.5*abs_xStep*sqrt(1. + dYdX*dYdX);
+		double prevCurveLenEst = 0;
+		double x = xStart + xStep;
+
+		if(curveLenEst < curveLen)
+		{
+			for(int i=1; i<nxMax; i++)
+			{
+				prevCurveLenEst = curveLenEst;
+				dYdX = (pT->*pdYdX)(x);
+				curveLenEst += abs_xStep*sqrt(1. + dYdX*dYdX);
+				if(curveLenEst >= curveLen) break;
+
+				x += xStep;
+			}
+			if(curveLenEst < curveLen) return x; //?
+		}
+		return x - xStep*(curveLenEst - curveLen)/(curveLenEst - prevCurveLenEst);
+	}
+
 	//template <class T> static T tabFunc2D(int ix, int iy, int nx, T* pF)
 	template <class T> static T tabFunc2D(long long ix, long long iy, long long nx, T* pF)
 	{//just function value

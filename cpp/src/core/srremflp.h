@@ -22,7 +22,8 @@ class srTAuxRemoveFlips {
 public:
 
 	int GenRemoveFlips(srTWaveAccessData& WaveData);
-	void RemoveFlips1D(DOUBLE* pData, long long Np, long long i0, double Phi0); //OC26042019
+	//void RemoveFlips1D(DOUBLE* pData, long long Np, long long i0, double Phi0); //OC26042019
+	void RemoveFlips1D(double* pData, long long Np, long long i0, double Phi0); //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
 	//void RemoveFlips1D(DOUBLE* pData, long Np, long i0, double Phi0);
 	void RemoveFlips1D(float* pData, long long Np, long long i0, double Phi0); //OC26042019
 	//void RemoveFlips1D(float* pData, long Np, long i0, double Phi0);

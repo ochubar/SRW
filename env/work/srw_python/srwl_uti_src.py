@@ -42,7 +42,7 @@ def srwl_uti_src_e_beam_predef(): #OC25012017
 def srwl_uti_src_e_beam(_nm, _Iavg=None, _e=None, _sig_e=None, _emit_x=None, _beta_x=None, _alpha_x=None, _eta_x=None, _eta_x_pr=None, _emit_y=None, _beta_y=None, _alpha_y=None):
 #def srwl_uti_src_e_beam(_nm):
     """Instantiates electron beam structures describing different existing sources
-    :param _name: string identifying a source
+    :param _nm: string identifying a source
     :return: SRWLPartBeam object
     """
     #allBeams = srwl_uti_src_e_beams_predef()

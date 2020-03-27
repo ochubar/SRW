@@ -37,6 +37,12 @@
 #include "Memory.h"
 #endif
 
+#ifndef _FFTW3 //OC28082019
+#ifdef _WITH_OMP
+#include "fftw.h"
+#endif
+#endif
+
 //*************************************************************************
 
 extern srTIntVect gVectWarnNos;
@@ -73,6 +79,12 @@ protected:
 
 	double HalfPI, PI, TwoPI, ThreePIdTwo, One_dTwoPI; // Constants
 
+#ifndef _FFTW3 //OC28082019
+#ifdef _WITH_OMP
+	fftwnd_plan m_frwPlan2DFFT, m_bckwPlan2DFFT;
+#endif
+#endif
+
 public:
 	int ErrorCode;
 
@@ -97,6 +109,13 @@ public:
 		a3s = -0.16666666666667; a5s = 0.0083333333333333; a7s = -0.0001984126984127; a9s = 2.755731922E-06; a11s = -2.505210839E-08;
 	
 		m_PropWfrInPlace = true; //to modify in derived classes, if necessary
+
+#ifndef _FFTW3 //OC28082019
+#ifdef _WITH_OMP
+		m_frwPlan2DFFT = 0;
+		m_bckwPlan2DFFT = 0;
+#endif
+#endif
 	}
 
 	//virtual int PropagateRadiation(srTSRWRadStructAccessData*, int) { return 0;}
@@ -107,15 +126,23 @@ public:
 	virtual int PropagateWaveFrontRadius(srTSRWRadStructAccessData*) { return 0;}
 	virtual int PropagateWaveFrontRadius1D(srTRadSect1D*) { return 0;}
 	virtual int Propagate4x4PropMatr(srTSRWRadStructAccessData*) { return 0;}
+
+	//virtual int PropagateRadiationSimple(srTSRWRadStructAccessData*, void* pBuf=0) { return 0;} //OC06092019
+	//OC01102019 (restored)
 	virtual int PropagateRadiationSimple(srTSRWRadStructAccessData*) { return 0;}
 	virtual int PropagateRadiationSimple1D(srTRadSect1D*) { return 0;}
+	
+	//virtual int PropagateRadiationSingleE_Meth_0(srTSRWRadStructAccessData* pRadAccessData, srTSRWRadStructAccessData* pPrevRadData, void* pBuf=0) { return 0;} //OC06092019
+	//OC01102019 (restored)
 	virtual int PropagateRadiationSingleE_Meth_0(srTSRWRadStructAccessData* pRadAccessData, srTSRWRadStructAccessData* pPrevRadData) { return 0;}
 
 	virtual int RangeShouldBeAdjustedAtPropag() { return 1;}
 	virtual int ResolutionShouldBeAdjustedAtPropag() { return 1;}
 
-	virtual void RadPointModifier(srTEXZ&, srTEFieldPtrs&) {}
-	virtual void RadPointModifier1D(srTEXZ&, srTEFieldPtrs&) {}
+	virtual void RadPointModifier(srTEXZ&, srTEFieldPtrs&, void* pBufVars=0) {} //OC29082019
+	//virtual void RadPointModifier(srTEXZ&, srTEFieldPtrs&) {}
+	virtual void RadPointModifier1D(srTEXZ&, srTEFieldPtrs&, void* pBufVars=0) {}//OC06092019
+	//virtual void RadPointModifier1D(srTEXZ&, srTEFieldPtrs&) {}
 
 	virtual int MakePostPropagationProc(srTSRWRadStructAccessData* pRadAccessData, srTRadResize& ResAfter);
 	virtual int EstimateMinNpToResolveOptElem(srTSRWRadStructAccessData* pRadAccessData, double& MinNx, double& MinNz) 
@@ -154,7 +181,10 @@ public:
 	int PropagateRadiationMeth_2(srTSRWRadStructAccessData*, srTParPrecWfrPropag&, srTRadResizeVect&);
 	int PropagateRadiationSingleE_Meth_2(srTSRWRadStructAccessData*, srTParPrecWfrPropag&, srTRadResizeVect&);
 
+	//virtual int PropagateRadiationMeth_0(srTSRWRadStructAccessData* pRadAccessData, void* pBuf=0); //OC06092019
+	//OC01102019 (restored)
 	virtual int PropagateRadiationMeth_0(srTSRWRadStructAccessData* pRadAccessData); //moved from derived classes: loops over E, calls derived PropagateRadiationSingleE_Meth_0
+
 	void FindWidestWfrMeshParam(vector<srTSRWRadStructAccessData>& vRadSlices, srTSRWRadStructAccessData* pRad, bool keepConstNumPoints);
 	int ReInterpolateWfrDataOnNewTransvMesh(vector<srTSRWRadStructAccessData>& vRadSlices, srTSRWRadStructAccessData* pAuxRadSingleE, srTSRWRadStructAccessData* pRadRes);
 	int ReInterpolateWfrSliceSingleE(srTSRWRadStructAccessData& oldRadSingleE, srTSRWRadStructAccessData& newRadMultiE, int ie);
@@ -207,8 +237,10 @@ public:
 
 	int FillOutRadFromInRad(srTSRWRadStructAccessData*, srTSRWRadStructAccessData*);
 
-	int TraverseRadZXE(srTSRWRadStructAccessData*);
-	int TraverseRad1D(srTRadSect1D*);
+	int TraverseRadZXE(srTSRWRadStructAccessData*, void* pBufVars=0); //OC29082019
+	//int TraverseRadZXE(srTSRWRadStructAccessData*);
+	int TraverseRad1D(srTRadSect1D*, void* pBufVars=0); //OC29082019
+	//int TraverseRad1D(srTRadSect1D*);
 
 	int ExtractRadSliceConstE(srTSRWRadStructAccessData*, long, float*&, float*&, bool forceCopyField=false); //OC120908
 	int SetupRadSliceConstE(srTSRWRadStructAccessData*, long, float*, float*);
@@ -247,9 +279,10 @@ public:
 	int RadResizeCore_OnlyLargerRange(srTSRWRadStructAccessData& OldRadAccessData, srTSRWRadStructAccessData& NewRadAccessData, srTRadResize& RadResizeStruct, char PolComp);
 	int RadResizeCore_OnlyLargerRangeE(srTSRWRadStructAccessData& OldRadAccessData, srTSRWRadStructAccessData& NewRadAccessData, srTRadResize& RadResizeStruct, char PolComp);
 
-	//inline void GetCellDataForInterpol(float*, long, long, srTInterpolAuxF*);
-	inline void GetCellDataForInterpol(float*, long long , long long, srTInterpolAuxF*);
-	inline void SetupCellDataI(srTInterpolAuxF*, srTInterpolAuxF*);
+	//inline void GetCellDataForInterpol(float*, long long , long long, srTInterpolAuxF*);
+	inline static void GetCellDataForInterpol(float*, long long, long long, srTInterpolAuxF*); //OC02022020
+	//inline void SetupCellDataI(srTInterpolAuxF*, srTInterpolAuxF*);
+	inline static void SetupCellDataI(srTInterpolAuxF*, srTInterpolAuxF*); //OC02022020
 	//char WaveFrontTermCanBeTreated(srTSRWRadStructAccessData&);
 	//char WaveFrontTermCanBeTreated(srTSRWRadStructAccessData&, bool checkBenefit=true); //OC06012017 (uncommented after some fixes in bool srTSRWRadStructAccessData::CheckIfQuadTermTreatIsBenefit(char, char))
 	//char WaveFrontTermCanBeTreated(srTSRWRadStructAccessData&, bool checkBenefit=false); //OC05012017 (changed to checkBenefit=false to resolve problem of resizing in near field at strong under-sampling)
@@ -260,30 +293,47 @@ public:
 	void TreatStronglyOscillatingTermIrregMesh(srTSRWRadStructAccessData&, double*, double, double, double, double, char, char =0, int =-1); //OC260114
 	//void TreatStronglyOscillatingTermIrregMesh(srTSRWRadStructAccessData&, double*, double, double, double, double, char, char =0, int =-1, double =1, double =1); //OC220214
 
-	inline void SetupInterpolAux02(srTInterpolAuxF*, srTInterpolAux01*, srTInterpolAux02*);
-	inline void SetupInterpolAux02_LowOrder(srTInterpolAuxF*, srTInterpolAux01*, srTInterpolAux02*);
-	inline void InterpolF(srTInterpolAux02*, double, double, float*, int);
-	inline void InterpolFI(srTInterpolAux02*, double, double, float*, int);
-	inline void InterpolF_LowOrder(srTInterpolAux02*, double, double, float*, int);
-	inline void InterpolFI_LowOrder(srTInterpolAux02*, double, double, float*, int);
+	//inline void SetupInterpolAux02(srTInterpolAuxF*, srTInterpolAux01*, srTInterpolAux02*);
+	inline static void SetupInterpolAux02(srTInterpolAuxF*, srTInterpolAux01*, srTInterpolAux02*); //OC02022020
+	//inline void SetupInterpolAux02_LowOrder(srTInterpolAuxF*, srTInterpolAux01*, srTInterpolAux02*);
+	inline static void SetupInterpolAux02_LowOrder(srTInterpolAuxF*, srTInterpolAux01*, srTInterpolAux02*); //OC02022020
+	//inline void InterpolF(srTInterpolAux02*, double, double, float*, int);
+	inline static void InterpolF(srTInterpolAux02*, double, double, float*, int); //OC02022020
+	//inline void InterpolFI(srTInterpolAux02*, double, double, float*, int);
+	inline static void InterpolFI(srTInterpolAux02*, double, double, float*, int); //OC02022020
+	//inline void InterpolF_LowOrder(srTInterpolAux02*, double, double, float*, int);
+	inline static void InterpolF_LowOrder(srTInterpolAux02*, double, double, float*, int); //OC02022020
+	//inline void InterpolFI_LowOrder(srTInterpolAux02*, double, double, float*, int);
+	inline static void InterpolFI_LowOrder(srTInterpolAux02*, double, double, float*, int); //OC02022020
 	inline double InterpLin(double r, double f1, double f2) { return f1 + r*(f2 - f1);}
-	inline void ImproveReAndIm(float*, float*);
-	inline int CheckForLowOrderInterp(srTInterpolAuxF*, srTInterpolAuxF*, int, int, srTInterpolAux01*, srTInterpolAux02*, srTInterpolAux02*);
+	//inline void ImproveReAndIm(float*, float*);
+	inline static void ImproveReAndIm(float*, float*); //OC02022020
+	//inline int CheckForLowOrderInterp(srTInterpolAuxF*, srTInterpolAuxF*, int, int, srTInterpolAux01*, srTInterpolAux02*, srTInterpolAux02*);
+	inline static int CheckForLowOrderInterp(srTInterpolAuxF*, srTInterpolAuxF*, int, int, srTInterpolAux01*, srTInterpolAux02*, srTInterpolAux02*); //OC02022020
 
 	int RadResizeGen1D(srTRadSect1D&, srTRadResize1D&);
 	int RadResizeCore1D(srTRadSect1D&, srTRadSect1D&, srTRadResize1D&);
 	char WaveFrontTermCanBeTreated1D(srTRadSect1D&);
 	void TreatStronglyOscillatingTerm1D(srTRadSect1D&, char);
 	//inline void GetCellDataForInterpol1D(float*, long, srTInterpolAuxF_1D*);
-	inline void GetCellDataForInterpol1D(float*, long long, srTInterpolAuxF_1D*);
-	inline void SetupCellDataI1D(srTInterpolAuxF_1D*, srTInterpolAuxF_1D*);
-	inline int CheckForLowOrderInterp1D(srTInterpolAuxF_1D*, srTInterpolAuxF_1D*, int, srTInterpolAux01_1D*, srTInterpolAux02_1D*, srTInterpolAux02_1D*);
-	inline void SetupInterpolAux02_LowOrder1D(srTInterpolAuxF_1D*, srTInterpolAux01_1D*, srTInterpolAux02_1D*);
-	inline void SetupInterpolAux02_1D(srTInterpolAuxF_1D*, srTInterpolAux01_1D*, srTInterpolAux02_1D*);
-	inline void InterpolF_LowOrder1D(srTInterpolAux02_1D*, double, float*, int);
-	inline void InterpolFI_LowOrder1D(srTInterpolAux02_1D*, double, float*, int);
-	inline void InterpolF1D(srTInterpolAux02_1D*, double, float*, int);
-	inline void InterpolFI1D(srTInterpolAux02_1D*, double, float*, int);
+	//inline void GetCellDataForInterpol1D(float*, long long, srTInterpolAuxF_1D*);
+	inline static void GetCellDataForInterpol1D(float*, long long, srTInterpolAuxF_1D*);
+	//inline void SetupCellDataI1D(srTInterpolAuxF_1D*, srTInterpolAuxF_1D*);
+	inline static void SetupCellDataI1D(srTInterpolAuxF_1D*, srTInterpolAuxF_1D*);
+	//inline int CheckForLowOrderInterp1D(srTInterpolAuxF_1D*, srTInterpolAuxF_1D*, int, srTInterpolAux01_1D*, srTInterpolAux02_1D*, srTInterpolAux02_1D*);
+	inline static int CheckForLowOrderInterp1D(srTInterpolAuxF_1D*, srTInterpolAuxF_1D*, int, srTInterpolAux01_1D*, srTInterpolAux02_1D*, srTInterpolAux02_1D*);
+	//inline void SetupInterpolAux02_LowOrder1D(srTInterpolAuxF_1D*, srTInterpolAux01_1D*, srTInterpolAux02_1D*);
+	inline static void SetupInterpolAux02_LowOrder1D(srTInterpolAuxF_1D*, srTInterpolAux01_1D*, srTInterpolAux02_1D*); //OC03022020
+	//inline void SetupInterpolAux02_1D(srTInterpolAuxF_1D*, srTInterpolAux01_1D*, srTInterpolAux02_1D*);
+	inline static void SetupInterpolAux02_1D(srTInterpolAuxF_1D*, srTInterpolAux01_1D*, srTInterpolAux02_1D*); //OC03022020
+	//inline void InterpolF_LowOrder1D(srTInterpolAux02_1D*, double, float*, int);
+	inline static void InterpolF_LowOrder1D(srTInterpolAux02_1D*, double, float*, int); //03022020
+	//inline void InterpolFI_LowOrder1D(srTInterpolAux02_1D*, double, float*, int);
+	inline static void InterpolFI_LowOrder1D(srTInterpolAux02_1D*, double, float*, int); //03022020
+	//inline void InterpolF1D(srTInterpolAux02_1D*, double, float*, int);
+	inline static void InterpolF1D(srTInterpolAux02_1D*, double, float*, int); //03022020
+	//inline void InterpolFI1D(srTInterpolAux02_1D*, double, float*, int);
+	inline static void InterpolFI1D(srTInterpolAux02_1D*, double, float*, int); //03022020
 
 	int RadRearrangeOnRegularMesh(srTSRWRadStructAccessData* pRadAccessData, float* CoordX, float* CoordZ);
 
@@ -425,6 +475,7 @@ inline void srTGenOptElem::SetupCellDataI(srTInterpolAuxF* tF, srTInterpolAuxF* 
 
 	tI->SetUpAvg(); tI->NormalizeByAvg();
 }
+
 //*************************************************************************
 
 inline void srTGenOptElem::SetupCellDataI1D(srTInterpolAuxF_1D* tF, srTInterpolAuxF_1D* tI)

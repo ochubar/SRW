@@ -23,7 +23,7 @@ Current version of SRW enables the following:
 
 - Estimation of Spectral Brightness of different sources.
 
-- Simulation of SASE Wavefront Amplification (based on GENESIS 3D code developed at DESY; under testing).
+- Simulation of SASE Wavefront Amplification (based on GENESIS 3D code developed S. Reiche).
 
 ====================================
 CONFIGURATION REQUIRED
@@ -43,57 +43,61 @@ Any aliases (shortcuts) of files and folders (or the files and folders itself) w
 "Igor Pro (x) Folder:Igor Procedures"
 
 ====================================
-SRW INSTALLATION ON WINDOWS (for Igor 7/8, 32- and 64-bit)
+SRW INSTALLATION ON WINDOWS OR MAC OSX (for Igor 7/8, 64- or 32-bit)
 
-1. Download SRW zip-file.
+1. Quit Igor Pro, if it is running.
 
-2. Quit Igor Pro, if it is running.
+2. Locate "SRW" folder for Igor. It can be found in SRW open source repository downloaded from GitHub, inside the folder ".../env/work/srw_igor"; or it can possibly be downloaded separately as an archived file, in that case it has to be extracted from the archive.
 
-3. Unzip and place the folder "SRW" as it is to the "Igor Pro (x) Folder" where your license of the Igor Pro is installed (e.g. it can be in C:\Program Files\WaveMetrics\Igor Pro 8 Folder).
+3. Move of copy the folder "SRW" to the "Igor Pro (x) Folder" where your license of the Igor Pro is installed (on Windows, it can be "C:\Program Files\WaveMetrics\Igor Pro 8 Folder").
 
-4. Find the folder "SRW Procedures" inside the "SRW" folder. Make a shortcut to this folder and move the shortcut in "Igor Pro (x) Folder:Igor Procedures".
+4. Find the folder "SRW Procedures" inside the "SRW" folder. Make a shortcut (/alias) to this folder and move the shortcut in "Igor Pro (x) Folder:Igor Procedures".
 
-5. Find the file "SRW.xop" inside the "SRW" folder. Make a shortcut to this file and move the shortcut in "Igor Pro (x) Folder:Igor Extensions".
+5. To install 64-bit version of SRW library to 64-bit version of Igor Pro on Windows, find the file "SRW64.xop" inside the "SRW" folder, make a shortcut to this file and move the shortcut into "Igor Pro (x) Folder:Igor Extensions (64-bit)". To install 32-bit version of SRW library to 32-bit version of Igor Pro on Windows, find the file "SRW.xop" inside the "SRW" folder, make a shortcut to this file and move the shortcut into "Igor Pro (x) Folder:Igor Extensions". 
+To install 64-bit version of SRW library to Igor Pro on Mac OSX, find the file "SRW_MAC64.xop" inside the "SRW" folder, make an alias to this file and move the alias into "Igor Pro Folder:Igor Extensions (64-bit)".
+NOTE: if SRW*.xop files (shared libraries) can't be located in the "SRW" folder, or need to be updated (e.g. for a newer version of Igor), one can build them for Windows using Visual C++ and for Mac OSX using Xcode. The corresponding project files can be found inside the SRW open source repository in "../cpp/vs" and in "../cpp/xcode" folders respectively. Prior to the compilation, one may need to place WaveMetrics' Igor XOP libraries to "../ext_lib/igor/XOPSupport" folder.
+More specifically, to rebuild "SRW_MAC64.xop" on Mac OSX, install (when necessary) and put the library dependencies, i.e., XOPSupport, FFTW-2.1.5, f2c, under "../ext_lib" ("../ext_lib/igor/XOPSupport" for XOPSupport) folder, and rename them to be: "libXOPSupport64.a", "libfftwf_mac.a", and "libf2c.a". Pre-built f2c and FFTW-2.1.5 libraries on macOS 10.14 can be found in "../ext_lib" folder: "libf2c.a" and "libfftwf_mac.a". 
 
-6. Find the file "SRW64.xop" inside the "SRW" folder. Make a shortcut to this file and move the shortcut in "Igor Pro (x) Folder:Igor Extensions (64-bit)".
+6. Find the file "SRW Macro Help.ifn" inside the "SRW:SRW Help" folder. Make a shortcut to this file and move the shortcut in "Igor Pro Folder:Igor Help Files".
 
-7. Find the file "SRW Macro Help.ifn" inside the "SRW:SRW Help" folder. Make a shortcut to this file and move the shortcut in "Igor Pro Folder:Igor Help Files".
-
-8. Start Igor Pro. At the first start after the SRW installation, Igor may show a dialog box suggesting to compile the help file "SRW Macro Help.ifn". Choose to compile it. Finally, you should obtain inside Igor new menu item(s) named "SRW...".
-
-====================================
-SRW INSTALLATION ON MAC OSX (for Igor 6 32-bit only)
-
-1. Download the archived SRW distribution (*.DMG) file for Macintosh.
-
-2. "Mount" (decompress) the file. You should obtain a mounted disk folder named "SRW_Is_Here". Inside this folder, there should be the folder named "SRW".
-
-3. Ensure de-installation of a previous version (see the details above).
-
-4. Place the folder "SRW" as it is to the "Igor Pro Folder" where your license of the Igor Pro is installed.
-
-5. Find the folder "SRW Procedures" inside the "SRW" folder. Make an alias of this folder and place the alias in "Igor Pro Folder:Igor Procedures".
-
-6. Find the file "SRW.xop" inside the "SRW" folder. Make an alias of this file and place the alias in "Igor Pro Folder:Igor Extensions".
-
-7. Find the file "SRW Macro Help.ifn" inside the "SRW:SRW Help" folder. Make an alias of this file and place the alias in "Igor Pro Folder:Igor Help Files".
-
-8. If you intend to do Wavefront Propagation related computation with SRW, make sure that the memory partition for the Igor Pro is set to at least 50 MB.
-
-9. (Re)Start Igor Pro. At the first start after the SRW installation, Igor may show a dialog box suggesting to compile the help file "SRW Macro Help.ifn". Choose to compile it. Finally, you should obtain inside Igor new menu item(s) named "SRW...".
+7. Start Igor Pro. At the first start after the SRW installation, Igor may show a dialog box suggesting to compile the help file "SRW Macro Help.ifn". Choose to compile it. Finally, you should obtain inside Igor new menu item(s) named "SRW...".
 
 ====================================
 GETTING STARTED
 
-The first thing we recommend to do after the installation is to start Igor Pro and choose "Help->Introduction" in the menu SRW...
+The first thing we recommend to do after first installation of SRW and start of Igor Pro is to choose "Help->Introduction" in the menu SRW and read basic information about types of calculations supported by the code.
 
-After this, one can try examples from the part of SRW of one's interest, e.g. "SRWE->Undulator->Help->Example: Spectrum through a Slit"
+After this, one can try examples from the part of SRW of one's interest, e.g. "SRWE->Undulator->Help->Example: Spectrum through a Slit", or run all available examples by selecting "SRWE->Help->Run All SRW Examples".
 
 For convenience, the SRW help file "SRW Help.ifn" in the format of Igor Pro notebook can be printed out and used as a hard copy of SRW documentation.
 
 ====================================
-Authors:
-Oleg CHUBAR (chubar@bnl.gov)
-Pascal ELLEAUME (elleaume@esrf.fr)
+Authors and Contributors:
+O. Chubar (ESRF - SOLEIL - BNL)
+P. Elleaume (ESRF)
+J. Chavanne (ESRF)
+R. Celestre (ESRF)
+G. Le Bec (ESRF)
+P. Dumas (SOLEIL)
+O. Marcouille (SOLEIL)
+L. Samoylova (E-XFEL)
+A. Buzmakov (E-XFEL)
+G. Geloni (E-XFEL)
+I. Agapov (E-XFEL, DESY)
+J. Sutter (DIAMOND)
+D. Laundy (DIAMOND)
+A. He (BNL)
+R. Li (BNL)
+M. Rakitin (BNL)
+N. Canestrari (ESRF - BNL)
+A. Suvorov (BNL)
+R. Reininger (ANL)
+X. Shi (ANL)
+R. Lindberg (ANL)
+L. Rebuffi (ELETTRA - ANL)
+D. Bruhwiler (RadiaSoft LLC)
+R. Nagler (RadiaSoft LLC)
+P. Moeller (RadiaSoft LLC)
+B. Nash (RadiaSoft LLC)
 
-June 2019
+December 2019

@@ -99,16 +99,22 @@ public:
 	}
 
 	//int PropagateRadiationMeth_0(srTSRWRadStructAccessData* pRadAccessData)
+	//int PropagateRadiationSingleE_Meth_0(srTSRWRadStructAccessData* pRadAccessData, srTSRWRadStructAccessData* pPrevRadDataSingleE, void* pBuf=0) //OC06092019
+	//OC01102019 (restored)
 	int PropagateRadiationSingleE_Meth_0(srTSRWRadStructAccessData* pRadAccessData, srTSRWRadStructAccessData* pPrevRadDataSingleE)
 	{
 		int result;
 		if(result = PropagateRadMoments(pRadAccessData, 0)) return result;
 		if(result = PropagateWaveFrontRadius(pRadAccessData)) return result;
+		//if(result = PropagateRadiationSimple(pRadAccessData, pBuf)) return result; //OC06092019
+		//OC01102019 (restored)
 		if(result = PropagateRadiationSimple(pRadAccessData)) return result;
 		if(result = Propagate4x4PropMatr(pRadAccessData)) return result;
 		return 0;
 	}
 
+	//int PropagateRadiationSimple(srTSRWRadStructAccessData* pRadAccessData, void* pBuf=0) //OC06092019
+	//OC01102019 (restored)
 	int PropagateRadiationSimple(srTSRWRadStructAccessData* pRadAccessData)
 	{
 		int result;
@@ -122,8 +128,10 @@ public:
 		return TraverseRad1D(pSect1D);
 	}
 
-	void RadPointModifier(srTEXZ& EXZ, srTEFieldPtrs& EPtrs);
-  	void RadPointModifier1D(srTEXZ& EXZ, srTEFieldPtrs& EPtrs);
+	void RadPointModifier(srTEXZ& EXZ, srTEFieldPtrs& EPtrs, void* pBuf=0); //OC29082019
+	//void RadPointModifier(srTEXZ& EXZ, srTEFieldPtrs& EPtrs);
+  	void RadPointModifier1D(srTEXZ& EXZ, srTEFieldPtrs& EPtrs, void* pBuf=0); //OC06092019
+  	//void RadPointModifier1D(srTEXZ& EXZ, srTEFieldPtrs& EPtrs);
 
 	int EstimateMinNpToResolveOptElem(srTSRWRadStructAccessData* pRadAccessData, double& MinNx, double& MinNz);
 

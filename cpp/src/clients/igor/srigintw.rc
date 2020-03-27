@@ -154,7 +154,7 @@ BEGIN
 	"Periodic magnetic field length should be positive.\0",
 	"Number of magnetic field harmonics should be more than 0.\0",
 	"Incorrect wavefront structure.\0",
-	"Object with this index is not a gaussian beam.\0",
+	"Object with this index is not a Gaussian beam.\0",
 	"Drift space is expected. Object with this index is not a drift space.\0",
 	"Incorrect relative precision. The relative precision should be a real number between 0 and 1.\0", //#130
 	"Object with this index is not a transversely uniform magnetic field.\0",
@@ -223,9 +223,12 @@ BEGIN
 	
 	"Failed to determine array element index for interpolation.\0", //#187
 	"Failed to allocate array in front-end / client environment.\0", //#188
-	"Mutual intensity can not be extracted for these input parameters.\0", //189
-	"Incorrect input parameters for calculation of statistical characteristics of intensity.\0", //190
-	"Incorrect input parameters for processing intensity distributions.\0", //191
+	"Mutual intensity can not be extracted for these input parameters.\0", //#189
+	"Incorrect input parameters for calculation of statistical characteristics of intensity.\0", //#190
+	"Incorrect input parameters for processing intensity distributions.\0", //#191
+
+	"Incorrect paraboloidal mirror parameters: focal length, grazing angle and sagital radius should be positive, and use case should be \'f\' for focusing and \'c\' for collimating.\0", //#192
+	"Wavefront resizing can not be performed for these parameters (however, it may be possible to perform such resizing sequentially).\0", //#193
 
 	0,						// NOTE: 0 required to terminate the resource.
 END

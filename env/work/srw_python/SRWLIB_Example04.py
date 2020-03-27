@@ -18,7 +18,7 @@ strIntOutFileName1 = 'ex04_res_int1.dat' #file names for output SR intensity dat
 strIntOutFileName2 = 'ex04_res_int2.dat'
 
 #***********Undulator
-numPer = 40.5 #Number of ID Periods (without counting for terminations; semi-integer => symmetric vs long. pos.; to allow harmonics to be symmetric or anti-symmetric?)
+numPer = 40 #40.5 #Number of ID Periods (without counting for terminations; semi-integer => symmetric vs long. pos.; to allow harmonics to be symmetric or anti-symmetric?)
 undPer = 0.049 #Period Length [m]
 Bx = 0.57/3. #Peak Horizontal field [T]
 By = 0.57 #Peak Vertical field [T]

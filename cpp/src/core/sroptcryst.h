@@ -53,7 +53,8 @@ class srTOptCryst : public srTGenOptElem {
 	TVector3d m_tv; // horizontal, vertical and longitudinal coordinates of central tangential vector [m] in the frame of incident beam
 	TVector3d m_sv; // horizontal, vertical and longitudinal coordinates of central saggital vector [m] in the frame of incident beam
 	
-	char m_uc; // crystal use case: 1- Bragg Reflection, 2- Bragg Transmission (Laue cases to be added)
+	char m_uc; // crystal use case: 1- Bragg Reflection, 2- Bragg Transmission
+	// Laue cases added: 3- Laue, 4- Laue Transmission ARF08052019
 
 	// TRANSFORMATION MATRIX
 	double m_RXtLab[3][3]; // RXtLab: 3x3 orthogonal matrix that converts components of a 3x1 vector in crystal coordinates to components in lab coordinates. 
@@ -68,6 +69,7 @@ class srTOptCryst : public srTGenOptElem {
 	double m_PolTrn[2][2]; // 2x2 transformation matrix of the polarizations from (e1X,e2X) to (sg0X,pi0X).
 	double m_InvPolTrn[2][2]; //OC06092016
 	double m_HXAi[3]; // Reciprocal lattice vector coordinates
+	double m_HXAi_bee[3]; //ARF03062019 Reciprocal lattice vector coordinates in beam coordinates
 
 	double m_sg0X[3];
 	double m_cos2t; //cos(2.*thBrd); 
@@ -99,12 +101,34 @@ public:
 
 		//m_tc = srwlCr.tc;
 		m_thicum = srwlCr.tc*1e+06; //assuming srwlCr.tc in [m]
+		
+		//ARF22053019 Geometry
+		m_uc = srwlCr.uc; //OC05092016
+		if((m_uc < 1) || (m_uc > 4)) throw IMPROPER_OPTICAL_COMPONENT_CRYSTAL_USE_CASE; //ARF 08052019 Change m_uc>2 to 4 for adding Laue cases
+
+		m_itrans = 0; //OC: make it input variable
+		if((m_uc == 2) || (m_uc == 4)) m_itrans = 1; //ARF05082019 add m_uc == 4
+
 		double alphrd = srwlCr.angAs; //asymmetry angle [rad]
 
 		// From Input #5: reciprocal lattice vector coordinates 
-		m_HXAi[0] = 0.;
-		m_HXAi[1] = cos(alphrd) / m_dA;
-		m_HXAi[2] = -sin(alphrd) / m_dA;
+		//m_HXAi[0] = 0.;
+		//m_HXAi[1] = cos(alphrd) / m_dA;
+		//m_HXAi[2] = -sin(alphrd) / m_dA;
+		//OC02102019, following ARF
+		if((m_uc == 1) || (m_uc == 2))
+		{//Bragg
+			m_HXAi[0] = 0.;
+			m_HXAi[1] = cos(alphrd)/m_dA;
+			m_HXAi[2] = -sin(alphrd)/m_dA;
+		}
+		else if((m_uc == 3) || (m_uc == 4))
+		{//Laue
+			//IP14062019 change recipr. lat. vector for Laue
+			m_HXAi[0] = 0.;
+			m_HXAi[1] = -sin(alphrd)/m_dA;
+			m_HXAi[2] = -cos(alphrd)/m_dA;
+		}
 
 		if(srwlCr.nvz == 0) throw IMPROPER_OPTICAL_COMPONENT_ORIENT;
 		
@@ -129,13 +153,14 @@ public:
 		double sv[] = { nv[1] * tv[2] - nv[2] * tv[1], nv[2] * tv[0] - nv[0] * tv[2], nv[0] * tv[1] - nv[1] * tv[0] };
 		m_sv.x = sv[0]; m_sv.y = sv[1]; m_sv.z = sv[2]; 
 
-		m_uc = srwlCr.uc; //OC05092016
-		if((m_uc < 1) || (m_uc > 2)) throw IMPROPER_OPTICAL_COMPONENT_MIRROR_USE_CASE;
+		//m_uc = srwlCr.uc; //OC02102019 (moved up, as suggested by ARF) //OC05092016
+		//if((m_uc < 1) || (m_uc > 2)) throw IMPROPER_OPTICAL_COMPONENT_MIRROR_USE_CASE;
 
 		// Input #7: Whether to calculate the transmitted beam as well as the diffracted 
 		// beam. itrans = 0 for NO, itrans = 1 for YES. 
-		m_itrans = 0; //OC: make it input variable
-		if(m_uc == 2) m_itrans = 1; //OC05092016
+		//OC02102019 (moved up, as suggested by ARF)
+		//m_itrans = 0; //OC: make it input variable
+		//if(m_uc == 2) m_itrans = 1; //OC05092016
 
 		// RXtLab: 3x3 orthogonal matrix that converts components of a 3x1 vector 
 		// in crystal coordinates to components in lab coordinates. 
@@ -158,6 +183,20 @@ public:
 		double thBrd = acos(uBrd / uHX / uRL) - pi / 2.;
 		//printf("Bragg angle = %f\n",thBrd*180./pi); 
 		m_cos2t = cos(2.*thBrd);
+
+		//ARF03062019
+		if((m_uc == 1) || (m_uc == 2))
+		{//Bragg
+			m_HXAi_bee[0] = 0; //ARF03062019 Change definition for the calculation of bee
+			m_HXAi_bee[1] = cos(thBrd) / m_dA; //ARF03062019 Change definition for the calculation of bee
+			m_HXAi_bee[2] = -sin(thBrd) / m_dA; //ARF03062019 Change definition for the calculation of bee
+		}
+		else if((m_uc == 3) || (m_uc == 4))
+		{//Laue
+			m_HXAi_bee[0] = 0; //ARF03062019 Change definition for the calculation of bee
+			m_HXAi_bee[1] = -sin(thBrd) / m_dA; //IP14062019 for Laue pi/2 rotation of rec. vector from Bragg
+			m_HXAi_bee[2] = -cos(thBrd) / m_dA; //IP14062019 
+		}
 
 		// Conversion of polarization vector components to crystal frame: 
 		//e1X[0] = RLabXt[0][0];
@@ -715,14 +754,16 @@ public:
 	//	return PropagateRadiationSingleE_Meth_0(pRadAccessData, 0);
 	//}
 
+	//int PropagateRadiationSingleE_Meth_0(srTSRWRadStructAccessData* pRadAccessData, srTSRWRadStructAccessData* pPrevRadAccessData, void* pBuf=0) //OC06092019
+	//OC01102019 (restored)
 	int PropagateRadiationSingleE_Meth_0(srTSRWRadStructAccessData* pRadAccessData, srTSRWRadStructAccessData* pPrevRadAccessData)
 	{//It works for many photon energies too (as in the case of Drift)
 	 //The "in-place" processing involving FFT for many photon energies greatly improves efficiency of the code for Time-/Frequency-Dependent simulations for FEL and pulsed lasers.
 		int result;
-		if (result = PropagateRadiationSimple_AngRepres(pRadAccessData)) return result;
-		if (result = PropagateRadMoments(pRadAccessData, 0)) return result;
-		if (result = PropagateWaveFrontRadius(pRadAccessData)) return result;
-		if (result = Propagate4x4PropMatr(pRadAccessData)) return result;
+		if(result = PropagateRadiationSimple_AngRepres(pRadAccessData)) return result;
+		if(result = PropagateRadMoments(pRadAccessData, 0)) return result;
+		if(result = PropagateWaveFrontRadius(pRadAccessData)) return result;
+		if(result = Propagate4x4PropMatr(pRadAccessData)) return result;
 		return 0;
 	}
 
@@ -787,7 +828,8 @@ public:
 		return 0;
 	}
 
-	void RadPointModifier(srTEXZ& EXZ, srTEFieldPtrs& EPtrs)
+	void RadPointModifier(srTEXZ& EXZ, srTEFieldPtrs& EPtrs, void* pBufVars=0) //OC29082019
+	//void RadPointModifier(srTEXZ& EXZ, srTEFieldPtrs& EPtrs)
 	//void RadPointModifier_AngRepres(srTEXZ& EXZ, srTEFieldPtrs& EPtrs)
 	{// E in eV; Length in m !!!
 		// Operates on Angles side !!!
@@ -887,6 +929,12 @@ public:
 		// defined by Zachariasen gamma0, b, alpha and z.) 
 		double gamma0 = -u0X[1];
 		double bee = 1. / (1. + m_HXAi[1] / k0wXAi[1]);
+		
+		//OC02102019 stopped updating here.
+		
+		//ARF03062019 suggestion:
+		//double bee = 1./(1. + (m_HXAi_bee[1]*m_RXtLab[1][1] + m_HXAi_bee[2]*m_RXtLab[2][1])/k0wXAi[1]); //ARF03062019 change from: double bee = 1. / (1. + m_HXAi[1] / k0wXAi[1]);
+
 		double dotkH = k0wXAi[0] * m_HXAi[0] + k0wXAi[1] * m_HXAi[1] + k0wXAi[2] * m_HXAi[2];
 		double Adev = (2.*dotkH + 1. / (m_dA*m_dA)) / (k0Ai*k0Ai);
 		complex<double> zeeC = 0.5*((1. - bee)*m_psi0c + bee*Adev);

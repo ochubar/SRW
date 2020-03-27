@@ -1247,7 +1247,8 @@ int srTApplication::UtiSpotInfo(srTIgorUtiSpotInfoInputStruct* pInputStruct)
 
 	long LenSpotInfoWaveName = (long)strlen(OutSpotInfoData.NameOfWave);
 
-	Handle SpotInfoWaveNameStr = NewHandle(LenSpotInfoWaveName);
+	//Handle SpotInfoWaveNameStr = NewHandle(LenSpotInfoWaveName);
+	Handle SpotInfoWaveNameStr = WMNewHandle(LenSpotInfoWaveName); //OC13112019 (port to XOP 8 on MAC)
 
 	strncpy(*SpotInfoWaveNameStr, OutSpotInfoData.NameOfWave, LenSpotInfoWaveName);
 	pInputStruct->SpotInfoName = SpotInfoWaveNameStr;
@@ -1292,7 +1293,8 @@ int srTApplication::UtiWfrLimits(srTIgorUtiWrfLimitsInputStruct* pInputStruct)
 	InputOneWaveStruct.WaveHndl = OutInfoData.wHndl;
 	if(result = Send.GetWaveAccessData(&InputOneWaveStruct, &OutInfoData)) return result;
 	long LenInfoWaveName = (long)strlen(OutInfoData.NameOfWave);
-	Handle InfoWaveNameStr = NewHandle(LenInfoWaveName);
+	//Handle InfoWaveNameStr = NewHandle(LenInfoWaveName);
+	Handle InfoWaveNameStr = WMNewHandle(LenInfoWaveName);  //OC13112019 (port to XOP 8 on MAC)
 
 	strncpy(*InfoWaveNameStr, OutInfoData.NameOfWave, LenInfoWaveName);
 	pInputStruct->InfoName = InfoWaveNameStr;

@@ -84,9 +84,11 @@ def uti_plot1d(ar1d, x_range, labels=('Photon Energy [eV]', 'ph/s/0.1%bw'), unit
         strTitle = '' if(len(labels) < 3) else labels[2]
         labels = (labels[0] + ' [' + units[0] + ']', labels[1] + ' [' + units[1] + ']', strTitle)
 
+    #print('uti_plot1d:', x_range)
     _backend.uti_plot1d(ar1d, x_range, labels)
 
-def uti_plot1d_ir(ary, arx, labels=('Longitudinal Position [m]', 'Horizontal Position [m]'), units=None): #OC15112017
+def uti_plot1d_ir(ary, arx=None, labels=('Longitudinal Position [m]', 'Horizontal Position [m]'), units=None): #OC25102019
+#def uti_plot1d_ir(ary, arx, labels=('Longitudinal Position [m]', 'Horizontal Position [m]'), units=None): #OC15112017
     """Generate one-dimensional line plot from given array
 
     :param array arx: abscissa array
@@ -102,12 +104,46 @@ def uti_plot1d_ir(ary, arx, labels=('Longitudinal Position [m]', 'Horizontal Pos
         strTitle = '' if(len(labels) < 3) else labels[2]
         labels = (labels[0] + ' [' + units[0] + ']', labels[1] + ' [' + units[1] + ']', strTitle)
 
+    #OC25102019 (added stuff below)
+    if(arx is None):
+        ary0 = ary
+        if(not(isinstance(ary0, list) or isinstance(ary0, array) or isinstance(ary0, tuple))):
+            raise Exception("Incorrect definition of data arrays / lists to be plotted")
+
+        lenData = len(ary)
+        #arx = array.array('d', [0]*lenData)
+        #aryNew = array.array('d', [0]*lenData)
+        arx = [0]*lenData
+        aryNew = [0]*lenData
+        for i in range(lenData):
+            ay_i = ary[i]
+            arx[i] = ay_i[0]
+            aryNew[i] = ay_i[1]
+        ary = aryNew
+    
     _backend.uti_plot1d_ir(ary, arx, labels)
+
+def uti_plot1d_m(ars, labels=('X', 'Y'), units=None, styles=None, legend=None): #OC25102019
+    """Plot multiple one-dimensional curves in one graph
+
+    :param array ars: multiple data arrays, including abscissa and ordinate sub-array
+    :param tuple labels: (x-axis, y-axis)
+    :param tuple units: (x-units, y-units)
+    """
+    #if '_backend' not in locals(): uti_plot_init() #?
+    if(units is not None):
+        strTitle = '' if(len(labels) < 3) else labels[2]
+        labels = (labels[0] + ' [' + units[0] + ']', labels[1] + ' [' + units[1] + ']', strTitle)
+
+    _backend.uti_plot1d_m(ars, labels, styles, legend)
 
 def uti_plot2d(ar2d, x_range, y_range, labels=('Horizontal Position [m]','Vertical Position [m]'), units=None):
     """Generate quad mesh plot from given "flattened" array
 
-    :param array ar2d: data points
+    :param array ar2d: data points, assuming: ar2d = [curve_1,curve_2,...], where curve_i can be:
+                    curve_i = [[y1_i,y2_i,...],[x_min_i,x_max_i,nx_i]] or
+                    curve_i = [[y1_i,y2_i,...],[x1_i,x2_i,...]] or
+                    curve_i = [[x1_i,y1_i],[x2_i,y2_i],...] 
     :param list x_range: Passed to numpy.linspace(start sequence, stop sequnce, num samples)
     :param list y_range: y axis (same structure as x_range)
     :param tuple labels: [x-axis, y-axis]
@@ -140,7 +176,8 @@ def uti_plot2d1d(ar2d, x_range, y_range, x=0, y=0, labels=('Horizontal Position'
 
         #OC17032019
         xRangeOrig = x_range[1] - x_range[0]
-        yStartOrig = y_range[1] - y_range[0]
+        yRangeOrig = y_range[1] - y_range[0] #AH30082019
+        #yStartOrig = y_range[1] - y_range[0]
         
         x_range, x_unit = uti_plot_com.rescale_dim(x_range, units[0])
         y_range, y_unit = uti_plot_com.rescale_dim(y_range, units[1])

@@ -357,7 +357,8 @@ double srTAuxMatStat::IntegrateSimple(srTWaveAccessData& InWaveData)
 
 	double Sum = 0.;
 	if(*(InWaveData.WaveType) == 'f') Sum = SumUpArray((float*)(InWaveData.pWaveData), 0, AmOfVals - 1, 1);
-	else Sum = SumUpArray((DOUBLE*)(InWaveData.pWaveData), 0, AmOfVals - 1, 1);
+	//else Sum = SumUpArray((DOUBLE*)(InWaveData.pWaveData), 0, AmOfVals - 1, 1);
+	else Sum = SumUpArray((double*)(InWaveData.pWaveData), 0, AmOfVals - 1, 1); //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
 
 	double OutVal = Sum*((InWaveData.DimSteps)[0]);
 	if(Is2D) OutVal *= (InWaveData.DimSteps)[1];
@@ -385,8 +386,10 @@ int srTAuxMatStat::FindIntensityLimits1D(srTWaveAccessData& InWaveData, double R
 	}
 	else
 	{
-		*(pOut + 1) = (float)(xStart + xStep*FindLimit1DLeft((DOUBLE*)(InWaveData.pWaveData), AmOfVals, AbsPowerToStopOn));
-		*(pOut + 2) = (float)(xStart + xStep*FindLimit1DRight((DOUBLE*)(InWaveData.pWaveData), AmOfVals, AbsPowerToStopOn));
+		//*(pOut + 1) = (float)(xStart + xStep*FindLimit1DLeft((DOUBLE*)(InWaveData.pWaveData), AmOfVals, AbsPowerToStopOn));
+		//*(pOut + 2) = (float)(xStart + xStep*FindLimit1DRight((DOUBLE*)(InWaveData.pWaveData), AmOfVals, AbsPowerToStopOn));
+		*(pOut + 1) = (float)(xStart + xStep*FindLimit1DLeft((double*)(InWaveData.pWaveData), AmOfVals, AbsPowerToStopOn)); //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
+		*(pOut + 2) = (float)(xStart + xStep*FindLimit1DRight((double*)(InWaveData.pWaveData), AmOfVals, AbsPowerToStopOn));
 	}
 	return 0;
 }
@@ -459,9 +462,11 @@ int srTAuxMatStat::FindIntensityLimits2D(srTWaveAccessData& InWaveData, double R
 	double AbsPowerToStopOn = TotPower*(1. - RelPowLevel)*0.25;
 
 	float *pf0 = 0;
-	DOUBLE *pD0 = 0;
+	//DOUBLE *pD0 = 0;
+	double *pD0 = 0; //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
 	if(*(InWaveData.WaveType) == 'f') pf0 = (float*)(InWaveData.pWaveData);
-	else pD0 = (DOUBLE*)(InWaveData.pWaveData);
+	//else pD0 = (DOUBLE*)(InWaveData.pWaveData);
+	else pD0 = (double*)(InWaveData.pWaveData); //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
 
 	int res = 0;
 	double* AuxArrIntOverX = new double[Ny];

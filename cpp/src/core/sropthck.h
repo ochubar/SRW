@@ -97,6 +97,9 @@ public:
 	//int WfrInterpolOnOrigGrid2(srTSRWRadStructAccessData* pWfr, double* arRayTrCoord, long long* arIndRayTrCoord, float* arEX, float* arEZ, double xMin, double xMax, double zMin, double zMax);
 	int WfrInterpolOnOrigGrid2(srTSRWRadStructAccessData* pWfr, double* arRayTrCoord, long long* arIndRayTrCoord, float* arEX, float* arEZ, double xMin, double xMax, double zMin, double zMax, double dxMax, double dzMax); //OC20082018
 
+	//virtual double dZdTgCrd(double tgCrd) { return 0;} //derivative of surface (usually z) over tangential coordinate (usually x) in Local Normal frame
+	//virtual double dZdSgCrd(double sgCrd) { return 0;} //derivative of surface (usually z) over sagital coordinate (usually y) in Local Normal frame
+
 	virtual void FindSurfNormalInLocFrame(double x, double y, TVector3d& vN) {}
 	virtual double SurfHeightInLocFrame(double x, double y) { return 0;}
 
@@ -186,10 +189,14 @@ public:
 		return result;
 	}
 
+	//int PropagateRadiationSingleE_Meth_0(srTSRWRadStructAccessData* pRadAccessData, srTSRWRadStructAccessData* pPrevRadDataSingleE, void* pBuf=0) //OC06092019
+	//OC01102019 (restored)
 	int PropagateRadiationSingleE_Meth_0(srTSRWRadStructAccessData* pRadAccessData, srTSRWRadStructAccessData* pPrevRadDataSingleE) //virtual in srTGenOptElem
 	{
 		int result = 0;
 		m_wfrRadWasProp = false;
+		//if(result = PropagateRadiationSimple(pRadAccessData, pBuf)) return result; //OC06092019
+		//OC01102019 (restored)
 		if(result = PropagateRadiationSimple(pRadAccessData)) return result; //in first place because previous wavefront radius may be required for some derived classes
 		if(result = PropagateRadMoments(pRadAccessData, 0)) return result;
 		if(!m_wfrRadWasProp) { if(result = PropagateWaveFrontRadius(pRadAccessData)) return result;} //already propagated
@@ -197,6 +204,8 @@ public:
 		return 0;
 	}
 
+	//int PropagateRadiationSimple(srTSRWRadStructAccessData* pRadAccessData, void* pBuf=0) //OC06092019
+	//OC01102019 (restored)
 	int PropagateRadiationSimple(srTSRWRadStructAccessData* pRadAccessData)
 	{
 		if(m_propMeth == 1) return PropagateRadiationSimple_ThinElem(pRadAccessData);
@@ -213,7 +222,8 @@ public:
 		return 0;
 	}
 
-	void RadPointModifier(srTEXZ& EXZ, srTEFieldPtrs& EPtrs)
+	void RadPointModifier(srTEXZ& EXZ, srTEFieldPtrs& EPtrs, void* pBufVars=0) //OC29082019
+	//void RadPointModifier(srTEXZ& EXZ, srTEFieldPtrs& EPtrs)
 	{
 		if(m_propMeth == 1) { RadPointModifier_ThinElem(EXZ, EPtrs); return;}
 		//else if(m_propMeth == 2) { RadPointModifier_LocRayTracing(EXZ, EPtrs); return;}
@@ -666,8 +676,167 @@ public:
 		if(a2 < -1.) return badRes;
 		return -m_Rt*(CGenMathMeth::radicalOnePlusSmallMinusOne(a2));
 	}
-
 **/
+};
+
+//*************************************************************************
+
+class srTMirrorParaboloid : public srTMirror {
+
+	double m_f, m_angGraz, m_radSag; //input
+	char m_uc; //input
+
+	double m_a, m_b; //paraboloid parameters in "Local Normal" frame (derived), where its equation is: z = m_a*x^2 + m_b*y^2
+	double m_xcLocNorm, m_zcLocNorm; //coordinates of mirror center in the "Local Normal" frame, where the paraboloid is described by z = m_a*x^2 + m_b*y^2
+	//double m_cosAngRotNormLoc, m_sinAngRotNormLoc;
+	double m_cxx, m_cxz; //coefficients for transforming Local coordinates to Local Normal coordinates
+
+	double m_c2; //aux. const for accurate calculation of surface limits in "Local Normal" frame
+	double m_xMinLocNorm, m_xMaxLocNorm, m_yMinLocNorm, m_yMaxLocNorm; //limits of the mirror surface in Local Normal frame (for root selection at finding ray intersection point)
+
+public:
+
+	//srTMirrorParaboloid(srTStringVect* pElemInfo, srTDataMD* pExtraData);
+	srTMirrorParaboloid(const SRWLOptMirPar& mirPar);
+
+	void DetermineParaboloidParamsInLocFrame()
+	{//In the Local frame: tangential direction is X, saggital Y
+	 //Assumes that m_f, m_uc, m_angGraz, m_radSag are set !
+	 //Determines m_a, m_b of the paraboloid equation in "Local Normal" frame: z = m_a*x^2 + m_b*y^2
+
+		double sinAngGraz = sin(m_angGraz);
+		m_a = 1./(4.*m_f*sinAngGraz*sinAngGraz); //?
+		m_b = 1./(2.*m_radSag*sinAngGraz); //?
+
+		double cosAngGraz = cos(m_angGraz);
+		m_xcLocNorm = 2.*m_f*cosAngGraz*sinAngGraz;
+		m_zcLocNorm = m_f*cosAngGraz*cosAngGraz;
+
+		//double xnLocNorm = -cosAngGraz, znLocNorm = sinAngGraz; //Check signs!
+		////The above settings correspond to m_uc = 'c'
+		//if(m_uc == 'f') //?
+		//{
+		//	m_xcLocNorm = -m_xcLocNorm;
+		//	xnLocNorm = -xnLocNorm;
+		//}
+		//m_cosAngRotNormLoc = znLocNorm; //cos and sin of rotation angle between Local and "Local Normal" frames
+		//m_sinAngRotNormLoc = xnLocNorm;
+
+		m_cxx = sinAngGraz;
+		m_cxz = -cosAngGraz;
+		if(m_uc == 'f')
+		{
+			m_xcLocNorm = -m_xcLocNorm;
+			m_cxz = -m_cxz;
+		}
+
+		m_c2 = m_b*cosAngGraz*cosAngGraz/m_f; //for accurate calculation of surface limits in "Local Normal" frame
+		FindLimitsInLocNormFrame(m_xcLocNorm, 0., m_xMinLocNorm, m_xMaxLocNorm, m_yMinLocNorm, m_yMaxLocNorm);
+	}
+
+	double dZdTgCrd(double x) //derivative of surface cut vs tangential coordinate (usually x) in Local Normal frame
+	{
+		return 2.*m_a*x;
+	}
+	double dZdSgCrd(double y) //derivative of surface cut vs sagital coordinate (usually y) in Local Normal frame
+	{ 
+		return -y/(m_radSag*sqrt(1. - m_c2*y*y));
+	} 
+
+	void FindLimitsInLocNormFrame(double xc, double yc, double& xMin, double& xMax, double& yMin, double& yMax) //OC01122019 (this could go to base class, if function ponters can be resolved)
+	{
+		const int nimNp = 101;
+		int npTang = m_npt;
+		if(npTang < nimNp) npTang = nimNp;
+		double supTangLen = 2.*m_halfDim1;
+		double absTangStep = supTangLen/(npTang - 1);
+		xMin = CGenMathMeth::FindCoordValForCurveLength(this, &srTMirrorParaboloid::dZdTgCrd, m_halfDim1, xc, -absTangStep, npTang);
+		xMax = CGenMathMeth::FindCoordValForCurveLength(this, &srTMirrorParaboloid::dZdTgCrd, m_halfDim1, xc, absTangStep, npTang);
+
+		int npSag = m_nps;
+		if(npSag < nimNp) npSag = nimNp;
+		double supSagLen = 2.*m_halfDim2;
+		double absSagStep = supSagLen/(npSag - 1);
+		yMin = CGenMathMeth::FindCoordValForCurveLength(this, &srTMirrorParaboloid::dZdSgCrd, m_halfDim2, yc, -absSagStep, npSag);
+		yMax = CGenMathMeth::FindCoordValForCurveLength(this, &srTMirrorParaboloid::dZdSgCrd, m_halfDim2, yc, absSagStep, npSag);
+	}
+
+	bool FindRayIntersectWithSurfInLocFrame(TVector3d& inP, TVector3d& inV, TVector3d& resP, TVector3d* pResN=0) //virtual in srTMirror
+	{//returns coordinates of the intersection point in the Local frame (resP), and, optionally, components of the surface normal at the intersection point (always in the Local frame)
+
+		//Coordinates of all points and vectors in the frame where the paraboloid is described by z = m_a*x^2 + m_b*y^2:
+		//double x0 = m_xcLocNorm + inP.x*m_cosAngRotNormLoc + inP.z*m_sinAngRotNormLoc;
+		double x0 = m_xcLocNorm + inP.x*m_cxx + inP.z*m_cxz;
+		double y0 = inP.y;
+		//double z0 = m_zcLocNorm - inP.x*m_sinAngRotNormLoc + inP.z*m_cosAngRotNormLoc;
+		double z0 = m_zcLocNorm - inP.x*m_cxz + inP.z*m_cxx;
+		//double vx = inV.x*m_cosAngRotNormLoc + inV.z*m_sinAngRotNormLoc;
+		double vx = inV.x*m_cxx + inV.z*m_cxz;
+		double vy = inV.y;
+		//double vz = -inV.x*m_sinAngRotNormLoc + inV.z*m_cosAngRotNormLoc;
+		double vz = -inV.x*m_cxz + inV.z*m_cxx;
+
+		double xi=x0, yi=y0, zi; //Intersection point coordinates to be found
+
+		const double vTol = 1.e-12; //To tune
+		if((::fabs(vx) < vTol) && (::fabs(vy) < vTol))
+		{
+			if((xi < m_xMinLocNorm) || (m_xMaxLocNorm < xi) || (yi < m_yMinLocNorm) || (m_yMaxLocNorm < yi)) return false;
+			zi = m_a*xi*xi + m_b*yi*yi;
+		}
+		else
+		{
+			double Dbuf1 = vz - 2.*m_a*vx*x0 - 2.*m_b*vy*y0;
+			double Dbuf2 = m_a*vx*vx + m_b*vy*vy;
+			double D = Dbuf1*Dbuf1 + 4.*Dbuf2*(z0 - m_a*x0*x0 - m_b*y0*y0);
+			if(D < 0.) return false;
+
+			double sqrtD = sqrt(D);
+			double Dbuf2_m_2 = 2.*Dbuf2;
+
+			double ti = (Dbuf1 - sqrtD)/Dbuf2_m_2;
+			xi = x0 + vx*ti;
+			yi = y0 + vy*ti;
+			if((xi < m_xMinLocNorm) || (m_xMaxLocNorm < xi) || (yi < m_yMinLocNorm) || (m_yMaxLocNorm < yi))
+			{
+				ti = (Dbuf1 + sqrtD)/Dbuf2_m_2;
+				xi = x0 + vx*ti;
+				yi = y0 + vy*ti;
+				if((xi < m_xMinLocNorm) || (m_xMaxLocNorm < xi) || (yi < m_yMinLocNorm) || (m_yMaxLocNorm < yi)) return false;
+			}
+			zi = z0 + vz*ti;
+		}
+
+		//Transforming coordinates back to the Local frame (~same code as for Ellipsoid)
+		double xi_mi_m_xcLocNorm = xi - m_xcLocNorm;
+		double zi_mi_m_zcLocNorm = zi - m_zcLocNorm;
+		//resP.x = xi_mi_m_xcLocNorm*m_cosAngGraz - zi_mi_m_zcLocNorm*m_sinAngGraz;
+		//resP.x = xi_mi_m_xcLocNorm*m_cosAngRotNormLoc - zi_mi_m_zcLocNorm*m_sinAngRotNormLoc;
+		resP.x = xi_mi_m_xcLocNorm*m_cxx - zi_mi_m_zcLocNorm*m_cxz;
+		resP.y = yi;
+		//resP.z = xi_mi_m_xcLocNorm*m_sinAngGraz + zi_mi_m_zcLocNorm*m_cosAngGraz;
+		//resP.z = xi_mi_m_xcLocNorm*m_sinAngRotNormLoc + zi_mi_m_zcLocNorm*m_cosAngRotNormLoc;
+		resP.z = xi_mi_m_xcLocNorm*m_cxz + zi_mi_m_zcLocNorm*m_cxx;
+
+		if(pResN != 0)
+		{
+			//Components of the normal vector in the Local Normal frame where the paraboloid is described by z = m_a*x^2 + m_b*y^2:
+			double xnLocNorm = -2.*m_a*xi, ynLocNorm = -2.*m_b*yi, znLocNorm = 1.;
+			double invNorm = 1./sqrt(xnLocNorm*xnLocNorm + ynLocNorm*ynLocNorm + znLocNorm*znLocNorm);
+			xnLocNorm *= invNorm; ynLocNorm *= invNorm; znLocNorm *= invNorm;
+
+			//Same components in the Local frame:
+			//pResN->x = xnLocNorm*m_cosAngGraz - znLocNorm*m_sinAngGraz;
+			//pResN->x = xnLocNorm*m_cosAngRotNormLoc - znLocNorm*m_sinAngRotNormLoc; //?
+			pResN->x = xnLocNorm*m_cxx - znLocNorm*m_cxz; //?
+			pResN->y = ynLocNorm;
+			//pResN->z = xnLocNorm*m_sinAngGraz + znLocNorm*m_cosAngGraz;
+			//pResN->z = xnLocNorm*m_sinAngRotNormLoc + znLocNorm*m_cosAngRotNormLoc;
+			pResN->z = xnLocNorm*m_cxz + znLocNorm*m_cxx;
+			//pResN->Normalize();
+		}
+		return true;
+	}
 };
 
 //*************************************************************************

@@ -52,7 +52,7 @@ public:
     static int SetDataInNumWave(waveHndl wavH, double* pData, long long Np); //OC26042019 (port to XOP7)
     //static int SetDataInNumWave(waveHndl wavH, double* pData, long Np);
 
-	static int FetchNumWave(char* sWaveName, srTDataMD* pWaveData);
+    static int FetchNumWave(char* sWaveName, srTDataMD* pWaveData);
 	static int GetNumWaveData(waveHndl wavH, srTDataMD* pWaveData); //, int& hState);
 	static int FinishWorkingWithWave(srTDataMD* pWaveData, waveHndl wavH); //, int hState);
 

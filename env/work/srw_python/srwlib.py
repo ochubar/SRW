@@ -21,6 +21,7 @@ import shutil
 import time
 
 from srwl_uti_cryst import *
+import uti_math
 
 #try:
 #    from uti_plot import * #universal simple plotting module distributed together with SRWLib
@@ -42,7 +43,7 @@ _ElCh = 1.60217646263E-19 #1.602189246E-19 #Electron Charge [Q]
 _ElMass_kg = 9.1093818872E-31 #9.10953447E-31 #Electron Mass in [kg]
 _ElMass_MeV = 0.51099890221 #Electron Mass in [MeV]
 _LightSp = 2.9979245812E+08 #Speed of Light [m/c]
-_Light_eV_mu = 1.23984186 #Wavelength <-> Photon Energy conversion constant ([um] <-> [eV])
+_Light_eV_mu = 1.23984197 #OC23062019 #1.23984186 #Wavelength <-> Photon Energy conversion constant ([um] <-> [eV])
 _PlanckConst_eVs = 4.13566766225E-15 #Planck constant in [eV*s]
 
 #****************************************************************************
@@ -323,8 +324,10 @@ class SRWLMagFldU(SRWLMagFld):
 
     def allocate(self, _nHarm):
         #self.arHarm = [SRWLMagFldH()]*_nHarm
-        arHarmLoc = []
-        for i in range(_nHarm): arHarm.append(SRWLMagFldH())
+        #arHarmLoc = []
+        #for i in range(_nHarm): arHarm.append(SRWLMagFldH())
+        self.arHarm = [] #OC18112019
+        for i in range(_nHarm): self.arHarm.append(SRWLMagFldH())
 
     def set_sin(self, _per=0.02, _len=1, _bx=0, _by=0, _phx=0, _phy=0, _sx=1, _sy=1):
         """Setup basic undulator with sinusoidal magnetic field
@@ -818,6 +821,53 @@ class SRWLRadMesh(object):
             except:
                 pass
 
+    def is_equal(self, _mesh, _rel_tol=1.e-07, _check_surf=False):
+        #isEqual = True
+        if(_mesh.ne != self.ne): return False
+        if(_mesh.nx != self.nx): return False
+        if(_mesh.ny != self.ny): return False
+
+        absTolE = _rel_tol*self.eStart
+        if((self.eFin > 0) and (self.eFin != self.eStart) and (self.ne > 1)): absTolE = _rel_tol*abs((self.eFin - self.eStart)/(self.ne - 1))
+        if(abs(self.eStart - _mesh.eStart) > absTolE): return False
+        if((self.eFin > 0) and (_mesh.eFin > 0)):
+            if(abs(self.eFin - _mesh.eFin) > absTolE): return False
+        
+        absTolX = _rel_tol*self.xStart
+        if((self.xFin > 0) and (self.xFin != self.xStart) and (self.nx > 1)): absTolX = _rel_tol*abs((self.xFin - self.xStart)/(self.nx - 1))
+        if(absTolX == 0): absTolX = 1.e-13 #to tune
+        if(abs(self.xStart - _mesh.xStart) > absTolX): return False
+        if((self.xFin > 0) and (_mesh.xFin > 0)):
+            if(abs(self.xFin - _mesh.xFin) > absTolX): return False
+
+        absTolY = _rel_tol*self.yStart
+        if((self.yFin > 0) and (self.yFin != self.yStart) and (self.ny > 1)): absTolY = _rel_tol*abs((self.yFin - self.yStart)/(self.ny - 1))
+        if(absTolY == 0): absTolY = 1.e-13 #to tune
+        if(abs(self.yStart - _mesh.yStart) > absTolY): return False
+        if((self.yFin > 0) and (_mesh.yFin > 0)):
+            if(abs(self.yFin - _mesh.yFin) > absTolY): return False
+
+        if(abs(_mesh.nvx - self.nvx) > _rel_tol): return False
+        if(abs(_mesh.nvy - self.nvy) > _rel_tol): return False
+        if(abs(_mesh.nvz - self.nvz) > _rel_tol): return False
+        if(abs(_mesh.hvx - self.hvx) > _rel_tol): return False
+        if(abs(_mesh.hvy - self.hvy) > _rel_tol): return False
+        if(abs(_mesh.hvz - self.hvz) > _rel_tol): return False
+
+        if(not _check_surf): return True
+        if(self.arSurf is None):
+            if(_mesh.arSurf is None): return True
+            else: return False
+        else:
+            if(_mesh.arSurf is None): return False
+            else:
+                lenArSurf = len(self.arSurf)
+                if(lenArSurf != len(_mesh.arSurf)): return False
+                for i in range(lenArSurf):
+                    if(self.arSurf[i] != _mesh.arSurf[i]): return False
+
+        return True
+
     def get_dep_type(self): #Get possible dependency type (for intensity calc.)
         depType = -1
         if((self.ne >= 1) and (self.nx == 1) and (self.ny == 1)): depType = 0
@@ -850,7 +900,7 @@ class SRWLStokes(object):
         :param _yStart: initial value of vertical position
         :param _yFin: final value of vertical position
         :param _ny: numbers of points vs vertical position
-        :param _mutual: mutual Stokes components (4*(_ne*_nx*_ny_)^2 values)
+        :param _mutual: mutual Stokes components (4*(2*_ne*_nx*_ny_)^2 values)
         """
         self.arS = _arS #flat C-aligned array of all Stokes components (outmost loop over Stokes parameter number); NOTE: only 'f' (float) is supported for the moment (Jan. 2012)
         self.numTypeStokes = _typeStokes #electric field numerical type: 'f' (float) or 'd' (double)
@@ -901,7 +951,7 @@ class SRWLStokes(object):
         nTot = _ne*_nx*_ny
         if _mutual > 0:
             #nTot *= nTot
-            nTot *= (nTot*2) #OC04052018 (since <E(r1)E(r2)*> may be a complex entity)
+            nTot *= (nTot*2) #OC04052018 (since <E(r1)E*(r2)> may be a complex entity)
         nTot *= 4 #array length of all Stokes components
         #eventually allow for storage of less than 4 Stokes components!
 
@@ -1224,6 +1274,12 @@ class SRWLStokes(object):
         #nRadWfr = eNpWfr*xNpWfr*yNpWfr
         #nRadWfr *= nRadWfr
 
+        #DEBUG
+        #print('Base Mesh X:', self.mesh.xStart, 0 if(self.mesh.nx <= 1) else (self.mesh.xFin - self.mesh.xStart)/(self.mesh.nx - 1), self.mesh.nx)
+        #print('More Mesh X:', xStartWfr, xStepWfr, xNpWfr)
+        #print('Base Mesh Y:', self.mesh.yStart, 0 if(self.mesh.ny <= 1) else (self.mesh.yFin - self.mesh.yStart)/(self.mesh.ny - 1), self.mesh.ny)
+        #print('More Mesh Y:', yStartWfr, yStepWfr, yNpWfr)
+
         perEp = 2 #OC04052018 (since <E(r1)E(r2)*> may be a complex entity)
         perE = perEp*eNpWfr #OC04052018 
         #perE = eNpWfr
@@ -1484,6 +1540,9 @@ class SRWLStokes(object):
                                             fInterp += (a001000 + a001100*tx + a001010*typ + a001001*ty)*txp
                                             fInterp += (a000100 + a000110*typ + a000101*ty)*tx + (a000010 + a000011*ty)*typ + a000001*ty + a000000
 
+                                            #DEBUG
+                                            #if(fInterp != 0): print(fInterp)
+
                                             #self.arS[ir] = (self.arS[ir]*_iter + _mult*fInterp)/(_iter + 1)
                                             self.arS[ir] = (self.arS[ir]*_iter + _mult*fInterp)/iter_p_1
 
@@ -1557,14 +1616,22 @@ class SRWLStokes(object):
         origPerYp = origPerX*origNx
         origPerY = origPerYp*origNy
 
-        orig_iec = int(round(0.5*origNe))
-        orig_ixc = int(round(0.5*origNx))
-        orig_iyc = int(round(0.5*origNy))
+        #orig_iec = int(round(0.5*origNe)) #NOTE: int(round(0.5*1)) produces different result by Py 2.7 and Py 3.6 !!??:)
+        #orig_ixc = int(round(0.5*origNx))
+        #orig_iyc = int(round(0.5*origNy))
+        #OC14112019
+        orig_iec = 0 if(origNe <= 1) else int(round(0.5*(origNe + 1e-12)))
+        orig_ixc = 0 if(origNx <= 1) else int(round(0.5*(origNx + 1e-12)))
+        orig_iyc = 0 if(origNy <= 1) else int(round(0.5*(origNy + 1e-12)))
+        
         ofstIc = orig_iec*origPerEp + orig_iec*origPerE + orig_ixc*origPerXp + orig_ixc*origPerX + orig_iyc*origPerYp + orig_iyc*origPerY
         absZerTolI = abs(self.arS[ofstIc])*_rel_zer_tol
 
         #DEBUG
         #print('   _rel_zer_tol=', _rel_zer_tol, ' absZerTolI=', absZerTolI)
+        #DEBUG
+        #dcWasNotZero = False
+        #normIntWasZeroWhere_dcWasNotZero = False
 
         auxNp = origNe*origNx*origNy
         auxNp *= auxNp
@@ -1628,6 +1695,7 @@ class SRWLStokes(object):
                                     resOfst += 1
                         else:
                             ofstMI = ix2_0_origPerXp_p_ix1_0_origPerX + iy2_0_origPerYp_p_iy1_0_origPerY
+                            
                             ofstI1 = ix1_0_origPerXp_p_ix1_0_origPerX + iy1_0_origPerYp_p_iy1_0_origPerY
                             ofstI2 = ix2_0_origPerXp_p_ix2_0_origPerX + iy2_0_origPerYp_p_iy2_0_origPerY
 
@@ -1639,12 +1707,27 @@ class SRWLStokes(object):
                             denom = sqrt(reI1*reI2) + absZerTolI #OC31072018
                             if(denom == 0): resDegCohNonRot[resOfst] = 0
                             else: resDegCohNonRot[resOfst] = absMI/denom
-                            
+
+                            #DEBUG
+                            #if(absMI > 0):
+                            #    dcWasNotZero = True
+                            #    if(denom == 0): normIntWasZeroWhere_dcWasNotZero = True
+                          
                             #resDegCohNonRot[resOfst] = absMI/(sqrt(reI1*reI2) + absZerTolI)
                             
                             resOfst += 1
 
+        #DEBUG
+        #if(dcWasNotZero):
+        #    print('DC was NOT ZERO at some points')
+        #    if(normIntWasZeroWhere_dcWasNotZero): print('...BUT Normal intensity WAS ZERO there')
+        #else: print('DC was ZERO at all points')
+        #DEBUG
+        #rotDC_WasNotZero = False
+                            
         if(not _rot): return resDegCohNonRot
+        #DEBUG
+        #return resDegCohNonRot
 
         origEstart = self.mesh.eStart
         origEfin = self.mesh.eFin
@@ -1673,12 +1756,27 @@ class SRWLStokes(object):
         resNe = origNe
         resNx = origNx
         resNy = origNy
-        resEstart = origEstart
-        resEfin = origEfin
-        resXstart = origXstart
-        resXfin = origXfin
-        resYstart = origYstart
-        resYfin = origYfin
+        
+        #resEstart = origEstart
+        #resEfin = origEfin
+        #resXstart = origXstart
+        #resXfin = origXfin
+        #resYstart = origYstart
+        #resYfin = origYfin
+        
+        #OC12112019
+        resE_start = origEstart
+        resE_fin = origEfin
+        resEp_start = 0.5*(origEstart - origEfin)
+        #resEp_fin = 0.5*(origEfin - origEstart)
+        resX_start = origXstart
+        resX_fin = origXfin
+        resXp_start = 0.5*(origXstart - origXfin)
+        #resXp_fin = 0.5*(origXfin - origXstart)
+        resY_start = origYstart
+        resY_fin = origYfin
+        resYp_start = 0.5*(origYstart - origYfin)
+        #resYp_fin = 0.5*(origYfin - origYstart)
 
         #sqrt2 = sqrt(2)
         #if(resNe > 1): 
@@ -1701,12 +1799,20 @@ class SRWLStokes(object):
         resNp *= resNp
         resDegCoh = array('f', [0]*resNp)
 
+        #resEstep = 0
+        #if(resNe > 1): resEstep = (resEfin - resEstart)/(resNe - 1)
+        #resXstep = 0
+        #if(resNx > 1): resXstep = (resXfin - resXstart)/(resNx - 1)
+        #resYstep = 0
+        #if(resNy > 1): resYstep = (resYfin - resYstart)/(resNy - 1)
+
+        #OC12112019
         resEstep = 0
-        if(resNe > 1): resEstep = (resEfin - resEstart)/(resNe - 1)
+        if(resNe > 1): resEstep = (resE_fin - resE_start)/(resNe - 1)
         resXstep = 0
-        if(resNx > 1): resXstep = (resXfin - resXstart)/(resNx - 1)
+        if(resNx > 1): resXstep = (resX_fin - resX_start)/(resNx - 1)
         resYstep = 0
-        if(resNy > 1): resYstep = (resYfin - resYstart)/(resNy - 1)
+        if(resNy > 1): resYstep = (resY_fin - resY_start)/(resNy - 1)
 
         perE = origNe
         perXp = perE*origNe
@@ -1733,9 +1839,11 @@ class SRWLStokes(object):
         iy2_1_perYp_p_iy1_1_perY = 0
 
         resOfst = 0
-        resYp = resYstart #resY = resYstart
+        #resYp = resYstart #resY = resYstart
+        resYp = resYp_start #OC12112019
         for iyp in range(resNy): #for iy in range(resNy):
-            resY = resYstart #resYp = resYstart
+            #resY = resYstart #resYp = resYstart
+            resY = resY_start #OC12112019
             for iy in range(resNy): #for iyp in range(resNy):
                 isInRangeY = True
                 if(resNy > 1):
@@ -1770,9 +1878,11 @@ class SRWLStokes(object):
                     iy2_0_perYp_p_iy1_1_perY = iy2_0_perYp + iy1_1_perY
                     iy2_1_perYp_p_iy1_1_perY = iy2_1_perYp + iy1_1_perY
 
-                resXp = resXstart #resX = resXstart
+                #resXp = resXstart #resX = resXstart
+                resXp = resXp_start #OC12112019
                 for ixp in range(resNx): #for ix in range(resNx):
-                    resX = resXstart #resXp = resXstart
+                    #resX = resXstart #resXp = resXstart
+                    resX = resX_start #OC12112019
                     for ix in range(resNx): #for ixp in range(resNx):
                         isInRangeX = True
                         if(isInRangeY):
@@ -1810,9 +1920,11 @@ class SRWLStokes(object):
                             ix2_0_perXp_p_ix1_1_perX = ix2_0_perXp + ix1_1_perX
                             ix2_1_perXp_p_ix1_1_perX = ix2_1_perXp + ix1_1_perX
 
-                        resEp = resEstart #resE = resEstart
+                        #resEp = resEstart #resE = resEstart
+                        resEp = resEp_start #OC12112019
                         for iep in range(resNe): #for ie in range(resNe):
-                            resE = resEstart #resEp = resEstart
+                            #resE = resEstart #resEp = resEstart
+                            resE = resE_start #OC12112019                            
                             for ie in range(resNe): #for iep in range(resNe):
                                 isInRangeE = True
                                 if(isInRangeX):
@@ -1906,6 +2018,10 @@ class SRWLStokes(object):
                                     #OC05052018: Note that this does not include all terms of multi-dim "bi-linear" interpolation!?
 
                                     resDegCoh[resOfst] = rotDegCoh
+
+                                    #DEBUG
+                                    #if(rotDegCoh > 0): rotDC_WasNotZero = True
+                                    
                                 else:
                                     resDegCoh[resOfst] = 0
 
@@ -1917,628 +2033,10 @@ class SRWLStokes(object):
                 resY += resYstep #resYp += resYstep
             resYp += resYstep #resY += resYstep
 
-        return resDegCoh
-
-    def to_deg_coh_slow(self, _rel_zer_tol=1.e-04, _rot=True):
-        """Calculates / "extracts" Degree of Coherence from the Mutual Intensity (first Stokes component, s0)
-        :param _rel_zer_tol: relative zero tolerance to use at normalizing (dividing) by the intensity
-        :param _rot: rotate or not the degree of coherence data
-        :param _n_stokes_comp: number of Stokes components to treat (1 to 4)
-        :return: 1D array with (C-aligned) resulting degree of coherence data
-        """
-
-        if(self.mutual <= 0): raise Exception("Calculation of Degree of Coherence can not be done from regular Intensity; Mutual Intensity is required.")
-
-        origNe = self.mesh.ne
-        origNx = self.mesh.nx
-        origNy = self.mesh.ny
-        origEstart = self.mesh.eStart
-        origEfin = self.mesh.eFin
-        origXstart = self.mesh.xStart
-        origXfin = self.mesh.xFin
-        origYstart = self.mesh.yStart
-        origYfin = self.mesh.xFin
-
-        origEstep = 0; origEstepInv = 0
-        if(origNe > 1): 
-            origEstep = (origEfin - origEstart)/(origNe - 1)
-            origEstepInv = 1/origEstep
-        origXstep = 0; origXstepInv = 0
-        if(origNx > 1): 
-            origXstep = (origXfin - origXstart)/(origNx - 1)
-            origXstepInv = 1/origXstep
-        origYstep = 0; origYstepInv = 0
-        if(origNy > 1): 
-            origYstep = (origYfin - origYstart)/(origNy - 1)
-            origYstepInv = 1/origYstep
-
-        origNe_m_1 = origNe - 1; origNe_m_2 = origNe - 2
-        origNx_m_1 = origNx - 1; origNx_m_2 = origNx - 2
-        origNy_m_1 = origNy - 1; origNy_m_2 = origNy - 2
-
-        origPerEp = 2
-        origPerE = origPerEp*origNe
-        origPerXp = origPerE*origNe
-        origPerX = origPerXp*origNx
-        origPerYp = origPerX*origNx
-        origPerY = origPerYp*origNy
-
-        orig_iec = int(round(0.5*origNe))
-        orig_ixc = int(round(0.5*origNx))
-        orig_iyc = int(round(0.5*origNy))
-        ofstIc = orig_iec*origPerEp + orig_iec*origPerE + orig_ixc*origPerXp + orig_ixc*origPerX + orig_iyc*origPerYp + orig_iyc*origPerY
-        absZerTolI = abs(self.arS[ofstIc])*_rel_zer_tol
-
-        resNe = origNe
-        resNx = origNx
-        resNy = origNy
-        resEstart = origEstart
-        resEfin = origEfin
-        resXstart = origXstart
-        resXfin = origXfin
-        resYstart = origYstart
-        resYfin = origYfin
-
-        if(_rot):
-            sqrt2 = sqrt(2)
-
-            if(resNe > 1): 
-                resNe = 2*resNe - 1
-                ec = 0.5*(resEstart + resEfin)
-                resEstart = ec - sqrt2*(ec - resEstart)
-                resEfin = ec + sqrt2*(resEfin - ec)
-
-            if(resNx > 1): 
-                resNx = 2*resNx - 1
-                xc = 0.5*(resXstart + resXfin)
-                resXstart = xc - sqrt2*(xc - resXstart)
-                resXfin = xc + sqrt2*(resXfin - xc)
-
-            if(resNy > 1): 
-                resNy = 2*resNy - 1
-                yc = 0.5*(resYstart + resYfin)
-                resYstart = yc - sqrt2*(yc - resYstart)
-                resYfin = yc + sqrt2*(resYfin - yc)
-
-        resNp = resNe*resNx*resNy
-        resNp *= resNp
-        resDegCoh = array('f', [0]*resNp)
-
-        resEstep = 0
-        if(resNe > 1): resEstep = (resEfin - resEstart)/(resNe - 1)
-        resXstep = 0
-        if(resNx > 1): resXstep = (resXfin - resXstart)/(resNx - 1)
-        resYstep = 0
-        if(resNy > 1): resYstep = (resYfin - resYstart)/(resNy - 1)
-
-        resX1 = 0; resX2 = 0 #just declaring these vars
-        resE1 = 0; resE2 = 0 #just declaring these vars
-
-        ie2_0_origPerEp_p_ie1_0_origPerE = 0
-        ie2_1_origPerEp_p_ie1_0_origPerE = 0
-        ie2_0_origPerEp_p_ie1_1_origPerE = 0
-        ie2_1_origPerEp_p_ie1_1_origPerE = 0
-
-        ie1_0_origPerEp_p_ie1_0_origPerE = 0
-        ie1_1_origPerEp_p_ie1_0_origPerE = 0
-        ie1_0_origPerEp_p_ie1_1_origPerE = 0
-        ie1_1_origPerEp_p_ie1_1_origPerE = 0
-
-        ie2_0_origPerEp_p_ie2_0_origPerE = 0
-        ie2_1_origPerEp_p_ie2_0_origPerE = 0
-        ie2_0_origPerEp_p_ie2_1_origPerE = 0
-        ie2_1_origPerEp_p_ie2_1_origPerE = 0
-
-        ix2_0_origPerXp_p_ix1_0_origPerX = 0
-        ix2_1_origPerXp_p_ix1_0_origPerX = 0
-        ix2_0_origPerXp_p_ix1_1_origPerX = 0
-        ix2_1_origPerXp_p_ix1_1_origPerX = 0
-
-        ix1_0_origPerXp_p_ix1_0_origPerX = 0
-        ix1_1_origPerXp_p_ix1_0_origPerX = 0
-        ix1_0_origPerXp_p_ix1_1_origPerX = 0
-        ix1_1_origPerXp_p_ix1_1_origPerX = 0
-
-        ix2_0_origPerXp_p_ix2_0_origPerX = 0
-        ix2_1_origPerXp_p_ix2_0_origPerX = 0
-        ix2_0_origPerXp_p_ix2_1_origPerX = 0
-        ix2_1_origPerXp_p_ix2_1_origPerX = 0
-
-        iy2_0_origPerYp_p_iy1_0_origPerY = 0
-        iy2_1_origPerYp_p_iy1_0_origPerY = 0
-        iy2_0_origPerYp_p_iy1_1_origPerY = 0
-        iy2_1_origPerYp_p_iy1_1_origPerY = 0
-
-        iy1_0_origPerYp_p_iy1_0_origPerY = 0
-        iy1_1_origPerYp_p_iy1_0_origPerY = 0
-        iy1_0_origPerYp_p_iy1_1_origPerY = 0
-        iy1_1_origPerYp_p_iy1_1_origPerY = 0
-
-        iy2_0_origPerYp_p_iy2_0_origPerY = 0
-        iy2_1_origPerYp_p_iy2_0_origPerY = 0
-        iy2_0_origPerYp_p_iy2_1_origPerY = 0
-        iy2_1_origPerYp_p_iy2_1_origPerY = 0
-
-        resOfst = 0
-        resY = resYstart
-        for iy in range(resNy):
-            resYp = resYstart
-            for iyp in range(resNy):
-                isInRangeY = True
-                if(_rot and (resNy > 1)):
-                    resY1 = resY + resYp
-                    resY2 = resY - resYp
-                    #resY1 = resY - resYp
-                    #resY2 = resY + resYp
-                    if((resY1 < origYstart) or (resY1 > origYfin) or (resY2 < origYstart) or (resY2 > origYfin)): isInRangeY = False
-
-                iy1_0 = 0; iy1_1 = 0; ry1 = 0
-                iy2_0 = 0; iy2_1 = 0; ry2 = 0
-                if(_rot):
-                    if((resNy > 1) and isInRangeY):
-                        iy1_0 = int(trunc((resY1 - origYstart)*origYstepInv))
-                        if(iy1_0 >= origNy_m_1): iy1_0 = origNy_m_2
-                        ry1 = (resY1 - (origYstart + iy1_0*origYstep))*origYstepInv
-
-                        iy2_0 = int(trunc((resY2 - origYstart)*origYstepInv))
-                        if(iy2_0 >= origNy_m_1): iy2_0 = origNy_m_2
-                        ry2 = (resY2 - (origYstart + iy2_0*origYstep))*origYstepInv
-
-                        iy1_1 = iy1_0 + 1
-                        if(iy1_1 > origNy_m_1): iy1_1 = origNy_m_1
-                        iy2_1 = iy2_0 + 1
-                        if(iy2_1 > origNy_m_1): iy2_1 = origNy_m_1
-
-                        iy2_0_origPerYp = iy2_0*origPerYp
-                        iy2_1_origPerYp = iy2_1*origPerYp
-                        iy1_0_origPerY = iy1_0*origPerY
-                        iy1_1_origPerY = iy1_1*origPerY
-                        iy2_0_origPerYp_p_iy1_0_origPerY = iy2_0_origPerYp + iy1_0_origPerY
-                        iy2_1_origPerYp_p_iy1_0_origPerY = iy2_1_origPerYp + iy1_0_origPerY
-                        iy2_0_origPerYp_p_iy1_1_origPerY = iy2_0_origPerYp + iy1_1_origPerY
-                        iy2_1_origPerYp_p_iy1_1_origPerY = iy2_1_origPerYp + iy1_1_origPerY
-                        iy1_0_origPerYp = iy1_0*origPerYp
-                        iy1_1_origPerYp = iy1_1*origPerYp
-                        iy1_0_origPerYp_p_iy1_0_origPerY = iy1_0_origPerYp + iy1_0_origPerY
-                        iy1_1_origPerYp_p_iy1_0_origPerY = iy1_1_origPerYp + iy1_0_origPerY
-                        iy1_0_origPerYp_p_iy1_1_origPerY = iy1_0_origPerYp + iy1_1_origPerY
-                        iy1_1_origPerYp_p_iy1_1_origPerY = iy1_1_origPerYp + iy1_1_origPerY
-                        iy2_0_origPerY = iy2_0*origPerY
-                        iy2_1_origPerY = iy2_1*origPerY
-                        iy2_0_origPerYp_p_iy2_0_origPerY = iy2_0_origPerYp + iy2_0_origPerY
-                        iy2_1_origPerYp_p_iy2_0_origPerY = iy2_1_origPerYp + iy2_0_origPerY
-                        iy2_0_origPerYp_p_iy2_1_origPerY = iy2_0_origPerYp + iy2_1_origPerY
-                        iy2_1_origPerYp_p_iy2_1_origPerY = iy2_1_origPerYp + iy2_1_origPerY
-                else:
-                    iy1_0 = iy
-                    iy2_0 = iyp
-                    iy2_0_origPerYp = iy2_0*origPerYp
-                    iy1_0_origPerY = iy1_0*origPerY
-                    iy2_0_origPerYp_p_iy1_0_origPerY = iy2_0_origPerYp + iy1_0_origPerY
-                    iy1_0_origPerYp_p_iy1_0_origPerY = iy1_0*origPerYp + iy1_0_origPerY
-                    iy2_0_origPerYp_p_iy2_0_origPerY = iy2_0_origPerYp + iy2_0*origPerY
-
-                resX = resXstart
-                for ix in range(resNx):
-                    resXp = resXstart
-                    for ixp in range(resNx):
-                        isInRangeX = True
-                        if(isInRangeY):
-                            if(_rot and (resNx > 1)):
-                                resX1 = resX + resXp
-                                resX2 = resX - resXp
-                                #resX1 = resX - resXp
-                                #resX2 = resX + resXp
-                                if((resX1 < origXstart) or (resX1 > origXfin) or (resX2 < origXstart) or (resX2 > origXfin)): isInRangeX = False
-                        else:
-                            isInRangeX = False
-
-                        ix1_0 = 0; ix1_1 = 0; rx1 = 0
-                        ix2_0 = 0; ix2_1 = 0; rx2 = 0
-                        if(_rot):
-                            if((resNx > 1) and isInRangeX):
-                                ix1_0 = int(trunc((resX1 - origXstart)*origXstepInv))
-                                if(ix1_0 >= origNx_m_1): ix1_0 = origNx_m_2
-                                rx1 = (resX1 - (origXstart + ix1_0*origXstep))*origXstepInv
-
-                                ix2_0 = int(trunc((resX2 - origXstart)*origXstepInv))
-                                if(ix2_0 >= origNx_m_1): ix2_0 = origNx_m_2
-                                rx2 = (resX2 - (origXstart + ix2_0*origXstep))*origXstepInv
-
-                                ix1_1 = ix1_0 + 1
-                                if(ix1_1 > origNx_m_1): ix1_1 = origNx_m_1
-                                ix2_1 = ix2_0 + 1
-                                if(ix2_1 > origNx_m_1): ix2_1 = origNx_m_1
-
-                                ix2_0_origPerXp = ix2_0*origPerXp
-                                ix2_1_origPerXp = ix2_1*origPerXp
-                                ix1_0_origPerX = ix1_0*origPerX
-                                ix1_1_origPerX = ix1_1*origPerX
-                                ix2_0_origPerXp_p_ix1_0_origPerX = ix2_0_origPerXp + ix1_0_origPerX
-                                ix2_1_origPerXp_p_ix1_0_origPerX = ix2_1_origPerXp + ix1_0_origPerX
-                                ix2_0_origPerXp_p_ix1_1_origPerX = ix2_0_origPerXp + ix1_1_origPerX
-                                ix2_1_origPerXp_p_ix1_1_origPerX = ix2_1_origPerXp + ix1_1_origPerX
-                                ix1_0_origPerXp = ix1_0*origPerXp
-                                ix1_1_origPerXp = ix1_1*origPerXp
-                                ix1_0_origPerXp_p_ix1_0_origPerX = ix1_0_origPerXp + ix1_0_origPerX
-                                ix1_1_origPerXp_p_ix1_0_origPerX = ix1_1_origPerXp + ix1_0_origPerX
-                                ix1_0_origPerXp_p_ix1_1_origPerX = ix1_0_origPerXp + ix1_1_origPerX
-                                ix1_1_origPerXp_p_ix1_1_origPerX = ix1_1_origPerXp + ix1_1_origPerX
-                                ix2_0_origPerX = ix2_0*origPerX
-                                ix2_1_origPerX = ix2_1*origPerX
-                                ix2_0_origPerXp_p_ix2_0_origPerX = ix2_0_origPerXp + ix2_0_origPerX
-                                ix2_1_origPerXp_p_ix2_0_origPerX = ix2_1_origPerXp + ix2_0_origPerX
-                                ix2_0_origPerXp_p_ix2_1_origPerX = ix2_0_origPerXp + ix2_1_origPerX
-                                ix2_1_origPerXp_p_ix2_1_origPerX = ix2_1_origPerXp + ix2_1_origPerX
-                        else:
-                            ix1_0 = ix
-                            ix2_0 = ixp
-                            ix2_0_origPerXp = ix2_0*origPerXp
-                            ix1_0_origPerX = ix1_0*origPerX
-                            ix2_0_origPerXp_p_ix1_0_origPerX = ix2_0_origPerXp + ix1_0_origPerX
-                            ix1_0_origPerXp_p_ix1_0_origPerX = ix1_0*origPerXp + ix1_0_origPerX
-                            ix2_0_origPerXp_p_ix2_0_origPerX = ix2_0_origPerXp + ix2_0*origPerX
-
-                        resE = resEstart
-                        for ie in range(resNe):
-                            resEp = resEstart
-                            for iep in range(resNe):
-                                isInRangeE = True
-                                if(isInRangeX):
-                                    if(_rot and (resNe > 1)):
-                                        resE1 = resE + resEp
-                                        resE2 = resE - resEp
-                                        #resE1 = resE - resEp
-                                        #resE2 = resE + resEp
-                                        if((resE1 < origEstart) or (resE1 > origEfin) or (resE2 < origEstart) or (resE2 > origEfin)): isInRangeE = False
-                                else:
-                                    isInRangeE = False
-
-                                ie1_0 = 0; ie1_1 = 0; re1 = 0
-                                ie2_0 = 0; ie2_1 = 0; re2 = 0
-                                if(_rot):
-                                    if((resNe > 1) and isInRangeE):
-                                        ie1_0 = int(trunc((resE1 - origEstart)*origEstepInv))
-                                        if(ie1_0 >= origNe_m_1): ie1_0 = origNe_m_2
-                                        re1 = (resE1 - (origEstart + ie1_0*origEstep))*origEstepInv
-
-                                        ie2_0 = int(trunc((resE2 - origEstart)*origEstepInv))
-                                        if(ie2_0 >= origNe_m_1): ie2_0 = origNe_m_2
-                                        re2 = (resE2 - (origEstart + ie2_0*origEstep))*origEstepInv
-
-                                        ie1_1 = ie1_0 + 1
-                                        if(ie1_1 > origNe_m_1): ie1_1 = origNe_m_1
-                                        ie2_1 = ie2_0 + 1
-                                        if(ie2_1 > origNe_m_1): ie2_1 = origNe_m_1
-
-                                        ie2_0_origPerEp = ie2_0*origPerEp
-                                        ie2_1_origPerEp = ie2_1*origPerEp
-                                        ie1_0_origPerE = ie1_0*origPerE
-                                        ie1_1_origPerE = ie1_1*origPerE
-                                        ie2_0_origPerEp_p_ie1_0_origPerE = ie2_0_origPerEp + ie1_0_origPerE
-                                        ie2_1_origPerEp_p_ie1_0_origPerE = ie2_1_origPerEp + ie1_0_origPerE
-                                        ie2_0_origPerEp_p_ie1_1_origPerE = ie2_0_origPerEp + ie1_1_origPerE
-                                        ie2_1_origPerEp_p_ie1_1_origPerE = ie2_1_origPerEp + ie1_1_origPerE
-                                        ie1_0_origPerEp = ie1_0*origPerEp
-                                        ie1_1_origPerEp = ie1_1*origPerEp
-                                        ie1_0_origPerEp_p_ie1_0_origPerE = ie1_0_origPerEp + ie1_0_origPerE
-                                        ie1_1_origPerEp_p_ie1_0_origPerE = ie1_1_origPerEp + ie1_0_origPerE
-                                        ie1_0_origPerEp_p_ie1_1_origPerE = ie1_0_origPerEp + ie1_1_origPerE
-                                        ie1_1_origPerEp_p_ie1_1_origPerE = ie1_1_origPerEp + ie1_1_origPerE
-                                        ie2_0_origPerE = ie2_0*origPerE
-                                        ie2_1_origPerE = ie2_1*origPerE
-                                        ie2_0_origPerEp_p_ie2_0_origPerE = ie2_0_origPerEp + ie2_0_origPerE
-                                        ie2_1_origPerEp_p_ie2_0_origPerE = ie2_1_origPerEp + ie2_0_origPerE
-                                        ie2_0_origPerEp_p_ie2_1_origPerE = ie2_0_origPerEp + ie2_1_origPerE
-                                        ie2_1_origPerEp_p_ie2_1_origPerE = ie2_1_origPerEp + ie2_1_origPerE
-
-                                    if(isInRangeE):
-                                        #--------------MI
-                                        ofst000000 = ie2_0_origPerEp_p_ie1_0_origPerE + ix2_0_origPerXp_p_ix1_0_origPerX + iy2_0_origPerYp_p_iy1_0_origPerY
-                                        ofst100000 = ie2_1_origPerEp_p_ie1_0_origPerE + ix2_0_origPerXp_p_ix1_0_origPerX + iy2_0_origPerYp_p_iy1_0_origPerY
-                                        ofst010000 = ie2_0_origPerEp_p_ie1_1_origPerE + ix2_0_origPerXp_p_ix1_0_origPerX + iy2_0_origPerYp_p_iy1_0_origPerY
-                                        ofst001000 = ie2_0_origPerEp_p_ie1_0_origPerE + ix2_1_origPerXp_p_ix1_0_origPerX + iy2_0_origPerYp_p_iy1_0_origPerY
-                                        ofst000100 = ie2_0_origPerEp_p_ie1_0_origPerE + ix2_0_origPerXp_p_ix1_1_origPerX + iy2_0_origPerYp_p_iy1_0_origPerY
-                                        ofst000010 = ie2_0_origPerEp_p_ie1_0_origPerE + ix2_0_origPerXp_p_ix1_0_origPerX + iy2_1_origPerYp_p_iy1_0_origPerY
-                                        ofst000001 = ie2_0_origPerEp_p_ie1_0_origPerE + ix2_0_origPerXp_p_ix1_0_origPerX + iy2_0_origPerYp_p_iy1_1_origPerY
-
-                                        ofst110000 = ie2_1_origPerEp_p_ie1_1_origPerE + ix2_0_origPerXp_p_ix1_0_origPerX + iy2_0_origPerYp_p_iy1_0_origPerY
-                                        ofst101000 = ie2_1_origPerEp_p_ie1_0_origPerE + ix2_1_origPerXp_p_ix1_0_origPerX + iy2_0_origPerYp_p_iy1_0_origPerY
-                                        ofst100100 = ie2_1_origPerEp_p_ie1_0_origPerE + ix2_0_origPerXp_p_ix1_1_origPerX + iy2_0_origPerYp_p_iy1_0_origPerY
-                                        ofst100010 = ie2_1_origPerEp_p_ie1_0_origPerE + ix2_0_origPerXp_p_ix1_0_origPerX + iy2_1_origPerYp_p_iy1_0_origPerY
-                                        ofst100001 = ie2_1_origPerEp_p_ie1_0_origPerE + ix2_0_origPerXp_p_ix1_0_origPerX + iy2_0_origPerYp_p_iy1_1_origPerY
-                                    
-                                        ofst011000 = ie2_0_origPerEp_p_ie1_1_origPerE + ix2_1_origPerXp_p_ix1_0_origPerX + iy2_0_origPerYp_p_iy1_0_origPerY
-                                        ofst010100 = ie2_0_origPerEp_p_ie1_1_origPerE + ix2_0_origPerXp_p_ix1_1_origPerX + iy2_0_origPerYp_p_iy1_0_origPerY
-                                        ofst010010 = ie2_0_origPerEp_p_ie1_1_origPerE + ix2_0_origPerXp_p_ix1_0_origPerX + iy2_1_origPerYp_p_iy1_0_origPerY
-                                        ofst010001 = ie2_0_origPerEp_p_ie1_1_origPerE + ix2_0_origPerXp_p_ix1_0_origPerX + iy2_0_origPerYp_p_iy1_1_origPerY
-                                   
-                                        ofst001100 = ie2_0_origPerEp_p_ie1_0_origPerE + ix2_1_origPerXp_p_ix1_1_origPerX + iy2_0_origPerYp_p_iy1_0_origPerY
-                                        ofst001010 = ie2_0_origPerEp_p_ie1_0_origPerE + ix2_1_origPerXp_p_ix1_0_origPerX + iy2_1_origPerYp_p_iy1_0_origPerY
-                                        ofst001001 = ie2_0_origPerEp_p_ie1_0_origPerE + ix2_1_origPerXp_p_ix1_0_origPerX + iy2_0_origPerYp_p_iy1_1_origPerY
-
-                                        ofst000110 = ie2_0_origPerEp_p_ie1_0_origPerE + ix2_0_origPerXp_p_ix1_1_origPerX + iy2_1_origPerYp_p_iy1_0_origPerY
-                                        ofst000101 = ie2_0_origPerEp_p_ie1_0_origPerE + ix2_0_origPerXp_p_ix1_1_origPerX + iy2_0_origPerYp_p_iy1_1_origPerY
-
-                                        ofst000011 = ie2_0_origPerEp_p_ie1_0_origPerE + ix2_0_origPerXp_p_ix1_0_origPerX + iy2_1_origPerYp_p_iy1_1_origPerY
-                                    
-                                        re_a000000 = _more_stokes.arS[ofst000000]; ofst000000 += 1; im_a000000 = _more_stokes.arS[ofst000000]
-                                        re_f100000 = _more_stokes.arS[ofst100000]; ofst100000 += 1; im_f100000 = _more_stokes.arS[ofst100000]
-                                        re_f010000 = _more_stokes.arS[ofst010000]; ofst010000 += 1; im_f010000 = _more_stokes.arS[ofst010000]
-                                        re_f001000 = _more_stokes.arS[ofst001000]; ofst001000 += 1; im_f001000 = _more_stokes.arS[ofst001000]
-                                        re_f000100 = _more_stokes.arS[ofst000100]; ofst000100 += 1; im_f000100 = _more_stokes.arS[ofst000100]
-                                        re_f000010 = _more_stokes.arS[ofst000010]; ofst000010 += 1; im_f000010 = _more_stokes.arS[ofst000010]
-                                        re_f000001 = _more_stokes.arS[ofst000001]; ofst000001 += 1; im_f000001 = _more_stokes.arS[ofst000001]
-
-                                        re_f110000 = _more_stokes.arS[ofst110000]; ofst110000 += 1; im_f110000 = _more_stokes.arS[ofst110000]
-                                        re_f101000 = _more_stokes.arS[ofst101000]; ofst101000 += 1; im_f101000 = _more_stokes.arS[ofst101000]
-                                        re_f100100 = _more_stokes.arS[ofst100100]; ofst100100 += 1; im_f100100 = _more_stokes.arS[ofst100100]
-                                        re_f100010 = _more_stokes.arS[ofst100010]; ofst100010 += 1; im_f100010 = _more_stokes.arS[ofst100010]
-                                        re_f100001 = _more_stokes.arS[ofst100001]; ofst100001 += 1; im_f100001 = _more_stokes.arS[ofst100001]
-
-                                        re_f011000 = _more_stokes.arS[ofst011000]; ofst011000 += 1; im_f011000 = _more_stokes.arS[ofst011000]
-                                        re_f010100 = _more_stokes.arS[ofst010100]; ofst010100 += 1; im_f010100 = _more_stokes.arS[ofst010100]
-                                        re_f010010 = _more_stokes.arS[ofst010010]; ofst010010 += 1; im_f010010 = _more_stokes.arS[ofst010010]
-                                        re_f010001 = _more_stokes.arS[ofst010001]; ofst010001 += 1; im_f010001 = _more_stokes.arS[ofst010001]
-
-                                        re_f001100 = _more_stokes.arS[ofst001100]; ofst001100 += 1; im_f001100 = _more_stokes.arS[ofst001100]
-                                        re_f001010 = _more_stokes.arS[ofst001010]; ofst001010 += 1; im_f001010 = _more_stokes.arS[ofst001010]
-                                        re_f001001 = _more_stokes.arS[ofst001001]; ofst001001 += 1; im_f001001 = _more_stokes.arS[ofst001001]
-
-                                        re_f000110 = _more_stokes.arS[ofst000110]; ofst000110 += 1; im_f000110 = _more_stokes.arS[ofst000110]
-                                        re_f000101 = _more_stokes.arS[ofst000101]; ofst000101 += 1; im_f000101 = _more_stokes.arS[ofst000101]
-                                        
-                                        re_f000011 = _more_stokes.arS[ofst000011]; ofst000011 += 1; im_f000011 = _more_stokes.arS[ofst000011]
-
-                                        re_a100000 = re_f100000 - re_a000000; im_a100000 = im_f100000 - im_a000000
-                                        re_a010000 = re_f010000 - re_a000000; im_a010000 = im_f010000 - im_a000000
-                                        re_a001000 = re_f001000 - re_a000000; im_a001000 = im_f001000 - im_a000000
-                                        re_a000100 = re_f000100 - re_a000000; im_a000100 = im_f000100 - im_a000000
-                                        re_a000010 = re_f000010 - re_a000000; im_a000010 = im_f000010 - im_a000000
-                                        re_a000001 = re_f000001 - re_a000000; im_a000001 = im_f000001 - im_a000000
-                                        re_a110000 = re_a000000 - re_f010000 - re_f100000 + re_f110000; im_a110000 = im_a000000 - im_f010000 - im_f100000 + im_f110000
-                                        re_a101000 = re_a000000 - re_f001000 - re_f100000 + re_f101000; im_a101000 = im_a000000 - im_f001000 - im_f100000 + im_f101000
-                                        re_a100100 = re_a000000 - re_f000100 - re_f100000 + re_f100100; im_a100100 = im_a000000 - im_f000100 - im_f100000 + im_f100100
-                                        re_a100010 = re_a000000 - re_f000010 - re_f100000 + re_f100010; im_a100010 = im_a000000 - im_f000010 - im_f100000 + im_f100010
-                                        re_a100001 = re_a000000 - re_f000001 - re_f100000 + re_f100001; im_a100001 = im_a000000 - im_f000001 - im_f100000 + im_f100001
-                                        re_a011000 = re_a000000 - re_f001000 - re_f010000 + re_f011000; im_a011000 = im_a000000 - im_f001000 - im_f010000 + im_f011000
-                                        re_a010100 = re_a000000 - re_f000100 - re_f010000 + re_f010100; im_a010100 = im_a000000 - im_f000100 - im_f010000 + im_f010100
-                                        re_a010010 = re_a000000 - re_f000010 - re_f010000 + re_f010010; im_a010010 = im_a000000 - im_f000010 - im_f010000 + im_f010010
-                                        re_a010001 = re_a000000 - re_f000001 - re_f010000 + re_f010001; im_a010001 = im_a000000 - im_f000001 - im_f010000 + im_f010001
-                                        re_a001100 = re_a000000 - re_f000100 - re_f001000 + re_f001100; im_a001100 = im_a000000 - im_f000100 - im_f001000 + im_f001100
-                                        re_a001010 = re_a000000 - re_f000010 - re_f001000 + re_f001010; im_a001010 = im_a000000 - im_f000010 - im_f001000 + im_f001010
-                                        re_a001001 = re_a000000 - re_f000001 - re_f001000 + re_f001001; im_a001001 = im_a000000 - im_f000001 - im_f001000 + im_f001001
-                                        re_a000110 = re_a000000 - re_f000010 - re_f000100 + re_f000110; im_a000110 = im_a000000 - im_f000010 - im_f000100 + im_f000110
-                                        re_a000101 = re_a000000 - re_f000001 - re_f000100 + re_f000101; im_a000101 = im_a000000 - im_f000001 - im_f000100 + im_f000101
-                                        re_a000011 = re_a000000 - re_f000001 - re_f000010 + re_f000011; im_a000011 = im_a000000 - im_f000001 - im_f000010 + im_f000011
-
-                                        reMI = (re_a100000 + re_a110000*re1 + re_a101000*rx2 + re_a100100*rx1 + re_a100010*ry2 + re_a100001*ry1)*re2
-                                        reMI += (re_a010000 + re_a011000*rx2 + re_a010100*rx1 + re_a010010*ry2 + re_a010001*ry1)*re1
-                                        reMI += (re_a001000 + re_a001100*rx1 + re_a001010*ry2 + re_a001001*ry1)*rx2
-                                        reMI += (re_a000100 + re_a000110*ry2 + re_a000101*ry1)*rx1 + (re_a000010 + re_a000011*ry1)*ry2 + re_a000001*ry1 + re_a000000
-                                        imMI = (im_a100000 + im_a110000*re1 + im_a101000*rx2 + im_a100100*rx1 + im_a100010*ry2 + im_a100001*ry1)*re2
-                                        imMI += (im_a010000 + im_a011000*rx2 + im_a010100*rx1 + im_a010010*ry2 + im_a010001*ry1)*re1
-                                        imMI += (im_a001000 + im_a001100*rx1 + im_a001010*ry2 + im_a001001*ry1)*rx2
-                                        imMI += (im_a000100 + im_a000110*ry2 + im_a000101*ry1)*rx1 + (im_a000010 + im_a000011*ry1)*ry2 + im_a000001*ry1 + im_a000000
-                                        absMI = sqrt(reMI*reMI + imMI*imMI)
-
-                                        #--------------I1
-                                        ofst000000 = ie1_0_origPerEp_p_ie1_0_origPerE + ix1_0_origPerXp_p_ix1_0_origPerX + iy1_0_origPerYp_p_iy1_0_origPerY
-                                        ofst100000 = ie1_1_origPerEp_p_ie1_0_origPerE + ix1_0_origPerXp_p_ix1_0_origPerX + iy1_0_origPerYp_p_iy1_0_origPerY
-                                        ofst010000 = ie1_0_origPerEp_p_ie1_1_origPerE + ix1_0_origPerXp_p_ix1_0_origPerX + iy1_0_origPerYp_p_iy1_0_origPerY
-                                        ofst001000 = ie1_0_origPerEp_p_ie1_0_origPerE + ix1_1_origPerXp_p_ix1_0_origPerX + iy1_0_origPerYp_p_iy1_0_origPerY
-                                        ofst000100 = ie1_0_origPerEp_p_ie1_0_origPerE + ix1_0_origPerXp_p_ix1_1_origPerX + iy1_0_origPerYp_p_iy1_0_origPerY
-                                        ofst000010 = ie1_0_origPerEp_p_ie1_0_origPerE + ix1_0_origPerXp_p_ix1_0_origPerX + iy1_1_origPerYp_p_iy1_0_origPerY
-                                        ofst000001 = ie1_0_origPerEp_p_ie1_0_origPerE + ix1_0_origPerXp_p_ix1_0_origPerX + iy1_0_origPerYp_p_iy1_1_origPerY
-
-                                        ofst110000 = ie1_1_origPerEp_p_ie1_1_origPerE + ix1_0_origPerXp_p_ix1_0_origPerX + iy1_0_origPerYp_p_iy1_0_origPerY
-                                        ofst101000 = ie1_1_origPerEp_p_ie1_0_origPerE + ix1_1_origPerXp_p_ix1_0_origPerX + iy1_0_origPerYp_p_iy1_0_origPerY
-                                        ofst100100 = ie1_1_origPerEp_p_ie1_0_origPerE + ix1_0_origPerXp_p_ix1_1_origPerX + iy1_0_origPerYp_p_iy1_0_origPerY
-                                        ofst100010 = ie1_1_origPerEp_p_ie1_0_origPerE + ix1_0_origPerXp_p_ix1_0_origPerX + iy1_1_origPerYp_p_iy1_0_origPerY
-                                        ofst100001 = ie1_1_origPerEp_p_ie1_0_origPerE + ix1_0_origPerXp_p_ix1_0_origPerX + iy1_0_origPerYp_p_iy1_1_origPerY
-                                    
-                                        ofst011000 = ie1_0_origPerEp_p_ie1_1_origPerE + ix1_1_origPerXp_p_ix1_0_origPerX + iy1_0_origPerYp_p_iy1_0_origPerY
-                                        ofst010100 = ie1_0_origPerEp_p_ie1_1_origPerE + ix1_0_origPerXp_p_ix1_1_origPerX + iy1_0_origPerYp_p_iy1_0_origPerY
-                                        ofst010010 = ie1_0_origPerEp_p_ie1_1_origPerE + ix1_0_origPerXp_p_ix1_0_origPerX + iy1_1_origPerYp_p_iy1_0_origPerY
-                                        ofst010001 = ie1_0_origPerEp_p_ie1_1_origPerE + ix1_0_origPerXp_p_ix1_0_origPerX + iy1_0_origPerYp_p_iy1_1_origPerY
-                                   
-                                        ofst001100 = ie1_0_origPerEp_p_ie1_0_origPerE + ix1_1_origPerXp_p_ix1_1_origPerX + iy1_0_origPerYp_p_iy1_0_origPerY
-                                        ofst001010 = ie1_0_origPerEp_p_ie1_0_origPerE + ix1_1_origPerXp_p_ix1_0_origPerX + iy1_1_origPerYp_p_iy1_0_origPerY
-                                        ofst001001 = ie1_0_origPerEp_p_ie1_0_origPerE + ix1_1_origPerXp_p_ix1_0_origPerX + iy1_0_origPerYp_p_iy1_1_origPerY
-
-                                        ofst000110 = ie1_0_origPerEp_p_ie1_0_origPerE + ix1_0_origPerXp_p_ix1_1_origPerX + iy1_1_origPerYp_p_iy1_0_origPerY
-                                        ofst000101 = ie1_0_origPerEp_p_ie1_0_origPerE + ix1_0_origPerXp_p_ix1_1_origPerX + iy1_0_origPerYp_p_iy1_1_origPerY
-
-                                        ofst000011 = ie1_0_origPerEp_p_ie1_0_origPerE + ix1_0_origPerXp_p_ix1_0_origPerX + iy1_1_origPerYp_p_iy1_1_origPerY
-                                    
-                                        re_a000000 = _more_stokes.arS[ofst000000]#; ofst000000 += 1; im_a000000 = _more_stokes.arS[ofst000000]
-                                        re_f100000 = _more_stokes.arS[ofst100000]#; ofst100000 += 1; im_f100000 = _more_stokes.arS[ofst100000]
-                                        re_f010000 = _more_stokes.arS[ofst010000]#; ofst010000 += 1; im_f010000 = _more_stokes.arS[ofst010000]
-                                        re_f001000 = _more_stokes.arS[ofst001000]#; ofst001000 += 1; im_f001000 = _more_stokes.arS[ofst001000]
-                                        re_f000100 = _more_stokes.arS[ofst000100]#; ofst000100 += 1; im_f000100 = _more_stokes.arS[ofst000100]
-                                        re_f000010 = _more_stokes.arS[ofst000010]#; ofst000010 += 1; im_f000010 = _more_stokes.arS[ofst000010]
-                                        re_f000001 = _more_stokes.arS[ofst000001]#; ofst000001 += 1; im_f000001 = _more_stokes.arS[ofst000001]
-
-                                        re_f110000 = _more_stokes.arS[ofst110000]#; ofst110000 += 1; im_f110000 = _more_stokes.arS[ofst110000]
-                                        re_f101000 = _more_stokes.arS[ofst101000]#; ofst101000 += 1; im_f101000 = _more_stokes.arS[ofst101000]
-                                        re_f100100 = _more_stokes.arS[ofst100100]#; ofst100100 += 1; im_f100100 = _more_stokes.arS[ofst100100]
-                                        re_f100010 = _more_stokes.arS[ofst100010]#; ofst100010 += 1; im_f100010 = _more_stokes.arS[ofst100010]
-                                        re_f100001 = _more_stokes.arS[ofst100001]#; ofst100001 += 1; im_f100001 = _more_stokes.arS[ofst100001]
-
-                                        re_f011000 = _more_stokes.arS[ofst011000]#; ofst011000 += 1; im_f011000 = _more_stokes.arS[ofst011000]
-                                        re_f010100 = _more_stokes.arS[ofst010100]#; ofst010100 += 1; im_f010100 = _more_stokes.arS[ofst010100]
-                                        re_f010010 = _more_stokes.arS[ofst010010]#; ofst010010 += 1; im_f010010 = _more_stokes.arS[ofst010010]
-                                        re_f010001 = _more_stokes.arS[ofst010001]#; ofst010001 += 1; im_f010001 = _more_stokes.arS[ofst010001]
-
-                                        re_f001100 = _more_stokes.arS[ofst001100]#; ofst001100 += 1; im_f001100 = _more_stokes.arS[ofst001100]
-                                        re_f001010 = _more_stokes.arS[ofst001010]#; ofst001010 += 1; im_f001010 = _more_stokes.arS[ofst001010]
-                                        re_f001001 = _more_stokes.arS[ofst001001]#; ofst001001 += 1; im_f001001 = _more_stokes.arS[ofst001001]
-
-                                        re_f000110 = _more_stokes.arS[ofst000110]#; ofst000110 += 1; im_f000110 = _more_stokes.arS[ofst000110]
-                                        re_f000101 = _more_stokes.arS[ofst000101]#; ofst000101 += 1; im_f000101 = _more_stokes.arS[ofst000101]
-                                        
-                                        re_f000011 = _more_stokes.arS[ofst000011]#; ofst000011 += 1; im_f000011 = _more_stokes.arS[ofst000011]
-
-                                        re_a100000 = re_f100000 - re_a000000#; im_a100000 = im_f100000 - im_a000000
-                                        re_a010000 = re_f010000 - re_a000000#; im_a010000 = im_f010000 - im_a000000
-                                        re_a001000 = re_f001000 - re_a000000#; im_a001000 = im_f001000 - im_a000000
-                                        re_a000100 = re_f000100 - re_a000000#; im_a000100 = im_f000100 - im_a000000
-                                        re_a000010 = re_f000010 - re_a000000#; im_a000010 = im_f000010 - im_a000000
-                                        re_a000001 = re_f000001 - re_a000000#; im_a000001 = im_f000001 - im_a000000
-                                        re_a110000 = re_a000000 - re_f010000 - re_f100000 + re_f110000#; im_a110000 = im_a000000 - im_f010000 - im_f100000 + im_f110000
-                                        re_a101000 = re_a000000 - re_f001000 - re_f100000 + re_f101000#; im_a101000 = im_a000000 - im_f001000 - im_f100000 + im_f101000
-                                        re_a100100 = re_a000000 - re_f000100 - re_f100000 + re_f100100#; im_a100100 = im_a000000 - im_f000100 - im_f100000 + im_f100100
-                                        re_a100010 = re_a000000 - re_f000010 - re_f100000 + re_f100010#; im_a100010 = im_a000000 - im_f000010 - im_f100000 + im_f100010
-                                        re_a100001 = re_a000000 - re_f000001 - re_f100000 + re_f100001#; im_a100001 = im_a000000 - im_f000001 - im_f100000 + im_f100001
-                                        re_a011000 = re_a000000 - re_f001000 - re_f010000 + re_f011000#; im_a011000 = im_a000000 - im_f001000 - im_f010000 + im_f011000
-                                        re_a010100 = re_a000000 - re_f000100 - re_f010000 + re_f010100#; im_a010100 = im_a000000 - im_f000100 - im_f010000 + im_f010100
-                                        re_a010010 = re_a000000 - re_f000010 - re_f010000 + re_f010010#; im_a010010 = im_a000000 - im_f000010 - im_f010000 + im_f010010
-                                        re_a010001 = re_a000000 - re_f000001 - re_f010000 + re_f010001#; im_a010001 = im_a000000 - im_f000001 - im_f010000 + im_f010001
-                                        re_a001100 = re_a000000 - re_f000100 - re_f001000 + re_f001100#; im_a001100 = im_a000000 - im_f000100 - im_f001000 + im_f001100
-                                        re_a001010 = re_a000000 - re_f000010 - re_f001000 + re_f001010#; im_a001010 = im_a000000 - im_f000010 - im_f001000 + im_f001010
-                                        re_a001001 = re_a000000 - re_f000001 - re_f001000 + re_f001001#; im_a001001 = im_a000000 - im_f000001 - im_f001000 + im_f001001
-                                        re_a000110 = re_a000000 - re_f000010 - re_f000100 + re_f000110#; im_a000110 = im_a000000 - im_f000010 - im_f000100 + im_f000110
-                                        re_a000101 = re_a000000 - re_f000001 - re_f000100 + re_f000101#; im_a000101 = im_a000000 - im_f000001 - im_f000100 + im_f000101
-                                        re_a000011 = re_a000000 - re_f000001 - re_f000010 + re_f000011#; im_a000011 = im_a000000 - im_f000001 - im_f000010 + im_f000011
-
-                                        reI1 = (re_a100000 + re_a110000*re1 + (re_a101000 + re_a100100)*rx1 + (re_a100010 + re_a100001)*ry1)*re1
-                                        reI1 += (re_a010000 + (re_a011000 + re_a010100)*rx1 + (re_a010010 + re_a010001)*ry1)*re1
-                                        reI1 += (re_a001000 + re_a001100*rx1 + (re_a001010 + re_a001001)*ry1)*rx1
-                                        reI1 += (re_a000100 + (re_a000110 + re_a000101)*ry1)*rx1 + (re_a000010 + re_a000011*ry1)*ry1 + re_a000001*ry1 + re_a000000
-                                        #imI1 = (im_a100000 + im_a110000*re1 + (im_a101000 + im_a100100)*rx1 + (im_a100010 + im_a100001)*ry1)*re1
-                                        #imI1 += (im_a010000 + (im_a011000 + im_a010100)*rx1 + (im_a010010 + im_a010001)*ry1)*re1
-                                        #imI1 += (im_a001000 + im_a001100*rx1 + (im_a001010 + im_a001001)*ry1)*rx1
-                                        #imI1 += (im_a000100 + (im_a000110 + im_a000101)*ry1)*rx1 + (im_a000010 + im_a000011*ry1)*ry1 + im_a000001*ry1 + im_a000000
-
-                                        #--------------I2
-                                        ofst000000 = ie2_0_origPerEp_p_ie2_0_origPerE + ix2_0_origPerXp_p_ix2_0_origPerX + iy2_0_origPerYp_p_iy2_0_origPerY
-                                        ofst100000 = ie2_1_origPerEp_p_ie2_0_origPerE + ix2_0_origPerXp_p_ix2_0_origPerX + iy2_0_origPerYp_p_iy2_0_origPerY
-                                        ofst010000 = ie2_0_origPerEp_p_ie2_1_origPerE + ix2_0_origPerXp_p_ix2_0_origPerX + iy2_0_origPerYp_p_iy2_0_origPerY
-                                        ofst001000 = ie2_0_origPerEp_p_ie2_0_origPerE + ix2_1_origPerXp_p_ix2_0_origPerX + iy2_0_origPerYp_p_iy2_0_origPerY
-                                        ofst000100 = ie2_0_origPerEp_p_ie2_0_origPerE + ix2_0_origPerXp_p_ix2_1_origPerX + iy2_0_origPerYp_p_iy2_0_origPerY
-                                        ofst000010 = ie2_0_origPerEp_p_ie2_0_origPerE + ix2_0_origPerXp_p_ix2_0_origPerX + iy2_1_origPerYp_p_iy2_0_origPerY
-                                        ofst000001 = ie2_0_origPerEp_p_ie2_0_origPerE + ix2_0_origPerXp_p_ix2_0_origPerX + iy2_0_origPerYp_p_iy2_1_origPerY
-
-                                        ofst110000 = ie2_1_origPerEp_p_ie2_1_origPerE + ix2_0_origPerXp_p_ix2_0_origPerX + iy2_0_origPerYp_p_iy2_0_origPerY
-                                        ofst101000 = ie2_1_origPerEp_p_ie2_0_origPerE + ix2_1_origPerXp_p_ix2_0_origPerX + iy2_0_origPerYp_p_iy2_0_origPerY
-                                        ofst100100 = ie2_1_origPerEp_p_ie2_0_origPerE + ix2_0_origPerXp_p_ix2_1_origPerX + iy2_0_origPerYp_p_iy2_0_origPerY
-                                        ofst100010 = ie2_1_origPerEp_p_ie2_0_origPerE + ix2_0_origPerXp_p_ix2_0_origPerX + iy2_1_origPerYp_p_iy2_0_origPerY
-                                        ofst100001 = ie2_1_origPerEp_p_ie2_0_origPerE + ix2_0_origPerXp_p_ix2_0_origPerX + iy2_0_origPerYp_p_iy2_1_origPerY
-                                    
-                                        ofst011000 = ie2_0_origPerEp_p_ie2_1_origPerE + ix2_1_origPerXp_p_ix2_0_origPerX + iy2_0_origPerYp_p_iy2_0_origPerY
-                                        ofst010100 = ie2_0_origPerEp_p_ie2_1_origPerE + ix2_0_origPerXp_p_ix2_1_origPerX + iy2_0_origPerYp_p_iy2_0_origPerY
-                                        ofst010010 = ie2_0_origPerEp_p_ie2_1_origPerE + ix2_0_origPerXp_p_ix2_0_origPerX + iy2_1_origPerYp_p_iy2_0_origPerY
-                                        ofst010001 = ie2_0_origPerEp_p_ie2_1_origPerE + ix2_0_origPerXp_p_ix2_0_origPerX + iy2_0_origPerYp_p_iy2_1_origPerY
-                                   
-                                        ofst001100 = ie2_0_origPerEp_p_ie2_0_origPerE + ix2_1_origPerXp_p_ix2_1_origPerX + iy2_0_origPerYp_p_iy2_0_origPerY
-                                        ofst001010 = ie2_0_origPerEp_p_ie2_0_origPerE + ix2_1_origPerXp_p_ix2_0_origPerX + iy2_1_origPerYp_p_iy2_0_origPerY
-                                        ofst001001 = ie2_0_origPerEp_p_ie2_0_origPerE + ix2_1_origPerXp_p_ix2_0_origPerX + iy2_0_origPerYp_p_iy2_1_origPerY
-
-                                        ofst000110 = ie2_0_origPerEp_p_ie2_0_origPerE + ix2_0_origPerXp_p_ix2_1_origPerX + iy2_1_origPerYp_p_iy2_0_origPerY
-                                        ofst000101 = ie2_0_origPerEp_p_ie2_0_origPerE + ix2_0_origPerXp_p_ix2_1_origPerX + iy2_0_origPerYp_p_iy2_1_origPerY
-
-                                        ofst000011 = ie2_0_origPerEp_p_ie2_0_origPerE + ix2_0_origPerXp_p_ix2_0_origPerX + iy2_1_origPerYp_p_iy2_1_origPerY
-                                    
-                                        re_a000000 = _more_stokes.arS[ofst000000]#; ofst000000 += 1; im_a000000 = _more_stokes.arS[ofst000000]
-                                        re_f100000 = _more_stokes.arS[ofst100000]#; ofst100000 += 1; im_f100000 = _more_stokes.arS[ofst100000]
-                                        re_f010000 = _more_stokes.arS[ofst010000]#; ofst010000 += 1; im_f010000 = _more_stokes.arS[ofst010000]
-                                        re_f001000 = _more_stokes.arS[ofst001000]#; ofst001000 += 1; im_f001000 = _more_stokes.arS[ofst001000]
-                                        re_f000100 = _more_stokes.arS[ofst000100]#; ofst000100 += 1; im_f000100 = _more_stokes.arS[ofst000100]
-                                        re_f000010 = _more_stokes.arS[ofst000010]#; ofst000010 += 1; im_f000010 = _more_stokes.arS[ofst000010]
-                                        re_f000001 = _more_stokes.arS[ofst000001]#; ofst000001 += 1; im_f000001 = _more_stokes.arS[ofst000001]
-
-                                        re_f110000 = _more_stokes.arS[ofst110000]#; ofst110000 += 1; im_f110000 = _more_stokes.arS[ofst110000]
-                                        re_f101000 = _more_stokes.arS[ofst101000]#; ofst101000 += 1; im_f101000 = _more_stokes.arS[ofst101000]
-                                        re_f100100 = _more_stokes.arS[ofst100100]#; ofst100100 += 1; im_f100100 = _more_stokes.arS[ofst100100]
-                                        re_f100010 = _more_stokes.arS[ofst100010]#; ofst100010 += 1; im_f100010 = _more_stokes.arS[ofst100010]
-                                        re_f100001 = _more_stokes.arS[ofst100001]#; ofst100001 += 1; im_f100001 = _more_stokes.arS[ofst100001]
-
-                                        re_f011000 = _more_stokes.arS[ofst011000]#; ofst011000 += 1; im_f011000 = _more_stokes.arS[ofst011000]
-                                        re_f010100 = _more_stokes.arS[ofst010100]#; ofst010100 += 1; im_f010100 = _more_stokes.arS[ofst010100]
-                                        re_f010010 = _more_stokes.arS[ofst010010]#; ofst010010 += 1; im_f010010 = _more_stokes.arS[ofst010010]
-                                        re_f010001 = _more_stokes.arS[ofst010001]#; ofst010001 += 1; im_f010001 = _more_stokes.arS[ofst010001]
-
-                                        re_f001100 = _more_stokes.arS[ofst001100]#; ofst001100 += 1; im_f001100 = _more_stokes.arS[ofst001100]
-                                        re_f001010 = _more_stokes.arS[ofst001010]#; ofst001010 += 1; im_f001010 = _more_stokes.arS[ofst001010]
-                                        re_f001001 = _more_stokes.arS[ofst001001]#; ofst001001 += 1; im_f001001 = _more_stokes.arS[ofst001001]
-
-                                        re_f000110 = _more_stokes.arS[ofst000110]#; ofst000110 += 1; im_f000110 = _more_stokes.arS[ofst000110]
-                                        re_f000101 = _more_stokes.arS[ofst000101]#; ofst000101 += 1; im_f000101 = _more_stokes.arS[ofst000101]
-                                        
-                                        re_f000011 = _more_stokes.arS[ofst000011]#; ofst000011 += 1; im_f000011 = _more_stokes.arS[ofst000011]
-
-                                        re_a100000 = re_f100000 - re_a000000#; im_a100000 = im_f100000 - im_a000000
-                                        re_a010000 = re_f010000 - re_a000000#; im_a010000 = im_f010000 - im_a000000
-                                        re_a001000 = re_f001000 - re_a000000#; im_a001000 = im_f001000 - im_a000000
-                                        re_a000100 = re_f000100 - re_a000000#; im_a000100 = im_f000100 - im_a000000
-                                        re_a000010 = re_f000010 - re_a000000#; im_a000010 = im_f000010 - im_a000000
-                                        re_a000001 = re_f000001 - re_a000000#; im_a000001 = im_f000001 - im_a000000
-                                        re_a110000 = re_a000000 - re_f010000 - re_f100000 + re_f110000#; im_a110000 = im_a000000 - im_f010000 - im_f100000 + im_f110000
-                                        re_a101000 = re_a000000 - re_f001000 - re_f100000 + re_f101000#; im_a101000 = im_a000000 - im_f001000 - im_f100000 + im_f101000
-                                        re_a100100 = re_a000000 - re_f000100 - re_f100000 + re_f100100#; im_a100100 = im_a000000 - im_f000100 - im_f100000 + im_f100100
-                                        re_a100010 = re_a000000 - re_f000010 - re_f100000 + re_f100010#; im_a100010 = im_a000000 - im_f000010 - im_f100000 + im_f100010
-                                        re_a100001 = re_a000000 - re_f000001 - re_f100000 + re_f100001#; im_a100001 = im_a000000 - im_f000001 - im_f100000 + im_f100001
-                                        re_a011000 = re_a000000 - re_f001000 - re_f010000 + re_f011000#; im_a011000 = im_a000000 - im_f001000 - im_f010000 + im_f011000
-                                        re_a010100 = re_a000000 - re_f000100 - re_f010000 + re_f010100#; im_a010100 = im_a000000 - im_f000100 - im_f010000 + im_f010100
-                                        re_a010010 = re_a000000 - re_f000010 - re_f010000 + re_f010010#; im_a010010 = im_a000000 - im_f000010 - im_f010000 + im_f010010
-                                        re_a010001 = re_a000000 - re_f000001 - re_f010000 + re_f010001#; im_a010001 = im_a000000 - im_f000001 - im_f010000 + im_f010001
-                                        re_a001100 = re_a000000 - re_f000100 - re_f001000 + re_f001100#; im_a001100 = im_a000000 - im_f000100 - im_f001000 + im_f001100
-                                        re_a001010 = re_a000000 - re_f000010 - re_f001000 + re_f001010#; im_a001010 = im_a000000 - im_f000010 - im_f001000 + im_f001010
-                                        re_a001001 = re_a000000 - re_f000001 - re_f001000 + re_f001001#; im_a001001 = im_a000000 - im_f000001 - im_f001000 + im_f001001
-                                        re_a000110 = re_a000000 - re_f000010 - re_f000100 + re_f000110#; im_a000110 = im_a000000 - im_f000010 - im_f000100 + im_f000110
-                                        re_a000101 = re_a000000 - re_f000001 - re_f000100 + re_f000101#; im_a000101 = im_a000000 - im_f000001 - im_f000100 + im_f000101
-                                        re_a000011 = re_a000000 - re_f000001 - re_f000010 + re_f000011#; im_a000011 = im_a000000 - im_f000001 - im_f000010 + im_f000011
-
-                                        reI2 = (re_a100000 + re_a110000*re2 + (re_a101000 + re_a100100)*rx2 + (re_a100010 + re_a100001)*ry2)*re2
-                                        reI2 += (re_a010000 + (re_a011000 + re_a010100)*rx2 + (re_a010010 + re_a010001)*ry2)*re2
-                                        reI2 += (re_a001000 + re_a001100*rx2 + (re_a001010 + re_a001001)*ry2)*rx2
-                                        reI2 += (re_a000100 + (re_a000110 + re_a000101)*ry2)*rx2 + (re_a000010 + re_a000011*ry2)*ry2 + re_a000001*ry2 + re_a000000
-                                        #imI2 = (im_a100000 + im_a110000*re2 + (im_a101000 + im_a100100)*rx2 + (im_a100010 + im_a100001)*ry2)*re2
-                                        #imI2 += (im_a010000 + (im_a011000 + im_a010100)*rx2 + (im_a010010 + im_a010001)*ry2)*re2
-                                        #imI2 += (im_a001000 + im_a001100*rx2 + (im_a001010 + im_a001001)*ry2)*rx2
-                                        #imI2 += (im_a000100 + (im_a000110 + im_a000101)*ry2)*rx2 + (im_a000010 + im_a000011*ry2)*ry2 + im_a000001*ry2 + im_a000000
-                                        #OC05052018: Note that this does not include all terms of multi-dim "bi-linear" interpolation!?
-
-                                        denom = sqrt(reI1*reI2) + absZerTolI #OC31072018
-                                        if(denom == 0): resDegCoh[resOfst] = 0
-                                        else: esDegCoh[resOfst] = absMI/denom
-
-                                        #resDegCoh[resOfst] = absMI/(sqrt(reI1*reI2) + absZerTolI)
-                                        
-                                    else:
-                                        resDegCoh[resOfst] = 0
-                                else:
-                                    ie1_0 = ie
-                                    ie2_0 = iep
-                                    ie1_0_origPerE = ie1_0*origPerE
-                                    ie2_0_origPerEp = ie2_0*origPerEp
-                                    ie2_0_origPerEp_p_ie1_0_origPerE = ie2_0_origPerEp + ie1_0_origPerE
-                                    ie1_0_origPerEp_p_ie1_0_origPerE = ie1_0*origPerEp + ie1_0_origPerE
-                                    ie2_0_origPerEp_p_ie2_0_origPerE = ie2_0_origPerEp + ie2_0*origPerE
-
-                                    ofstMI = ie2_0_origPerEp_p_ie1_0_origPerE + ix2_0*origPerXp + ix1_0*origPerX + iy2_0*origPerYp + iy1_0*origPerY
-                                    ofstI1 = ie1_0_origPerEp_p_ie1_0_origPerE + ix1_0*origPerXp + ix1_0*origPerX + iy1_0*origPerYp + iy1_0*origPerY
-                                    ofstI2 = ie2_0_origPerEp_p_ie2_0_origPerE + ix2_0*origPerXp + ix2_0*origPerX + iy2_0*origPerYp + iy2_0*origPerY
-
-                                    reMI = self.arS[ofstMI]; imMI = self.arS[ofstMI + 1]
-                                    absMI = sqrt(reMI*reMI + imMI*imMI)
-                                    reI1 = self.arS[ofstI1]#; imI1 = self.arS[ofstI1 + 1]
-                                    reI2 = self.arS[ofstI2]#; imI2 = self.arS[ofstI2 + 1]
-
-                                    denom = sqrt(reI1*reI2) + absZerTolI #OC31072018
-                                    if(denom == 0): resDegCoh[resOfst] = 0
-                                    else: resDegCoh[resOfst] = absMI/denom
-                                    
-                                    #resDegCoh[resOfst] = absMI/(sqrt(reI1*reI2) + absZerTolI)
-
-                                resOfst += 1
-                                resEp += resEstep
-                            resE += resEstep
-                        resXp += resXstep
-                    resX += resXstep
-                resYp += resYstep
-            resY += resYstep
-
+        #DEBUG
+        #if(rotDC_WasNotZero): print('Rotated DC WAS NOT ZERO at some points')
+        #else: print('Rotated DC WAS ZERO at all points')
+        
         return resDegCoh
 
 #****************************************************************************
@@ -2761,6 +2259,35 @@ class SRWLWfr(object):
             _stokes.arS[i + nTot3] = self.arEy[i2p1] #imEy
         _stokes.mesh.set_from_other(self.mesh)
 
+    #def resize_mesh(self, _mesh): #Implemented in C++, see srwl.ResizeElecFieldMesh()
+    #    """Resizes the Electric Field according to given input mesh params (_mesh)"""
+    #    if(_mesh.is_equal(self.mesh)): return
+    #    if((self.mesh.nx > 1) and (self.mesh.ny > 1) and (_mesh.nx > 1) and (_mesh.ny > 1)):
+    #        xRange = self.mesh.xFin - self.mesh.xStart
+    #        xRangeFin = _mesh.xFin - _mesh.xStart
+    #        xRangeFact = xRangeFin/xRange
+    #        xStep = xRange/(self.mesh.nx - 1)
+    #        xStepFin = xRangeFin/(_mesh.nx - 1)
+    #        xResolFact = xStep/xStepFin
+    #        xcFin = 0.5*(_mesh.xStart + _mesh.xFin)
+    #        xCenFact = (xcFin - self.mesh.xStart)/xRange
+    #        yRange = self.mesh.yFin - self.mesh.yStart
+    #        yRangeFin = _mesh.yFin - _mesh.yStart
+    #        yRangeFact = yRangeFin/yRange
+    #        yStep = yRange/(self.mesh.ny - 1)
+    #        yStepFin = yRangeFin/(_mesh.ny - 1)
+    #        yResolFact = yStep/yStepFin
+    #        ycFin = 0.5*(_mesh.yStart + _mesh.yFin)
+    #        yCenFact = (ycFin - self.mesh.yStart)/yRange       
+    #        #DEBUG
+    #        #print('')
+    #        #print(xStepFin, yStepFin)
+    #        #print(xcFin, self.mesh.xStart, xRange)
+    #        #print(ycFin, self.mesh.yStart, yRange)
+    #        #print('Resizing Params:', xRangeFact, xResolFact, yRangeFact, yResolFact, xCenFact, yCenFact)
+    #        #END DEBUG
+    #        srwl.ResizeElecField(self, 'c', [0, xRangeFact, xResolFact, yRangeFact, yResolFact, xCenFact, yCenFact])
+    
     def calc_stokes(self, _stokes, _n_stokes_comp=4): #OC04052018
     #def calc_stokes(self, _stokes):
         """Calculate Stokes parameters from Electric Field"""
@@ -3073,6 +2600,11 @@ class SRWLWfr(object):
 class SRWLOpt(object):
     """Optical Element (base class)"""
 
+    def get_orient(self, _e=0): #OC17112019 #To be overridden in derived classes
+        tv = [1,0,0]; sv = [0,1,0]; nv = [0,0,1]
+        ex = [1,0,0]; ey = [0,1,0]; ez = [0,0,1]
+        return [[tv, sv, nv], [ex, ey, ez], [ex, ey, ez]] #[2] is transposed of [ex, ey, ez], to be used for fast space transformation calc.
+
 class SRWLOptD(SRWLOpt):
     """Optical Element: Drift Space"""
     
@@ -3143,7 +2675,8 @@ class SRWLOptShift(SRWLOpt):
 class SRWLOptZP(SRWLOpt):
     """Optical Element: Thin Lens"""
     
-    def __init__(self, _nZones=100, _rn=0.1e-03, _thick=10e-06, _delta1=1e-06, _atLen1=0.1, _delta2=0, _atLen2=1e-06, _x=0, _y=0):
+    def __init__(self, _nZones=100, _rn=0.1e-03, _thick=10e-06, _delta1=1e-06, _atLen1=0.1, _delta2=0, _atLen2=1e-06, _x=0, _y=0, _e=0): #OC22062019
+    #def __init__(self, _nZones=100, _rn=0.1e-03, _thick=10e-06, _delta1=1e-06, _atLen1=0.1, _delta2=0, _atLen2=1e-06, _x=0, _y=0):
         """
         :param _nZones: total number of zones
         :param _rn: auter zone radius [m]
@@ -3154,6 +2687,7 @@ class SRWLOptZP(SRWLOpt):
         :param _atLen2: attenuation length [m] of the "complementary" material
         :param _x: horizontal transverse coordinate of center [m]
         :param _y: vertical transverse coordinates of center [m]
+        :param _e: average photon energy [eV], active if > 0, to be used for calculation corrections to zone radii
         """
         self.nZones = _nZones #total number of zones
         self.rn = _rn #auter zone radius [m]
@@ -3164,6 +2698,23 @@ class SRWLOptZP(SRWLOpt):
         self.atLen2 = _atLen2 #attenuation length [m] of the "complementary" material
         self.x = _x #transverse coordinates of center [m]
         self.y = _y
+        self.e0 = _e #average photon energy [eV], to be used for calculation corrections to zone radii
+
+    def get_F(self, _e): #OC22062019
+        """Estimate focal length"""
+
+        mult = _Light_eV_mu*1.e-06 #photon energy <-> wavelength
+        lamb = mult/_e
+
+        aux = (self.rn)*(self.rn)*(1 - 1/self.nZones)
+        if((hasattr(self, e0))):
+           if(self.e0 > 0):
+               lamb0 = mult/self.e0
+               aux -= 0.25*lamb0*lamb0*(self.nZones - 1)
+        rn_mi_1 = sqrt(aux)
+        two_drn = self.rn - rn_mi_1
+        aux = lamb/two_drn
+        return (two_drn*self.rn/lamb)*sqrt(1 - aux*aux)
 
 class SRWLOptWG(SRWLOpt):
     """Optical Element: Waveguide"""
@@ -3423,7 +2974,7 @@ class SRWLOptMir(SRWLOpt):
         self.tvy = _tvy
         self.x = _x
         self.y = _y
-        self.Fx = 0 #i.e. focal lengths are not set
+        self.Fx = 0 #i.e. focal lengths are (re-)set, because changing orientation affects them
         self.Fy = 0
 
     def set_all(self, _size_tang=1, _size_sag=1, _ap_shape='r', _sim_meth=2, _npt=100, _nps=100, _treat_in_out=1, _ext_in=0, _ext_out=0,
@@ -3462,6 +3013,49 @@ class SRWLOptMir(SRWLOpt):
         self.set_dim_sim_meth(_size_tang, _size_sag, _ap_shape, _sim_meth, _npt, _nps, _treat_in_out, _ext_in, _ext_out)
         self.set_orient(_nvx, _nvy, _nvz, _tvx, _tvy, _x, _y)
         self.set_reflect(_refl, _n_ph_en, _n_ang, _n_comp, _ph_en_start, _ph_en_fin, _ph_en_scale_type, _ang_start, _ang_fin, _ang_scale_type)
+
+    def get_orient(self, _e=0): #OC18112019
+
+        nv = [self.nvx, self.nvy, self.nvz]
+        tv = [self.tvx, self.tvy, -(self.nvx*self.tvx + self.nvy*self.tvy)/self.nvz]; 
+        sv = uti_math.vect3_prod_v(nv, tv)
+
+        #Base vectors of the output beam (in the frame of incident beam)
+        ezIn = [0,0,1]
+        mult = -2*uti_math.vect_prod_s(ezIn, nv)
+        ez = [(ezIn[i] + mult*nv[i]) for i in range(3)]
+        ey = None
+        ex = None
+
+        ezIn_ez_scal = uti_math.vect_prod_s(ezIn, ez)
+        angTol = 1e-07
+        if(abs(ezIn_ez_scal + 1.) <= angTol):
+            ex = [-1,0,0]
+            ey = [0,1,0]
+        else:
+            ezIn_ez_vect = uti_math.vect3_prod_v(ezIn, ez)
+            vAxRot = uti_math.vect_normalize(copy(ezIn_ez_vect))
+            sinAng = uti_math.vect_prod_s(ezIn_ez_vect, vAxRot)
+            cosAng = ezIn_ez_scal
+            angRot = 0 
+            #The following will determine -pi < angRot <= pi
+            if(cosAng < 0):
+                if(sinAng < 0): angRot = -pi + asin(-sinAng)
+                else: angRot = pi - asin(sinAng)
+            else: angRot = asin(sinAng)
+
+            Mrot = uti_math.trf_rotation(vAxRot, angRot, [0]*3)[0] #Matrix of Rotation
+            ex = uti_math.matr_prod(Mrot, [1,0,0])
+            ey = uti_math.matr_prod(Mrot, [0,1,0])
+            
+            #DEBUG
+            #print('Mirror Loc. Frame nv=', nv, ' ez=', ez)
+            #print('norm_ex=', uti_math.vect_norm(ex), 'norm_ey=', uti_math.vect_norm(ey), 'norm_ez=', uti_math.vect_norm(ez))
+            #print('Mirror Mrot and [ex, ey, ez]:')
+            #print(Mrot)
+            #print([ex, ey, ez])
+
+        return [[tv, sv, nv], [ex, ey, ez], Mrot] #[2] is transposed of [ex, ey, ez], to be used for fast space transformation calc.
 
 class SRWLOptMirPl(SRWLOptMir):
     """Optical Element: Mirror: Plane"""
@@ -3554,6 +3148,63 @@ class SRWLOptMirEl(SRWLOptMir):
 
         self.p = _p
         self.q = _q
+        self.angGraz = _ang_graz
+        self.radSag = _r_sag
+        
+        #finishing of the mirror setup requires calling these 3 functions (with their required arguments):
+        #self.set_dim_sim_meth(_size_tang, _size_sag, _ap_shape, _sim_meth, _npt, _nps, _treat_in_out, _ext_in, _ext_out)
+        #self.set_orient(_nvx, _nvy, _nvz, _tvx, _tvy, _x, _y)
+        #self.set_reflect(_refl, _n_ph_en, _n_ang, _n_comp, _ph_en_start, _ph_en_fin, _ph_en_scale_type, _ang_start, _ang_fin, _ang_scale_type)
+        self.set_all(_size_tang, _size_sag, _ap_shape, _sim_meth, _npt, _nps, _treat_in_out, _ext_in, _ext_out,
+                     _nvx, _nvy, _nvz, _tvx, _tvy, _x, _y,
+                     _refl, _n_ph_en, _n_ang, _n_comp, _ph_en_start, _ph_en_fin, _ph_en_scale_type, _ang_start, _ang_fin, _ang_scale_type)
+
+class SRWLOptMirPar(SRWLOptMir):
+    """Optical Element: Mirror: Paraboloid
+       NOTE: in the Local frame of the Mirror tangential direction is X, saggital Y, mirror normal is along Z"""
+    
+    def __init__(self, _f=1, _uc='f', _ang_graz=1e-03, _r_sag=1.e+23,
+                 _size_tang=1, _size_sag=1, _ap_shape='r', _sim_meth=2, _npt=500, _nps=500, _treat_in_out=1, _ext_in=0, _ext_out=0,
+                 _nvx=0, _nvy=0, _nvz=-1, _tvx=1, _tvy=0, _x=0, _y=0,
+                 _refl=1, _n_ph_en=1, _n_ang=1, _n_comp=1, _ph_en_start=1000., _ph_en_fin=1000., _ph_en_scale_type='lin', _ang_start=0, _ang_fin=0, _ang_scale_type='lin'):
+        """
+        :param _f: focal length [m]
+        :param _uc: use case: if _uc == 'f': assumes focusing mirror with source at infinity; if _uc == 'c': assumes collimating mirror with image at infinity
+        :param _ang_graz: grazing angle at mirror center at perfect orientation [rad]
+        :param _r_sag: sagital radius of curvature at mirror center [m]
+        :param _size_tang: size in tangential direction [m]
+        :param _size_sag: size in sagital direction [m]
+        :param _ap_shape: shape of aperture in local frame ('r' for rectangular, 'e' for elliptical)
+        :param _sim_meth: simulation method (1 for "thin" approximation, 2 for "thick" approximation)
+        :param _npt: number of mesh points to represent mirror in tangential direction (used for "thin" approximation)
+        :param _nps: number of mesh points to represent mirror in sagital direction (used for "thin" approximation)
+        :param _treat_in_out: switch specifying how to treat input and output wavefront before and after the main propagation through the optical element:
+                0- assume that the input wavefront is defined in the plane before the optical element, and the output wavefront is required in a plane just after the element;
+                1- assume that the input wavefront is defined in the plane at the optical element center and the output wavefront is also required at the element center;
+                2- assume that the input wavefront is defined in the plane at the optical element center and the output wavefront is also required at the element center; however, before the propagation though the optical element, the wavefront should be propagated through a drift back to a plane just before the optical element, then a special propagator will bring the wavefront to a plane at the optical element exit, and after this the wavefront will be propagated through a drift back to the element center;
+        :param _ext_in: optical element extent on the input side, i.e. distance between the input plane and the optical center (positive, in [m]) to be used at wavefront propagation manipulations; if 0, this extent will be calculated internally from optical element parameters
+        :param _ext_out: optical element extent on the output side, i.e. distance between the optical center and the output plane (positive, in [m]) to be used at wavefront propagation manipulations; if 0, this extent will be calculated internally from optical element parameters        
+        :param _nvx: horizontal coordinate of central normal vector
+        :param _nvy: vertical coordinate of central normal vector
+        :param _nvz: longitudinal coordinate of central normal vector
+        :param _tvx: horizontal coordinate of central tangential vector
+        :param _tvy: vertical coordinate of central tangential vector
+        :param _x: horizontal position of mirror center [m]
+        :param _y: vertical position of mirror center [m]
+        :param _refl: reflectivity coefficient to set (can be one number or C-aligned flat complex array vs photon energy vs grazing angle vs component (sigma, pi))
+        :param _n_ph_en: number of photon energy values for which the reflectivity coefficient is specified
+        :param _n_ang: number of grazing angle values for which the reflectivity coefficient is specified
+        :param _n_comp: number of electric field components for which the reflectivity coefficient is specified (can be 1 or 2)
+        :param _ph_en_start: initial photon energy value for which the reflectivity coefficient is specified
+        :param _ph_en_fin: final photon energy value for which the reflectivity coefficient is specified
+        :param _ph_en_scale_type: photon energy sampling type ('lin' for linear, 'log' for logarithmic)
+        :param _ang_start: initial grazing angle value for which the reflectivity coefficient is specified
+        :param _ang_fin: final grazing angle value for which the reflectivity coefficient is specified
+        :param _ang_scale_type: angle sampling type ('lin' for linear, 'log' for logarithmic)      
+        """
+
+        self.f = _f
+        self.uc = _uc
         self.angGraz = _ang_graz
         self.radSag = _r_sag
         
@@ -3666,7 +3317,8 @@ class SRWLOptMirTor(SRWLOptMir):
 class SRWLOptG(SRWLOpt):
     """Optical Element: Grating"""
     
-    def __init__(self, _mirSub, _m=1, _grDen=100, _grDen1=0, _grDen2=0, _grDen3=0, _grDen4=0, _grAng=0):
+    #def __init__(self, _mirSub, _m=1, _grDen=100, _grDen1=0, _grDen2=0, _grDen3=0, _grDen4=0, _grAng=0):
+    def __init__(self, _mirSub, _m=1, _grDen=100, _grDen1=0, _grDen2=0, _grDen3=0, _grDen4=0, _grAng=0, _e_avg=0, _cff=None, _ang_graz=0, _ang_roll=0): #OC20112019
         """
         :param _mirSub: SRWLOptMir (or derived) type object defining substrate of the grating
         :param _m: output (diffraction) order
@@ -3676,6 +3328,10 @@ class SRWLOptG(SRWLOpt):
         :param _grDen3: groove density polynomial coefficient a3 [lines/mm^4]
         :param _grDen4: groove density polynomial coefficient a4 [lines/mm^5]
         :param _grAng: angle between the grove direction and the saggital direction of the substrate [rad] (by default, groves are made along saggital direction (_grAng=0))
+        :param _e_avg: average photon energy [eV] the grating should be aligned for (is taken into account if > 0)
+        :param _cff: PGM cff parameter, i.e. cos(beta)/cos(alpha); it will be taken into account if _e_avg != 0
+        :param _ang_graz: grazing incidence angle [rad] the grating should be aligned for; it will be taken into account if _e_avg != 0 and _cff is None
+        :param _ang_roll: roll angle [rad] (i.e. angle of diffraction plane angle rotation about incident beam axis) the grating should be alligned for: it is taken into account when _e_avg != 0; _ang_roll = 0 corresponds to the vertical beam deflection; pi/2 to the horizontal deflection; any value in between is allowed
         """
 
         if(isinstance(_mirSub, SRWLOptMir) == False):
@@ -3689,6 +3345,174 @@ class SRWLOptG(SRWLOpt):
         self.grDen3 = _grDen3 #grove density polynomial coefficient a3 in [lines/mm^4]
         self.grDen4 = _grDen4 #grove density polynomial coefficient a4 in [lines/mm^5]
         self.grAng = _grAng #angle between the grove direction and the saggital direction of the substrate [rad]
+        
+        if((_e_avg > 0) and ((_cff is not None) or (_ang_graz != 0))): #OC21112019
+            orntData = self.find_orient(_e_avg, _cff, _ang_graz, _ang_roll) #returns [[tv, sv, nv], [ex, ey, ez]]
+            opElBaseVects = orntData[0]
+            tv = opElBaseVects[0]
+            nv = opElBaseVects[2]
+            self.set_orient(_nvx=nv[0], _nvy=nv[1], _nvz=nv[2], _tvx=tv[0], _tvy=tv[1])
+            #DEBUG
+            #print('GRATING: New orientation vector coords:')
+            #print('nvx=', nv[0], 'nvy=', nv[1], 'nvz=', nv[2], 'tvx=', tv[0], 'tvy=', tv[1])
+
+    def cff2ang(self, _en, _cff):
+        """Calculates Grating grazing angle and deflection angle from photon energy and PGM parameters
+        :param _en: radiation photon energy [eV]
+        :param _cff: PGM cff parameter, i.e. cos(beta)/cos(alpha)
+        :return: grating grazing angle and deflection angle (NOTE: PGM mirror grazing angle aquals to half deflection angle)
+        """
+        lamb = _Light_eV_mu*1.e-06/_en
+        m_lamb_k0 = self.m*lamb*self.grDen*1000
+        cff2 = _cff*_cff
+        cff2_mi_1 = cff2 - 1
+        #OC24032020
+        sinBeta = (m_lamb_k0*cff2 - sqrt(m_lamb_k0*m_lamb_k0*cff2 + cff2_mi_1*cff2_mi_1))/cff2_mi_1 if(_m >= 0) else (m_lamb_k0*cff2 + sqrt(m_lamb_k0*m_lamb_k0*cff2 + cff2_mi_1*cff2_mi_1))/cff2_mi_1
+        sinAlpha = m_lamb_k0 - sinBeta
+        if((sinBeta < -1.) or (sinBeta > 1.) or (sinAlpha < -1.) or (sinAlpha > 1.)): return None, None
+        
+        alpha = asin(sinAlpha)
+        grAng = 0.5*pi - alpha
+        beta = asin(sinBeta)
+        defAng = pi - alpha + beta
+        return grAng, defAng
+
+    def ang2cff(self, _en, _ang_graz): #AH12042019
+        """Calculates Grating grazing angle and deflection angle from photon energy and PGM parameters
+        :param _en: radiation photon energy [eV]
+        :param _ang_graz: grazing incidence angle [rad] the grating should be aligned for; it will be taken into account if _e_avg != 0 and _cff is None
+        :return: PGM cff parameter, i.e. cos(beta)/cos(alpha) and deflection angle
+        """
+        lamb = _Light_eV_mu*1.e-06/_en
+        m_lamb_k0 = self.m*lamb*self.grDen*1000
+        alpha = 0.5*pi - _ang_graz
+        #cff = sqrt((cos(alpha))**2 + 2*m_lamb_k0*sin(alpha) - (m_lamb_k0)**2) / cos(alpha) #OC24032020 (commented-out)
+        sinBeta = m_lamb_k0 - sin(alpha)
+        if((sinBeta < -1.) or (sinBeta > 1.)): return None, None #OC24032020
+        
+        beta = asin(sinBeta)
+        cff = cos(beta)/cos(alpha) #OC24032020
+        
+        defAng = pi - alpha + beta
+        return cff, defAng
+
+    def angcff2en(self, _cff, _ang_graz): #AH12042019
+        """Calculates Grating grazing angle and deflection angle from photon energy and PGM parameters
+        :param _cff: PGM cff parameter, i.e. cos(beta)/cos(alpha)_en: radiation photon energy [eV]
+        :param _ang_graz: grazing incidence angle [rad] the grating should be aligned for; it will be taken into account if _e_avg != 0 and _cff is None
+        :return: radiation photon energy [eV] and deflection angle
+        """
+        alpha = 0.5*pi - _ang_graz
+        #beta = -acos(_cff*cos(alpha))
+        cff_cos_alp = _cff*cos(alpha) #OC24032020
+        if((cff_cos_alp < -1.) or (cff_cos_alp > 1.)): return None, None
+        beta = -acos(cff_cos_alp)
+        
+        m_lamb_k0 = sin(beta) + sin(alpha)
+        lamb = m_lamb_k0 / (self.m*self.grDen*1000)
+        en = _Light_eV_mu*1.e-06/lamb
+        defAng = pi - alpha + beta
+        return en, defAng
+
+    def find_orient(self, _en, _cff=None, _ang_graz=0, _ang_roll=0): #OC21112019
+        """Finds optimal crystal orientation in the input beam frame (i.e. surface normal and tangential vectors) and the orientation of the output beam frame (i.e. coordinates of the longitudinal and horizontal vectors in the input beam frame)
+        :param _en: photon energy [eV]
+        :param _cff: PGM cff parameter, i.e. cos(beta)/cos(alpha); it will be taken into account if _e_avg != 0; if _cff is not None, it dominates over _ang_graz (i.e. it forces its recalculation)
+        :param _ang_graz: grazing incidence angle [rad] the grating should be aligned for; it will be taken into account if _e_avg != 0 and _cff is None
+        :param _ang_roll: roll angle [rad] (i.e. angle of diffraction plane angle rotation about incident beam axis) the grating should be alligned for: it is taken into account when _e_avg != 0; _ang_roll = 0 corresponds to the vertical beam deflection; pi/2 to the horizontal deflection; any value in between is allowed
+        """
+
+        if((_en <= 0) or ((_cff is None) and (_ang_graz == 0))): return None
+            
+        grAng = _ang_graz
+        defAng = 0
+        if(_cff is not None): grAng, defAng = self.cff2ang(_en, _cff)
+        
+        if(grAng <= 0): return None
+        
+        #DEBUG
+        #print('Grating: grazing angle:', grAng)
+
+        alpha = 0.5*pi - grAng
+        sinAlpha = sin(alpha)
+        cosAlpha = cos(alpha)
+        
+        nv = [0, sinAlpha, -cosAlpha]
+        tv = [0, cosAlpha, sinAlpha] #or it can be [0, -cosAlpha, -sinAlpha] - to re-check assumption used in C++
+        
+        ezIn = [0,0,1]
+        if(_ang_roll != 0):
+            MrotZ = uti_math.trf_rotation(ezIn, _ang_roll, [0]*3)[0] #Matrix of Rotation around input beam axis
+            nv = uti_math.matr_prod(MrotZ, nv)
+            tv = uti_math.matr_prod(MrotZ, tv)
+            
+        sv = uti_math.vect3_prod_v(nv, tv)
+        
+        if(defAng == 0):
+            lamb = _Light_eV_mu*1.e-06/_en
+            m_lamb_k0 = self.m*lamb*self.grDen*1000
+            sinBeta = m_lamb_k0 - sinAlpha
+            beta = asin(sinBeta)
+            defAng = pi - alpha + beta
+            
+        vAxRot = uti_math.vect_normalize(uti_math.vect3_prod_v(ezIn, nv))
+        Mrot = uti_math.trf_rotation(vAxRot, defAng, [0]*3)[0] #Matrix of Rotation
+        ex = uti_math.matr_prod(Mrot, [1,0,0])
+        ey = uti_math.matr_prod(Mrot, [0,1,0])
+        ez = uti_math.matr_prod(Mrot, ezIn)
+        return [[tv, sv, nv], [ex, ey, ez]]
+
+    def set_orient(self, _nvx=0, _nvy=0, _nvz=-1, _tvx=1, _tvy=0, _x=0, _y=0): #OC21112019
+        """Defines Mirror Orientation in the frame of the incident photon beam
+        :param _nvx: horizontal coordinate of central normal vector
+        :param _nvy: vertical coordinate of central normal vector
+        :param _nvz: longitudinal coordinate of central normal vector
+        :param _tvx: horizontal coordinate of central tangential vector
+        :param _tvy: vertical coordinate of central tangential vector
+        :param _x: horizontal position of mirror center [m]
+        :param _y: vertical position of mirror center [m]
+        """
+        if(self.mirSub is not None): self.mirSub.set_orient(_nvx, _nvy, _nvz, _tvx, _tvy, _x, _y)
+
+    def get_orient(self, _e=0): #OC18112019
+        
+        if(_e == 0): return self.mirSub.get_orient() #?
+
+        nv = [self.mirSub.nvx, self.mirSub.nvy, self.mirSub.nvz]
+        tv = [self.mirSub.tvx, self.mirSub.tvy, -(self.mirSub.nvx*self.mirSub.tvx + self.mirSub.nvy*self.mirSub.tvy)/self.mirSub.nvz]; 
+        sv = uti_math.vect3_prod_v(nv, tv)
+
+        #Find base vectors of the output beam (in the frame of incident beam)
+        lamb = _Light_eV_mu*1.e-06/_e
+        m_lamb_k0 = self.m*lamb*self.grDen*1000
+        alpha = acos(-nv[2]) #?
+        beta = asin(m_lamb_k0 - sin(alpha))
+        beta_mi_alpha = beta - alpha
+        
+        ex = None; ey = None; ez = None
+        angTol = 1e-07
+        
+        if(abs(beta_mi_alpha) <= angTol):
+            ex = [-1,0,0]
+            ey = [0,1,0]
+            ez = [0,0,-1]
+        else:
+            ezIn = [0,0,1]
+            vAxRot = uti_math.vect_normalize(uti_math.vect3_prod_v(ezIn, nv))
+            defAng = pi + beta_mi_alpha
+            Mrot = uti_math.trf_rotation(vAxRot, defAng, [0]*3)[0] #Matrix of Rotation
+            ex = uti_math.matr_prod(Mrot, [1,0,0])
+            ey = uti_math.matr_prod(Mrot, [0,1,0])
+            ez = uti_math.matr_prod(Mrot, ezIn)
+            #DEBUG
+            #print('Grating Loc. Frame nv=', nv, ' ez=', ez)
+            #print('norm_ex=', uti_math.vect_norm(ex), 'norm_ey=', uti_math.vect_norm(ey), 'norm_ez=', uti_math.vect_norm(ez))
+            #print('Grating Mrot and [ex, ey, ez]:')
+            #print(Mrot)
+            #print([ex, ey, ez])
+            return [[tv, sv, nv], [ex, ey, ez], Mrot] #[2] is optional transposed of [ex, ey, ez], to be used for fast space transformation calc.
+
+        return [[tv, sv, nv], [ex, ey, ez]] #[2] is optional transposed of [ex, ey, ez], to be used for fast space transformation calc.
 
 class SRWLOptCryst(SRWLOpt):
     """Optical Element: Ideal Crystal"""
@@ -3696,7 +3520,9 @@ class SRWLOptCryst(SRWLOpt):
     #def _init_(self, _d_space, _psiOr, _psiOi, _psiHr, _psiHi, _psiHBr, _psiHBi, _H1, _H2, _H3, _Tc, _Tasym, _nx, _ny, _nz, _sx, _sy, _sz, _aChi, _aPsi, _aThe):
     #def __init__(self, _d_sp, _psi0r, _psi0i, _psi_hr, _psi_hi, _psi_hbr, _psi_hbi, _h1, _h2, _h3, _tc, _ang_as, _nvx, _nvy, _nvz, _tvx, _tvy):
     #def __init__(self, _d_sp, _psi0r, _psi0i, _psi_hr, _psi_hi, _psi_hbr, _psi_hbi, _tc, _ang_as, _nvx=0, _nvy=0, _nvz=-1, _tvx=1, _tvy=0):
-    def __init__(self, _d_sp, _psi0r, _psi0i, _psi_hr, _psi_hi, _psi_hbr, _psi_hbi, _tc, _ang_as, _nvx=0, _nvy=0, _nvz=-1, _tvx=1, _tvy=0, _uc=1):
+    #def __init__(self, _d_sp, _psi0r, _psi0i, _psi_hr, _psi_hi, _psi_hbr, _psi_hbi, _tc, _ang_as, _nvx=0, _nvy=0, _nvz=-1, _tvx=1, _tvy=0, _uc=1):
+    #def __init__(self, _d_sp, _psi0r, _psi0i, _psi_hr, _psi_hi, _psi_hbr, _psi_hbi, _tc, _ang_as, _nvx=None, _nvy=None, _nvz=None, _tvx=None, _tvy=None, _uc=1, _e_avg=0, _ang_roll=0): #OC18112019
+    def __init__(self, _d_sp, _psi0r, _psi0i, _psi_hr, _psi_hi, _psi_hbr, _psi_hbi, _tc, _ang_as,  _nvx=0, _nvy=0, _nvz=-1, _tvx=1, _tvy=0, _uc=1, _e_avg=0, _ang_roll=0): #OC18112019
         """
         :param _d_sp: (_d_space) crystal reflecting planes d-spacing (John's dA) [A]
         :param _psi0r: real part of 0-th Fourier component of crystal polarizability (John's psi0c.real) (units?)
@@ -3713,6 +3539,8 @@ class SRWLOptCryst(SRWLOpt):
         :param _tvx: horizontal coordinate of central tangential vector (John's angles: thdg, chidg, phidg)
         :param _tvy: vertical coordinate of central tangential vector (John's angles: thdg, chidg, phidg)
         :param _uc: crystal use case: 1- Bragg Reflection, 2- Bragg Transmission (Laue cases to be added)
+        :param _e_avg: average photon energy [eV] the crystal should be alligned for: if it is not 0, and _nvx, _nvy, _nvz, _tvx, _tvy are not defined, then crystal orientation will be calculated based on _uc, _e_avg and _ang_roll
+        :param _ang_roll: roll angle [rad] (i.e. angle of diffraction plane angle rotation about incident beam axis) the crystal should be alligned for: it is only taken into account when _e_avg != 0
         """
         #"""
         #The Miller Inices are removed from this input (after discussion with A. Suvorov), because _d_sp already incorporates this information:
@@ -3754,10 +3582,29 @@ class SRWLOptCryst(SRWLOpt):
         self.tvx = _tvx
         self.tvy = _tvy
 
-        self.aux_energy = None  #MR01082016: renamed self.energy to self.aux_energy.
-        self.aux_ang_dif_pl = None  #MR01082016: renamed self.ang_dif_pl to self.aux_ang_dif_pl. 
-        
         self.uc = _uc #OC04092016
+
+        self.aux_energy = _e_avg #OC17112019 #MR01082016: renamed self.energy to self.aux_energy.
+        self.aux_ang_dif_pl = _ang_roll #OC17112019 #MR01082016: renamed self.ang_dif_pl to self.aux_ang_dif_pl. 
+        #self.aux_energy = None  #MR01082016: renamed self.energy to self.aux_energy.
+        #self.aux_ang_dif_pl = None  #MR01082016: renamed self.ang_dif_pl to self.aux_ang_dif_pl. 
+
+        #orientIsNotDef = False if((_nvx is None) or (_nvy is None) or (_nvz is None) or (_tvx is None) or (_tvy is None)) else True #OC18112019
+        #if(orientIsNotDef and (_e_avg > 0)): #OC17112019
+        if(_e_avg > 0): #OC23112019
+            orntData = self.find_orient(_e_avg, _ang_roll, _uc) #returns [[tv, sv, nv], [ex, ey, ez]]
+            opElBaseVects = orntData[0]
+            tv = opElBaseVects[0]
+            nv = opElBaseVects[2]
+            self.set_orient(_nvx=nv[0], _nvy=nv[1], _nvz=nv[2], _tvx=tv[0], _tvy=tv[1])
+            #self.nvx = nv[0]
+            #self.nvy = nv[1]
+            #self.nvz = nv[2]
+            #self.tvx = tv[0]
+            #self.tvy = tv[1]
+            #DEBUG
+            #print('Beam frame vectors after Crystal:')
+            #print('ex=', orntData[1][0], 'ez=', orntData[1][2])
 
     def set_orient(self, _nvx=0, _nvy=0, _nvz=-1, _tvx=1, _tvy=0):
         """Defines Crystal Orientation in the frame of the Incident Photon beam
@@ -3773,19 +3620,32 @@ class SRWLOptCryst(SRWLOpt):
         self.tvx = _tvx
         self.tvy = _tvy
 
-    def find_orient(self, _en, _ang_dif_pl=0):
+    def find_orient(self, _en, _ang_dif_pl=0, _uc=1):
         """Finds optimal crystal orientation in the input beam frame (i.e. surface normal and tangential vectors) and the orientation of the output beam frame (i.e. coordinates of the longitudinal and horizontal vectors in the input beam frame)
         :param _en: photon energy [eV]
         :param _ang_dif_pl: diffraction plane angle (0 corresponds to the vertical deflection; pi/2 to the horizontal deflection; any value in between is allowed)
+        :param _uc: crystal use case: 1- Bragg Reflection, 2- Bragg Transmission (Laue cases to be added)
         :return: list of two triplets of vectors:
                 out[0] is the list of 3 base vectors [tangential, saggital, normal] defining the crystal orientation
                 out[1] is the list of 3 base vectors [ex, ey, ez] defining orientation of the output beam frame
                 the cartesian coordinates of all these vectors are given in the frame of the input beam
         """
 
-        self.aux_energy = _en #MR01082016: renamed self.energy to self.aux_energy.
-        self.aux_ang_dif_pl = _ang_dif_pl #MR01082016: renamed self.ang_dif_pl to self.aux_ang_dif_pl. 
-   
+        #self.aux_energy = _en #MR01082016: renamed self.energy to self.aux_energy.
+        #self.aux_ang_dif_pl = _ang_dif_pl #MR01082016: renamed self.ang_dif_pl to self.aux_ang_dif_pl. 
+        #OC17112019 (commented-out the above)
+
+        def prodV(_a, _b):
+            return [_a[1]*_b[2] - _a[2]*_b[1], _a[2]*_b[0] - _a[0]*_b[2], _a[0]*_b[1] - _a[1]*_b[0]]
+        
+        def prodMV(_m, _v):
+            return [_m[0][0]*_v[0] + _m[0][1]*_v[1] + _m[0][2]*_v[2],
+                    _m[1][0]*_v[0] + _m[1][1]*_v[1] + _m[1][2]*_v[2],
+                    _m[2][0]*_v[0] + _m[2][1]*_v[1] + _m[2][2]*_v[2]]
+        
+        def normV(_a):
+            return sqrt(sum(n**2 for n in _a))
+
         #dSi = 5.43096890 # Si lattice constant (A)
         eV2wA = 12398.4193009 # energy to wavelength conversion factor 12398.41930092394
         wA = eV2wA/_en
@@ -3801,17 +3661,6 @@ class SRWLOptCryst(SRWLOpt):
         dTref = 0.5*abs_c0*(1 + sin(tKou)/sin(tKin))/sin(2*tBr)
         tIn = tKin + dTref
 
-        def prodV(_a, _b):
-            return [_a[1]*_b[2] - _a[2]*_b[1], _a[2]*_b[0] - _a[0]*_b[2], _a[0]*_b[1] - _a[1]*_b[0]]
-        
-        def prodMV(_m, _v):
-            return [_m[0][0]*_v[0] + _m[0][1]*_v[1] + _m[0][2]*_v[2],
-                _m[1][0]*_v[0] + _m[1][1]*_v[1] + _m[1][2]*_v[2],
-                _m[2][0]*_v[0] + _m[2][1]*_v[1] + _m[2][2]*_v[2]]
-        
-        def normV(_a):
-            return sqrt(sum(n**2 for n in _a))
-
         #Crystal orientation vectors
         nv = [0, cos(tIn), -sin(tIn)]
         tv = [0, sin(tIn), cos(tIn)]
@@ -3823,6 +3672,11 @@ class SRWLOptCryst(SRWLOpt):
 
         #Diffracted beam frame vectors
         z1c = [sv[2], sqrt(1. - sv[2]**2 - (tv[2] + wA*hv[2])**2), tv[2] + wA*hv[2]]
+        
+        #DEBUG
+        #print('Crystal find_orient: z1c=', z1c)
+        #print('Crystal find_orient: mc=', mc)
+        
         #rz = [sv[0]*z1c[0] + nv[0]*z1c[1] + tv[0]*z1c[2],
         #      sv[1]*z1c[0] + nv[1]*z1c[1] + tv[1]*z1c[2],
         #      sv[2]*z1c[0] + nv[2]*z1c[1] + tv[2]*z1c[2]]
@@ -3886,13 +3740,115 @@ class SRWLOptCryst(SRWLOpt):
             nvNew = prodMV(mr, nv)
 
         #OC06092016
-        if(self.uc == 2): #Bragg Transmission
+        #if(self.uc == 2): #Bragg Transmission
+        #OC17112019
+        if(_uc == 2): #Bragg Transmission
             ex = [1, 0, 0]
             ey = [0, 1, 0]
             ez = [0, 0, 1]  
-        #To check this and implement other self.uc cases!
+        #To check this and implement other _uc cases!
 
-        return [[tvNew, svNew, nvNew], [ex, ey, ez]]
+        #DEBUG
+        #print('Crystal find_orient:')
+        #print('[tv,sv,nv]=', [tvNew, svNew, nvNew])
+        return [[tvNew, svNew, nvNew], [ex, ey, ez]] #[2] can be optional transposed matrix of [ex, ey, ez], to be used for fast space transformation calc.
+
+    def get_ang_inc(self, _e): #OC23112019
+        """Estimates incidence angle for given photon energy (close to Bragg angle?)
+        :param _e: photon energy [eV]
+        :return: estimated incidence angle [rad]
+        """        
+        eV2wA = 12398.4193009 # energy to wavelength conversion factor 12398.41930092394
+        wA = eV2wA/_e
+        #Tar = math.pi*Ta/180.
+        #Kh = norm(Hr)/dSi # reflection vector modulus
+        kh = 1./self.dSp # because self.dSp = dSi/norm(Hr)
+        hv = [0, kh*cos(self.angAs), -kh*sin(self.angAs)]
+        tBr = asin(wA*kh/2)
+        tKin = tBr - self.angAs # TKin = Tbr - Tar
+        tKou = tBr + self.angAs # TKou = Tbr + Tar
+        abs_c0 = sqrt(self.psi0r*self.psi0r + self.psi0i*self.psi0i)
+        #dTref = abs(c0)*(1+math.sin(TKou)/math.sin(TKin))/2/math.sin(2*Tbr)
+        dTref = 0.5*abs_c0*(1 + sin(tKou)/sin(tKin))/sin(2*tBr)
+        return tKin + dTref
+
+    def estim_en_fr_ang_inc(self, _ang): #OC23112019
+        """Estimates photon energy from given incidence angle (in kinematic approx.)
+        :param _ang: incidence angle [rad]
+        :return: estimated photon energy [eV]
+        """
+        tBr = _ang + self.angAs
+        wA = 2*self.dSp*sin(tBr)
+        eV2wA = 12398.4193009 # energy to wavelength conversion factor 12398.41930092394
+        return eV2wA/wA
+
+    def get_orient(self, _e=0): #OC17112019
+        """Returns data on orientation of optical element in the frame of incident beam (should be called after the optical element was completely set up)
+        :return: list of two triplets of vectors:
+                out[0] is the list of 3 base vectors [tangential, saggital, normal] defining the crystal orientation
+                out[1] is the list of 3 base vectors [ex, ey, ez] defining orientation of the output beam frame
+                the cartesian coordinates of all these vectors are given in the frame of the input beam
+        """
+
+#        def prodV(_a, _b): return [_a[1]*_b[2] - _a[2]*_b[1], _a[2]*_b[0] - _a[0]*_b[2], _a[0]*_b[1] - _a[1]*_b[0]]
+#        def normV(_a): return sqrt(sum(n**2 for n in _a))
+#        def prodMV(_m, _v):
+#            return [_m[0][0]*_v[0] + _m[0][1]*_v[1] + _m[0][2]*_v[2],
+#                    _m[1][0]*_v[0] + _m[1][1]*_v[1] + _m[1][2]*_v[2],
+#                    _m[2][0]*_v[0] + _m[2][1]*_v[1] + _m[2][2]*_v[2]]
+
+        #Crystal orientation vectors
+        nv = [self.nvx, self.nvy, self.nvz]
+        tv = [self.tvx, self.tvy, -(self.nvx*self.tvx + self.nvy*self.tvy)/self.nvz] #note: self.nvz < 0 for mirrors / crystals
+        sv = uti_math.vect3_prod_v(nv, tv)
+        exIn = [1,0,0]; eyIn = [0,1,0]; ezIn = [0,0,1]
+
+        #print('Crystal get_orient:')
+        #print('[tv,sv,nv]=', [tv, sv, nv])
+
+        uc = 1 #Bragg Reflection use case by default
+        if(hasattr(self, 'uc')):
+            if(self.uc is not None): uc = self.uc
+
+        if(uc == 2): #Bragg Transmission
+            return [[tv, sv, nv], [exIn, eyIn, ezIn]] #[2] can be optional transposed matrix of [ex, ey, ez], to be used for fast space transformation calc.
+        
+        elif(uc == 1): #Bragg Reflection
+            
+            en = _e
+            if(en <= 0):
+                if(hasattr(self, 'aux_energy')):
+                    if(self.aux_energy is not None): en = self.aux_energy
+
+            sinAngInc = -nv[2] #?
+            angInc = asin(sinAngInc)
+            cosAngInc = cos(angInc)
+            if(en <= 0): en = self.estim_en_fr_ang_inc(angInc)
+
+            eV2wA = 12398.4193009 #energy to wavelength conversion factor 12398.41930092394
+            wA = eV2wA/en
+                
+            cosAngC = cosAngInc - (wA/self.dSp)*sin(self.angAs)
+            sinAngC = sqrt(1 - cosAngC*cosAngC)
+            
+            sinAngDef = cosAngInc*sinAngC + sinAngInc*cosAngC
+            cosAngDef = cosAngInc*cosAngC - sinAngInc*sinAngC
+            
+            defAng = asin(sinAngDef)
+            if(cosAngDef < 0): defAng = pi - defAng
+        
+            vAxRot = uti_math.vect_normalize(uti_math.vect3_prod_v(ezIn, nv))
+            Mrot = uti_math.trf_rotation(vAxRot, defAng, [0]*3)[0] #Matrix of Rotation
+            ex = uti_math.matr_prod(Mrot, exIn)
+            ey = uti_math.matr_prod(Mrot, eyIn)
+            ez = uti_math.matr_prod(Mrot, ezIn)
+            
+            return [[tv, sv, nv], [ex, ey, ez], Mrot] #[2] is optional transposed of [ex, ey, ez], to be used for fast space transformation calc.
+          
+        #elif(uc == 3): #Laue
+        #elif(uc == 4): #Laue Transmission
+
+        return [[tv, sv, nv], [exIn, eyIn, ezIn]]
 
 class SRWLOptC(SRWLOpt):
     """Optical Element: Container"""
@@ -3935,7 +3891,6 @@ class SRWLOptC(SRWLOpt):
         """Appends drift space to the end of the Container
         :param _len: length [m]
         """
-
         if(_len == 0.): return
 
         nOE = len(self.arOpt)
@@ -3956,6 +3911,71 @@ class SRWLOptC(SRWLOpt):
             elif(nOE > nPP):
                 self.arProp.append(ppDr)
 
+    def get_orient_lab_fr(self, _e=0, _r=0, _v_op_ax=[0,0,1]):
+        """Returns Cartesian coordinates of all optical elements' center positions and base vectors (t, s, n)
+        :param _e: photon energy [eV] optical scheme shoule be represented for (required for crystals and gratings)
+        :param _r: distance to first optical element (along beam axis) [m] or list of Cartesian coordinates of the center of the first optical element
+        :param _v_op_ax: Cartesian coordinates of the initial beam axis vector in the lab frame [m]
+        """
+        resData = []
+        nElem = len(self.arOpt)
+        if(nElem <= 0): return resData
+
+        opAxVect = copy(_v_op_ax) if(_v_op_ax is not None) else [0,0,1] #Beam axis
+
+        P = _r if(isinstance(_r, list) or isinstance(_r, array)) else uti_math.vect_mult(copy(opAxVect), _r) #Optical elememt position
+        #P = uti_math.vect_mult(copy(opAxVect), _r) #Optical elememt position
+        
+        bmFrTrfMatr = [[1,0,0],[0,1,0],[0,0,1]] #Beam frame transformation matrix
+        lenDrift = 0
+        
+        for i in range(nElem):
+            opEl = self.arOpt[i]
+
+            if(isinstance(opEl, SRWLOptD)):
+                lenDrift += opEl.L
+                for k in range(3): P[k] += lenDrift*opAxVect[k] #Updating (translating along beam axis) position of next optical element 
+            
+            elif(isinstance(opEl, SRWLOptC)): 
+                resData.append(opEl.get_orient_lab_fr(_e=_e, _r=P, _v_op_ax=opAxVect)) #?
+                #resData.append(opEl.get_orient_lab_fr(_e=_e, _r=lenDrift, _v_op_ax=opAxVect)) #Perhaps initial point should be submitted instead of lenDrift?
+                lenDrift = 0
+
+            else:
+                #Get tx,ty,tz,sx,sy,sz,nx,ny,nz from opEl
+                opElOrntData = opEl.get_orient(_e)
+                [tv, sv, nv] = opElOrntData[0]
+                
+                tv = uti_math.matr_prod(bmFrTrfMatr, tv) #Transforming coordinates of tv, sv, nv vectors to Lab frame 
+                sv = uti_math.matr_prod(bmFrTrfMatr, sv)
+                nv = uti_math.matr_prod(bmFrTrfMatr, nv)
+
+                opElClassName = opEl.__class__.__name__ #Does it work in Py 2.7?
+                opElID = opElClassName[7:] #To get rid of "SRWLOpt"
+                curOpElData = [opElID, P[0],P[1],P[2], tv[0],tv[1],tv[2], sv[0],sv[1],sv[2], nv[0],nv[1],nv[2]] #to become [x,y,z,tx,ty,tz,sx,sy,sz,nx,ny,nz]
+                resData.append(curOpElData)
+                
+                #opElExEyEzMatr = opElOrntData[1]
+                opElTrfMatr = uti_math.matr_transp(opElOrntData[1]) if(len(opElOrntData) < 3) else opElOrntData[2]
+                opAxVect = uti_math.matr_prod(opElTrfMatr, opAxVect) #Updating beam axis vector
+
+                #DEBUG
+                #print('Transformation Matrix Before Update:')
+                #print(bmFrTrfMatr)
+                #print('Transformation Matrix of Individual Opt. Elem.:')
+                #print(opElOrntData[1])
+                
+                bmFrTrfMatr = uti_math.matr_prod(opElTrfMatr, bmFrTrfMatr) #Updating transformation matrix by multiplying it by new opt. elem. matrix from left
+                lenDrift = 0
+                
+                #DEBUG
+                #print('Transformation Matrix After Update:')
+                #print(bmFrTrfMatr)
+                #print('Beam Frame Base Vector Coords. after ', opElID, ':')
+                #print('ex=', bmFrTrfMatr[0], '  ey=', bmFrTrfMatr[1], '  ez=', bmFrTrfMatr[2])
+                #print('norm_ex=', uti_math.vect_norm(bmFrTrfMatr[0]), 'norm_ey=', uti_math.vect_norm(bmFrTrfMatr[1]), 'norm_ez=', uti_math.vect_norm(bmFrTrfMatr[2]))
+
+        return resData
 
 #****************************************************************************
 #****************************************************************************
@@ -4227,6 +4247,264 @@ def srwl_opt_setup_CRL(_foc_plane, _delta, _atten_len, _shape, _apert_h, _apert_
     return opT
 
 #****************************************************************************
+def srwl_opt_setup_saw_tooth_lens(_delta, _atten_len, _dxdy, _thick, _ang_wedge=0, _ang_rot=0, _per_x=0, _per_y=0, _hole_nx=1, _hole_ny=1, _xc=0, _yc=0, _e_start=0, _e_fin=0, _nx=1001, _ny=1001):
+    """
+    Setup Transmission type Optical Element which simulates trapethoidal shape etched mask (requested by K. Kaznatcheev)
+    :param _delta: refractive index decrement
+    :param _atten_len: attenuation length [m]
+    :param _dxdy: array of transverse dimensions (pairs) of base holes [m]
+    :param _ang_wedge: tooth profile wedge angle [rad]
+    :param _ang_rot: rotation angle [rad]
+    :param _per_x: period of hole / lens pattern in the horizontal direction [m]
+    :param _per_y: period of hole / lens pattern in the vertical direction [m]
+    :param _hole_nx: number of holes / lenses in the horizontal direction [m]
+    :param _hole_ny: number of holes / lenses in the vertical direction [m]
+    :param _xc: horizontal coordinate of pattern center [m]
+    :param _yc: vertical coordinate of pattern center [m]
+    :param _e_start: initial photon energy [eV]
+    :param _e_fin: final photon energy [eV]
+    :param _nx: number of points vs horizontal position to represent the transmission element
+    :param _ny: number of points vs vertical position to represent the transmission element
+    :return: transmission (SRWLOptT) type optical element which simulates Cylindrical Fiber
+    """
+
+    #input_parms = {
+    #    "type": "crl",
+    #    "focalPlane": _foc_plane,
+    #    "refractiveIndex": _delta,
+    #    "attenuationLength": _atten_len,
+    #    "shape": _shape,
+    #    "horizontalApertureSize": _apert_h,
+    #    "verticalApertureSize": _apert_v,
+    #    "radius": _r_min,
+    #    "numberOfLenses": _n,
+    #    "wallThickness": _wall_thick,
+    #    "horizontalCenterCoordinate": _xc,
+    #    "verticalCenterCoordinate": _yc,
+    #    "voidCenterCoordinates": _void_cen_rad,
+    #    "initialPhotonEnergy": _e_start,
+    #    "finalPhotonPnergy": _e_fin,
+    #    "horizontalPoints": _nx,
+    #    "verticalPoints": _ny,
+    #}
+
+    ar_dxdy = None
+    if(isinstance(_dxdy, array) or isinstance(_dxdy, list)):
+        len_dxdy = len(_dxdy)
+        dxdy0 = _dxdy[0]
+        if(isinstance(dxdy0, array) or isinstance(dxdy0, list)):
+            len_dxdy0 = len(dxdy0)
+            if(len_dxdy0 > 2): raise Exception("Incorrect definition of hole dimensions in trapethoidal shape etched mask")
+            elif(len_dxdy0 == 2): ar_dxdy = _dxdy
+            elif(len_dxdy0 == 1):
+                ar_dxdy = [[0,0]]*len_dxdy
+                for i in range(len_dxdy):
+                    d = _dxdy[i][0]
+                    ar_dxdy[i][0] = d
+                    ar_dxdy[i][1] = d
+        else:
+            if(len_dxdy == 2): ar_dxdy = [[_dxdy[0], _dxdy[1]]]
+            else:
+                ar_dxdy = [[0,0]]*len_dxdy
+                for i in range(len_dxdy):
+                    d = _dxdy[i]
+                    ar_dxdy[i] = [d, d]
+                    #ar_dxdy[i][1] = d
+                    #TEST
+                    #print(d)
+                    #print(ar_dxdy[i])
+    else:
+        ar_dxdy = [[_dxdy, _dxdy]]*len_dxdy
+
+    #TEST
+    #print(ar_dxdy)
+    
+    tanAng = tan(_ang_wedge)
+    rExt1 = _thick/tanAng
+    rExt = 2.*rExt1
+
+    nLayers = len(ar_dxdy)
+    ar_half_rx1 = [0]*nLayers
+    ar_half_ry1 = [0]*nLayers
+    
+    rx = 0; ry = 0
+    for i in range(nLayers):
+        cur_dxdy = ar_dxdy[i]
+        cur_rx = cur_dxdy[0]
+        if(rx < cur_rx): rx = cur_rx
+        cur_ry = cur_dxdy[1]
+        if(ry < cur_ry): ry = cur_ry
+        ar_half_rx1[i] = 0.5*(cur_rx + rExt)
+        ar_half_ry1[i] = 0.5*(cur_ry + rExt)
+  
+    rxTot = rx + rExt*1.2;
+    ryTot = ry + rExt*1.2;
+
+    if(_hole_nx > 1): rxTot += (_hole_nx - 1)*_per_x
+    if(_hole_ny > 1): ryTot += (_hole_ny - 1)*_per_y
+
+    rx1 = rx + rExt
+    ry1 = ry + rExt
+    half_rx1 = 0.5*rx1
+    half_ry1 = 0.5*ry1
+
+    #TEST
+    #print(rx, rExt, rExt1)
+
+    ne = 1
+    arDelta = [0]
+    arAttenLen = [0]
+    if(isinstance(_delta, list) or isinstance(_delta, array)) and (isinstance(_atten_len, list) or isinstance(_atten_len, array)):
+        ne = len(_delta)
+        ne1 = len(_atten_len)
+        if(ne > ne1): ne = ne1
+        arDelta = _delta
+        arAttenLen = _atten_len
+    else:
+        arDelta[0] = _delta
+        arAttenLen[0] = _atten_len
+
+    baseAmpTr = exp(-0.5*_thick/arAttenLen[0]) #amplitude transmission
+    baseOptPathDif = -arDelta[0]*_thick #opt. path dif.
+    opT = SRWLOptT(_nx, _ny, rxTot, ryTot, _arTr=None, _extTr=1, _Fx=1e+23, _Fy=1e+23, _x=_xc, _y=_yc, _ne=ne, _eStart=_e_start, _eFin=_e_fin, _alloc_base=[baseAmpTr, baseOptPathDif])
+    arTr = opT.arTr
+
+    nxny = _nx*_ny
+    two_ne = 2*ne
+    for ie in range(1, ne):
+        baseAmpTr = exp(-0.5*_thick/arAttenLen[ie]) #amplitude transmission
+        baseOptPathDif = -arDelta[ie]*_thick #opt. path dif.
+        ofst = ie*2
+        for ixy in range(nxny):
+            arTr[ofst] = baseAmpTr
+            arTr[ofst + 1] = baseOptPathDif
+            ofst += two_ne
+
+    xStep = rxTot/(_nx - 1)
+    xStart = _xc - 0.5*rxTot
+    yStep = ryTot/(_ny - 1)
+    yStart = _yc - 0.5*ryTot
+    
+    xcMin = _xc - 0.5*(_hole_nx - 1)*_per_x
+    ycMin = _yc - 0.5*(_hole_ny - 1)*_per_y
+
+    perIX = 2*ne
+    perIY = perIX*_nx
+
+    #TEST
+    #print(ar_half_rx1)
+    #print(ar_half_ry1)
+    
+    ycCur = ycMin
+    for ihy in range(_hole_ny):
+        xcCur = xcMin
+        for ihx in range(_hole_nx):
+
+            yStartCur = ycCur - half_ry1
+            yEndCur = ycCur + half_ry1
+
+            diyStartCur = (yStartCur - yStart)/yStep
+            iyStartCur = int(diyStartCur)
+            if((diyStartCur - iyStartCur) > 1.e-06): iyStartCur += 1
+            #TEST
+            #print(diyStartCur, iyStartCur, diyStartCur - iyStartCur)
+            
+            if(iyStartCur < 0): iyStartCur = 0
+            elif(iyStartCur >= _ny): iyStartCur = _ny - 1
+
+            iyEndCur = int((yEndCur - yStart)/yStep) + 1
+            if(iyEndCur < 0): iyEndCur = 0
+            elif(iyEndCur > _ny): iyStartCur = _ny
+
+            xStartCur = xcCur - half_rx1
+            xEndCur = xcCur + half_rx1
+
+            dixStartCur = (xStartCur - xStart)/xStep
+            ixStartCur = int(dixStartCur)
+            if((dixStartCur - ixStartCur) > 1.e-06): ixStartCur += 1
+            #TEST
+            #print(dixStartCur, ixStartCur, dixStartCur - ixStartCur)
+            
+            if(ixStartCur < 0): ixStartCur = 0
+            elif(ixStartCur >= _nx): ixStartCur = _nx - 1
+            ixEndCur = int((xEndCur - xStart)/xStep) + 1
+            if(ixEndCur < 0): ixEndCur = 0
+            elif(ixEndCur > _nx): ixStartCur = _nx
+
+            #TEST
+            #print(iyStartCur, iyEndCur)
+            #print(ixStartCur, ixEndCur)
+
+            for iy in range(iyStartCur, iyEndCur):
+                y = yStart + yStep*iy
+
+                for ix in range(ixStartCur, ixEndCur):
+                    x = xStart + xStep*ix
+
+                    pathInBody = 0
+                    for i in range(nLayers):
+                        cur_half_ry1 = ar_half_ry1[i]
+                        yStartCurLayer = ycCur - cur_half_ry1
+                        yEndCurLayer = ycCur + cur_half_ry1
+                        yStartCurLayer1 = yStartCurLayer + rExt1
+                        yEndCurLayer1 = yEndCurLayer - rExt1
+
+                        cur_half_rx1 = ar_half_rx1[i]
+                        xStartCurLayer = xcCur - cur_half_rx1
+                        xEndCurLayer = xcCur + cur_half_rx1
+                        xStartCurLayer1 = xStartCurLayer + rExt1
+                        xEndCurLayer1 = xEndCurLayer - rExt1
+
+                        #TEST
+                        #print(yStartCurLayer, yStartCurLayer1, xStartCurLayer1, xEndCurLayer1)
+                        #if((ix == 72) and (iy == 72)):
+                        #    print(yStartCurLayer, y, yStartCurLayer1)
+                        #    print(xStartCurLayer, x, xStartCurLayer1)
+
+                        if(yStartCurLayer <= y <= yStartCurLayer1):
+                            if(xStartCurLayer <= x <= xStartCurLayer1):
+                                b = yStartCurLayer - xStartCurLayer
+                                if(y > x + b): pathInBody += (xStartCurLayer1 - x)*tanAng
+                                else: pathInBody += (yStartCurLayer1 - y)*tanAng
+                            elif(xStartCurLayer1 < x < xEndCurLayer1):
+                                pathInBody += (yStartCurLayer1 - y)*tanAng
+                                #TEST
+                                #print(y, pathInBody)
+
+                            elif(xEndCurLayer1 <= x <= xEndCurLayer):
+                                b = yStartCurLayer + xEndCurLayer
+                                if(y < b - x): pathInBody += (yStartCurLayer1 - y)*tanAng
+                                else: pathInBody += (x - xEndCurLayer1)*tanAng
+                                
+                        elif(yStartCurLayer1 < y < yEndCurLayer1):
+                            if(xStartCurLayer <= x <= xStartCurLayer1): pathInBody += (xStartCurLayer1 - x)*tanAng
+                            elif(xEndCurLayer1 <= x <= xEndCurLayer): pathInBody += (x - xEndCurLayer1)*tanAng
+
+                        elif(yEndCurLayer1 <= y <= yEndCurLayer):
+                            if(xStartCurLayer <= x <= xStartCurLayer1):
+                                b = yEndCurLayer + xStartCurLayer
+                                if(y < b - x): pathInBody += (xStartCurLayer1 - x)*tanAng
+                                else: pathInBody += (y - yEndCurLayer1)*tanAng
+                            elif(xStartCurLayer1 < x < xEndCurLayer1): pathInBody += (y - yEndCurLayer1)*tanAng
+                            elif(xEndCurLayer1 <= x <= xEndCurLayer):
+                                b = yEndCurLayer - xEndCurLayer
+                                if(y > x + b): pathInBody += (y - yEndCurLayer1)*tanAng
+                                else: pathInBody += (x - xEndCurLayer1)*tanAng
+
+                    #if(pathInBody > 0):
+                    ofst = iy*perIY + ix*perIX
+                    for ie in range(ne):
+                        opT.arTr[ofst] = exp(-0.5*pathInBody/arAttenLen[ie]) #amplitude transmission
+                        opT.arTr[ofst + 1] = -arDelta[ie]*pathInBody #optical path difference
+                        ofst += 2
+                
+            xcCur += _per_x
+        ycCur += _per_y
+
+    #opT.input_parms = input_parms
+    return opT
+
+#****************************************************************************
 def srwl_opt_setup_cyl_fiber(_foc_plane, _delta_ext, _delta_core, _atten_len_ext, _atten_len_core, _diam_ext, _diam_core, _xc, _yc):
     """
     Setup Transmission type Optical Element which simulates Cylindrical Fiber
@@ -4364,7 +4642,7 @@ def srwl_opt_setup_mask(_delta, _atten_len, _thick,
         "horizontalGridPitch": _pitch_x,  
          "verticalGridPitch": _pitch_y,  
         "horizontalGridsNumber": _grid_nx,  
-        "verticalGridsNumber": _grid_ny,  
+        "verticalGridsNumber": _grid_ny,
         "horizontalPixelsNumber": _mask_Nx,  
         "verticalPixelsNumber": _mask_Ny,  
         "gridTiltAngle": _grid_angle,  
@@ -4517,6 +4795,199 @@ def srwl_opt_setup_mask(_delta, _atten_len, _thick,
 
     trans_opt.input_parms = input_parms #MR29092016
     return trans_opt
+
+#****************************************************************************
+def srwl_opt_setup_Hartmann_sensor(_per_x, _per_y, _hole_nx, _hole_ny, _hole_sh, _hole_dx, _hole_dy=0, _hole_ang=0, _ang=0, 
+                                   _delta=0, _atten_len=1e-12, _thick=None, 
+                                   _nx=1001, _ny=1001, _rx=0, _ry=0, _e_start=0, _e_fin=0, _xc=0, _yc=0):
+    """Setup Transmission type Optical Element which simulates a Harmann sensor, i.e. mask array/matrix for at-wavelength metrology.
+    :param _per_x: hole placing period in horiz. direction [m]
+    :param _per_y: hole placing period in vert. direction [m]
+    :param _hole_nx: number of holes in x-direction
+    :param _hole_ny: number of holes in y-direction
+    :param _hole_sh: hole shape (0- elliptical, 1- rectangular)
+    :param _hole_dx: hole size in horiz. direction (before rotation) [m]
+    :param _hole_dy: hole size in vert. direction (before rotation) [m]
+    :param _hole_ang: tilt/rotation angle of each hole around its center [rad]
+    :param _ang: tilt/rotation angle of entire sensor/mask around (_xc, _yc) [rad]
+    :param _delta: refractive index decrement (can be one number of array vs photon energy)
+    :param _atten_len: attenuation length [m] (can be one number of array vs photon energy)
+    :param _thick: thickness of mask/sensor [m]
+    :param _nx: number of points in horiz. direction to represent the transmission object
+    :param _ny: number of points in vert. direction to represent the transmission object
+    :param _rx: size of the mask/sensor in horiz. direction [m]
+    :param _ry: size of the mask/sensor in vert. direction [m]
+    :param _e_start: initial photon energy (to be used if _delta and _atten_len are arrays)
+    :param _e_fin: final photon energy (to be used if _delta and _atten_len are arrays)
+    :param _xc: horizontal coordinate of the mask center [m]
+    :param _yc: vertical coordinate of the mask center [m]
+    :return: transmission (SRWLOptT) type optical element which simulates the Harmann sensor
+    """
+
+    hole_dx = _hole_dx
+    hole_dy = _hole_dy
+    if(hole_dy == 0): hole_dy = hole_dx
+
+    halfHoleDx = 0.5*hole_dx
+    halfHoleDy = 0.5*hole_dy
+
+    rxLoc = _per_x*_hole_nx if(_rx <= 0) else _rx #hor. size of the transmission object
+    ryLoc = _per_y*_hole_ny if(_ry <= 0) else _ry #vert. size of the transmission object
+
+    half_rxLoc = 0.5*rxLoc
+    half_ryLoc = 0.5*ryLoc
+
+    rx = rxLoc
+    ry = ryLoc
+    sinAng = 0
+    cosAng = 1
+    if(_ang != 0):
+        sinAng = sin(_ang)
+        cosAng = cos(_ang)
+        rx = rxLoc*cosAng + ryLoc*sinAng
+        ry = rxLoc*sinAng + ryLoc*cosAng
+
+    half_rx = 0.5*rx
+    half_ry = 0.5*ry
+    xStartGen = _xc - half_rx
+    yStartGen = _yc - half_ry
+
+    sinAngHole = 0
+    cosAngHole = 1
+    if(_hole_ang != 0):
+        sinAngHole = sin(_hole_ang)
+        cosAngHole = cos(_hole_ang)
+
+    ne = 1
+    if((_thick is not None) 
+       and (isinstance(_delta, list) or isinstance(_delta, array))
+       and (isinstance(_atten_len, list) or isinstance(_atten_len, array))): 
+        neDelta = len(_delta)
+        neAttLen = len(_atten_len)
+        ne = neDelta if(neDelta <= neAttLen) else neAttLen
+
+    delta = None
+    attLen = None
+    if(ne == 1):
+        if(isinstance(_delta, list) or isinstance(_delta, array)): delta = _delta[0]
+        if(isinstance(_atten_len, list) or isinstance(_atten_len, array)): attLen = _atten_len[0]
+
+    extTr = 0
+    if((_rx > 0) or (_ry > 0)): extTr = 1
+    #Transmission Element (initialized according to extTr)
+    opTr = SRWLOptT(_nx=_nx, _ny=_ny, _rx=rx, _ry=ry, _extTr=extTr, _x=_xc, _y=_yc, _ne=ne, _eStart=_e_start, _eFin=_e_fin, _alloc_base=[extTr,0])
+
+    xStep = rx/(_nx - 1)
+    yStep = ry/(_ny - 1)
+
+    #Determining hole "footprint" dimensions after all rotations
+    xSizeHole = hole_dx
+    ySizeHole = hole_dy
+    angTot = _hole_ang + _ang
+    if(abs(angTot) > 1.e-07): #to steer
+        sinAngTot = sin(angTot)
+        cosAngTot = cos(angTot)
+        xSizeHole = hole_dx*cosAngTot + hole_dy*sinAngTot
+        ySizeHole = hole_dx*sinAngTot + hole_dy*cosAngTot
+
+    xHalfSizeHole = 0.5*xSizeHole
+    yHalfSizeHole = 0.5*ySizeHole
+
+    xHoleCenMinLoc = _xc - 0.5*(_hole_nx - 1)*_per_x
+    yHoleCenMinLoc = _yc - 0.5*(_hole_ny - 1)*_per_y
+
+    xPerMesh = 2
+    yPerMesh = xPerMesh*_nx
+
+    #Loop over Holes
+    yHoleCenLoc = yHoleCenMinLoc
+    for ihy in range(_hole_ny):
+        xHoleCenLoc = xHoleCenMinLoc
+        for ihx in range(_hole_nx):
+
+            #Transform ccordinates of hole center to lab frame, if necessary
+            yHoleCen = yHoleCenLoc
+            xHoleCen = xHoleCenLoc
+            if(_ang != 0):
+                xHoleCenLoc_mi_xc = xHoleCenLoc - _xc
+                yHoleCenLoc_mi_yc = yHoleCenLoc - _yc
+                xHoleCen = _xc + xHoleCenLoc_mi_xc*cosAng - yHoleCenLoc_mi_yc*sinAng #check sign before sinAng and treatment of _xc, _yc
+                yHoleCen = _yc + yHoleCenLoc_mi_yc*cosAng + xHoleCenLoc_mi_xc*sinAng
+
+            xStart = xHoleCen - xHalfSizeHole
+            dixStart = (xStart - xStartGen)/xStep
+            ixStart = int(dixStart)
+            if((dixStart - ixStart) > 1e-12): ixStart += 1
+            xStartMesh = xStartGen + ixStart*xStep
+            xEnd = xHoleCen + xHalfSizeHole
+            dixEnd = (xEnd - xStartGen)/xStep
+            ixEnd = int(dixEnd)
+            if((dixEnd - ixEnd) > 1e-12): ixEnd -= 1
+            nxCur = ixEnd - ixStart + 1
+
+            yStart = yHoleCen - yHalfSizeHole
+            diyStart = (yStart - yStartGen)/yStep
+            iyStart = int(diyStart)
+            if((diyStart - iyStart) > 1e-12): iyStart += 1
+            yStartMesh = yStartGen + iyStart*yStep
+            yEnd = yHoleCen + yHalfSizeHole
+            diyEnd = (yEnd - yStartGen)/yStep
+            iyEnd = int(diyEnd)
+            if((diyEnd - iyEnd) > 1e-12): iyEnd -= 1
+            nyCur = iyEnd - iyStart + 1
+
+            #Loop over Transmission points vs x and y around one hole
+            y = yStartMesh
+            for iy in range(nyCur):
+                x = xStartMesh
+                for ix in range(nxCur):
+
+                    #Transform (x, y) to the Mask frame
+                    xLocMask = x
+                    yLocMask = y
+                    if(_ang != 0):
+                        x_mi_xc = x - _xc
+                        y_mi_yc = y - _yc
+                        xLocMask = _xc + x_mi_xc*cosAng + y_mi_yc*sinAng #check sign before sinAng and treatment of _xc, _yc
+                        yLocMask = _yc + y_mi_yc*cosAng - x_mi_xc*sinAng
+
+                    #Transform (xLocMask, yLocMask) to the Hole frame
+                    xLocHole = xLocMask
+                    yLocHole = yLocMask
+                    if(_hole_ang != 0):
+                        xLocMask_mi_xHoleCen = xLocMask - xHoleCen
+                        yLocMask_mi_yHoleCen = yLocMask - yHoleCen
+                        xLocHole = xHoleCen + xLocMask_mi_xHoleCen*cosAngHole + yLocMask_mi_yHoleCen*sinAngHole #check sign before sin and treatment of center point coords
+                        yLocHole = yHoleCen + yLocMask_mi_yHoleCen*cosAngHole - xLocMask_mi_xHoleCen*sinAngHole
+                    
+                    xLocHole_mi_xHoleCen = xLocHole - xHoleCenLoc #check if this is necessary
+                    yLocHole_mi_yHoleCen = yLocHole - yHoleCenLoc #check if this is necessary
+
+                    otst = -1
+                    if(_hole_sh == 0): #Elliptical hole shape
+                        relX = xLocHole_mi_xHoleCen/halfHoleDx
+                        relY = yLocHole_mi_yHoleCen/halfHoleDy
+                        if((relX*relX + relY*relY) < 1): ofst = iy*yPerMesh + ix*xPerMesh
+                    elif(_hole_sh == 1): #Rectangular hole shape
+                        if((-halfHoleDx < xLocHole_mi_xHoleCen) and (xLocHole_mi_xHoleCen < halfHoleDx) and
+                           (-halfHoleDy < yLocHole_mi_yHoleCen) and (yLocHole_mi_yHoleCen < halfHoleDy)): 
+                            ofst = iy*yPerMesh + ix*xPerMesh
+
+                    if(otst >= 0):
+                        if(ne == 1):
+                            opTr.arTr[ofst] = 1.
+                            opTr.arTr[ofst + 1] = 0.
+                        #elif(ne > 1):
+                        #ddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
+
+
+                    x += xStep
+                y += yStep
+
+            xHoleCenLoc += _per_x
+        yHoleCenLoc += _per_y
+
+    return opTr
 
 #****************************************************************************
 def srwl_opt_setup_surf_height_1d(_height_prof_data, _dim, _ang, _ang_r=0, _amp_coef=1, _ar_arg_long=None, _nx=0, _ny=0, _size_x=0, _size_y=0, _xc=0, _yc=0): #OC19072018
@@ -5239,9 +5710,110 @@ def srwl_opt_setup_bumps(_ampl, _sx, _sy, _n, _delta, _atten_len, _rx, _ry, _xc=
     return op
 
 #****************************************************************************
+def srwl_opt_setup_transit_reg(_delta1, _atten_len1, _delta2, _atten_len2, _thick, _rx, _ry, _w=0, _tr_typ=1, _x0=0, _y0=0, _ang=0, _xc=0, _yc=0, _nx=1001, _ny=1001): #, _e_start=0, _e_fin=0):
+    """
+    Setup Transmission type Optical Element simulating transition region cutting transverse plane into two half-planes with constant refraction / absorption properties
+    :param _delta1: refractive index decrement of one part of the area
+    :param _atten_len1: attenuation length of one part of the area
+    :param _delta2: refractive index decrement of the other part of the area
+    :param _atten_len2: attenuation length of the other part of the area
+    :param _thick: thickness of the transmission element [m]
+    :param _rx: horizontal coordiate range of the transmission element [m]
+    :param _ry: vertical coordiate range of the transmission element [m]
+    :param _w: width of transition region between two areas [m]
+    :param _tr_typ: type of the transition: 1- linear, 2- ...
+    :param _x0: horizontal coordinate of a point on the splitting / transition line [m]
+    :param _y0: vertical coordinate of a point on the splitting / transition line [m]
+    :param _ang: rotation angle of the splitting / transition line [rad]
+    :param _xc: horizontal coordinate of center [m] of the interval / range [m]
+    :param _yc: vertical coordinate of center [m] of the interval / range [m]
+    :param _nx: number of points vs horizontal position to represent the transmission element
+    :param _ny: number of points vs vertical position to represent the transmission element
+    :return: transmission (SRWLOptT) type optical element simulating transition region cutting transverse plane into two half-planes with constant refraction / absorption properties
+    """
+
+    cosAng = 1
+    sinAng = 0
+    if(_ang != 0):
+        cosAng = cos(_ang)
+        sinAng = sin(_ang)
+
+    xStep = _rx/(_nx - 1)
+    yStep = _ry/(_ny - 1)
+
+    halfRx = 0.5*_rx
+    halfRy = 0.5*_ry
+    halfW = 0.5*_w
+    
+    ampTr1 = exp(-0.5*_thick/_atten_len1)
+    ampTr2 = exp(-0.5*_thick/_atten_len2)
+    optPathDif1 = -_delta1*_thick
+    optPathDif2 = -_delta2*_thick
+    
+    op = SRWLOptT(_nx, _ny, _rx, _ry, _x=_xc, _y=_yc, _extTr=1, _alloc_base=[1,0])
+    arTr = op.arTr
+
+    ofst = 0
+    y = _yc - halfRy
+    for iy in range(_ny):
+
+        if(_ang == 0):
+            ampTr = 1
+            optPathDif = 0
+
+            if(y < _y0 - halfW):
+                ampTr = ampTr1
+                optPathDif = optPathDif1
+            elif(y < _y0 + halfW):
+                yRel = y - (_y0 - halfW)
+                coef = yRel/_w
+                if(_tr_typ == 1): #linear transition
+                    ampTr = ampTr1 + coef*(ampTr2 - ampTr1)
+                    optPathDif = optPathDif1 + coef*(optPathDif2 - optPathDif1)
+            else:
+                ampTr = ampTr2
+                optPathDif = optPathDif2
+                
+            for ix in range(_nx):
+                arTr[ofst] = ampTr
+                arTr[ofst + 1] = optPathDif
+                ofst += 2
+                    
+        else: #_ang != 0
+            
+            x = _xc - halfRx
+            for ix in range(_nx):
+
+                x_mi_x0 = x - _x0
+                y_mi_y0 = y - _y0
+                #xLoc = _x0 + x_mi_x0*cosAng + y_mi_y0*sinAng #check sign before sinAng and treatment of _x0, _y0
+                yLoc = _y0 + y_mi_y0*cosAng - x_mi_x0*sinAng
+
+                if(yLoc < _y0 - halfW):
+                    ampTr = ampTr1
+                    optPathDif = optPathDif1
+                elif(yLoc < _y0 + halfW):
+                    yRel = yLoc - (_y0 - halfW) #??
+                    coef = yRel/_w
+                    if(_tr_typ == 1): #linear transition
+                        ampTr = ampTr1 + coef*(ampTr2 - ampTr1)
+                        optPathDif = optPathDif1 + coef*(optPathDif2 - optPathDif1)
+                else:
+                    ampTr = ampTr2
+                    optPathDif = optPathDif2
+
+                arTr[ofst] = ampTr
+                arTr[ofst + 1] = optPathDif
+                ofst += 2
+
+                x += xStep
+        y += yStep
+    return op
+
+#****************************************************************************
 def srwl_opt_setup_gen_transm(_func_path, _delta, _atten_len, _rx, _ry, _xc=0, _yc=0, _ext_tr=0, _fx=0, _fy=0, _e_start=0, _e_fin=0, _nx=1001, _ny=1001):
     """
-    Setup Transmission type Optical Element similar to one simulating CRL, but with arbitrary optical path in material over hor. and vert. positions, defined by external function _func_path(x, y)
+    Setup Transmission type Optical Element similar to the one simulating CRL, but with arbitrary optical path in material over hor. and vert. positions, defined by external function _func_path(x, y)
     :param _func_path: user-defined function of 2 variables specifying path in material over hor. and vert. positions (x, y)
     :param _delta: refractive index decrement (can be one number of array vs photon energy)
     :param _atten_len: attenuation length [m] (can be one number of array vs photon energy)
@@ -5282,7 +5854,7 @@ def srwl_opt_setup_gen_transm(_func_path, _delta, _atten_len, _rx, _ry, _xc=0, _
     arLocTr = array('d', [0]*nTot)
     #Same data alignment as for wavefront: outmost loop vs y, inmost loop vs e
     ofst = 0
-    y = -0.5*_ry #CRL is always centered on the grid, however grid can be shifted
+    y = -0.5*_ry #Transmission is always centered on the grid, however grid can be shifted (?)
     for iy in range(_ny):
         x = -0.5*_rx
         for ix in range(_nx):
@@ -5578,7 +6150,8 @@ def srwl_uti_save_intens_ascii(_ar_intens, _mesh, _file_path, _n_stokes=1, _arLa
 
     sUnitEnt = arLabelUnit[3]
 
-    if(_mutual != 0):
+    #if(_mutual != 0):
+    if(_mutual == 1): #OC16072019 (to allow e.g. _mutual == 2 when header should not be modified)
         sUnitEntParts = ['']
         if((sUnitEnt is not None) and (len(sUnitEnt) > 0)): sUnitEntParts = sUnitEnt.split(' ')
         sUnitEntTest = sUnitEnt
@@ -5617,6 +6190,9 @@ def srwl_uti_save_intens_ascii(_ar_intens, _mesh, _file_path, _n_stokes=1, _arLa
     nComp = 1
     if _n_stokes > 0:
         f.write('#' + repr(_n_stokes) + ' #Number of components\n')
+        #DEBUG
+        #print('#' + repr(_n_stokes) + ' #Number of components\n')
+        
         #strOut += '#' + repr(_n_stokes) + ' #Number of components\n'
         nComp = _n_stokes
     nRadPt = _mesh.ne*_mesh.nx*_mesh.ny
@@ -5624,6 +6200,12 @@ def srwl_uti_save_intens_ascii(_ar_intens, _mesh, _file_path, _n_stokes=1, _arLa
     
     nVal = nRadPt*nComp #_mesh.ne*_mesh.nx*_mesh.ny*nComp
     if(_cmplx != 0): nVal *= 2 #OC06052018
+
+    #DEBUG
+    #print('Saving (header) Hor. Mesh:', _mesh.xStart, _mesh.xFin, _mesh.nx)
+    #print('Saving (header) Vert. Mesh:', _mesh.yStart, _mesh.yFin, _mesh.ny)
+    #print('Saving (header) _mutual:', _mutual)
+    #print('Saving (header) nComp:', nComp)
 
     for i in range(nVal): #write all data into one column using "C-alignment" as a "flat" 1D array
         f.write(' ' + repr(_ar_intens[i]) + '\n')
@@ -6268,10 +6850,12 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
         1- Four Stokes components of Flux per Unit Surface Area;
         2- Mutual Intensity Cut vs X;
         3- Mutual Intensity Cut vs Y;
-        4- Mutual Intensity Cuts and Degree of Coherence vs X & Y;
+        4- Mutual Intensity and Degree of Coherence Cuts vs X & Y;
+        5- Degree of Coherence Cuts vs X & Y;
         10- Flux
         20- Electric Field (sum of fields from all macro-electrons, assuming CSR)
-        40- Total Intensity, i.e. Flux per Unit Surface Area (s0), Mutual Intensity Cuts and Degree of Coherence vs X & Y;
+        40- Total Intensity, i.e. Flux per Unit Surface Area (s0), Mutual Intensity and Degree of Coherence Cuts vs X & Y;
+        41- Total Intensity, i.e. Flux per Unit Surface Area (s0) and Degree of Coherence Cuts vs X & Y;
     :param _x0: horizontal center position for mutual intensity calculation
     :param _y0: vertical center position for mutual intensity calculation
     :param _e_ph_integ: integration over photon energy is required (1) or not (0); if the integration is required, the limits are taken from _mesh
@@ -6288,11 +6872,12 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
     """
 
     doMutual = 0 #OC30052017
-    if((_char >= 2) and (_char <= 4)): doMutual = 1
+    #if((_char >= 2) and (_char <= 4)): doMutual = 1
+    if((_char >= 2) and (_char <= 5)): doMutual = 1 #15072019
 
     if((_det is not None) and (doMutual > 0)): raise Exception("Detector processing is not supported for mutual intensity") #OC30052017
 
-    import time #DEBUG
+    #DEBUG
     #print('_mesh.xStart=', _mesh.xStart, '_mesh.xFin=', _mesh.xFin, '_mesh.yStart=', _mesh.yStart, '_mesh.yFin=', _mesh.yFin) #DEBUG
     #print('_sr_samp_fact:', _sr_samp_fact) #DEBUG
     #for i in range(len(_opt_bl.arProp)): #DEBUG
@@ -6368,8 +6953,14 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
         file_path_deg_coh1 = srwl_wfr_fn(_file_path, 41) #copy(_file_path) + '.dc.1'
         file_path_deg_coh2 = srwl_wfr_fn(_file_path, 42) #copy(_file_path) + '.dc.2'
 
+    if((_char == 5) or (_char == 41)): #OC15072019 #Degree of Coherence Cuts vs X & Y are required
+        if(_char == 5): meshRes2 = copy(meshRes) #OC15072019
+        file_path_deg_coh1 = srwl_wfr_fn(_file_path, 41) #copy(_file_path) + '.dc.1'
+        file_path_deg_coh2 = srwl_wfr_fn(_file_path, 42) #copy(_file_path) + '.dc.2'
+
     if(_pres_ang == 2): #OC23122018 #Both coordinate and angular presentation characteristics are necessary
-        if((_char == 0) or (_char == 1) or (_char == 40)):
+        #if((_char == 0) or (_char == 1) or (_char == 40)):
+        if((_char == 0) or (_char == 1) or (_char == 40) or (_char == 41)): #OC15072019
             file_pathA = srwl_wfr_fn(_file_path, 2)
 
     wfr = SRWLWfr() #Wavefronts to be used in each process
@@ -6385,7 +6976,8 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
             meshRes.nx = 1
             meshRes.xStart = _x0
             meshRes.xFin = _x0
-        elif(_char == 4): #Cuts of Mutual Intensity vs X & Y
+        #elif(_char == 4): #Cuts of Mutual Intensity vs X & Y
+        elif((_char == 4) or (_char == 5)): #15072019 #Cuts of Mutual Intensity vs X & Y
             meshRes.ny = 1
             meshRes.yStart = _y0
             meshRes.yFin = _y0
@@ -6550,10 +7142,15 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
         #phEnME_Approx = 0.5*(_mesh.eStart + _mesh.eFin)
 
     resEntityName = 'Intensity' #OC26042016
+    resEntityNameDC = 'Degree of Coherence' #OC12072019
+    
     resEntityUnits = 'ph/s/.1%bw/mm^2'
+    if(_e_ph_integ > 0): resEntityUnits = 'ph/s/mm^2' #OC12072019
+    resEntityUnitsDC = '' #OC12072019
+    
     resLabelsToSave = ['Photon Energy', 'Horizontal Position', 'Vertical Position', resEntityName] #OC26042016
     resUnitsToSave = ['eV', 'm', 'm', resEntityUnits] #OC26042016
-    
+
     resEntityNameA = None #OC24122018
     resEntityUnitsA = None
     resLabelsToSaveA = None
@@ -6562,19 +7159,30 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
     if(_pres_ang == 1): #OC20112017
         resEntityName = 'Ang. Intensity Distr.'
         resEntityUnits = 'ph/s/.1%bw/mrad^2'
+        if(_e_ph_integ > 0): resEntityUnits = 'ph/s/mrad^2' #OC12072019
         resLabelsToSave = ['Photon Energy', 'Horizontal Angle', 'Vertical Angle', resEntityName]
         resUnitsToSave = ['eV', 'rad', 'rad', resEntityUnits]
     elif(_pres_ang == 2): #OC24122018
         resEntityNameA = 'Ang. Intensity Distr.'
         resEntityUnitsA = 'ph/s/.1%bw/mrad^2'
+        if(_e_ph_integ > 0): resEntityUnitsA = 'ph/s/mrad^2' #OC12072019
         resLabelsToSaveA = ['Photon Energy', 'Horizontal Angle', 'Vertical Angle', resEntityName]
         resUnitsToSaveA = ['eV', 'rad', 'rad', resEntityUnits]
 
     if(calcSpecFluxSrc == True):
         resEntityName = 'Flux'
         resEntityUnits = 'ph/s/.1%bw'
+        if(_e_ph_integ > 0): resEntityUnits = 'ph/s' #OC12072019
         resLabelsToSave[3] = resEntityName #OC27032018
         resUnitsToSave[3] = resEntityUnits #OC27032018
+
+    resLabelsToSaveDC = None #OC12072019
+    resUnitsToSaveDC = None #OC12072019
+    if((_char == 4) or (_char == 5) or (_char == 40) or (_char == 41)): #OC12072019 (Degree of Coherence required)
+        resLabelsToSaveDC = copy(resLabelsToSave)
+        resLabelsToSaveDC[3] = "Degree of Coherence"
+        resUnitsToSaveDC = copy(resUnitsToSave)
+        resUnitsToSaveDC[3] = ''
     
     #resLabelsToSaveMutualHorCut = [resLabelsToSave[0], resLabelsToSave[1], 'Conj. ' + resLabelsToSave[1], 'Mutual ' + resLabelsToSave[3]] #OC03052018
     #resLabelsToSaveMutualVerCut = [resLabelsToSave[0], resLabelsToSave[2], 'Conj. ' + resLabelsToSave[2], 'Mutual ' + resLabelsToSave[3]]
@@ -6670,7 +7278,8 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
                 meshRes.nx = 1
                 meshRes.xStart = _x0
                 meshRes.xFin = _x0
-            elif(_char == 4): #Cuts of Mutual Intensity vs X & Y
+            #elif(_char == 4): #Cuts of Mutual Intensity vs X & Y
+            elif((_char == 4) or (_char == 5)): #OC15072019 #Cuts of Mutual Intensity and/or Degree of Coherence vs X & Y
                 meshRes.ny = 1
                 meshRes.yStart = _y0
                 meshRes.yFin = _y0
@@ -6685,7 +7294,8 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
             arMesh = array('f', [meshRes.eStart, meshRes.eFin, meshRes.ne, meshRes.xStart, meshRes.xFin, meshRes.nx, meshRes.yStart, meshRes.yFin, meshRes.ny])
             
             #arMesh2 = None #OC30052017
-            if(_char == 4): #Cuts of Mutual Intensity vs X & Y
+            #if(_char == 4): #Cuts of Mutual Intensity vs X & Y
+            if((_char == 4) or (_char == 5)): #OC15072019 #Cuts of Mutual Intensity and/or Degree of Coherence vs X & Y
                 arMesh2 = array('f', [meshRes2.eStart, meshRes2.eFin, meshRes2.ne, meshRes2.xStart, meshRes2.xFin, meshRes2.nx, meshRes2.yStart, meshRes2.yFin, meshRes2.ny])
                 for ii in range(len(arMesh2)): #OC31052017
                     arMesh.append(arMesh2[ii])
@@ -6720,21 +7330,27 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
         #workStokes = SRWLStokes(1, 'f', meshRes.eStart, meshRes.eFin, meshRes.ne, meshRes.xStart, meshRes.xFin, meshRes.nx, meshRes.yStart, meshRes.yFin, meshRes.ny, doMutual)
         #OC06042017 (commented-out workStokes = ...)
 
-        lenArSt0 = len(resStokes.arS) #OC24122028
+        lenArSt0 = len(resStokes.arS) #OC24122018
         lenArSt = lenArSt0
         
-        if(_char == 4): #OC31052017 #Cuts of Mutual Intensity vs X & Y
+        #if(_char == 4): #OC31052017 #Cuts of Mutual Intensity vs X & Y
+        if((_char == 4) or (_char == 5)): #OC15072019 #Cuts of Mutual Intensity or Degree of Coherence vs X & Y
             resStokes2 = SRWLStokes(1, 'f', meshRes2.eStart, meshRes2.eFin, meshRes2.ne, meshRes2.xStart, meshRes2.xFin, meshRes2.nx, meshRes2.yStart, meshRes2.yFin, meshRes2.ny, doMutual)
             #lenArSt12 = len(resStokes.arS) + len(resStokes2.arS)
             #arAuxResSt12 = array('f', [0]*lenArSt12)
-            lenArSt += len(resStokes2.arS) #OC24122028
+            lenArSt += len(resStokes2.arS) #OC24122018
 
-        if(_char == 40): #OC03052018 #Intensity and Cuts of Mutual Intensity vs X & Y
+        #if(_char == 40): #OC03052018 #Intensity and Cuts of Mutual Intensity vs X & Y
+        if((_char == 40) or (_char == 41)): #OC15072019 #Intensity and Cuts of Mutual Intensity and/or Degree of Coherence vs X & Y
             resStokes2 = SRWLStokes(1, 'f', meshRes.eStart, meshRes.eFin, meshRes.ne, meshRes.xStart, meshRes.xFin, meshRes.nx, _y0, _y0, 1, _mutual=1)
+
+            #DEBUG
+            #print('Allocating resStokes3:', meshRes.yStart, meshRes.yFin, meshRes.ny)
             resStokes3 = SRWLStokes(1, 'f', meshRes.eStart, meshRes.eFin, meshRes.ne, _x0, _x0, 1, meshRes.yStart, meshRes.yFin, meshRes.ny, _mutual=1)
+
             #lenArSt123 = len(resStokes.arS) + len(resStokes2.arS) + len(resStokes3.arS)
             #arAuxResSt123 = array('f', [0]*lenArSt123)
-            lenArSt += (len(resStokes2.arS) + len(resStokes3.arS)) #OC24122028
+            lenArSt += (len(resStokes2.arS) + len(resStokes3.arS)) #OC24122018
 
         if(meshResA is not None): #OC23122018
             resStokesA = SRWLStokes(1, 'f', meshResA.eStart, meshResA.eFin, meshResA.ne, meshResA.xStart, meshResA.xFin, meshResA.nx, meshResA.yStart, meshResA.yFin, meshResA.ny)
@@ -6761,7 +7377,8 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
         if((nProc > 1) and (_det is None)): #OC16012017 #receive mesh for the resulting wavefront from the master
             #arMesh = array('f', [0]*9)
             nNumToRecv = 9
-            if(_char == 4): nNumToRecv = 18 #OC31052017 #Cuts of Mutual Intensity vs X & Y
+            #if(_char == 4): nNumToRecv = 18 #OC31052017 #Cuts of Mutual Intensity vs X & Y
+            if((_char == 4) or (_char == 5)): nNumToRecv = 18 #OC15072019 #Cuts of Mutual Intensity and/or Degree of Coherence vs X & Y
             if(_pres_ang == 2): nNumToRecv += 9 #OC26122018
             
             arMesh = array('f', [0]*nNumToRecv)
@@ -6784,7 +7401,8 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
             iStA = 9 #OC23122018
 
             #arMesh2 = None #OC30052017
-            if(_char == 4): #Cuts of Mutual Intensity vs X & Y
+            #if(_char == 4): #Cuts of Mutual Intensity vs X & Y
+            if((_char == 4) or (_char == 5)): #OC15072019 #Cuts of Mutual Intensity and/or Degree of Coherence vs X & Y
                 #arMesh2 = array('f', [0]*9)
                 #_stat = MPI.Status() #an he
                 #comMPI.Recv([arMesh2, MPI.FLOAT], source=MPI.ANY_SOURCE)
@@ -6824,14 +7442,16 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
 
         nRadPt2 = None #OC30052017
         nStPt2 = None
-        if(_char == 4): #Cuts of Mutual Intensity vs X & Y
+        #if(_char == 4): #Cuts of Mutual Intensity vs X & Y
+        if((_char == 4) or (_char == 5)): #OC15072019 #Cuts of Mutual Intensity and/or Degree of Coherence vs X & Y
             nRadPt2 = meshRes2.ne*meshRes2.nx*meshRes2.ny
             if(doMutual > 0): nRadPt2 *= nRadPt2 #OC03052018
             nStPt2 = nRadPt2*4
 
         nRadPt3 = None #OC03052018
         nStPt3 = None
-        if(_char == 40): #Intensity and Cuts of Mutual Intensity vs X & Y
+        #if(_char == 40): #Intensity and Cuts of Mutual Intensity vs X & Y
+        if((_char == 40) or (_char == 41)): #OC15072019 #Intensity and Cuts of Mutual Intensity and/or Degree of Coherence vs X & Y
             nRadPt2 = meshRes.ne*meshRes.nx
             nRadPt2 *= nRadPt2
             nStPt2 = nRadPt2*4
@@ -6848,7 +7468,6 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
         random.seed(newSeed)
 
         #random.seed(1) #DEBUG
-        
         iAuxSendCount = 0 #for debug
         
         for i in range(nPartPerProc): #loop over macro-electrons
@@ -7131,7 +7750,8 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
                     meshWork.nx = 1
                     meshWork.xStart = _x0
                     meshWork.xFin = _x0
-                elif(_char == 4): #OC30052017 #Cuts of Mutual Intensity vs X & Y
+                #elif(_char == 4): #OC30052017 #Cuts of Mutual Intensity vs X & Y
+                elif((_char == 4) or (_char == 5)): #OC15072019 #Cuts of Mutual Intensity and/or Degree of Coherence vs X & Y
                     meshWork.ny = 1
                     meshWork.yStart = _y0
                     meshWork.yFin = _y0
@@ -7143,10 +7763,12 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
             #OC06042017 (commented-out the above, entered workStokes = ... below)
             workStokes = SRWLStokes(1, 'f', meshWork.eStart, meshWork.eFin, meshWork.ne, meshWork.xStart, meshWork.xFin, meshWork.nx, meshWork.yStart, meshWork.yFin, meshWork.ny, doMutual)
             
-            if(_char == 4): #Cuts of Mutual Intensity vs X & Y
+            #if(_char == 4): #Cuts of Mutual Intensity vs X & Y
+            if((_char == 4) or (_char == 5)): #OC15072019 #Cuts of Mutual Intensity and/or Degree of Coherence vs X & Y
                 workStokes2 = SRWLStokes(1, 'f', meshWork2.eStart, meshWork2.eFin, meshWork2.ne, meshWork2.xStart, meshWork2.xFin, meshWork2.nx, meshWork2.yStart, meshWork2.yFin, meshWork2.ny, doMutual)
                      
-            if(_char == 40): #OC03052018 #Intensity and Cuts of Mutual Intensity vs X & Y
+            #if(_char == 40): #OC03052018 #Intensity and Cuts of Mutual Intensity vs X & Y
+            if((_char == 40) or (_char == 41)): #OC15072019 #Intensity and Cuts of Mutual Intensity and/or Degree of Coherence vs X & Y
                 workStokes2 = SRWLStokes(1, 'f', meshWork.eStart, meshWork.eFin, meshWork.ne, meshWork.xStart, meshWork.xFin, meshWork.nx, _y0, _y0, 1, _mutual=1)
                 workStokes3 = SRWLStokes(1, 'f', meshWork.eStart, meshWork.eFin, meshWork.ne, _x0, _x0, 1, meshWork.yStart, meshWork.yFin, meshWork.ny, _mutual=1)
 
@@ -7232,7 +7854,8 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
             lenArSt0 = len(resStokes.arS)
             lenArSt = lenArSt0
 
-            if(_char == 4): #OC31052017 #Cuts of Mutual Intensity vs X & Y
+            #if(_char == 4): #OC31052017 #Cuts of Mutual Intensity vs X & Y
+            if((_char == 4) or (_char == 5)): #OC15072019 #Cuts of Mutual Intensity and/or Degree of Coherence vs X & Y
                 if(resStokes2 is None):
                     resStokes2 = SRWLStokes(1, 'f', meshRes2.eStart, meshRes2.eFin, meshRes2.ne, meshRes2.xStart, meshRes2.xFin, meshRes2.nx, meshRes2.yStart, meshRes2.yFin, meshRes2.ny, doMutual)
                 #if(arAuxResSt12 is None):
@@ -7240,7 +7863,8 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
                 #    arAuxResSt12 = array('f', [0]*lenArSt12)
                 lenArSt += len(resStokes2.arS) #OC24122018
 
-            if(_char == 40): #OC03052018 #Intensity and Cuts of Mutual Intensity vs X & Y
+            #if(_char == 40): #OC03052018 #Intensity and Cuts of Mutual Intensity vs X & Y
+            if((_char == 40) or (_char == 41)): #OC15072019 #Intensity and Cuts of Mutual Intensity and/or Degree of Coherence vs X & Y
                 if(resStokes2 is None):
                     resStokes2 = SRWLStokes(1, 'f', meshRes.eStart, meshRes.eFin, meshRes.ne, meshRes.xStart, meshRes.xFin, meshRes.nx, _y0, _y0, 1, _mutual=1)
                 if(resStokes3 is None):
@@ -7302,13 +7926,18 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
 
                 #if(doMutual <= 0): resStokes.avg_update_interp(workStokes, iAvgProc, 1, 1, ePhIntegMult) #to treat all Stokes components / Polarization in the future
 
-                if(_char == 40): #OC03052018
+                #if(_char == 40): #OC03052018
+                if((_char == 40) or (_char == 41)): #OC15072019
                     resStokes.avg_update_interp(workStokes, iAvgProc, 1, numComp, ePhIntegMult)
 
-                    if((resStokes2 is not None) and (workStokes2 is not None)): 
+                    if((resStokes2 is not None) and (workStokes2 is not None)):
+                        #DEBUG
+                        #print('Apdating from resStokes2')
                         resStokes2.avg_update_interp_mutual(workStokes2, iAvgProc, 1, ePhIntegMult)
 
                     if((resStokes3 is not None) and (workStokes3 is not None)):
+                        #DEBUG
+                        #print('Apdating from resStokes3')
                         resStokes3.avg_update_interp_mutual(workStokes3, iAvgProc, 1, ePhIntegMult)
 
                 else:
@@ -7463,33 +8092,47 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
                             bkpFileToBeSaved = False
                         else: bkpFileToBeSaved = True
 
-                    if(_char == 40): #OC03052018
+                    #if(_char == 40): #OC03052018
+                    if((_char == 40) or (_char == 41)): #OC13072019
                         #srwl_uti_save_intens_ascii(resStokes.arS, meshRes, _file_path, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 0)
-                        srwl_uti_save_intens_ascii(resStokes.arS, meshRes, fp, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 0) #OC14082018
+                        srwl_uti_save_intens_ascii(resStokes.arS, meshRes, fp, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 0) #OC14082018 #Intensity
                         if(resStokes2 is not None):
                             #srwl_uti_save_intens_ascii(resStokes2.arS, resStokes2.mesh, file_path1, numComp, _arLabels = resLabelsToSaveMutualHorCut, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 1)
                             #srwl_uti_save_intens_ascii(resStokes2.arS, resStokes2.mesh, file_path1, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 1) #OC06052018
-                            srwl_uti_save_intens_ascii(resStokes2.arS, resStokes2.mesh, fp1, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 1) #OC14082018
+                            if(_char == 40): #OC13072019
+                                srwl_uti_save_intens_ascii(resStokes2.arS, resStokes2.mesh, fp1, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 1) #OC14082018 #Mutual Intensity, Hor. Cut
                             #srwl_uti_save_intens_ascii(resStokes2.to_deg_coh(), resStokes2.mesh, file_path_deg_coh1, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 0) #OC06052018
-                            srwl_uti_save_intens_ascii(resStokes2.to_deg_coh(), resStokes2.mesh, fpdc1, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 0) #OC14082018
+                            #srwl_uti_save_intens_ascii(resStokes2.to_deg_coh(), resStokes2.mesh, fpdc1, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 0) #OC14082018 #Degree of Coherence, Hor. Cut
+                            #srwl_uti_save_intens_ascii(resStokes2.to_deg_coh(), resStokes2.mesh, fpdc1, _n_stokes = 1, _arLabels = resLabelsToSaveDC, _arUnits = resUnitsToSaveDC, _mutual = 1, _cmplx = 0) #OC12072019 #Degree of Coherence, Hor. Cut
+                            srwl_uti_save_intens_ascii(resStokes2.to_deg_coh(), resStokes2.mesh, fpdc1, _n_stokes = 1, _arLabels = resLabelsToSaveDC, _arUnits = resUnitsToSaveDC, _mutual = 2, _cmplx = 0) #OC16072019 #Degree of Coherence, Hor. Cut
                         if(resStokes3 is not None):
                             #srwl_uti_save_intens_ascii(resStokes3.arS, resStokes3.mesh, file_path2, numComp, _arLabels = resLabelsToSaveMutualVerCut, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 1)
                             #srwl_uti_save_intens_ascii(resStokes3.arS, resStokes3.mesh, file_path2, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 1) #OC06052018
-                            srwl_uti_save_intens_ascii(resStokes3.arS, resStokes3.mesh, fp2, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 1) #OC14082018
+                            if(_char == 40): #OC13072019
+                                srwl_uti_save_intens_ascii(resStokes3.arS, resStokes3.mesh, fp2, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 1) #OC14082018 #Mutual Intensity, Vert. Cut
                             #srwl_uti_save_intens_ascii(resStokes3.to_deg_coh(), resStokes3.mesh, file_path_deg_coh2, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 0) #OC06052018
-                            srwl_uti_save_intens_ascii(resStokes3.to_deg_coh(), resStokes3.mesh, fpdc2, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 0) #OC14082018
-                    elif(_char == 4): #OC03052018
+                            #srwl_uti_save_intens_ascii(resStokes3.to_deg_coh(), resStokes3.mesh, fpdc2, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 0) #OC14082018 #Degree of Coherence, Vert. Cut
+                            #srwl_uti_save_intens_ascii(resStokes3.to_deg_coh(), resStokes3.mesh, fpdc2, _n_stokes = 1, _arLabels = resLabelsToSaveDC, _arUnits = resUnitsToSaveDC, _mutual = 1, _cmplx = 0) #OC12072019 #Degree of Coherence, Vert. Cut
+                            srwl_uti_save_intens_ascii(resStokes3.to_deg_coh(), resStokes3.mesh, fpdc2, _n_stokes = 1, _arLabels = resLabelsToSaveDC, _arUnits = resUnitsToSaveDC, _mutual = 2, _cmplx = 0) #OC16072019 #Degree of Coherence, Vert. Cut
+                    #elif(_char == 4): #OC03052018
+                    elif((_char == 4) or (_char == 5)): #OC13072019
                         #srwl_uti_save_intens_ascii(resStokes.arS, meshRes, file_path1, numComp, _arLabels = resLabelsToSaveMutualHorCut, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = (1 if doMutual else 0))
                         #srwl_uti_save_intens_ascii(resStokes.arS, meshRes, file_path1, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = (1 if doMutual else 0)) #OC06052018
-                        srwl_uti_save_intens_ascii(resStokes.arS, meshRes, fp1, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = (1 if doMutual else 0)) #OC14082018
+                        if(_char == 4):
+                            srwl_uti_save_intens_ascii(resStokes.arS, meshRes, fp1, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = (1 if doMutual else 0)) #OC14082018 #Mutual Intensity, Hor. Cut
                         #srwl_uti_save_intens_ascii(resStokes.to_deg_coh(), meshRes, file_path_deg_coh1, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 0) #OC06052018
-                        srwl_uti_save_intens_ascii(resStokes.to_deg_coh(), meshRes, fpdc1, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 0) #OC14082018
+                        #srwl_uti_save_intens_ascii(resStokes.to_deg_coh(), meshRes, fpdc1, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 0) #OC14082018 #Degree of Coherence, Hor. Cut
+                        #srwl_uti_save_intens_ascii(resStokes.to_deg_coh(), meshRes, fpdc1, _n_stokes = 1, _arLabels = resLabelsToSaveDC, _arUnits = resUnitsToSaveDC, _mutual = 1, _cmplx = 0) #OC12072019 #Degree of Coherence, Hor. Cut
+                        srwl_uti_save_intens_ascii(resStokes.to_deg_coh(), meshRes, fpdc1, _n_stokes = 1, _arLabels = resLabelsToSaveDC, _arUnits = resUnitsToSaveDC, _mutual = 2, _cmplx = 0) #OC16072019 #Degree of Coherence, Hor. Cut
                         if((resStokes2 is not None) and (meshRes2 is not None)): #OC30052017
                             #srwl_uti_save_intens_ascii(resStokes2.arS, meshRes2, file_path2, numComp, _arLabels = resLabelsToSaveMutualVerCut, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = (1 if doMutual else 0))
                             #srwl_uti_save_intens_ascii(resStokes2.arS, meshRes2, file_path2, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = (1 if doMutual else 0)) #OC06052018
-                            srwl_uti_save_intens_ascii(resStokes2.arS, meshRes2, fp2, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = (1 if doMutual else 0)) #OC14082018
+                            if(_char == 4):
+                                srwl_uti_save_intens_ascii(resStokes2.arS, meshRes2, fp2, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = (1 if doMutual else 0)) #OC14082018  #Mutual Intensity, Vert. Cut
                             #srwl_uti_save_intens_ascii(resStokes2.to_deg_coh(), meshRes2, file_path_deg_coh2, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = 0) #OC06052018
-                            srwl_uti_save_intens_ascii(resStokes2.to_deg_coh(), meshRes2, fpdc2, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = 0) #OC14082018
+                            #srwl_uti_save_intens_ascii(resStokes2.to_deg_coh(), meshRes2, fpdc2, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = 0) #OC14082018 #Degree of Coherence, Vert. Cut
+                            #srwl_uti_save_intens_ascii(resStokes2.to_deg_coh(), meshRes2, fpdc2, _n_stokes = 1, _arLabels = resLabelsToSaveDC, _arUnits = resUnitsToSaveDC, _mutual = doMutual, _cmplx = 0) #OC12072019 #Degree of Coherence, Vert. Cut
+                            srwl_uti_save_intens_ascii(resStokes2.to_deg_coh(), meshRes2, fpdc2, _n_stokes = 1, _arLabels = resLabelsToSaveDC, _arUnits = resUnitsToSaveDC, _mutual = 2, _cmplx = 0) #OC16072019 #Degree of Coherence, Vert. Cut
                     else:
                         #srwl_uti_save_intens_ascii(resStokes.arS, meshRes, file_path1, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = (1 if doMutual else 0))
                         srwl_uti_save_intens_ascii(resStokes.arS, meshRes, fp1, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = (1 if doMutual else 0)) #OC14082018
@@ -7533,7 +8176,8 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
         lenArWorkSt0 = len(workStokes.arS)
         lenArWorkSt = lenArWorkSt0
         
-        if(_char == 4): #OC30052017 #Cuts of Mutual Intensity vs X & Y
+        #if(_char == 4): #OC30052017 #Cuts of Mutual Intensity vs X & Y
+        if((_char == 4) or (_char == 5)): #OC15072019 #Cuts of Mutual Intensity and/or Degree of Coherence vs X & Y
             if(resStokes2 is None):
                 resStokes2 = SRWLStokes(1, 'f', meshRes2.eStart, meshRes2.eFin, meshRes2.ne, meshRes2.xStart, meshRes2.xFin, meshRes2.nx, meshRes2.yStart, meshRes2.yFin, meshRes2.ny, doMutual)
             #if(arAuxResSt12 is None):
@@ -7548,7 +8192,8 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
             #    arAuxWorkSt12 = array('f', [0]*lenArWorkSt12)
             lenArWorkSt += len(workStokes2.arS) #OC24122018
 
-        if(_char == 40): #OC03052018 #Intensity and Cuts of Mutual Intensity vs X & Y
+        #if(_char == 40): #OC03052018 #Intensity and Cuts of Mutual Intensity vs X & Y
+        if((_char == 40) or (_char == 41)): #OC15072019 #Intensity and Cuts of Mutual Intensity and/or Degree of Coherence vs X & Y
             if(resStokes2 is None):
                 resStokes2 = SRWLStokes(1, 'f', meshRes.eStart, meshRes.eFin, meshRes.ne, meshRes.xStart, meshRes.xFin, meshRes.nx, _y0, _y0, 1, _mutual=1)
             if(resStokes3 is None):
@@ -7715,33 +8360,47 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
                         bkpFileToBeSaved = False
                     else: bkpFileToBeSaved = True
 
-                if(_char == 40): #OC03052018
+                #if(_char == 40): #OC03052018
+                if((_char == 40) or (_char == 41)): #OC13072019
                     #srwl_uti_save_intens_ascii(resStokes.arS, meshRes, _file_path, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 0)
                     srwl_uti_save_intens_ascii(resStokes.arS, meshRes, fp, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 0) #OC14082018
                     if(resStokes2 is not None):
                         #srwl_uti_save_intens_ascii(resStokes2.arS, resStokes2.mesh, file_path1, numComp, _arLabels = resLabelsToSaveMutualHorCut, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 1) 
                         #srwl_uti_save_intens_ascii(resStokes2.arS, resStokes2.mesh, file_path1, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 1) #OC060502018
-                        srwl_uti_save_intens_ascii(resStokes2.arS, resStokes2.mesh, fp1, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 1) #OC14082018
+                        if(_char == 40): #OC13072019
+                            srwl_uti_save_intens_ascii(resStokes2.arS, resStokes2.mesh, fp1, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 1) #OC14082018
                         #srwl_uti_save_intens_ascii(resStokes2.to_deg_coh(), resStokes2.mesh, file_path_deg_coh1, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 0)
-                        srwl_uti_save_intens_ascii(resStokes2.to_deg_coh(), resStokes2.mesh, fpdc1, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 0) #OC14082018
+                        #srwl_uti_save_intens_ascii(resStokes2.to_deg_coh(), resStokes2.mesh, fpdc1, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 0) #OC14082018
+                        #srwl_uti_save_intens_ascii(resStokes2.to_deg_coh(), resStokes2.mesh, fpdc1, _n_stokes = 1, _arLabels = resLabelsToSaveDC, _arUnits = resUnitsToSaveDC, _mutual = 1, _cmplx = 0) #OC12072019 # Deg. of Coh. Cut vs X
+                        srwl_uti_save_intens_ascii(resStokes2.to_deg_coh(), resStokes2.mesh, fpdc1, _n_stokes = 1, _arLabels = resLabelsToSaveDC, _arUnits = resUnitsToSaveDC, _mutual = 2, _cmplx = 0) #OC16072019 # Deg. of Coh. Cut vs X
                     if(resStokes3 is not None):
                         #srwl_uti_save_intens_ascii(resStokes3.arS, resStokes3.mesh, file_path2, numComp, _arLabels = resLabelsToSaveMutualVerCut, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 1) 
                         #srwl_uti_save_intens_ascii(resStokes3.arS, resStokes3.mesh, file_path2, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 1) #OC060502018
-                        srwl_uti_save_intens_ascii(resStokes3.arS, resStokes3.mesh, fp2, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 1) #OC14082018
+                        if(_char == 40): #OC13072019
+                            srwl_uti_save_intens_ascii(resStokes3.arS, resStokes3.mesh, fp2, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 1) #OC14082018
                         #srwl_uti_save_intens_ascii(resStokes3.to_deg_coh(), resStokes3.mesh, file_path_deg_coh2, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 0)
-                        srwl_uti_save_intens_ascii(resStokes3.to_deg_coh(), resStokes3.mesh, fpdc2, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 0) #OC14082018
-                elif(_char == 4): #OC03052018
+                        #srwl_uti_save_intens_ascii(resStokes3.to_deg_coh(), resStokes3.mesh, fpdc2, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 0) #OC14082018
+                        #srwl_uti_save_intens_ascii(resStokes3.to_deg_coh(), resStokes3.mesh, fpdc2, _n_stokes = 1, _arLabels = resLabelsToSaveDC, _arUnits = resUnitsToSaveDC, _mutual = 1, _cmplx = 0) #OC12072019 # Deg. of Coh. Cut vs Y
+                        srwl_uti_save_intens_ascii(resStokes3.to_deg_coh(), resStokes3.mesh, fpdc2, _n_stokes = 1, _arLabels = resLabelsToSaveDC, _arUnits = resUnitsToSaveDC, _mutual = 2, _cmplx = 0) #OC16072019 # Deg. of Coh. Cut vs Y
+                #elif(_char == 4): #OC03052018
+                elif((_char == 4) or (_char == 5)): #OC13072019
                     #srwl_uti_save_intens_ascii(resStokes.arS, meshRes, file_path1, numComp, _arLabels = resLabelsToSaveMutualHorCut, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = (1 if doMutual else 0))
                     #srwl_uti_save_intens_ascii(resStokes.arS, meshRes, file_path1, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = (1 if doMutual else 0)) #OC060502018
-                    srwl_uti_save_intens_ascii(resStokes.arS, meshRes, fp1, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = (1 if doMutual else 0)) #OC14082018
+                    if(_char == 4): #OC13072019
+                        srwl_uti_save_intens_ascii(resStokes.arS, meshRes, fp1, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = (1 if doMutual else 0)) #OC14082018
                     #srwl_uti_save_intens_ascii(resStokes.to_deg_coh(), meshRes, file_path_deg_coh1, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 0)
-                    srwl_uti_save_intens_ascii(resStokes.to_deg_coh(), meshRes, fpdc1, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 0) #OC14082018
+                    #srwl_uti_save_intens_ascii(resStokes.to_deg_coh(), meshRes, fpdc1, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 0) #OC14082018
+                    #srwl_uti_save_intens_ascii(resStokes.to_deg_coh(), meshRes, fpdc1, _n_stokes = 1, _arLabels = resLabelsToSaveDC, _arUnits = resUnitsToSaveDC, _mutual = 1, _cmplx = 0) #OC12072019 # Deg. of Coh. Cut vs X
+                    srwl_uti_save_intens_ascii(resStokes.to_deg_coh(), meshRes, fpdc1, _n_stokes = 1, _arLabels = resLabelsToSaveDC, _arUnits = resUnitsToSaveDC, _mutual = 2, _cmplx = 0) #OC16072019 # Deg. of Coh. Cut vs X
                     if((resStokes2 is not None) and (meshRes2 is not None)):
                         #srwl_uti_save_intens_ascii(resStokes2.arS, meshRes2, file_path2, numComp, _arLabels = resLabelsToSaveMutualVerCut, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = (1 if doMutual else 0)) 
                         #srwl_uti_save_intens_ascii(resStokes2.arS, meshRes2, file_path2, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = (1 if doMutual else 0)) #OC060502018
-                        srwl_uti_save_intens_ascii(resStokes2.arS, meshRes2, fp2, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = (1 if doMutual else 0)) #OC14082018
+                        if(_char == 4): #OC13072019
+                            srwl_uti_save_intens_ascii(resStokes2.arS, meshRes2, fp2, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = (1 if doMutual else 0)) #OC14082018
                         #srwl_uti_save_intens_ascii(resStokes2.to_deg_coh(), meshRes2, file_path_deg_coh2, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = 0)
-                        srwl_uti_save_intens_ascii(resStokes2.to_deg_coh(), meshRes2, fpdc2, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = 0) #OC14082018
+                        #srwl_uti_save_intens_ascii(resStokes2.to_deg_coh(), meshRes2, fpdc2, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = 0) #OC14082018
+                        #srwl_uti_save_intens_ascii(resStokes2.to_deg_coh(), meshRes2, fpdc2, _n_stokes = 1, _arLabels = resLabelsToSaveDC, _arUnits = resUnitsToSaveDC, _mutual = doMutual, _cmplx = 0) #OC12072019 # Deg. of Coh. Cut vs Y
+                        srwl_uti_save_intens_ascii(resStokes2.to_deg_coh(), meshRes2, fpdc2, _n_stokes = 1, _arLabels = resLabelsToSaveDC, _arUnits = resUnitsToSaveDC, _mutual = 2, _cmplx = 0) #OC16072019 # Deg. of Coh. Cut vs Y
                 else:
                     #srwl_uti_save_intens_ascii(resStokes.arS, meshRes, file_path1, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = (1 if doMutual else 0)) #OC30052017
                     srwl_uti_save_intens_ascii(resStokes.arS, meshRes, fp1, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = (1 if doMutual else 0)) #OC14082018
@@ -7774,24 +8433,38 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
         #srwl_uti_save_intens_ascii(resStokes.arS, meshRes, _file_path, 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual) #OC26042016
         #srwl_uti_save_intens_ascii(resStokes.arS, meshRes, _file_path, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual) #OC16012017
 
-        if(_char == 40): #OC03052018
+        #if(_char == 40): #OC03052018
+        if((_char == 40) or (_char == 41)): #OC13072019
             srwl_uti_save_intens_ascii(resStokes.arS, meshRes, _file_path, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 0)
             if(resStokes2 is not None):
                 #srwl_uti_save_intens_ascii(resStokes2.arS, resStokes2.mesh, file_path1, numComp, _arLabels = resLabelsToSaveMutualHorCut, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 1)
-                srwl_uti_save_intens_ascii(resStokes2.arS, resStokes2.mesh, file_path1, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 1) #OC06052018
-                srwl_uti_save_intens_ascii(resStokes2.to_deg_coh(), resStokes2.mesh, file_path_deg_coh1, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 0)
+                if(_char == 40): #OC13072019
+                    srwl_uti_save_intens_ascii(resStokes2.arS, resStokes2.mesh, file_path1, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 1) #OC06052018
+                #srwl_uti_save_intens_ascii(resStokes2.to_deg_coh(), resStokes2.mesh, file_path_deg_coh1, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 0)
+                #srwl_uti_save_intens_ascii(resStokes2.to_deg_coh(), resStokes2.mesh, file_path_deg_coh1, _n_stokes = 1, _arLabels = resLabelsToSaveDC, _arUnits = resUnitsToSaveDC, _mutual = 1, _cmplx = 0) #OC12072019 # Deg. of Coh. Cut vs X
+                srwl_uti_save_intens_ascii(resStokes2.to_deg_coh(), resStokes2.mesh, file_path_deg_coh1, _n_stokes = 1, _arLabels = resLabelsToSaveDC, _arUnits = resUnitsToSaveDC, _mutual = 2, _cmplx = 0) #OC16072019 # Deg. of Coh. Cut vs X
             if(resStokes3 is not None):
                 #srwl_uti_save_intens_ascii(resStokes3.arS, resStokes3.mesh, file_path2, numComp, _arLabels = resLabelsToSaveMutualVerCut, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 1)
-                srwl_uti_save_intens_ascii(resStokes3.arS, resStokes3.mesh, file_path2, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 1) #OC06052018
-                srwl_uti_save_intens_ascii(resStokes3.to_deg_coh(), resStokes3.mesh, file_path_deg_coh2, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 0)
-        elif(_char == 4): #OC03052018
+                if(_char == 40): #OC13072019
+                    srwl_uti_save_intens_ascii(resStokes3.arS, resStokes3.mesh, file_path2, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 1) #OC06052018
+                #srwl_uti_save_intens_ascii(resStokes3.to_deg_coh(), resStokes3.mesh, file_path_deg_coh2, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 0)
+                #srwl_uti_save_intens_ascii(resStokes3.to_deg_coh(), resStokes3.mesh, file_path_deg_coh2, _n_stokes = 1, _arLabels = resLabelsToSaveDC, _arUnits = resUnitsToSaveDC, _mutual = 1, _cmplx = 0) #OC12072019 # Deg. of Coh. Cut vs Y
+                srwl_uti_save_intens_ascii(resStokes3.to_deg_coh(), resStokes3.mesh, file_path_deg_coh2, _n_stokes = 1, _arLabels = resLabelsToSaveDC, _arUnits = resUnitsToSaveDC, _mutual = 2, _cmplx = 0) #OC16072019 # Deg. of Coh. Cut vs Y
+        #elif(_char == 4): #OC03052018
+        elif((_char == 4) or (_char == 5)): #OC13072019
             #srwl_uti_save_intens_ascii(resStokes.arS, meshRes, file_path1, numComp, _arLabels = resLabelsToSaveMutualHorCut, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = (1 if doMutual else 0))
-            srwl_uti_save_intens_ascii(resStokes.arS, meshRes, file_path1, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = (1 if doMutual else 0)) #OC06052018
-            srwl_uti_save_intens_ascii(resStokes.to_deg_coh(), meshRes, file_path_deg_coh1, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 0)
+            if(_char == 4): #OC13072019
+                srwl_uti_save_intens_ascii(resStokes.arS, meshRes, file_path1, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = (1 if doMutual else 0)) #OC06052018
+            #srwl_uti_save_intens_ascii(resStokes.to_deg_coh(), meshRes, file_path_deg_coh1, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 1, _cmplx = 0)
+            #srwl_uti_save_intens_ascii(resStokes.to_deg_coh(), meshRes, file_path_deg_coh1, _n_stokes = 1, _arLabels = resLabelsToSaveDC, _arUnits = resUnitsToSaveDC, _mutual = 1, _cmplx = 0) #OC12072019 # Deg. of Coh. Cut vs X
+            srwl_uti_save_intens_ascii(resStokes.to_deg_coh(), meshRes, file_path_deg_coh1, _n_stokes = 1, _arLabels = resLabelsToSaveDC, _arUnits = resUnitsToSaveDC, _mutual = 2, _cmplx = 0) #OC16072019 # Deg. of Coh. Cut vs X
             if((resStokes2 is not None) and (meshRes2 is not None)):
                 #srwl_uti_save_intens_ascii(resStokes2.arS, meshRes2, file_path2, numComp, _arLabels = resLabelsToSaveMutualVerCut, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = (1 if doMutual else 0))
-                srwl_uti_save_intens_ascii(resStokes2.arS, meshRes2, file_path2, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = (1 if doMutual else 0)) #OC06052018
-                srwl_uti_save_intens_ascii(resStokes2.to_deg_coh(), meshRes2, file_path_deg_coh2, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = 0)
+                if(_char == 4): #OC13072019
+                    srwl_uti_save_intens_ascii(resStokes2.arS, meshRes2, file_path2, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = (1 if doMutual else 0)) #OC06052018
+                #srwl_uti_save_intens_ascii(resStokes2.to_deg_coh(), meshRes2, file_path_deg_coh2, _n_stokes = 1, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = 0)
+                #srwl_uti_save_intens_ascii(resStokes2.to_deg_coh(), meshRes2, file_path_deg_coh2, _n_stokes = 1, _arLabels = resLabelsToSaveDC, _arUnits = resUnitsToSaveDC, _mutual = doMutual, _cmplx = 0) #OC12072019 # Deg. of Coh. Cut vs Y
+                srwl_uti_save_intens_ascii(resStokes2.to_deg_coh(), meshRes2, file_path_deg_coh2, _n_stokes = 1, _arLabels = resLabelsToSaveDC, _arUnits = resUnitsToSaveDC, _mutual = 2, _cmplx = 0) #OC16072019 # Deg. of Coh. Cut vs Y
         else:
             srwl_uti_save_intens_ascii(resStokes.arS, meshRes, file_path1, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = doMutual, _cmplx = (1 if doMutual else 0)) #OC16012017
             if((resStokes2 is not None) and (meshRes2 is not None)): #OC03052018
@@ -7956,7 +8629,7 @@ function calculates/"extracts" Intensity from pre-calculated Electric Field
                =0 -Linear Horizontal; 
                =1 -Linear Vertical; 
                =2 -Linear 45 degrees; 
-               =3 -Linear 135 degrees;
+               =3 -Linear 135 degrees; 
                =4 -Circular Right; 
                =5 -Circular Left; 
                =6 -Total
@@ -7969,7 +8642,8 @@ function calculates/"extracts" Intensity from pre-calculated Electric Field
                =5 -Re(E): Real part of Single-Electron Electric Field;
                =6 -Im(E): Imaginary part of Single-Electron Electric Field;
                =7 -"Single-Electron" Intensity, integrated over Time or Photon Energy (i.e. Fluence)
-               =8 -"Single-Electron" Mutual Intensity (i.e. E(r)E*(r')) 
+               =8 -"Single-Electron" Mutual Intensity (i.e. E(r)E*(r'))
+               under development: =9 -"Multi-Electron" Mutual Intensity 
 :param _inDepType: input switch specifying type of dependence to be extracted:
                =0 -vs e (photon energy or time);
                =1 -vs x (horizontal position or angle);
@@ -8059,7 +8733,7 @@ function performs convolution of 1D or 2D data wave with 1D or 2D Gaussian (as d
        else if len(_mesh) == 6, 2D convolution will be performed
 :param _inSig: input list of central 2nd order statistical moments of 1D or 2D Gaussian,
        and possibly a coefficient before cross-term:
-       _inSig[0]: RMS size of teh Gaussian in first dimension
+       _inSig[0]: RMS size of the Gaussian in first dimension
        _inSig[1]: (optional) RMS size of a 2D Gaussian in second dimension
        _inSig[2]: (optional) coefficient before cross-term in exponent argument of a 2D Gaussian
        i.e. _inSig[] = [sigX, sigY, alp] defines a "tilted" normalized 2D Gaussian (vs x, y): 

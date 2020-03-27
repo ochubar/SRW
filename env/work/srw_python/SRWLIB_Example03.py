@@ -18,7 +18,7 @@ strIntOutFileName1 = 'ex03_res_int1.dat' #file name for output SR intensity data
 strIntOutFileName2 = 'ex03_res_int2.dat' #file name for output SR intensity data
 
 #***********Undulator
-numPer = 40.5 #Number of ID Periods (without counting for terminations
+numPer = 40 #40.5 #Number of ID Periods (without counting for terminations
 undPer = 0.049 #Period Length [m]
 Bx = 0.57/3. #Peak Horizontal field [T]
 By = 0.57 #Peak Vertical field [T]

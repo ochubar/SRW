@@ -225,7 +225,8 @@ int srTGenTransmission::EstimateMinimalContinuousIntervals()
 	long long xPer = Ne << 1;
 	long long zPer = xPer*Nx;
 
-	DOUBLE *pT0 = (DOUBLE*)(GenTransNumData.pData);
+	//DOUBLE *pT0 = (DOUBLE*)(GenTransNumData.pData);
+	double *pT0 = (double*)(GenTransNumData.pData); //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
 	if(pT0 == 0) return IMPROPER_OPTICAL_COMPONENT_STRUCTURE;
 	//DOUBLE *pP0 = (DOUBLE*)(GenTransNumData.pData) + 1;
 
@@ -247,9 +248,11 @@ int srTGenTransmission::EstimateMinimalContinuousIntervals()
 			int ixStartDiscontT = 0, ixStartDiscontP = 0;
 			for(int ix=1; ix<(Nx - 1); ix++)
 			{
-				//DOUBLE *pT = pT0 + iz*zPer + (ix << 1);
-				DOUBLE *pT = pT0 + iz*zPer + ix*xPer + (ie << 1);
-				DOUBLE *pP = pT + 1;
+				////DOUBLE *pT = pT0 + iz*zPer + (ix << 1);
+				//DOUBLE *pT = pT0 + iz*zPer + ix*xPer + (ie << 1);
+				//DOUBLE *pP = pT + 1;
+				double *pT = pT0 + iz*zPer + ix*xPer + (ie << 1); //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
+				double *pP = pT + 1;
 
 				double zPrevT = *(pT - zPer), xPrevT = *(pT - 2);
 				double zPrevP = *(pP - zPer), xPrevP = *(pP - 2);
@@ -324,7 +327,8 @@ void srTGenTransmission::EnsureTransmissionForField()
 		nz = (long)((GenTransNumData.DimSizes)[2]);
 	}
 
-	DOUBLE *t = (DOUBLE*)(GenTransNumData.pData);
+	//DOUBLE *t = (DOUBLE*)(GenTransNumData.pData);
+	double *t = (double*)(GenTransNumData.pData); //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
 	//for(long iz=0; iz<(GenTransNumData.DimSizes)[1]; iz++)
 	for(long iz=0; iz<nz; iz++)
 	{
@@ -601,8 +605,10 @@ void srTGenTransmission::EstimateEffPointsRange(char x_or_z, long icOtherCoord, 
 	}
 	long Np_mi_1 = Np - 1;
 
-	DOUBLE *tT0 = (DOUBLE*)(GenTransNumData.pData) + InitialOffset;
-	DOUBLE *tT = tT0;
+	//DOUBLE *tT0 = (DOUBLE*)(GenTransNumData.pData) + InitialOffset;
+	//DOUBLE *tT = tT0;
+	double *tT0 = (double*)(GenTransNumData.pData) + InitialOffset; //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
+	double *tT = tT0;
 
 	double Tmax = 0., Tmin = 1.E+23;
 	long i;
@@ -615,7 +621,8 @@ void srTGenTransmission::EstimateEffPointsRange(char x_or_z, long icOtherCoord, 
 
 	double MagnThresh = Tmin + AbsTolMagn*(Tmax - Tmin);
 	tT = tT0;
-	DOUBLE *tT_Inv = tT0 + Period*(Np - 1);
+	//DOUBLE *tT_Inv = tT0 + Period*(Np - 1);
+	double *tT_Inv = tT0 + Period*(Np - 1); //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
 	iFirst = -1; iLast = Np;
 	for(i=0; i<Np; i++)
 	{
@@ -850,8 +857,10 @@ void srTGenTransmission::CopyNumStructValuesToSect1DAndCheckSampling(srTRadSect1
 	//long Np_mi_1 = Np - 1;
 	long long Np_mi_1 = Np - 1;
 
-	DOUBLE *tPh0 = (DOUBLE*)(GenTransNumData.pData) + InitialOffset + 1;
-	DOUBLE *tPh = tPh0;
+	//DOUBLE *tPh0 = (DOUBLE*)(GenTransNumData.pData) + InitialOffset + 1;
+	//DOUBLE *tPh = tPh0;
+	double *tPh0 = (double*)(GenTransNumData.pData) + InitialOffset + 1; //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
+	double *tPh = tPh0;
 
 	double *tPhOut = PhaseCont;
 	double PhMax = -1.E+23, PhMin = 1.E+23;
@@ -1164,7 +1173,8 @@ int srTGenTransmission::DetermineFocalDistByPropag1D(srTRadSect1D& Sect1D, doubl
 
 //*************************************************************************
 
-void srTGenTransmission::RadPointModifier(srTEXZ& EXZ, srTEFieldPtrs& EPtrs)
+void srTGenTransmission::RadPointModifier(srTEXZ& EXZ, srTEFieldPtrs& EPtrs, void* pBufVars) //OC29082019
+//void srTGenTransmission::RadPointModifier(srTEXZ& EXZ, srTEFieldPtrs& EPtrs)
 {// e in eV; Length in m !!!
  // Operates on Coord. side !!!
 	//double xRel = EXZ.x - TransvCenPoint.x, zRel = EXZ.z - TransvCenPoint.y;
@@ -1239,11 +1249,14 @@ void srTGenTransmission::RadPointModifier(srTEXZ& EXZ, srTEFieldPtrs& EPtrs)
 		//long zPer = Nx << 1;
 		long long zPer = Nx << 1;
 
-		DOUBLE *p00 = (DOUBLE*)(GenTransNumData.pData) + (iz*zPer + (ix << 1));
-		DOUBLE *p10 = p00 + 2, *p01 = p00 + zPer;
-		DOUBLE *p11 = p01 + 2;
-
-		DOUBLE *p00p1 = p00+1, *p10p1 = p10+1, *p01p1 = p01+1, *p11p1 = p11+1;
+		//DOUBLE *p00 = (DOUBLE*)(GenTransNumData.pData) + (iz*zPer + (ix << 1));
+		//DOUBLE *p10 = p00 + 2, *p01 = p00 + zPer;
+		//DOUBLE *p11 = p01 + 2;
+		//DOUBLE *p00p1 = p00+1, *p10p1 = p10+1, *p01p1 = p01+1, *p11p1 = p11+1;
+		double *p00 = (double*)(GenTransNumData.pData) + (iz*zPer + (ix << 1)); //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
+		double *p10 = p00 + 2, *p01 = p00 + zPer;
+		double *p11 = p01 + 2;
+		double *p00p1 = p00+1, *p10p1 = p10+1, *p01p1 = p01+1, *p11p1 = p11+1;
 
 		//double Axz = 0., Ax = 0., Az = 0., Bxz = 0., Bx = 0., Bz = 0.;
 		//if(NotExactRightEdgeX && NotExactRightEdgeZ) { Axz = *p00 - *p01 - *p10 + *p11; Bxz = *p00p1 - *p01p1 - *p10p1 + *p11p1;}
@@ -1283,10 +1296,14 @@ void srTGenTransmission::RadPointModifier(srTEXZ& EXZ, srTEFieldPtrs& EPtrs)
 		//long zPer = Nx*xPer;
 		long long xPer = Ne << 1;
 		long long zPer = Nx*xPer;
-		DOUBLE *p000 = (DOUBLE*)(GenTransNumData.pData) + (iz*zPer + ix*xPer + (ie << 1));
-		DOUBLE *p100 = p000 + 2, *p010 = p000 + xPer, *p001 = p000 + zPer;
-		DOUBLE *p110 = p100 + xPer, *p101 = p100 + zPer, *p011 = p010 + zPer;
-		DOUBLE *p111 = p110 + zPer;
+		//DOUBLE *p000 = (DOUBLE*)(GenTransNumData.pData) + (iz*zPer + ix*xPer + (ie << 1));
+		//DOUBLE *p100 = p000 + 2, *p010 = p000 + xPer, *p001 = p000 + zPer;
+		//DOUBLE *p110 = p100 + xPer, *p101 = p100 + zPer, *p011 = p010 + zPer;
+		//DOUBLE *p111 = p110 + zPer;
+		double *p000 = (double*)(GenTransNumData.pData) + (iz*zPer + ix*xPer + (ie << 1)); //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
+		double *p100 = p000 + 2, *p010 = p000 + xPer, *p001 = p000 + zPer;
+		double *p110 = p100 + xPer, *p101 = p100 + zPer, *p011 = p010 + zPer;
+		double *p111 = p110 + zPer;
 
 		double one_mi_er = 1.- er, one_mi_xr = 1.- xr, one_mi_zr = 1.- zr;
 		double one_mi_er_one_mi_xr = one_mi_er*one_mi_xr, er_one_mi_xr = er*one_mi_xr;
@@ -1325,7 +1342,8 @@ void srTGenTransmission::RadPointModifier(srTEXZ& EXZ, srTEFieldPtrs& EPtrs)
 
 //*************************************************************************
 
-void srTGenTransmission::RadPointModifier1D(srTEXZ& EXZ, srTEFieldPtrs& EPtrs)
+void srTGenTransmission::RadPointModifier1D(srTEXZ& EXZ, srTEFieldPtrs& EPtrs, void* pBuf) //OC06092019
+//void srTGenTransmission::RadPointModifier1D(srTEXZ& EXZ, srTEFieldPtrs& EPtrs)
 {// e in eV; Length in m !!!
  // Operates on Coord. side !!!
 	//double xRel = EXZ.x - TransvCenPoint.x, zRel = EXZ.z - TransvCenPoint.y;
@@ -1380,7 +1398,8 @@ void srTGenTransmission::RadPointModifier1D(srTEXZ& EXZ, srTEFieldPtrs& EPtrs)
 	{
 		//long zPer = Nx << 1;
 		long long zPer = Nx << 1;
-		DOUBLE *p0 = (DOUBLE*)(GenTransNumData.pData) + (iz*zPer + (ix << 1));
+		//DOUBLE *p0 = (DOUBLE*)(GenTransNumData.pData) + (iz*zPer + (ix << 1));
+		double *p0 = (double*)(GenTransNumData.pData) + (iz*zPer + (ix << 1)); //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
 
 		if(EXZ.VsXorZ == 'x')
 		{
@@ -1408,9 +1427,12 @@ void srTGenTransmission::RadPointModifier1D(srTEXZ& EXZ, srTEFieldPtrs& EPtrs)
 		//long zPer = Nx*xPer;
 		long long xPer = Ne << 1;
 		long long zPer = Nx*xPer;
-		DOUBLE *p00 = (DOUBLE*)(GenTransNumData.pData) + (iz*zPer + ix*xPer + (ie << 1));
-		DOUBLE *p10 = p00 + 2;
-		DOUBLE *p01=0, *p11=0;
+		//DOUBLE *p00 = (DOUBLE*)(GenTransNumData.pData) + (iz*zPer + ix*xPer + (ie << 1));
+		//DOUBLE *p10 = p00 + 2;
+		//DOUBLE *p01=0, *p11=0;
+		double *p00 = (double*)(GenTransNumData.pData) + (iz*zPer + ix*xPer + (ie << 1)); //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
+		double *p10 = p00 + 2;
+		double *p01=0, *p11=0;
 		double one_mi_er = 1.- er, ar = 1., one_mi_ar = 1.;
 
 		if(EXZ.VsXorZ == 'x')

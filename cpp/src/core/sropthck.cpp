@@ -198,6 +198,7 @@ srTMirror* srTMirror::DefineMirror(char* sType, void* pvData)
 
 	if(strcmp(sType, "mirror: plane") == 0) pOutMir = new srTMirrorPlane(*((SRWLOptMirPl*)pvData));
 	else if(strcmp(sType, "mirror: ellipsoid") == 0) pOutMir = new srTMirrorEllipsoid(*((SRWLOptMirEl*)pvData));
+	else if(strcmp(sType, "mirror: paraboloid") == 0) pOutMir = new srTMirrorParaboloid(*((SRWLOptMirPar*)pvData));
 	else if(strcmp(sType, "mirror: toroid") == 0) pOutMir = new srTMirrorToroid(*((SRWLOptMirTor*)pvData));
 	else if(strcmp(sType, "mirror: sphere") == 0) pOutMir = new srTMirrorSphere(*((SRWLOptMirSph*)pvData));
 	else throw UNKNOWN_OPTICAL_ELEMENT;
@@ -1916,7 +1917,9 @@ int srTMirror::PropagateRadiationSimple_LocRayTracing(srTSRWRadStructAccessData*
 	{//Propagate wavefront back (by -m_extAlongOptAxIn) to the beginning of the optical element using Wavefront Propagation through a Drift
 		srTRadResizeVect dummyResizeVect; //consider removing this completely
 		srTDriftSpace driftIn(-m_extAlongOptAxIn);
-		driftIn.PropBufVars.UseExactRxRzForAnalytTreatQuadPhaseTerm = true;
+		
+		//driftIn.PropBufVars.UseExactRxRzForAnalytTreatQuadPhaseTerm = true;
+		m_ParPrecWfrPropag.UseExactRxRzForAnalytTreatQuadPhaseTerm = 1; //OC06092019
 		if(res = driftIn.PropagateRadiation(pRadAccessData, m_ParPrecWfrPropag, dummyResizeVect)) return res;
 	}
 
@@ -2561,7 +2564,9 @@ int srTMirror::PropagateRadiationSimple_LocRayTracing(srTSRWRadStructAccessData*
 	{//Propagate wavefront back (by -m_extAlongOptAxOut) to the center of the optical element using Wavefront Propagation through a Drift
 		srTRadResizeVect dummyResizeVect; //consider removing this completely
 		srTDriftSpace driftOut(-m_extAlongOptAxOut);
-		driftOut.PropBufVars.UseExactRxRzForAnalytTreatQuadPhaseTerm = true;
+
+		//driftOut.PropBufVars.UseExactRxRzForAnalytTreatQuadPhaseTerm = true;
+		m_ParPrecWfrPropag.UseExactRxRzForAnalytTreatQuadPhaseTerm = 1; //OC06092019
 		if(res = driftOut.PropagateRadiation(pRadAccessData, m_ParPrecWfrPropag, dummyResizeVect)) return res;
 	}
 
@@ -2589,7 +2594,9 @@ int srTMirror::PropagateRadiationSimple_FourierByParts(srTSRWRadStructAccessData
 	//to make optional, assuming that the wavefront can be supplied already before the optical element, and not in its middle 
 	srTRadResizeVect dummyResizeVect; //consider removing this completely
 	srTDriftSpace driftIn(-m_extAlongOptAxIn);
-	driftIn.PropBufVars.UseExactRxRzForAnalytTreatQuadPhaseTerm = true;
+
+	//driftIn.PropBufVars.UseExactRxRzForAnalytTreatQuadPhaseTerm = true;
+	m_ParPrecWfrPropag.UseExactRxRzForAnalytTreatQuadPhaseTerm = 1; //OC06092019
 	if(res = driftIn.PropagateRadiation(pRadAccessData, m_ParPrecWfrPropag, dummyResizeVect)) return res;
 
 	//m_pRadAux = new srTSRWRadStructAccessData(pRadAccessData); //to propagate "old" wavefront part
@@ -2602,7 +2609,8 @@ int srTMirror::PropagateRadiationSimple_FourierByParts(srTSRWRadStructAccessData
 	//propagate through the optical element by steps
 	double stepProp = (m_extAlongOptAxIn + m_extAlongOptAxOut)/m_numPartsProp;
 	srTDriftSpace driftStep(stepProp);
-	driftStep.PropBufVars.UseExactRxRzForAnalytTreatQuadPhaseTerm = true;
+
+	//driftStep.PropBufVars.UseExactRxRzForAnalytTreatQuadPhaseTerm = true; //OC06092019 (commented-out)
 
 	m_longPosStartPropPart = 0.; m_longPosEndPropPart = stepProp;
 
@@ -2862,17 +2870,33 @@ srTMirrorEllipsoid::srTMirrorEllipsoid(const SRWLOptMirEl& srwlMirEl) : srTMirro
 
 //*************************************************************************
 
+srTMirrorParaboloid::srTMirrorParaboloid(const SRWLOptMirPar& srwlMirPar) : srTMirror(srwlMirPar.baseMir)
+{
+	m_f = srwlMirPar.f;
+	m_uc = srwlMirPar.uc;
+	m_angGraz = srwlMirPar.angGraz;
+	m_radSag = srwlMirPar.radSag;
+
+	//Validate parameters: make sure all are positive
+	if((m_f <= 0) || ((m_uc != 'f') && (m_uc != 'c')) || (m_angGraz <= 0) || (m_radSag <= 0))
+	{ ErrorCode = IMPROPER_OPTICAL_COMPONENT_PARABOLOID; return;} //throw here?
+
+	//Determine paraboloid parameters in Local frame
+	DetermineParaboloidParamsInLocFrame(); 
+
+	//Estimate focal lengths:
+	double radTan = 2*m_f/sin(m_angGraz); //?
+	EstimateFocalLengths(radTan, m_radSag);
+}
+
+//*************************************************************************
+
 srTMirrorSphere::srTMirrorSphere(const SRWLOptMirSph& srwlMirSph) : srTMirror(srwlMirSph.baseMir)
 {
 	m_rad = srwlMirSph.rad;
 
 	//Validate parameters: make sure all are positive
 	if(m_rad == 0) { ErrorCode = IMPROPER_OPTICAL_COMPONENT_MIRROR_SPHERE; return;} //throw here?
-
-/*
-	//Determine ellipsoid parameters in Local frame
-	DetermineEllipsoidParamsInLocFrame(); 
-*/
 
 	//Estimate focal lengths:
 	EstimateFocalLengths(m_rad, m_rad);

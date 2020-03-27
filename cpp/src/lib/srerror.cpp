@@ -219,15 +219,15 @@ CErrWarn::CErrWarn()
 	error.push_back("Incorrect or insufficient parameters for intensity extraction.\0");
 	error.push_back("Incorrect or no wavefront structure.\0");
 	error.push_back("External (callback) function falied to modify (/ reallocate memory for) wavefront data.\0");
-	error.push_back("Incorrect or insufficient parameters for wavefront resizing.\0");
-	error.push_back("Incorrect or insufficient parameters for changing electric field (wavefront) representation.\0");
-	error.push_back("Incorrect or insufficient parameters for electric field (wavefront) propagation.\0");
-	error.push_back("Pointer to external (callback) wavefront modification function is not defined.\0");
+	error.push_back("Incorrect or insufficient parameters for wavefront resizing.\0"); //#169
+	error.push_back("Incorrect or insufficient parameters for changing electric field (wavefront) representation.\0"); //#170
+	error.push_back("Incorrect or insufficient parameters for electric field (wavefront) propagation.\0"); //#171
+	error.push_back("Pointer to external (callback) wavefront modification function is not defined.\0"); //#172
 
-	error.push_back("Incorrect optical element orientation.\0");
-	error.push_back("Incorrect optical element simulation method number.\0");
+	error.push_back("Incorrect optical element orientation.\0"); //#173
+	error.push_back("Incorrect optical element simulation method number.\0"); //#174
 
-	error.push_back("Incorrect or insufficient parameters for synchrotron radiation power density calculation.\0");
+	error.push_back("Incorrect or insufficient parameters for synchrotron radiation power density calculation.\0"); //#175
 
 	error.push_back("Incorrect ellipsoidal mirror parameters: p, q, grazing angle and sagital radius should be positive.\0"); //#176
 	error.push_back("Failed to determine optical axis after reflection from mirror.\0"); //#177
@@ -247,6 +247,9 @@ CErrWarn::CErrWarn()
 	error.push_back("Mutual intensity can not be extracted for these input parameters.\0"); //#189
 	error.push_back("Incorrect input parameters for calculation of statistical characteristics of intensity.\0"); //#190
 	error.push_back("Incorrect input parameters for processing intensity distributions.\0"); //#191
+	error.push_back("Incorrect paraboloidal mirror parameters: focal length, grazing angle and sagital radius should be positive, and use case should be \'f\' for focusing and \'c\' for collimating.\0"); //#192
+	
+	error.push_back("Wavefront resizing can not be performed for these parameters (however, it may be possible to perform such resizing sequentially).\0"); //#193
 
 //};
 

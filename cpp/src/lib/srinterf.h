@@ -137,6 +137,8 @@ struct srTParPrecWfrPropag {
 	char AnalTreatment; //0- none; 1- linear term; 2- quadratic term
 	char DoNotResetAnalTreatTermsAfterProp;
 
+	char UseExactRxRzForAnalytTreatQuadPhaseTerm; //OC06092019
+
 	//OC011213
 	double vLxOut, vLyOut, vLzOut; //Coordinates of the output Optical Axis vector
 	double vHxOut, vHyOut; //Coordinates of the Horizontal Base vector of the output frame
@@ -152,6 +154,7 @@ struct srTParPrecWfrPropag {
         UnderSampThresh = In_UnderSampThresh;
 		AnalTreatment = In_AnalTreatment; //Allow switching to under-sampling mode
 		DoNotResetAnalTreatTermsAfterProp = In_DoNotResetAnalTreatTermsAfterProp;
+		UseExactRxRzForAnalytTreatQuadPhaseTerm = 0; //OC06092019
 
 		vLxOut = In_vLxO;
 		vLyOut = In_vLyO;
@@ -167,6 +170,7 @@ struct srTParPrecWfrPropag {
         UnderSampThresh = 0.5;
 		AnalTreatment = 0;
 		DoNotResetAnalTreatTermsAfterProp = 0;
+		UseExactRxRzForAnalytTreatQuadPhaseTerm = 0; //OC06092019
 	}
 };
 
@@ -178,11 +182,12 @@ struct srTDataMD {
 	//long AmOfDims;
 	int AmOfDims; //OC26042019 (port to XOP7)
 	//long DimSizes[10];
-	long long DimSizes[10]; //OC26042019 (port to XOP7)
-	double DimStartValues[10];
-	double DimSteps[10];
-	char DimScales[10][4]; //OC040912
-	char DimUnits[10][255];
+	//OC20112019: changed 10 -> 11 (= Igor's MAX_DIMENSIONS+1)
+	long long DimSizes[11]; //OC26042019 (port to XOP7)
+	double DimStartValues[11];
+	double DimSteps[11];
+	char DimScales[11][4]; //OC040912
+	char DimUnits[11][255];
 	char DataUnits[255];
 	char DataName[255];
 	int hState; //auxiliary

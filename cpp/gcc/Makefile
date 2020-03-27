@@ -19,15 +19,15 @@ CFLAGS=	-O3 -fPIC -I$(SRW_SRC_GEN_DIR) -I$(SRW_SRC_LIB_DIR) -I$(SH_SRC_PARSE_DIR
 LDFLAGS=-L$(LIB_DIR) -lm 
 
 ifeq ($(MODE), omp)
-	CFLAGS+= -D_WITH_OMP -fopenmp -Wno-write-strings 
-	LDFLAGS+= -lfftw 
+CFLAGS+= -D_WITH_OMP -fopenmp -Wno-write-strings 
+LDFLAGS+= -lfftw 
 else
-	ifeq ($(MODE), 0)
-		CFLAGS+= -D_FFTW3 
-		LDFLAGS+= -lfftw3f -lfftw3 
-	else
-		$(error Unknown SRW compilation option)
-	endif
+ifeq ($(MODE), 0)
+CFLAGS+= -D_FFTW3 
+LDFLAGS+= -lfftw3f -lfftw3 
+else
+$(error Unknown SRW compilation option)
+endif
 endif
 
 PYPATH=/nsls2/projects/bldev/bldev-env

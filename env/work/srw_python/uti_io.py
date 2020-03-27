@@ -1,7 +1,9 @@
 #############################################################################
 # Basic Input/Output Utility Functions
-# v 0.01
+# v 0.02
 #############################################################################
+
+from copy import *
 
 #**********************Auxiliary function to write auxiliary/debugging information to an ASCII file:
 def write_text(_text, _file_path):
@@ -10,7 +12,8 @@ def write_text(_text, _file_path):
     f.close()
 
 #**********************Auxiliary function to read-in data comumns from ASCII file (2D table):
-def read_ascii_data_cols(_file_path, _str_sep, _i_col_start=0, _i_col_end=-1, _n_line_skip=0):
+def read_ascii_data_cols(_file_path, _str_sep, _i_col_start=0, _i_col_end=-1, _n_line_skip=0, _float=True): #OC24112019
+#def read_ascii_data_cols(_file_path, _str_sep, _i_col_start=0, _i_col_end=-1, _n_line_skip=0):
     """
     Auxiliary function to read-in data comumns from ASCII file (2D table)
     :param _file_path: full path (including file name) to the file
@@ -45,7 +48,9 @@ def read_ascii_data_cols(_file_path, _str_sep, _i_col_start=0, _i_col_end=-1, _n
             if(len(curPart) > 0):
                 if(((_i_col_start <= colCount) or (_i_col_start < 0)) and ((colCount <= _i_col_end) or (_i_col_end < 0))):
                     if len(resCols) < (colCountTrue + 1): resCols.append([])
-                    resCols[colCountTrue].append(float(curPart))
+                    #resCols[colCountTrue].append(float(curPart))
+                    if(_float): resCols[colCountTrue].append(float(curPart)) #OC24112019
+                    else: resCols[colCountTrue].append(curPart)
                     colCountTrue += 1
                 colCount += 1
     f.close()
@@ -56,7 +61,7 @@ def write_ascii_data_cols(_file_path, _cols, _str_sep, _str_head=None, _i_col_st
     """
     Auxiliary function to write tabulated data (columns, i.e 2D table) to ASCII file
     :param _file_path: full path (including file name) to the file to be (over-)written
-    :param _cols: array of data columns to be saves to file
+    :param _cols: array of data columns to be saved to file
     :param _str_sep: column separation symbol(s) (string)
     :param _str_head: header (string) to write before data columns
     :param _i_col_start: initial data column to write
@@ -106,8 +111,67 @@ def write_ascii_data_cols(_file_path, _cols, _str_sep, _str_head=None, _i_col_st
     f.write(strTot)
     f.close()
 
+#**********************Auxiliary function to write (save) data rows to ASCII file (2D table):
+def write_ascii_data_rows(_file_path, _rows, _str_sep, _str_head=None, _i_col_start=0, _i_col_end=-1, _i_row_start=0, _i_row_end=-1): #OC16112019
+    """
+    Auxiliary function to write tabulated data (columns, i.e 2D table) to ASCII file
+    :param _file_path: full path (including file name) to the file to be (over-)written
+    :param _rows: array of data rows (/lines) to be saved to file
+    :param _str_sep: column separation symbol(s) (string)
+    :param _str_head: header (string) to write before data columns
+    :param _i_col_start: initial data column to write
+    :param _i_col_end: final data column to write
+    :param _i_row_start: initial data row to write
+    :param _i_row_end: final data row to write
+    """
+    f = open(_file_path, 'w')
+
+    if(_str_head != None):
+        lenStrHead = len(_str_head)
+        if(lenStrHead > 0):
+            strHead = _str_head
+            if(_str_head[lenStrHead - 1] != '\n'):
+                strHead = copy(_str_head) + '\n'
+            f.write(strHead)
+    if(_rows == None):
+        f.close(); return
+        
+    nRows = len(_rows)
+    nCols = len(_rows[0])
+
+    if((nRows <= 0) or (nCols <= 0)):
+        f.close(); return
+
+    strSep = '\t'
+    if(_str_sep != None):
+        if(len(_str_sep) > 0): strSep = _str_sep
+
+    strTot = ''
+    iColEndP1 = nCols
+    if((_i_col_end >= 0) and (_i_col_end < nCols)): iColEndP1 = _i_col_end + 1
+
+    iRowEndP1 = nRows
+    if((_i_row_end >= 0) and (_i_row_end < nRows)): iRowEndP1 = _i_row_end + 1
+
+    iColEnd = iColEndP1 - 1
+    iRowEnd = iRowEndP1 - 1
+        
+    for i in range(_i_row_start, iRowEndP1):
+        curLine = ''
+        curDataRow = _rows[i]
+        for j in range(_i_col_start, iColEndP1):
+            curElem = repr(curDataRow[j])
+            curLine += curElem
+            if(j < iColEnd): curLine += strSep
+        if(i < iRowEnd): curLine += '\n'
+        strTot += curLine
+        
+    f.write(strTot)
+    f.close()
+
 #********************** Read data from an image file:
-def read_image(image_path):  # MR26102017
+def read_image(image_path, _do8bit=True):  #OC23102019
+#def read_image(image_path):  # MR26102017
     """Read data from an image file.
 
     :param image_path: full path to the image.
@@ -130,7 +194,10 @@ def read_image(image_path):  # MR26102017
     # Read the image:
     raw_image = Image.open(image_path)
     image_format = raw_image.format
-    raw_image = raw_image.convert('L')
+
+    #OC23102019
+    #raw_image = raw_image.convert('L')
+    if(_do8bit): raw_image = raw_image.convert('L')
 
     # Convert it to NumPy array:
     data = np.array(raw_image)

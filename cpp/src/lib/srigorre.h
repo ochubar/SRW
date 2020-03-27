@@ -24,7 +24,7 @@
 #include "windows.h"
 #endif
 
-typedef double DOUBLE;
+//typedef double DOUBLE; //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
 typedef char* Ptr;
 typedef Ptr* Handle;
 
@@ -33,7 +33,8 @@ typedef Ptr* Handle;
 
 int SpinProcess(void);
 //HOST_EXPORT Handle NewHandle(long size);
-Handle NewHandle(long size);
+//Handle NewHandle(long size);
+Handle WMNewHandle(long long size); //OC13112019 (port to XOP8 on MAC)
 
 #endif
 

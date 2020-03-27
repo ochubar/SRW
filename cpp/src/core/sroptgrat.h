@@ -133,6 +133,9 @@ public:
 		m_pPrevWfr = 0;
 		return 0;
 	}
+
+	//int PropagateRadiationSingleE_Meth_0(srTSRWRadStructAccessData* pWfr, srTSRWRadStructAccessData* pPrevWfr, void* pBuf=0) //OC06092019
+	//OC01102019 (restored)
 	int PropagateRadiationSingleE_Meth_0(srTSRWRadStructAccessData* pWfr, srTSRWRadStructAccessData* pPrevWfr)
 	{//this version doesn't use pPrevWfr
 	 //however, it may modify me
@@ -163,7 +166,8 @@ public:
 	void SetupPropBufVars_Gen(srTSRWRadStructAccessData* pWfr);
 	void SetupPropBufVars_SingleE(double PhotEn);
 	
-	void RadPointModifier(srTEXZ& EXZ, srTEFieldPtrs& EPtrs)
+	void RadPointModifier(srTEXZ& EXZ, srTEFieldPtrs& EPtrs, void* pBufVars=0) //OC29082019
+	//void RadPointModifier(srTEXZ& EXZ, srTEFieldPtrs& EPtrs)
 	{//Photon energy in eV; Length in m !!! Operates on Coordinate side !!!
 		//This version takes into account varying incidence angle over the input wavefront
 		//and it treats the amplitude change due to anamorphous magnification

@@ -1209,12 +1209,17 @@ public:
 //*************************************************************************
 
 struct srTElecBeamMoments {
-	DOUBLE E, Mx, Mxp, Mz, Mzp;
-	DOUBLE Mee;
-	DOUBLE Mxx, Mxxp, Mxpxp, Mzz, Mzzp, Mzpzp; // Central Moments
-	DOUBLE Mxz, Mxpz, Mxzp, Mxpzp;
+	//DOUBLE E, Mx, Mxp, Mz, Mzp;
+	//DOUBLE Mee;
+	//DOUBLE Mxx, Mxxp, Mxpxp, Mzz, Mzzp, Mzpzp; // Central Moments
+	//DOUBLE Mxz, Mxpz, Mxzp, Mxpzp;
+	double E, Mx, Mxp, Mz, Mzp; //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
+	double Mee;
+	double Mxx, Mxxp, Mxpxp, Mzz, Mzzp, Mzpzp; // Central Moments
+	double Mxz, Mxpz, Mxzp, Mxpzp;
 
-	srTElecBeamMoments(DOUBLE* pElecBeamData)
+	srTElecBeamMoments(double* pElecBeamData) //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
+	//srTElecBeamMoments(DOUBLE* pElecBeamData)
 	{
 		if(pElecBeamData != 0)
 		{
@@ -1462,7 +1467,8 @@ struct srTWaveAccessData {
 
 struct srTWaveAccessDataD1D {
 
-	DOUBLE* pData;
+	//DOUBLE* pData;
+	double* pData; //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
 	//long np;
 	long long np;
 	double Start;
@@ -1501,19 +1507,24 @@ struct srTWaveAccessDataD1D {
 struct srTRadExtract {
 
 	int PolarizCompon; // 0: Linear Hor.; 1: Linear Vert.; 2: Linear 45; 3: Linear 135; 4: Circul. Right; 5: Circul. Left; 6: Total
-	int Int_or_Phase; // 0: 1-e Int; 1: Multi-e Int; 2: Phase; 3: Re(E); 4: 1-e Flux; 5: Multi-e Flux; 6- Im(E); 7- Time or Photon Energy Integrated Intensity
+	int Int_or_Phase; // 0: 1-e Int; 1: Multi-e Int; 2: Phase; 3: Re(E); 4: 1-e Flux; 5: Multi-e Flux; 6- Im(E); 7- Time or Photon Energy Integrated Intensity; 8- "Single-Electron" Mutual Intensity (i.e. E(r)E*(r')); 9- "Multi-Electron" Mutual Intensity
 	int PlotType; // vs 0: e; 1: x; 2: z; 3: x&z; 4: e&x; 5: e&z; 6: e&x&z
 	int TransvPres; // 0: Spatial; 1: Angular
+	double *pMeth; //OC16122019
+	//int *pMeth; //OC13122019
 
 	double ePh, x, z;
 
 	float* pExtractedData;
-	DOUBLE* pExtractedDataD;
+	//DOUBLE* pExtractedDataD;
+	double* pExtractedDataD; //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
 
 	waveHndl wExtractedData;
 	int hStateExtractedData;
 
-	srTRadExtract(int In_PolarizCompon, int In_Int_or_Phase, int In_SectID, int In_TransvPres, double In_e, double In_x, double In_z, char* In_pData)
+	srTRadExtract(int In_PolarizCompon, int In_Int_or_Phase, int In_SectID, int In_TransvPres, double In_e, double In_x, double In_z, char* In_pData, double* In_pMeth=0) //OC16122019
+	//srTRadExtract(int In_PolarizCompon, int In_Int_or_Phase, int In_SectID, int In_TransvPres, double In_e, double In_x, double In_z, char* In_pData, int* In_pMeth=0) //OC13122019
+	//srTRadExtract(int In_PolarizCompon, int In_Int_or_Phase, int In_SectID, int In_TransvPres, double In_e, double In_x, double In_z, char* In_pData)
 	{
         PolarizCompon = In_PolarizCompon; // 0: Linear Hor.; 1: Linear Vert.; 2: Linear 45; 3: Linear 135; 4: Circul. Right; 5: Circul. Left; 6: Total
 		Int_or_Phase = In_Int_or_Phase; // 0: 1-e Int; 1: Multi-e Int; 2: Phase; 3: Re(E)
@@ -1521,12 +1532,18 @@ struct srTRadExtract {
 		TransvPres = In_TransvPres; // 0: Spatial; 1: Angular
 		ePh = In_e; x = In_x; z = In_z;
 
+		pMeth = In_pMeth; //OC13122019
+
 		pExtractedData = 0; pExtractedDataD = 0;
 
 		if(In_Int_or_Phase != 2) pExtractedData = (float*)In_pData;
-		else pExtractedDataD = (DOUBLE*)In_pData;
+		//else pExtractedDataD = (DOUBLE*)In_pData;
+		else pExtractedDataD = (double*)In_pData; //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
 	}
-	srTRadExtract() {};
+	srTRadExtract() 
+	{
+		pMeth = 0; //OC13122019
+	};
 
 	void SetupExtractedWaveAccessData(srTWaveAccessData* pWaveAccessData)
 	{

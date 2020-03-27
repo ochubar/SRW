@@ -14,12 +14,13 @@
 #ifndef __SROPTDRF_H
 #define __SROPTDRF_H
 
-#ifndef __SROPTELM_H
+//#ifndef __SROPTELM_H
 #include "sroptelm.h"
-#endif
-#ifndef __SRERROR_H
+//#endif
+//#ifndef __SRERROR_H
 #include "srerror.h"
-#endif
+//#endif
+#include "gmmeth.h" //OC11112019
 
 //Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
 //#include <stdio.h>
@@ -36,19 +37,32 @@ struct srTDriftPropBufVars {
 	double xc, zc;
 	double ExtraConstPhase;
 	double invRx, invRz;
+	double sqrtAbsRxRz, dPhaseSignR; //OC10112019
+	double Pi_MultLambdaM_Rx, Pi_MultLambdaM_Rz, MultEn_TwoPi_L_d_LambdaM; //OC10112019
 	double Lx, Lz, invRxL, invRzL, sqrt_LxLz_d_L, phase_term_signLxLz;
 	double Pi_d_LambdaM_d_Rx, Pi_d_LambdaM_d_Rz;
 	double kx_AnalytTreatQuadPhaseTerm, kxc_AnalytTreatQuadPhaseTerm, kz_AnalytTreatQuadPhaseTerm, kzc_AnalytTreatQuadPhaseTerm;
 
 	double TwoPiXc_d_LambdaMRx, TwoPiZc_d_LambdaMRz;
 	double UnderSamplingX, UnderSamplingZ;
-	bool UseExactRxRzForAnalytTreatQuadPhaseTerm;
-	char AnalytTreatSubType; //OC24042013
+	
+	//OC01102019 (moved to srTDriftSpace)
+	//bool UseExactRxRzForAnalytTreatQuadPhaseTerm;
+
+	//OC01102019 (moved back to srTDriftSpace) //OC06092019
+	//char LocalPropMode; // -1- abort; 
+					// 0- normal (through angular repres.);
+					// 1- prop. to waist;
+					// 2- prop. from waist
+					// 3- prop. without quad. phase term
+	//OC01102019 (moved to srTDriftSpace)
+	//char AnalytTreatSubType; //OC24042013
+
 	srTDriftPropBufVars()
 	{
 		UnderSamplingX = UnderSamplingZ = 1.;
-		UseExactRxRzForAnalytTreatQuadPhaseTerm = false;
-		AnalytTreatSubType = 0;
+		//UseExactRxRzForAnalytTreatQuadPhaseTerm = false; //OC01102019 (moved to srTDriftSpace)
+		//AnalytTreatSubType = 0; //OC01102019 (moved to srTDriftSpace)
 	}
 };
 
@@ -58,28 +72,39 @@ class srTDriftSpace : public srTGenOptElem {
 
 	char AllowPropToWaist; // To remove
 
+	//OC01102019 (restored) //OC06092019 (commented-out)
 	char LocalPropMode; // -1- abort; 
 						// 0- normal (through angular repres.);
 						// 1- prop. to waist;
 						// 2- prop. from waist
 						// 3- prop. without quad. phase term
+	
+	char AnalytTreatSubType; //OC01102019 (restored) 
+	bool UseExactRxRzForAnalytTreatQuadPhaseTerm; //OC01102019 (restored) 
+
 	//srTDriftPropBufVars PropBufVars;
+	
 	char TreatPath; // switch specifying whether the absolute optical path should be taken into account in radiation phase (=1) or not (=0, default)
 
 public:
 	double Length;
-	srTDriftPropBufVars PropBufVars;
+	//OC06092019 (commented-out)
+	//srTDriftPropBufVars PropBufVars;
 
 	srTDriftSpace(double InLength =0., char InTreatPath =0) 
 	{ 
 		Length = InLength;
 		TreatPath = InTreatPath; //OC010813
 		AllowPropToWaist = 1; // To switch
+		AnalytTreatSubType = 0; //OC01102019 (moved to srTDriftSpace)
+		UseExactRxRzForAnalytTreatQuadPhaseTerm = false; //OC01102019 (moved to srTDriftSpace)
 	}
 	srTDriftSpace(srTStringVect* pElemInfo) 
 	{ 
 		Length = atof((*pElemInfo)[1]);
 		AllowPropToWaist = 1; // To switch
+		AnalytTreatSubType = 0; //OC01102019 (moved to srTDriftSpace)
+		UseExactRxRzForAnalytTreatQuadPhaseTerm = false; //OC01102019 (moved to srTDriftSpace)
 	}
 
 	//int PropagateRadiation(srTSRWRadStructAccessData* pRadAccessData, int MethNo, srTRadResizeVect& ResizeBeforeAndAfterVect)
@@ -90,8 +115,18 @@ public:
 		//get_walltime(&start);
 
 		int result = 0;
-		
-		ChooseLocalPropMode(pRadAccessData, ParPrecWfrPropag);
+		//srTDriftPropBufVars BufVars; //OC06092019
+		//BufVars.LocalPropMode = ChooseLocalPropMode(pRadAccessData, ParPrecWfrPropag, BufVars.AnalytTreatSubType); //OC06092019
+		//OC01102019
+		LocalPropMode = ChooseLocalPropMode(pRadAccessData, ParPrecWfrPropag, AnalytTreatSubType);
+
+		//BufVars.UseExactRxRzForAnalytTreatQuadPhaseTerm = (bool)(ParPrecWfrPropag.UseExactRxRzForAnalytTreatQuadPhaseTerm); //OC06092019
+		//OC01102019
+		UseExactRxRzForAnalytTreatQuadPhaseTerm = (bool)(ParPrecWfrPropag.UseExactRxRzForAnalytTreatQuadPhaseTerm);
+		//ChooseLocalPropMode(pRadAccessData, ParPrecWfrPropag);
+
+		//if(BufVars.LocalPropMode == -1) //OC06092019
+		//OC01102019 (restored)
 		if(LocalPropMode == -1)
 		{
 			double GoodNx = pRadAccessData->nx*pRadAccessData->UnderSamplingX;
@@ -99,6 +134,8 @@ public:
 
 			if(result = TryToRemoveUndersamplingByResizing(pRadAccessData)) return result;
 			if(pRadAccessData->ThereIsUnderSamplingX() || pRadAccessData->ThereIsUnderSamplingZ()) return PROP_CAN_NOT_BE_DONE_DUE_TO_MEMORY_LIMIT;
+			//else BufVars.LocalPropMode = 0; //OC06092019
+			//OC01102019 (restored)
 			else LocalPropMode = 0;
 
 			if((GoodNx*0.7 > double(pRadAccessData->nx)) || (GoodNz*0.7 > double(pRadAccessData->nz)))
@@ -119,6 +156,8 @@ public:
 
 		char &MethNo = ParPrecWfrPropag.MethNo;
 
+		//if(MethNo == 0) result = PropagateRadiationMeth_0(pRadAccessData, &BufVars); //OC06092019
+		//OC01102019 (restored)
 		if(MethNo == 0) result = PropagateRadiationMeth_0(pRadAccessData);
 		else if(MethNo == 1) result = PropagateRadiationMeth_1(pRadAccessData);
 		else if(MethNo == 2) result = PropagateRadiationMeth_2(pRadAccessData, ParPrecWfrPropag, ResizeBeforeAndAfterVect);
@@ -133,9 +172,13 @@ public:
 	}
 
 	//int PropagateRadiationMeth_0(srTSRWRadStructAccessData* pRadAccessData)
+	//int PropagateRadiationSingleE_Meth_0(srTSRWRadStructAccessData* pRadAccessData, srTSRWRadStructAccessData* pPrevRadAccessData, void* pBuf=0) //OC06092019
+	//OC01102019 (restored)
 	int PropagateRadiationSingleE_Meth_0(srTSRWRadStructAccessData* pRadAccessData, srTSRWRadStructAccessData* pPrevRadAccessData)
 	{//it works for many photon energies too!
 		int result;
+		//if(result = PropagateRadiationSimple(pRadAccessData, pBuf)) return result; //OC06092019
+		//OC01102019 (restored)
 		if(result = PropagateRadiationSimple(pRadAccessData)) return result;
 		if(result = PropagateRadMoments(pRadAccessData, 0)) return result;
 		if(result = PropagateWaveFrontRadius(pRadAccessData)) return result;
@@ -143,21 +186,32 @@ public:
 		return 0;
 	}
 
+	//int PropagateRadiationMeth_0(srTSRWRadStructAccessData* pRadAccessData, void* pBuf) //OC06092019
+	//OC01102019 (restored)
 	int PropagateRadiationMeth_0(srTSRWRadStructAccessData* pRadAccessData) //virtual in srTGenOptElem
 	{//because for the Drift, the following works for many photon energies too!
 		//return PropagateRadiationSingleE_Meth_0(pRadAccessData, 0);
 		//OC251214
+		//if((LocalPropMode == 0) || (LocalPropMode == 3) || (pRadAccessData->ne == 1)) return PropagateRadiationSingleE_Meth_0(pRadAccessData, 0);
+
+		//srTDriftPropBufVars* pBufVars = (srTDriftPropBufVars*)pBuf; //OC06092019
+		//if((pBufVars->LocalPropMode == 0) || (pBufVars->LocalPropMode == 3) || (pRadAccessData->ne == 1)) return PropagateRadiationSingleE_Meth_0(pRadAccessData, 0, pBuf); //OC06092019
+		//OC01102019 (restored)
 		if((LocalPropMode == 0) || (LocalPropMode == 3) || (pRadAccessData->ne == 1)) return PropagateRadiationSingleE_Meth_0(pRadAccessData, 0);
 		else
 		{
 			pRadAccessData->SetNonZeroWavefrontLimitsToFullRange();
-			return srTGenOptElem::PropagateRadiationMeth_0(pRadAccessData); //since (LocalPropMode == 1) and (LocalPropMode == 2) - propagation to/from waist introduces some dispersion and can potentially modify mesh
+			//return srTGenOptElem::PropagateRadiationMeth_0(pRadAccessData, pBuf); //OC06092019
+			//OC01102019 (restored)
+			return srTGenOptElem::PropagateRadiationMeth_0(pRadAccessData);
+			//return srTGenOptElem::PropagateRadiationMeth_0(pRadAccessData); //since (LocalPropMode == 1) and (LocalPropMode == 2) - propagation to/from waist introduces some dispersion and can potentially modify mesh
 		}
 	}
 
 	int PropagateRadiationMeth_1(srTSRWRadStructAccessData*);
 
-	void ChooseLocalPropMode(srTSRWRadStructAccessData* pRadAccessData, srTParPrecWfrPropag& ParPrecWfrPropag)
+	char ChooseLocalPropMode(srTSRWRadStructAccessData* pRadAccessData, srTParPrecWfrPropag& ParPrecWfrPropag, char& AnalTreatMode) //OC06092019
+	//void ChooseLocalPropMode(srTSRWRadStructAccessData* pRadAccessData, srTParPrecWfrPropag& ParPrecWfrPropag)
 	{
 		//OC test
 		//	LocalPropMode = 3; return;
@@ -196,18 +250,26 @@ public:
 		}
 **/
 
-		LocalPropMode = 0; // Normal, through ang. repres.
+		//LocalPropMode = 0; // Normal, through ang. repres.
+		char LocalPropMode = 0; //OC06092019
+		AnalTreatMode = 0;//OC06092019
 
 		//OC240114
 		if((ParPrecWfrPropag.AnalTreatment == 1) || (ParPrecWfrPropag.AnalTreatment == 2)) 
 		{
-			LocalPropMode = 3; PropBufVars.AnalytTreatSubType = ParPrecWfrPropag.AnalTreatment;
+			LocalPropMode = 3; 
+			//PropBufVars.AnalytTreatSubType = ParPrecWfrPropag.AnalTreatment;
+			AnalTreatMode = ParPrecWfrPropag.AnalTreatment; //OC06092019
 		}
 		else if(ParPrecWfrPropag.AnalTreatment == 3) LocalPropMode = 2; //Propagation From Waist
 		else if(ParPrecWfrPropag.AnalTreatment == 4) LocalPropMode = 1; //Propagation To Waist
 
+		else if(ParPrecWfrPropag.AnalTreatment == 5) LocalPropMode = 11; //Propagation To Waist Beyond Paraxial Approximation //OC10112019
+
 		//OC100914 Aux. methods for testing / benchmarking
 		else if(ParPrecWfrPropag.AnalTreatment >= 100) LocalPropMode = 100; //Propagation To Waist
+
+		return LocalPropMode; //OC06092019
 	}
 
 	int PropToWaistCanBeApplied(srTSRWRadStructAccessData* pRadAccessData)
@@ -239,18 +301,33 @@ public:
 		return (HorRadOK && VertRadOK);
 	}
 
+	//int PropagateRadiationSimple(srTSRWRadStructAccessData* pRadAccessData, void* pBuf=0) //OC06092019
+	//OC01102019 (restored)
 	int PropagateRadiationSimple(srTSRWRadStructAccessData* pRadAccessData)
 	{
+		//srTDriftPropBufVars* pBufVars = (srTDriftPropBufVars*)pBuf; //OC06092019
+		//char LocalPropMode = pBufVars->LocalPropMode; //OC06092019
+		//OC01102019 (commented-out / restored)
+
 		if(LocalPropMode == 0) return PropagateRadiationSimple_AngRepres(pRadAccessData);
+		//OC01102019 (restored)
 		else if(LocalPropMode == 1) return PropagateRadiationSimple_PropToWaist(pRadAccessData);
+
+		else if(LocalPropMode == 11) return PropagateRadiationSimple_PropToWaistBeyondParax(pRadAccessData); //OC10112019
+
 		else if(LocalPropMode == 2) return PropagateRadiationSimple_PropFromWaist(pRadAccessData); //OC240114 (added)
 		else if(LocalPropMode == 3) return PropagateRadiationSimple_AnalytTreatQuadPhaseTerm(pRadAccessData);
+		//OC06092019
+		//else if(LocalPropMode == 1) return PropagateRadiationSimple_PropToWaist(pRadAccessData, pBufVars);
+		//else if(LocalPropMode == 2) return PropagateRadiationSimple_PropFromWaist(pRadAccessData, pBufVars); //OC240114 (added)
+		//else if(LocalPropMode == 3) return PropagateRadiationSimple_AnalytTreatQuadPhaseTerm(pRadAccessData, pBufVars);
 
 		//OC100914 Aux. methods for testing / benchmarking
 		else if(LocalPropMode == 100) return PropagateRadiationSimple_NumIntFresnel(pRadAccessData);
 
 		else return 0;
 	}
+
 	int PropagateRadiationSimple_AngRepres(srTSRWRadStructAccessData* pRadAccessData)
 	{
 		//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
@@ -310,14 +387,31 @@ public:
 
 		return 0;
 	}
+
+	//OC01102019 (restored)
 	int PropagateRadiationSimple_PropToWaist(srTSRWRadStructAccessData* pRadAccessData);
+	int PropagateRadiationSimple_PropToWaistBeyondParax(srTSRWRadStructAccessData* pRadAccessData); //OC10112019
+
 	int PropagateRadiationSimple_PropFromWaist(srTSRWRadStructAccessData* pRadAccessData);
 	int PropagateRadiationSimple_AnalytTreatQuadPhaseTerm(srTSRWRadStructAccessData* pRadAccessData);
+	//OC06092019
+	//int PropagateRadiationSimple_PropToWaist(srTSRWRadStructAccessData* pRadAccessData, srTDriftPropBufVars* pBufVars=0);
+	//int PropagateRadiationSimple_PropFromWaist(srTSRWRadStructAccessData* pRadAccessData, srTDriftPropBufVars* pBufVars=0);
+	//int PropagateRadiationSimple_AnalytTreatQuadPhaseTerm(srTSRWRadStructAccessData* pRadAccessData, srTDriftPropBufVars* pBufVars=0);
+
 	int PropagateRadiationSimple_NumIntFresnel(srTSRWRadStructAccessData* pRadAccessData); //OC100914 Aux. method for testing / benchmarking
 
+	//int PropagateRadiationSimple1D(srTRadSect1D* pSect1D, void* pBuf=0) //OC06092019
+	//OC01102019 (restored)
 	int PropagateRadiationSimple1D(srTRadSect1D* pSect1D)
 	{
+		//srTDriftPropBufVars* pBufVars = (srTDriftPropBufVars*)pBuf; //OC06092019
+		//char LocalPropMode = pBufVars->LocalPropMode; //OC06092019
+		//OC01102019 (commented-out / restored)
+
 		if(LocalPropMode == 0) return PropagateRadiationSimple1D_AngRepres(pSect1D);
+		//else if(LocalPropMode == 1) return PropagateRadiationSimple1D_PropToWaist(pSect1D, pBufVars); //OC06092019
+		//OC01102019 (restored)
 		else if(LocalPropMode == 1) return PropagateRadiationSimple1D_PropToWaist(pSect1D);
 		else return 0;
 	}
@@ -342,6 +436,9 @@ public:
 		pSect1D->SetNonZeroWavefrontLimitsToFullRange();
 		return 0;
 	}
+
+	//int PropagateRadiationSimple1D_PropToWaist(srTRadSect1D* pSect1D, srTDriftPropBufVars* pBufVars=0); //OC06092019
+	//OC01102019 (restored)
 	int PropagateRadiationSimple1D_PropToWaist(srTRadSect1D* pSect1D);
 
 	int ResizeBeforePropToWaistIfNecessary(srTSRWRadStructAccessData* pRadAccessData);
@@ -352,30 +449,63 @@ public:
 	//void CheckAndSubtractPhaseTermsLin(srTSRWRadStructAccessData* pRadAccessData);
 	//void CheckAndResetPhaseTermsLin(srTSRWRadStructAccessData* pRadAccessData);
 	
-	void SetupPropBufVars_PropToWaist(srTSRWRadStructAccessData* pRadAccessData)
+	void SetupPropBufVars_PropToWaist(srTSRWRadStructAccessData* pRadAccessData, srTDriftPropBufVars* pBufVars) //OC29082019
+	//void SetupPropBufVars_PropToWaist(srTSRWRadStructAccessData* pRadAccessData)
 	{// Compute any buf. vars for Stat. Phase propagation in PropStatPhaseBufVars
-		PropBufVars.InvLength = 1./Length;
+		//PropBufVars.InvLength = 1./Length;
+		//double Pi_d_LambdaM = pRadAccessData->eStart*2.53384080189E+06;
+		//PropBufVars.Pi_d_LambdaM_d_Length = Pi_d_LambdaM*(PropBufVars.InvLength);
+		//PropBufVars.InvLength_d_Lambda = PropBufVars.InvLength*pRadAccessData->eStart*806546.577258;
+		//PropBufVars.xc = pRadAccessData->xc;
+		//PropBufVars.zc = pRadAccessData->zc;
+		//PropBufVars.ExtraConstPhase = Pi_d_LambdaM*(pRadAccessData->xc*pRadAccessData->xc/pRadAccessData->RobsX 
+		//										  + pRadAccessData->zc*pRadAccessData->zc/pRadAccessData->RobsZ);
+		//double TwoPi_d_LambdaM = 2.*Pi_d_LambdaM;
+		//PropBufVars.TwoPiXc_d_LambdaMRx = TwoPi_d_LambdaM*pRadAccessData->xc/pRadAccessData->RobsX;
+		//PropBufVars.TwoPiZc_d_LambdaMRz = TwoPi_d_LambdaM*pRadAccessData->zc/pRadAccessData->RobsZ;
+		//OC29082019
+		pBufVars->InvLength = 1./Length;
 		double Pi_d_LambdaM = pRadAccessData->eStart*2.53384080189E+06;
-		PropBufVars.Pi_d_LambdaM_d_Length = Pi_d_LambdaM*(PropBufVars.InvLength);
-		PropBufVars.InvLength_d_Lambda = PropBufVars.InvLength*pRadAccessData->eStart*806546.577258;
-		PropBufVars.xc = pRadAccessData->xc;
-		PropBufVars.zc = pRadAccessData->zc;
-		PropBufVars.ExtraConstPhase = Pi_d_LambdaM*(pRadAccessData->xc*pRadAccessData->xc/pRadAccessData->RobsX 
-												  + pRadAccessData->zc*pRadAccessData->zc/pRadAccessData->RobsZ);
-
+		pBufVars->Pi_d_LambdaM_d_Length = Pi_d_LambdaM*(pBufVars->InvLength);
+		pBufVars->InvLength_d_Lambda = (pBufVars->InvLength)*(pRadAccessData->eStart)*806546.577258;
+		pBufVars->xc = pRadAccessData->xc;
+		pBufVars->zc = pRadAccessData->zc;
+		pBufVars->ExtraConstPhase = Pi_d_LambdaM*(pRadAccessData->xc*pRadAccessData->xc/pRadAccessData->RobsX + pRadAccessData->zc*pRadAccessData->zc/pRadAccessData->RobsZ);
 		double TwoPi_d_LambdaM = 2.*Pi_d_LambdaM;
-		PropBufVars.TwoPiXc_d_LambdaMRx = TwoPi_d_LambdaM*pRadAccessData->xc/pRadAccessData->RobsX;
-		PropBufVars.TwoPiZc_d_LambdaMRz = TwoPi_d_LambdaM*pRadAccessData->zc/pRadAccessData->RobsZ;
+		pBufVars->TwoPiXc_d_LambdaMRx = TwoPi_d_LambdaM*pRadAccessData->xc/pRadAccessData->RobsX;
+		pBufVars->TwoPiZc_d_LambdaMRz = TwoPi_d_LambdaM*pRadAccessData->zc/pRadAccessData->RobsZ;
 
 		// Continue for more buf vars
 	}
 
-	void SetupPropBufVars_PropFromWaist(srTSRWRadStructAccessData* pRadAccessData)
+	void SetupPropBufVars_PropToWaistBeyondParax(srTSRWRadStructAccessData* pRadAccessData, srTDriftPropBufVars* pBufVars) //OC10112019
+	{
+		pBufVars->sqrtAbsRxRz = sqrt(::fabs((pRadAccessData->RobsX)*(pRadAccessData->RobsZ)));
+
+		int sgnRx = (pRadAccessData->RobsX >= 0)? 1 : -1;
+		int sgnRz = (pRadAccessData->RobsZ >= 0)? 1 : -1;
+		pBufVars->dPhaseSignR = 0.7853981633974483*(sgnRx + sgnRz);
+
+		double Pi_MultLambdaM = 3.141592653589793*1.239842e-06; //to be divided by EXZ.e;
+		pBufVars->Pi_MultLambdaM_Rx = Pi_MultLambdaM*(pRadAccessData->RobsX);
+		pBufVars->Pi_MultLambdaM_Rz = Pi_MultLambdaM*(pRadAccessData->RobsZ);
+
+		//double Pi_d_LambdaM = pRadAccessData->eStart*2.53384080189E+06;
+
+		pBufVars->MultEn_TwoPi_L_d_LambdaM = 2.*2.53384080189E+06*Length; //to be multiplied by EXZ.e
+	}
+
+	void SetupPropBufVars_PropFromWaist(srTSRWRadStructAccessData* pRadAccessData, srTDriftPropBufVars* pBufVars) //OC30082019
+	//void SetupPropBufVars_PropFromWaist(srTSRWRadStructAccessData* pRadAccessData)
 	{// Compute any buf. vars for Stat. Phase propagation in PropStatPhaseBufVars
-		PropBufVars.InvLength = 1./Length;
+		pBufVars->InvLength = 1./Length; //OC30082019
+		//PropBufVars.InvLength = 1./Length;
 		double Pi_d_LambdaM = pRadAccessData->eStart*2.53384080189E+06;
-		PropBufVars.Pi_d_LambdaM_d_Length = Pi_d_LambdaM*(PropBufVars.InvLength);
-		PropBufVars.InvLength_d_Lambda = PropBufVars.InvLength*pRadAccessData->eStart*806546.577258;
+		//PropBufVars.Pi_d_LambdaM_d_Length = Pi_d_LambdaM*(PropBufVars.InvLength);
+		//PropBufVars.InvLength_d_Lambda = PropBufVars.InvLength*pRadAccessData->eStart*806546.577258;
+		//OC30082019
+		pBufVars->Pi_d_LambdaM_d_Length = Pi_d_LambdaM*(pBufVars->InvLength);
+		pBufVars->InvLength_d_Lambda = (pBufVars->InvLength)*(pRadAccessData->eStart)*806546.577258;
 
 		//PropBufVars.xc = pRadAccessData->xc;
 		//PropBufVars.zc = pRadAccessData->zc;
@@ -389,19 +519,25 @@ public:
 		// Continue for more buf vars
 	}
 
-	void SetupPropBufVars_AnalytTreatQuadPhaseTerm(srTSRWRadStructAccessData* pRadAccessData);
+	void SetupPropBufVars_AnalytTreatQuadPhaseTerm(srTSRWRadStructAccessData* pRadAccessData, srTDriftPropBufVars* pBufVars); //OC29082019
+	//void SetupPropBufVars_AnalytTreatQuadPhaseTerm(srTSRWRadStructAccessData* pRadAccessData);
 	void EstimateTrueWfrRadAndMaxLeff_AnalytTreatQuadPhaseTerm(srTSRWRadStructAccessData* pRadAccessData, double& trueRx, double& trueRz, double& Lx_eff_max, double& Lz_eff_max);
 	void EstimateWfrRadToSub_AnalytTreatQuadPhaseTerm(srTSRWRadStructAccessData* pRadAccessData, double& effRx, double& effRz);
 	void EstimateWfrRadToSub2_AnalytTreatQuadPhaseTerm(srTSRWRadStructAccessData* pRadAccessData, double& effRx, double& effRz);
 
-	void SetupPropBufVars_PropToWaist(srTRadSect1D* pSect1D)
+	void SetupPropBufVars_PropToWaist(srTRadSect1D* pSect1D, srTDriftPropBufVars* pBufVars) //OC06092019
+	//void SetupPropBufVars_PropToWaist(srTRadSect1D* pSect1D)
 	{// Compute any buf. vars for Stat. Phase propagation in PropStatPhaseBufVars
-		PropBufVars.InvLength = 1./Length;
+		pBufVars->InvLength = 1./Length; //OC06092019
+		//PropBufVars.InvLength = 1./Length;
 		double Pi_d_LambdaM = pSect1D->eVal*2.53384080189E+06;
-		PropBufVars.Pi_d_LambdaM_d_Length = Pi_d_LambdaM*(PropBufVars.InvLength);
-		PropBufVars.InvLength_d_Lambda = PropBufVars.InvLength*pSect1D->eVal*806546.577258;
+		pBufVars->Pi_d_LambdaM_d_Length = Pi_d_LambdaM*(pBufVars->InvLength); //OC06092019
+		pBufVars->InvLength_d_Lambda = (pBufVars->InvLength)*(pSect1D->eVal)*806546.577258; //OC06092019
+		//PropBufVars.Pi_d_LambdaM_d_Length = Pi_d_LambdaM*(PropBufVars.InvLength);
+		//PropBufVars.InvLength_d_Lambda = PropBufVars.InvLength*pSect1D->eVal*806546.577258;
 		double TwoPi_d_LambdaM = 2.*Pi_d_LambdaM;
-		PropBufVars.TwoPiXc_d_LambdaMRx = TwoPi_d_LambdaM*pSect1D->cArg/pSect1D->Robs;
+		pBufVars->TwoPiXc_d_LambdaMRx = TwoPi_d_LambdaM*(pSect1D->cArg)/(pSect1D->Robs);
+		//PropBufVars.TwoPiXc_d_LambdaMRx = TwoPi_d_LambdaM*pSect1D->cArg/pSect1D->Robs;
 
 		// Continue for more buf vars
 	}
@@ -414,13 +550,23 @@ public:
 	}
 	int TuneRadForPropMeth_1(srTSRWRadStructAccessData*, srTRadResize&);
 
-	void RadPointModifier(srTEXZ& EXZ, srTEFieldPtrs& EPtrs)
+	void RadPointModifier(srTEXZ& EXZ, srTEFieldPtrs& EPtrs, void* pBuf=0) //OC29082019
+	//void RadPointModifier(srTEXZ& EXZ, srTEFieldPtrs& EPtrs)
 	{
+		srTDriftPropBufVars* pBufVars = (srTDriftPropBufVars*)pBuf;
+		//char LocalPropMode = pBufVars->LocalPropMode;
+		//OC01102019 (commented-out)
+
 		if(LocalPropMode == 0) { RadPointModifier_AngRepres(EXZ, EPtrs); return;}
-		else if(LocalPropMode == 1) { RadPointModifier_PropToWaist(EXZ, EPtrs); return;}
-		else if(LocalPropMode == 2) { RadPointModifier_PropFromWaist(EXZ, EPtrs); return;}
-		else if(LocalPropMode == 3) { RadPointModifier_AnalytTreatQuadPhaseTerm(EXZ, EPtrs); return;}
+		else if(LocalPropMode == 1) { RadPointModifier_PropToWaist(EXZ, EPtrs, pBufVars); return;} //OC06092019
+		else if(LocalPropMode == 11) { RadPointModifier_PropToWaistBeyondParax(EXZ, EPtrs, pBufVars); return;} //OC10112019
+
+		else if(LocalPropMode == 2) { RadPointModifier_PropFromWaist(EXZ, EPtrs, pBufVars); return;} //OC06092019
+		//else if(LocalPropMode == 2) { RadPointModifier_PropFromWaist(EXZ, EPtrs); return;}
+		else if(LocalPropMode == 3) { RadPointModifier_AnalytTreatQuadPhaseTerm(EXZ, EPtrs, pBufVars); return;} //OC06092019
+		//else if(LocalPropMode == 3) { RadPointModifier_AnalytTreatQuadPhaseTerm(EXZ, EPtrs); return;}
 	}
+
 	void RadPointModifier_AngRepres(srTEXZ& EXZ, srTEFieldPtrs& EPtrs)
 	{// e in eV; Length in m !!!
 	 // Operates on Angles side !!!
@@ -429,7 +575,9 @@ public:
 		double c0 = -3.1415926536*Length*Lambda_m, c1 = 0.25*Lambda_m*Lambda_m;
 		double qx2_p_qz2 = EXZ.x*EXZ.x + EXZ.z*EXZ.z;
 		double c1qx2_p_qz2 = c1*qx2_p_qz2;
-		double PhaseShift = c0*qx2_p_qz2*(1. + c1qx2_p_qz2 + c1qx2_p_qz2*c1qx2_p_qz2);
+		double PhaseShift = c0*qx2_p_qz2*(1. + c1qx2_p_qz2 + 2.*c1qx2_p_qz2*c1qx2_p_qz2); //OC23062019
+		//OC23062019: consider changing to: PhaseShift = k*L*sqrt(1 - lambda^2*(qx^2 + qy^2))
+		//double PhaseShift = c0*qx2_p_qz2*(1. + c1qx2_p_qz2 + c1qx2_p_qz2*c1qx2_p_qz2);
 
 		////double ConstPhaseShift = 6.2831853071795*Length/Lambda_m;
 		////PhaseShift += ConstPhaseShift; //may be necessary for 3D wavefronts?
@@ -448,11 +596,15 @@ public:
 		float NewEzIm = (*(EPtrs.pEzRe))*SinPh + (*(EPtrs.pEzIm))*CosPh;
 		*(EPtrs.pEzRe) = NewEzRe; *(EPtrs.pEzIm) = NewEzIm; 
 	}
-	void RadPointModifier_PropToWaist(srTEXZ& EXZ, srTEFieldPtrs& EPtrs)
+
+	void RadPointModifier_PropToWaist(srTEXZ& EXZ, srTEFieldPtrs& EPtrs, srTDriftPropBufVars* pBufVars) //OC29082019
+	//void RadPointModifier_PropToWaist(srTEXZ& EXZ, srTEFieldPtrs& EPtrs)
 	{
 		double rx = EXZ.x, rz = EXZ.z;
-		double PhaseShift = PropBufVars.Pi_d_LambdaM_d_Length*(rx*rx + rz*rz);
+		double PhaseShift = (pBufVars->Pi_d_LambdaM_d_Length)*(rx*rx + rz*rz); //OC29082019
+		//double PhaseShift = PropBufVars.Pi_d_LambdaM_d_Length*(rx*rx + rz*rz);
 
+		//OCTEST
 		//if(PropBufVars.PassNo == 3) 
 		//{
 		//	//if(*(EPtrs.pExRe) != 0)
@@ -462,9 +614,11 @@ public:
 		//	return;
 		//}
 
-		if(PropBufVars.PassNo == 1) 
+		if(pBufVars->PassNo == 1) //OC29082019
+		//if(PropBufVars.PassNo == 1) 
 		{
-			PhaseShift += PropBufVars.TwoPiXc_d_LambdaMRx*rx + PropBufVars.TwoPiZc_d_LambdaMRz*rz;
+			PhaseShift += (pBufVars->TwoPiXc_d_LambdaMRx)*rx + (pBufVars->TwoPiZc_d_LambdaMRz)*rz; //OC29082019
+			//PhaseShift += PropBufVars.TwoPiXc_d_LambdaMRx*rx + PropBufVars.TwoPiZc_d_LambdaMRz*rz;
 
 			if(TreatPath == 1) //OC010813
 			{//??
@@ -487,21 +641,64 @@ public:
 		float NewEzIm = (*(EPtrs.pEzRe))*SinPh + (*(EPtrs.pEzIm))*CosPh;
 		*(EPtrs.pEzRe) = NewEzRe; *(EPtrs.pEzIm) = NewEzIm; 
 		
-		if(PropBufVars.PassNo == 2)
+		if(pBufVars->PassNo == 2) //OC29082019
+		//if(PropBufVars.PassNo == 2)
 		{
-			NewExRe = (float)((*(EPtrs.pExRe))*PropBufVars.InvLength_d_Lambda);
-			NewExIm = (float)((*(EPtrs.pExIm))*PropBufVars.InvLength_d_Lambda);
-			NewEzRe = (float)((*(EPtrs.pEzRe))*PropBufVars.InvLength_d_Lambda); 
-			NewEzIm = (float)((*(EPtrs.pEzIm))*PropBufVars.InvLength_d_Lambda); 
-			
+			//NewExRe = (float)((*(EPtrs.pExRe))*PropBufVars.InvLength_d_Lambda);
+			//NewExIm = (float)((*(EPtrs.pExIm))*PropBufVars.InvLength_d_Lambda);
+			//NewEzRe = (float)((*(EPtrs.pEzRe))*PropBufVars.InvLength_d_Lambda); 
+			//NewEzIm = (float)((*(EPtrs.pEzIm))*PropBufVars.InvLength_d_Lambda); 
+			//OC29082019
+			NewExRe = (float)((*(EPtrs.pExRe))*(pBufVars->InvLength_d_Lambda));
+			NewExIm = (float)((*(EPtrs.pExIm))*(pBufVars->InvLength_d_Lambda));
+			NewEzRe = (float)((*(EPtrs.pEzRe))*(pBufVars->InvLength_d_Lambda)); 
+			NewEzIm = (float)((*(EPtrs.pEzIm))*(pBufVars->InvLength_d_Lambda)); 
+
 			*(EPtrs.pExRe) = NewExIm; *(EPtrs.pExIm) = -NewExRe;
 			*(EPtrs.pEzRe) = NewEzIm; *(EPtrs.pEzIm) = -NewEzRe;
 		}
 	}
-	void RadPointModifier_PropFromWaist(srTEXZ& EXZ, srTEFieldPtrs& EPtrs)
+
+	void RadPointModifier_PropToWaistBeyondParax(srTEXZ& EXZ, srTEFieldPtrs& EPtrs, srTDriftPropBufVars* pBufVars) //OC10112019
 	{
 		double rx = EXZ.x, rz = EXZ.z;
-		double PhaseShift = PropBufVars.Pi_d_LambdaM_d_Length*(rx*rx + rz*rz);
+		double PhaseShift = -((pBufVars->Pi_MultLambdaM_Rx)*rx*rx + (pBufVars->Pi_MultLambdaM_Rz)*rz*rz)/EXZ.e;
+
+		double kL = (pBufVars->MultEn_TwoPi_L_d_LambdaM)*EXZ.e; //2*Pi*L/LambdaM
+		double LambdaM = 1.239842e-06/EXZ.e;
+		double LambQx = LambdaM*rx, LambQz = LambdaM*rz;
+		double Mi_ThetaXe2_p_ThetaZe2 = -(LambQx*LambQx + LambQz*LambQz);
+		
+		if(TreatPath == 1) //add i*k*L
+		{
+			PhaseShift += kL*(CGenMathMeth::radicalOnePlusSmall(Mi_ThetaXe2_p_ThetaZe2));
+		}
+		else
+		{
+			PhaseShift += kL*(CGenMathMeth::radicalOnePlusSmallMinusOne(Mi_ThetaXe2_p_ThetaZe2));
+		}
+
+		PhaseShift += pBufVars->dPhaseSignR;
+
+		float CosPh, SinPh; CosAndSin(PhaseShift, CosPh, SinPh);
+		double Lamb_sqrtAbsRxRz = LambdaM*(pBufVars->sqrtAbsRxRz);
+		float multCosPh = (float)(Lamb_sqrtAbsRxRz*CosPh);
+		float multSinPh = (float)(Lamb_sqrtAbsRxRz*SinPh);
+
+		float NewExRe = (*(EPtrs.pExRe))*multCosPh - (*(EPtrs.pExIm))*multSinPh;
+		float NewExIm = (*(EPtrs.pExRe))*multSinPh + (*(EPtrs.pExIm))*multCosPh;
+		*(EPtrs.pExRe) = NewExRe; *(EPtrs.pExIm) = NewExIm; 
+		float NewEzRe = (*(EPtrs.pEzRe))*multCosPh - (*(EPtrs.pEzIm))*multSinPh;
+		float NewEzIm = (*(EPtrs.pEzRe))*multSinPh + (*(EPtrs.pEzIm))*multCosPh;
+		*(EPtrs.pEzRe) = NewEzRe; *(EPtrs.pEzIm) = NewEzIm; 
+	}
+
+	void RadPointModifier_PropFromWaist(srTEXZ& EXZ, srTEFieldPtrs& EPtrs, srTDriftPropBufVars* pBufVars) //OC30082019
+	//void RadPointModifier_PropFromWaist(srTEXZ& EXZ, srTEFieldPtrs& EPtrs)
+	{
+		double rx = EXZ.x, rz = EXZ.z;
+		double PhaseShift = (pBufVars->Pi_d_LambdaM_d_Length)*(rx*rx + rz*rz); //OC30082019
+		//double PhaseShift = PropBufVars.Pi_d_LambdaM_d_Length*(rx*rx + rz*rz);
 
 		////double Lambda_m = 1.239842e-06/EXZ.e;
 		////double ConstPhaseShift = 6.2831853071795*Length/Lambda_m;
@@ -509,7 +706,8 @@ public:
 
 		if(TreatPath == 1) //OC010813
 		{
-			if(PropBufVars.PassNo == 2)//??
+			if(pBufVars->PassNo == 2) //OC30082019
+			//if(PropBufVars.PassNo == 2)//??
 			{
 				PhaseShift += (5.067730652e+06)*Length*EXZ.e;
 				//+= 6.2831853072*Length/Lambda_m;
@@ -525,46 +723,62 @@ public:
 		float NewEzIm = (*(EPtrs.pEzRe))*SinPh + (*(EPtrs.pEzIm))*CosPh;
 		*(EPtrs.pEzRe) = NewEzRe; *(EPtrs.pEzIm) = NewEzIm; 
 
-		if(PropBufVars.PassNo == 2)
+		if(pBufVars->PassNo == 2) //OC30082019
+		//if(PropBufVars.PassNo == 2)
 		{
-			NewExRe = (float)((*(EPtrs.pExRe))*PropBufVars.InvLength_d_Lambda);
-			NewExIm = (float)((*(EPtrs.pExIm))*PropBufVars.InvLength_d_Lambda);
-			NewEzRe = (float)((*(EPtrs.pEzRe))*PropBufVars.InvLength_d_Lambda); 
-			NewEzIm = (float)((*(EPtrs.pEzIm))*PropBufVars.InvLength_d_Lambda); 
-			
+			//NewExRe = (float)((*(EPtrs.pExRe))*PropBufVars.InvLength_d_Lambda);
+			//NewExIm = (float)((*(EPtrs.pExIm))*PropBufVars.InvLength_d_Lambda);
+			//NewEzRe = (float)((*(EPtrs.pEzRe))*PropBufVars.InvLength_d_Lambda); 
+			//NewEzIm = (float)((*(EPtrs.pEzIm))*PropBufVars.InvLength_d_Lambda); 
+			//OC30082019
+			NewExRe = (float)((*(EPtrs.pExRe))*(pBufVars->InvLength_d_Lambda));
+			NewExIm = (float)((*(EPtrs.pExIm))*(pBufVars->InvLength_d_Lambda));
+			NewEzRe = (float)((*(EPtrs.pEzRe))*(pBufVars->InvLength_d_Lambda)); 
+			NewEzIm = (float)((*(EPtrs.pEzIm))*(pBufVars->InvLength_d_Lambda)); 
 			*(EPtrs.pExRe) = NewExIm; *(EPtrs.pExIm) = -NewExRe;
 			*(EPtrs.pEzRe) = NewEzIm; *(EPtrs.pEzIm) = -NewEzRe;
 		}
 	}
-	void RadPointModifier_AnalytTreatQuadPhaseTerm(srTEXZ& EXZ, srTEFieldPtrs& EPtrs)
+
+	void RadPointModifier_AnalytTreatQuadPhaseTerm(srTEXZ& EXZ, srTEFieldPtrs& EPtrs, srTDriftPropBufVars* pBufVars) //OC30082019
+	//void RadPointModifier_AnalytTreatQuadPhaseTerm(srTEXZ& EXZ, srTEFieldPtrs& EPtrs)
 	{//don't use RobsX, RobsZ directly here!
 
 		double PhaseShift = 0;
 		//double Lambda_m = 1.239854e-06/EXZ.e;
 		double Lambda_m = 1.239842e-06/EXZ.e;
-		if(PropBufVars.PassNo == 1) //removing quad. term from the phase on coordinate side
+		if(pBufVars->PassNo == 1) //OC30082019
+		//if(PropBufVars.PassNo == 1) //removing quad. term from the phase on coordinate side
 		{
-			double rx = EXZ.x - PropBufVars.xc, rz = EXZ.z - PropBufVars.zc;
+			double rx = EXZ.x - pBufVars->xc, rz = EXZ.z - pBufVars->zc; //OC30082019
+			//double rx = EXZ.x - PropBufVars.xc, rz = EXZ.z - PropBufVars.zc;
 			double Pi_d_Lambda_m = 3.1415926536/Lambda_m;
-			PhaseShift = -Pi_d_Lambda_m*(PropBufVars.invRx*rx*rx + PropBufVars.invRz*rz*rz);
+			PhaseShift = -Pi_d_Lambda_m*((pBufVars->invRx)*rx*rx + (pBufVars->invRz)*rz*rz); //OC30082019
+			//PhaseShift = -Pi_d_Lambda_m*(PropBufVars.invRx*rx*rx + PropBufVars.invRz*rz*rz);
 		}
-		else if(PropBufVars.PassNo == 2) //loop on angular side
+		else if(pBufVars->PassNo == 2) //OC30082019
+		//else if(PropBufVars.PassNo == 2) //loop on angular side
 		{// e in eV; Length in m !!! Operates on Angles side !!!
 			double Pi_Lambda_m = 3.1415926536*Lambda_m;
-			double c0x = -Pi_Lambda_m*PropBufVars.Lx, c0z = -Pi_Lambda_m*PropBufVars.Lz; //c1 = 0.25*Lambda_m*Lambda_m;
+			double c0x = -Pi_Lambda_m*(pBufVars->Lx), c0z = -Pi_Lambda_m*(pBufVars->Lz); //OC30082019
+			//double c0x = -Pi_Lambda_m*PropBufVars.Lx, c0z = -Pi_Lambda_m*PropBufVars.Lz; //c1 = 0.25*Lambda_m*Lambda_m;
 			
 			//double c0 = -3.1415926536*Length*Lambda_m, c1 = 0.25*Lambda_m*Lambda_m;
 			//double qx2_p_qz2 = EXZ.x*EXZ.x + EXZ.z*EXZ.z;
 			//double c1qx2_p_qz2 = c1*qx2_p_qz2;
 			//double PhaseShift = c0*qx2_p_qz2*(1. + c1qx2_p_qz2 + c1qx2_p_qz2*c1qx2_p_qz2);
-			PhaseShift = c0x*EXZ.x*EXZ.x + c0z*EXZ.z*EXZ.z + PropBufVars.phase_term_signLxLz;
+			PhaseShift = c0x*EXZ.x*EXZ.x + c0z*EXZ.z*EXZ.z + pBufVars->phase_term_signLxLz; //OC30082019
+			//PhaseShift = c0x*EXZ.x*EXZ.x + c0z*EXZ.z*EXZ.z + PropBufVars.phase_term_signLxLz;
 		}
-		else if(PropBufVars.PassNo == 3) //adding new quad. term to the phase on coordinate side
+		else if(pBufVars->PassNo == 3) //OC30082019
+		//else if(PropBufVars.PassNo == 3) //adding new quad. term to the phase on coordinate side
 		{
-			double rx = EXZ.x - PropBufVars.xc, rz = EXZ.z - PropBufVars.zc;
+			double rx = EXZ.x - pBufVars->xc, rz = EXZ.z - pBufVars->zc; //OC30082019
+			//double rx = EXZ.x - PropBufVars.xc, rz = EXZ.z - PropBufVars.zc;
 			//double rx = EXZ.x /*- PropBufVars.xc*/, rz = EXZ.z; /*- PropBufVars.zc;*/
 			double Pi_d_Lambda_m = 3.1415926536/Lambda_m;
-			PhaseShift = Pi_d_Lambda_m*(PropBufVars.invRxL*rx*rx + PropBufVars.invRzL*rz*rz);
+			PhaseShift = Pi_d_Lambda_m*((pBufVars->invRxL)*rx*rx + (pBufVars->invRzL)*rz*rz); //OC30082019
+			//PhaseShift = Pi_d_Lambda_m*(PropBufVars.invRxL*rx*rx + PropBufVars.invRzL*rz*rz);
 
 			//OCTEST
 			//PhaseShift += 2*Pi_d_Lambda_m*Length; //may be necessary for 3D wavefronts?
@@ -581,9 +795,11 @@ public:
 		float NewEzRe = (*(EPtrs.pEzRe))*CosPh - (*(EPtrs.pEzIm))*SinPh;
 		float NewEzIm = (*(EPtrs.pEzRe))*SinPh + (*(EPtrs.pEzIm))*CosPh;
 
-		if(PropBufVars.PassNo == 2)
+		if(pBufVars->PassNo == 2) //OC30082019
+		//if(PropBufVars.PassNo == 2)
 		{
-			double& multL = PropBufVars.sqrt_LxLz_d_L;
+			double& multL = pBufVars->sqrt_LxLz_d_L; //OC30082019
+			//double& multL = PropBufVars.sqrt_LxLz_d_L;
 			//NewExRe *= multL;
 			//NewExIm *= multL;
 			//NewEzRe *= multL;
@@ -598,11 +814,18 @@ public:
 		*(EPtrs.pEzRe) = NewEzRe; *(EPtrs.pEzIm) = NewEzIm; 
 	}
 
-	void RadPointModifier1D(srTEXZ& EXZ, srTEFieldPtrs& EPtrs)
+	void RadPointModifier1D(srTEXZ& EXZ, srTEFieldPtrs& EPtrs, void* pBuf=0) //OC06092019
+	//void RadPointModifier1D(srTEXZ& EXZ, srTEFieldPtrs& EPtrs)
 	{
+		srTDriftPropBufVars* pBufVars = (srTDriftPropBufVars*)pBuf;
+		//char LocalPropMode = pBufVars->LocalPropMode; 
+		//OC01102019 (commented-out)
+
 		if(LocalPropMode == 0) { RadPointModifier1D_AngRepres(EXZ, EPtrs); return; }
-		else if(LocalPropMode == 1) { RadPointModifier1D_PropToWaist(EXZ, EPtrs); return; }
+		else if(LocalPropMode == 1) { RadPointModifier1D_PropToWaist(EXZ, EPtrs, pBufVars); return; } //OC06092019
+		//else if(LocalPropMode == 1) { RadPointModifier1D_PropToWaist(EXZ, EPtrs); return; }
 	}
+
 	void RadPointModifier1D_AngRepres(srTEXZ& EXZ, srTEFieldPtrs& EPtrs)
 	{// e in eV; Length in m !!!
 	 // Operates on Angles side !!!
@@ -612,7 +835,8 @@ public:
 		double Arg = (EXZ.VsXorZ == 'x')? EXZ.x : EXZ.z;
 		double ArgE2 = Arg*Arg;
 		double c1ArgE2 = c1*ArgE2;
-		double PhaseShift = c0*ArgE2*(1. + c1ArgE2 + c1ArgE2*c1ArgE2);
+		double PhaseShift = c0*ArgE2*(1. + c1ArgE2 + 2.*c1ArgE2*c1ArgE2); //OC23062019
+		//double PhaseShift = c0*ArgE2*(1. + c1ArgE2 + c1ArgE2*c1ArgE2);
 		if(TreatPath == 1) //OC010813
 		{//??
 			PhaseShift += (5.067730652e+06)*Length*EXZ.e;
@@ -628,15 +852,22 @@ public:
 		float NewEzIm = (*(EPtrs.pEzRe))*SinPh + (*(EPtrs.pEzIm))*CosPh;
 		*(EPtrs.pEzRe) = NewEzRe; *(EPtrs.pEzIm) = NewEzIm; 
 	}
-	void RadPointModifier1D_PropToWaist(srTEXZ& EXZ, srTEFieldPtrs& EPtrs)
+
+	void RadPointModifier1D_PropToWaist(srTEXZ& EXZ, srTEFieldPtrs& EPtrs, srTDriftPropBufVars* pBufVars) //OC06092019
+	//void RadPointModifier1D_PropToWaist(srTEXZ& EXZ, srTEFieldPtrs& EPtrs)
 	{// e in eV; Length in m !!!
 		double rx = EXZ.x, rz = EXZ.z;
-		double PhaseShift = PropBufVars.Pi_d_LambdaM_d_Length*(rx*rx + rz*rz);
+		double PhaseShift = (pBufVars->Pi_d_LambdaM_d_Length)*(rx*rx + rz*rz); //OC06092019
+		//double PhaseShift = PropBufVars.Pi_d_LambdaM_d_Length*(rx*rx + rz*rz);
 
-		if(PropBufVars.PassNo == 1)
+		if(pBufVars->PassNo == 1) //OC06092019
+		//if(PropBufVars.PassNo == 1)
 		{
-			if(EXZ.VsXorZ == 'x') PhaseShift += PropBufVars.TwoPiXc_d_LambdaMRx*rx;
-			else PhaseShift += PropBufVars.TwoPiXc_d_LambdaMRx*rz;
+			//if(EXZ.VsXorZ == 'x') PhaseShift += PropBufVars.TwoPiXc_d_LambdaMRx*rx;
+			//else PhaseShift += PropBufVars.TwoPiXc_d_LambdaMRx*rz;
+			//OC06092019
+			if(EXZ.VsXorZ == 'x') PhaseShift += (pBufVars->TwoPiXc_d_LambdaMRx)*rx;
+			else PhaseShift += (pBufVars->TwoPiXc_d_LambdaMRx)*rz;
 
 			if(TreatPath == 1) //OC010813
 			{//??
@@ -652,13 +883,19 @@ public:
 		float NewEzIm = (*(EPtrs.pEzRe))*SinPh + (*(EPtrs.pEzIm))*CosPh;
 		*(EPtrs.pEzRe) = NewEzRe; *(EPtrs.pEzIm) = NewEzIm; 
 		
-		if(PropBufVars.PassNo == 2)
+		if(pBufVars->PassNo == 2) //OC06092019
+		//if(PropBufVars.PassNo == 2)
 		{
-			NewExRe = (float)((*(EPtrs.pExRe))*PropBufVars.InvLength_d_Lambda); // Change Norm for 1D !!!
-			NewExIm = (float)((*(EPtrs.pExIm))*PropBufVars.InvLength_d_Lambda); // Change Norm for 1D
-			NewEzRe = (float)((*(EPtrs.pEzRe))*PropBufVars.InvLength_d_Lambda); // Change Norm for 1D
-			NewEzIm = (float)((*(EPtrs.pEzIm))*PropBufVars.InvLength_d_Lambda); // Change Norm for 1D
-			
+			//NewExRe = (float)((*(EPtrs.pExRe))*PropBufVars.InvLength_d_Lambda); // Change Norm for 1D !!!
+			//NewExIm = (float)((*(EPtrs.pExIm))*PropBufVars.InvLength_d_Lambda); // Change Norm for 1D
+			//NewEzRe = (float)((*(EPtrs.pEzRe))*PropBufVars.InvLength_d_Lambda); // Change Norm for 1D
+			//NewEzIm = (float)((*(EPtrs.pEzIm))*PropBufVars.InvLength_d_Lambda); // Change Norm for 1D
+			//OC06092019
+			NewExRe = (float)((*(EPtrs.pExRe))*(pBufVars->InvLength_d_Lambda)); // Change Norm for 1D !!!
+			NewExIm = (float)((*(EPtrs.pExIm))*(pBufVars->InvLength_d_Lambda)); // Change Norm for 1D
+			NewEzRe = (float)((*(EPtrs.pEzRe))*(pBufVars->InvLength_d_Lambda)); // Change Norm for 1D
+			NewEzIm = (float)((*(EPtrs.pEzIm))*(pBufVars->InvLength_d_Lambda)); // Change Norm for 1D
+
 			*(EPtrs.pExRe) = NewExIm; *(EPtrs.pExIm) = -NewExRe;
 			*(EPtrs.pEzRe) = NewEzIm; *(EPtrs.pEzIm) = -NewEzRe;
 		}

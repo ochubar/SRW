@@ -1641,8 +1641,10 @@ int srTTrjDat::SetupSourcePointFromTrajectory()
 int srTTrjDat::ComputeOneQuadPhaseTermFromTrj(char x_or_z)
 {
 	srTWaveAccessDataD1D &TrjInData = (x_or_z == 'x')? xTrjInData : zTrjInData;
-	DOUBLE *pIntBtE2Arr = (x_or_z == 'x')? IntBtxE2Arr : IntBtzE2Arr;
-	DOUBLE *tIntBtE2Arr = pIntBtE2Arr;
+	//DOUBLE *pIntBtE2Arr = (x_or_z == 'x')? IntBtxE2Arr : IntBtzE2Arr;
+	//DOUBLE *tIntBtE2Arr = pIntBtE2Arr;
+	double *pIntBtE2Arr = (x_or_z == 'x')? IntBtxE2Arr : IntBtzE2Arr; //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
+	double *tIntBtE2Arr = pIntBtE2Arr;
 
 	if(TrjInData.pData == 0) return TRJ_CMPN_WERE_NOT_SETUP;
 
@@ -1710,7 +1712,8 @@ int srTTrjDat::ComputeQuadPhaseTermsFromTrj(const SRWLPrtTrj& trj)
 	if(xIsDefined)
 	{
 		*IntBtxE2Arr = 0;
-		DOUBLE *tIntBtE2 = IntBtxE2Arr + 1;
+		//DOUBLE *tIntBtE2 = IntBtxE2Arr + 1;
+		double *tIntBtE2 = IntBtxE2Arr + 1; //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
 		double *p = trj.arXp;
 		double *t = p + 1;
 		int iMidCase = -1;
@@ -1738,7 +1741,8 @@ int srTTrjDat::ComputeQuadPhaseTermsFromTrj(const SRWLPrtTrj& trj)
 	if(yIsDefined)
 	{
 		*IntBtzE2Arr = 0;
-		DOUBLE *tIntBtE2 = IntBtzE2Arr + 1;
+		//DOUBLE *tIntBtE2 = IntBtzE2Arr + 1;
+		double *tIntBtE2 = IntBtzE2Arr + 1; //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
 		double *p = trj.arYp;
 		double *t = p + 1;
 		int iMidCase = -1;
@@ -1772,7 +1776,8 @@ int srTTrjDat::ComputeInterpolatingStructure_FromTrj1D(char x_or_z)
 {
 	srTWaveAccessDataD1D &TrjInData = (x_or_z == 'x')? xTrjInData : zTrjInData;
 	if(TrjInData.pData == 0) return TRJ_CMPN_WERE_NOT_SETUP;
-	DOUBLE *pIntBtE2Arr = (x_or_z == 'x')? IntBtxE2Arr : IntBtzE2Arr;
+	//DOUBLE *pIntBtE2Arr = (x_or_z == 'x')? IntBtxE2Arr : IntBtzE2Arr;
+	double *pIntBtE2Arr = (x_or_z == 'x')? IntBtxE2Arr : IntBtzE2Arr; //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
 
 	double BMult = InvBetaNormConst;
 	if(x_or_z != 'x') BMult = -BMult;
@@ -1800,7 +1805,8 @@ int srTTrjDat::ComputeInterpolatingStructure_FromTrj1D(char x_or_z)
 		else if(i < TrjInData.np - 2) Offset = i - 3;
 		else Offset = i - 4;
 		
-		DOUBLE *pf0 = pIntBtE2Arr + Offset;
+		//DOUBLE *pf0 = pIntBtE2Arr + Offset;
+		double *pf0 = pIntBtE2Arr + Offset; //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
 		CoefsPol5thOrder(TrjInData.Step, pf0, pIntBtE2_Cf);
 		
 		pf0 = TrjInData.pData + Offset;
@@ -1831,7 +1837,8 @@ int srTTrjDat::ComputeInterpolatingStructureFromTrj1D(char x_or_z, const SRWLPrt
 	
 	double *pCrd = (x_or_z == 'x')? trj.arX : trj.arY;
 	if(pCrd == 0) return TRJ_CMPN_WERE_NOT_SETUP;
-	DOUBLE *pIntBtE2Arr = (x_or_z == 'x')? IntBtxE2Arr : IntBtzE2Arr;
+	//DOUBLE *pIntBtE2Arr = (x_or_z == 'x')? IntBtxE2Arr : IntBtzE2Arr;
+	double *pIntBtE2Arr = (x_or_z == 'x')? IntBtxE2Arr : IntBtzE2Arr; //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
 
 	double BMult = InvBetaNormConst;
 	if(x_or_z == 'x') BMult = -BMult;
@@ -1860,7 +1867,8 @@ int srTTrjDat::ComputeInterpolatingStructureFromTrj1D(char x_or_z, const SRWLPrt
 		else Offset = i - 4;
 		
 		double sStep = (trj.ctEnd - trj.ctStart)/(trj.np - 1);
-		DOUBLE *pf0 = pIntBtE2Arr + Offset;
+		//DOUBLE *pf0 = pIntBtE2Arr + Offset;
+		double *pf0 = pIntBtE2Arr + Offset; //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
 		CoefsPol5thOrder(sStep, pf0, pIntBtE2_Cf);
 
 		pf0 = pCrd + Offset;
@@ -1900,7 +1908,8 @@ int srTTrjDat::FieldComponIsZero_FromTrj(char x_or_z)
 	double a = (f1 - f2)*Inv_ds, b = (f2*s1 - f1*s2)*Inv_ds;
 
 	char FieldIsNotZero = 0;
-	DOUBLE *tData = TrjInData.pData;
+	//DOUBLE *tData = TrjInData.pData;
+	double *tData = TrjInData.pData; //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
 	double s = TrjInData.Start;
 	//for(long i=0; i<TrjInData.np; i++)
 	for(long long i=0; i<TrjInData.np; i++)

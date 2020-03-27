@@ -95,6 +95,7 @@ static const char strEr_BadArg_CalcElecFieldGaussian[] = "Incorrect precision pa
 static const char strEr_BadArg_CalcElecFieldSpherWave[] = "Incorrect precision parameters for spherical wave electric field calculation";
 static const char strEr_BadArg_CalcIntFromElecField[] = "Incorrect arguments for intensity extraction function";
 static const char strEr_BadArg_ResizeElecField[] = "Incorrect arguments for electric field resizing function";
+static const char strEr_BadArg_ResizeElecFieldMesh[] = "Incorrect arguments for electric field resizing function for a given mesh";
 static const char strEr_BadArg_SetRepresElecField[] = "Incorrect arguments for changing electric field representation function";
 static const char strEr_BadArg_PropagElecField[] = "Incorrect arguments for electric field wavefront propagation function";
 static const char strEr_BadArg_UtiFFT[] = "Incorrect arguments for FFT function";
@@ -1720,6 +1721,15 @@ void ParseSructSRWLOptZP(SRWLOptZP* pOpt, PyObject* oOpt) //throw(...)
 	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptZP;
 	pOpt->y = PyFloat_AsDouble(o_tmp);
 	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "e0"); //22062019
+	pOpt->e0 = 0.;
+	if(o_tmp != 0)
+	{
+		if(!PyNumber_Check(o_tmp)) { Py_DECREF(o_tmp); throw strEr_BadOptZP;}
+		pOpt->e0 = PyFloat_AsDouble(o_tmp);
+		Py_DECREF(o_tmp);
+	}
 }
 
 /************************************************************************//**
@@ -1836,7 +1846,7 @@ void ParseSructSRWLOptT(SRWLOptT* pOpt, PyObject* oOpt, vector<Py_buffer>* pvBuf
 }
 
 /************************************************************************//**
- * Parses PyObject* to SRWLOptMirEl*
+ * Parses PyObject* to SRWLOptMir*
  ***************************************************************************/
 void ParseSructSRWLOptMir(SRWLOptMir* pOpt, PyObject* oOpt, vector<Py_buffer>* pvBuf) //throw(...) 
 {
@@ -2069,6 +2079,41 @@ void ParseSructSRWLOptMirExtEl(SRWLOptMirEl* pOpt, PyObject* oOpt) //throw(...)
 }
 
 /************************************************************************//**
+ * Parses PyObject* to SRWLOptMirPar*
+ ***************************************************************************/
+void ParseSructSRWLOptMirExtPar(SRWLOptMirPar* pOpt, PyObject* oOpt) //throw(...) 
+{
+	if((pOpt == 0) || (oOpt == 0)) throw strEr_NoObj;
+
+	//ParseSructSRWLOptMir(&(pOpt->baseMir), oOpt, pvBuf);
+
+	PyObject *o_tmp = PyObject_GetAttrString(oOpt, "f");
+	if(o_tmp == 0) throw strEr_BadOptMir;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptMir;
+	pOpt->f = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "uc");
+	if(o_tmp == 0) throw strEr_BadOptMir;
+	char cStrBuf[2];
+	CopyPyStringToC(o_tmp, cStrBuf, 1);
+	pOpt->uc = *cStrBuf;
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "angGraz");
+	if(o_tmp == 0) throw strEr_BadOptMir;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptMir;
+	pOpt->angGraz = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "radSag");
+	if(o_tmp == 0) throw strEr_BadOptMir;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptMir;
+	pOpt->radSag = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+}
+
+/************************************************************************//**
  * Parses PyObject* to SRWLOptMirTor*
  ***************************************************************************/
 void ParseSructSRWLOptMirExtTor(SRWLOptMirTor* pOpt, PyObject* oOpt) //throw(...) 
@@ -2138,6 +2183,13 @@ void* ParseSructSRWLOptMirAll(PyObject* oOpt, char* sPyTypeName, vector<Py_buffe
 		strcat(srwOptTypeName, "ellipsoid\0");
 		ParseSructSRWLOptMir(&(((SRWLOptMirEl*)pMir)->baseMir), oOpt, pvBuf);
 		ParseSructSRWLOptMirExtEl((SRWLOptMirEl*)pMir, oOpt);
+	}
+	else if(strcmp(sPyTypeName, "SRWLOptMirPar") == 0)
+	{
+		pMir = new SRWLOptMirPar();
+		strcat(srwOptTypeName, "paraboloid\0");
+		ParseSructSRWLOptMir(&(((SRWLOptMirPar*)pMir)->baseMir), oOpt, pvBuf);
+		ParseSructSRWLOptMirExtPar((SRWLOptMirPar*)pMir, oOpt);
 	}
 	else if(strcmp(sPyTypeName, "SRWLOptMirTor") == 0)
 	{
@@ -4454,13 +4506,19 @@ static PyObject* srwlpy_CalcPowDenSR(PyObject *self, PyObject *args)
  ***************************************************************************/
 static PyObject* srwlpy_CalcIntFromElecField(PyObject *self, PyObject *args)
 {
-	PyObject *oInt=0, *oWfr=0, *oPol=0, *oIntType=0, *oDepType=0, *oE=0, *oX=0, *oY=0;
+	//PyObject *oInt=0, *oWfr=0, *oPol=0, *oIntType=0, *oDepType=0, *oE=0, *oX=0, *oY=0;
+	//PyObject *oInt=0, *oWfr=0, *oPol=0, *oIntType=0, *oDepType=0, *oE=0, *oX=0, *oY=0, *oMeth=0;
+	PyObject *oInt=0, *oWfr=0, *oPol=0, *oIntType=0, *oDepType=0, *oE=0, *oX=0, *oY=0, *oMeth=0, *oFldTrj=0; //OC23022020
 	vector<Py_buffer> vBuf;
 	SRWLWfr wfr;
+	SRWLMagFldC *pMagCnt=0; //OC23022020
+	SRWLPrtTrj *pPrtTrj=0;
 
 	try
 	{
-		if(!PyArg_ParseTuple(args, "OOOOOOOO:CalcIntFromElecField", &oInt, &oWfr, &oPol, &oIntType, &oDepType, &oE, &oX, &oY)) throw strEr_BadArg_CalcIntFromElecField;
+		//if(!PyArg_ParseTuple(args, "OOOOOOOO:CalcIntFromElecField", &oInt, &oWfr, &oPol, &oIntType, &oDepType, &oE, &oX, &oY)) throw strEr_BadArg_CalcIntFromElecField;
+		//if(!PyArg_ParseTuple(args, "OOOOOOOO|O:CalcIntFromElecField", &oInt, &oWfr, &oPol, &oIntType, &oDepType, &oE, &oX, &oY, &oMeth)) throw strEr_BadArg_CalcIntFromElecField; //OC13122019
+		if(!PyArg_ParseTuple(args, "OOOOOOOO|O:CalcIntFromElecField", &oInt, &oWfr, &oPol, &oIntType, &oDepType, &oE, &oX, &oY, &oMeth, &oFldTrj)) throw strEr_BadArg_CalcIntFromElecField; //OC23022020
 		if((oInt == 0) || (oWfr == 0) || (oPol == 0) || (oIntType == 0) || (oDepType == 0) || (oE == 0) || (oX == 0) || (oY == 0)) throw strEr_BadArg_CalcIntFromElecField;
 
 		//char *arInt = (char*)GetPyArrayBuf(oInt, vBuf, PyBUF_WRITABLE, 0);
@@ -4486,7 +4544,42 @@ static PyObject* srwlpy_CalcIntFromElecField(PyObject *self, PyObject *args)
 		if(!PyNumber_Check(oY)) throw strEr_BadArg_CalcIntFromElecField;
 		double y = PyFloat_AsDouble(oY);
 
-		ProcRes(srwlCalcIntFromElecField(arInt, &wfr, pol, intType, depType, e, x, y));
+		const int nMaxMethPar = 18; //OC23022020
+		double *pMeth=0, arMeth[nMaxMethPar]; //OC23022020
+		for(int i=0; i<nMaxMethPar; i++) arMeth[i] = 0.;
+		//double *pMeth=0, arMeth[]={0.,0.,0.,0.,0.,0.}; //OC16122019
+		//int *pMeth=0, arMeth[]={0,0}; //OC13122019
+		if(oMeth != 0)
+		{
+			pMeth = arMeth;
+			int nMethPar=6; //OC17122019
+			//int nMethPar=4;
+			CopyPyListElemsToNumArray(oMeth, 'd', pMeth, nMethPar);
+		}
+		void *pFldTrj=0; //OC23022020
+		if(oFldTrj != 0)
+		{
+			char sTypeName[1025];
+			CopyPyClassNameToC(oFldTrj, sTypeName, 1024);
+			if(strcmp(sTypeName, "SRWLMagFldC") == 0)
+			{
+				ParseSructSRWLMagFldC(pMagCnt, oFldTrj, &vBuf);
+				pFldTrj = pMagCnt;
+				arMeth[6] = 1.;
+				if(pMeth == 0) pMeth = arMeth;
+			}
+			else if(strcmp(sTypeName, "SRWLPrtTrj") == 0)
+			{
+				ParseSructSRWLPrtTrj(pPrtTrj, oFldTrj, &vBuf);
+				pFldTrj = pPrtTrj;
+				arMeth[6] = 2.;
+				if(pMeth == 0) pMeth = arMeth;
+			}
+		}
+
+		//ProcRes(srwlCalcIntFromElecField(arInt, &wfr, pol, intType, depType, e, x, y));
+		//ProcRes(srwlCalcIntFromElecField(arInt, &wfr, pol, intType, depType, e, x, y, pMeth)); //OC13122019
+		ProcRes(srwlCalcIntFromElecField(arInt, &wfr, pol, intType, depType, e, x, y, pMeth, pFldTrj)); //OC23022020
 	}
 	catch(const char* erText) 
 	{
@@ -4495,6 +4588,7 @@ static PyObject* srwlpy_CalcIntFromElecField(PyObject *self, PyObject *args)
 		oInt = 0;
 	}
 
+	if(pMagCnt != 0) DeallocMagCntArrays(pMagCnt);
 	ReleasePyBuffers(vBuf);
 	EraseElementFromMap(&wfr, gmWfrPyPtr);
 
@@ -4539,6 +4633,47 @@ static PyObject* srwlpy_ResizeElecField(PyObject *self, PyObject *args)
 		UpdatePyWfr(oWfr, &wfr);
 	}
 	catch(const char* erText) 
+	{
+		PyErr_SetString(PyExc_RuntimeError, erText);
+		//PyErr_PrintEx(1);
+		oWfr = 0;
+	}
+
+	ReleasePyBuffers(vBuf);
+	EraseElementFromMap(&wfr, gmWfrPyPtr);
+
+	if(oWfr) Py_XINCREF(oWfr);
+	return oWfr;
+}
+
+/************************************************************************//**
+ * "Resizes" Electric Field Wavefront vs transverse positions / angles and / or photon energy / time
+ * ensuring that the Electric Field is sampled on a given mesh
+ * see help to srwlResizeElecFieldMesh
+ ***************************************************************************/
+static PyObject* srwlpy_ResizeElecFieldMesh(PyObject *self, PyObject *args)
+{
+	PyObject *oWfr=0, *oMesh, *oPar;
+	vector<Py_buffer> vBuf;
+	SRWLWfr wfr;
+	SRWLRadMesh newMesh;
+
+	try
+	{
+		if(!PyArg_ParseTuple(args, "OOO:ResizeElecField", &oWfr, &oMesh, &oPar)) throw strEr_BadArg_ResizeElecFieldMesh;
+		if((oWfr == 0) || (oMesh == 0) || (oPar == 0)) throw strEr_BadArg_ResizeElecFieldMesh;
+
+		ParseSructSRWLWfr(&wfr, oWfr, &vBuf, gmWfrPyPtr);
+		ParseSructSRWLRadMesh(&newMesh, oMesh);
+
+		double arPar[] = {0.,1.}; int nPar = 2; double *pPar = arPar; //[0] with or without FFT, [1]==1 means treatment of quadratic term is allowed
+		CopyPyListElemsToNumArray(oPar, 'd', pPar, nPar);
+
+		ProcRes(srwlResizeElecFieldMesh(&wfr, &newMesh, arPar));
+
+		UpdatePyWfr(oWfr, &wfr);
+	}
+	catch(const char* erText)
 	{
 		PyErr_SetString(PyExc_RuntimeError, erText);
 		//PyErr_PrintEx(1);
@@ -4672,9 +4807,6 @@ static PyObject* srwlpy_PropagElecField(PyObject *self, PyObject *args)
 				for(int i=0; i<nInt; i++) arInts[i] = 0;
 			}
 		}
-		//OCTEST
-		//char *pRes = AllocPyArrayGetBuf('d', 1000);
-		//END OCTEST
 
 		//ProcRes(srwlPropagElecField(&wfr, &optCnt));
 		ProcRes(srwlPropagElecField(&wfr, &optCnt, nInt, arIntDescr, arIntMesh, arInts)); //OC15082018
@@ -5109,6 +5241,7 @@ static PyMethodDef srwlpy_methods[] = {
 	{"CalcPowDenSR", srwlpy_CalcPowDenSR, METH_VARARGS, "CalcPowDenSR() Calculates Power Density distribution of Synchrotron Radiation by a relativistic finite-emittance electron beam traveling in arbitrary magnetic field"},
 	{"CalcIntFromElecField", srwlpy_CalcIntFromElecField, METH_VARARGS, "CalcIntFromElecField() Calculates/extracts Intensity from pre-calculated Electric Field"},
 	{"ResizeElecField", srwlpy_ResizeElecField, METH_VARARGS, "ResizeElecField() \"Resizes\" Electric Field Wavefront vs transverse positions / angles or photon energy / time"},
+	{"ResizeElecFieldMesh", srwlpy_ResizeElecFieldMesh, METH_VARARGS, "ResizeElecFieldMesh() \"Resizes\" Electric Field Wavefront vs transverse positions / angles or / and photon energy / time according to given mesh parameters"},
 	{"SetRepresElecField", srwlpy_SetRepresElecField, METH_VARARGS, "SetRepresElecField() Changes Representation of Electric Field: coordinates<->angles, frequency<->time"},
 	{"PropagElecField", srwlpy_PropagElecField, METH_VARARGS, "PropagElecField() \"Propagates\" Electric Field Wavefront through Optical Elements and free space"},
 	{"UtiFFT", srwlpy_UtiFFT, METH_VARARGS, "UtiFFT() Performs 1D or 2D FFT (as defined by arguments)"},

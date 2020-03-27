@@ -20,12 +20,14 @@
 
 void* operator new(size_t size)
 {
-	return NewPtr(size);
+	//return NewPtr(size);
+	return WMNewPtr(size); //OC13112019 (port to XOP8 on MAC)
 }
 
 void operator delete(void* p)
 {
-    DisposePtr((char*)p);
+    //DisposePtr((char*)p);
+    WMDisposePtr((char*)p); //OC13112019 (port to XOP8 on MAC)
 }
 
 #endif

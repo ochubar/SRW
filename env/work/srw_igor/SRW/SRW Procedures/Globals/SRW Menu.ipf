@@ -47,7 +47,7 @@ SubMenu "Utilities"
 "Undulator: PPM...",SrwMagPerPPM()
 "-"
 "Load Electron Beam Library",SrwUtiElecLib()
-"Load SR Source Data...",SrwUtiSrcSelect()
+//"Load SR Source Data...",SrwUtiSrcSelect()
 end
 
 "-"

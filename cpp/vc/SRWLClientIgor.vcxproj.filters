@@ -637,5 +637,13 @@
     <ResourceCompile Include="..\src\clients\igor\srigintr.rc">
       <Filter>igor</Filter>
     </ResourceCompile>
+    <ResourceCompile Include="..\src\clients\igor\srigintw.rc">
+      <Filter>igor</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\src\clients\igor\srigintr.r">
+      <Filter>igor</Filter>
+    </None>
   </ItemGroup>
 </Project>

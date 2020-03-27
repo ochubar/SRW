@@ -7,28 +7,30 @@
  * Copyright (C) European Synchrotron Radiation Facility, Grenoble, France
  * All Rights Reserved
  *
- * @author O.Chubar, P.Elleaume
+ * @author O.Chubar, P.Elleaume, R.Li
  * @version 1.0
  ***************************************************************************/
 
-#ifndef __SRSYSUTI_H
 #include "srsysuti.h"
-#endif
 
 #ifdef WIN32
 #include <windows.h>
 #endif
 #ifdef __MAC__
-#include "Memory.h"
+//#include "Memory.h" //RL26112019
+#include <sys/sysctl.h>
 #endif
-//#ifdef LINUX
-//#include <proc/readproc.h> 
-//#endif
+#ifdef LINUX
+//#include <proc/readproc.h>
+#include <sys/sysinfo.h> //RL26112019
+#endif
 
 //*************************************************************************
 
 double srTSystemUtils::CheckMemoryAvailable()
 {
+	const double OverPhysMemoryFact = 0.9; //OC28112019 //0.5; //0.7;
+
 #ifdef WIN32
 
 	MEMORYSTATUS CurMemStatus; // Consider checking Windows version and modifying this by MEMORYSTATUSEX and GlobalMemoryStatusEx
@@ -48,22 +50,37 @@ double srTSystemUtils::CheckMemoryAvailable()
 	}
 	else
 	{
-		const double OverPhysMemoryFact = 0.9; //0.5; //0.9; // To steer //igor does not want to allocate big waves (which require up to 1GB)...
+		//const double OverPhysMemoryFact = 0.9; //0.5; //0.9;
 		return OverPhysMemoryFact*double(CurMemStatus.dwAvailPhys);
 	}
 
 #endif
 #ifdef __MAC__
 
-	Size MaxHeapCanGrow, LagrestBlock;
-	LagrestBlock = MaxMem(&MaxHeapCanGrow);
-	const double OverPhysMemoryFact = 0.7; // To steer
+//#if 0  //RL06112019
+//    // Undefined data type: Size
+//	Size MaxHeapCanGrow, LagrestBlock;
+//    LagrestBlock = MaxMem(&MaxHeapCanGrow);
+//	const double OverPhysMemoryFact = 0.7; // To steer
+//	return OverPhysMemoryFact*double(LagrestBlock);
+//#endif
+	//RL26112019
+	int mib[2] = {CTL_HW, HW_MEMSIZE};
+	unsigned long long LagrestBlock;
+	size_t memlength = sizeof(LagrestBlock);
+	sysctl(mib, 2, &LagrestBlock, &memlength, NULL, 0);
+	//const double OverPhysMemoryFact = 0.7; // To steer
 	return OverPhysMemoryFact*double(LagrestBlock);
 
 #endif
 #ifdef LINUX
 
-	return 8.e+09; //Is there any "standard" API for this on LINUX?
+	//return 8.e+09; //Is there any "standard" API for this on LINUX?
+	//RL26112019
+	struct sysinfo sinfo;
+	sysinfo(&sinfo);
+	//const double OverPhysMemoryFact = 0.7; // To steer
+	return OverPhysMemoryFact*double(sinfo.totalram);
 
 #endif
 }

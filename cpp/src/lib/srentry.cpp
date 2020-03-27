@@ -40,7 +40,8 @@
 #ifndef __IGOR_PRO__
 #ifdef _WINDOWS
 int SpinProcess() { return 0;}
-Handle NewHandle(long size)
+//Handle NewHandle(long size)
+Handle WMNewHandle(long long size) //OC13112019 (port to XOP8 on MAC)
 {//to check
 	if(size <= 0) return 0;
 	char** aHandle = new char*();

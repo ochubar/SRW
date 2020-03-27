@@ -286,37 +286,37 @@ if mesh1 != None:
     plotMesh1x = [1e+06*mesh1.xStart, 1e+06*mesh1.xFin, mesh1.nx]
     plotMesh1y = [1e+06*mesh1.yStart, 1e+06*mesh1.yFin, mesh1.ny]
     if arI1 != None:
-        uti_plot2d(arI1, plotMesh1x, plotMesh1y, ['Horizontal Position [microns]', 'Vertical Position [microns]', 'Intensity After Propagation'])
+        uti_plot2d(arI1, plotMesh1x, plotMesh1y, ['Horizontal Position [microns]', 'Vertical Position [microns]', 'Intensity After Propagation through Distorted CRL'])
     if arI1x != None:
-        uti_plot1d(arI1x, plotMesh1x, ['Horizontal Position [microns]', 'Intensity [a.u.]', 'Intensity After Propagation\n(horizontal cut at y = 0)'])
+        uti_plot1d(arI1x, plotMesh1x, ['Horizontal Position [microns]', 'Intensity [a.u.]', 'Intensity After Propagation through Distorted CRL\n(horizontal cut at y = 0)'])
     if arI1y != None:
-        uti_plot1d(arI1y, plotMesh1y, ['Vertical Position [microns]', 'Intensity [a.u.]', 'Intensity After Propagation\n(vertical cut at x = 0)'])
+        uti_plot1d(arI1y, plotMesh1y, ['Vertical Position [microns]', 'Intensity [a.u.]', 'Intensity After Propagation through Distorted CRL\n(vertical cut at x = 0)'])
     if arP1 != None:
-        uti_plot2d(arP1, plotMesh1x, plotMesh1y, ['Horizontal Position [microns]', 'Vertical Position [microns]', 'Phase After Propagation'])
+        uti_plot2d(arP1, plotMesh1x, plotMesh1y, ['Horizontal Position [microns]', 'Vertical Position [microns]', 'Phase After Propagation through Distorted CRL'])
 
 if mesh2 != None:
     plotMesh2x = [1e+06*mesh2.xStart, 1e+06*mesh2.xFin, mesh2.nx]
     plotMesh2y = [1e+06*mesh2.yStart, 1e+06*mesh2.yFin, mesh2.ny]
     if arI2 != None:
-        uti_plot2d(arI2, plotMesh2x, plotMesh2y, ['Horizontal Position [microns]', 'Vertical Position [microns]', 'Intensity After Propagation to Waist'])
+        uti_plot2d(arI2, plotMesh2x, plotMesh2y, ['Horizontal Position [microns]', 'Vertical Position [microns]', 'Intensity After Propagation through Distorted CRL to Waist'])
     if arI2x != None:
-        uti_plot1d(arI2x, plotMesh2x, ['Horizontal Position [microns]', 'Intensity [a.u.]', 'Intensity After Propagation to Waist\n(horizontal cut at y = 0)'])
+        uti_plot1d(arI2x, plotMesh2x, ['Horizontal Position [microns]', 'Intensity [a.u.]', 'Intensity After Propagation through Distorted CRL to Waist\n(horizontal cut at y = 0)'])
     if arI2y != None:
-        uti_plot1d(arI2y, plotMesh2y, ['Vertical Position [microns]', 'Intensity [a.u.]', 'Intensity After Propagation to Waist\n(vertical cut at x = 0)'])
+        uti_plot1d(arI2y, plotMesh2y, ['Vertical Position [microns]', 'Intensity [a.u.]', 'Intensity After Propagation through Distorted CRL to Waist\n(vertical cut at x = 0)'])
     if arP2 != None:
-        uti_plot2d(arP2, plotMesh2x, plotMesh2y, ['Horizontal Position [microns]', 'Vertical Position [microns]', 'Phase After Propagation to Waist'])
+        uti_plot2d(arP2, plotMesh2x, plotMesh2y, ['Horizontal Position [microns]', 'Vertical Position [microns]', 'Phase After Propagation through Distorted CRL to Waist'])
 
 if mesh3 != None:
     plotMesh3x = [1e+06*mesh3.xStart, 1e+06*mesh3.xFin, mesh3.nx]
     plotMesh3y = [1e+06*mesh3.yStart, 1e+06*mesh3.yFin, mesh3.ny]
     if arI3 != None:
-        uti_plot2d(arI3, plotMesh3x, plotMesh3y, ['Horizontal Position [microns]', 'Vertical Position [microns]', 'Intensity After Propagation to Waist'])
+        uti_plot2d(arI3, plotMesh3x, plotMesh3y, ['Horizontal Position [microns]', 'Vertical Position [microns]', 'Intensity After Propagation through Perfect CRL to Waist'])
     if arI3x != None:
-        uti_plot1d(arI3x, plotMesh3x, ['Horizontal Position [microns]', 'Intensity [a.u.]', 'Intensity After Propagation to Waist\n(horizontal cut at y = 0)'])
+        uti_plot1d(arI3x, plotMesh3x, ['Horizontal Position [microns]', 'Intensity [a.u.]', 'Intensity After Propagation through Perfect CRL to Waist\n(horizontal cut at y = 0)'])
     if arI3y != None:
-        uti_plot1d(arI3y, plotMesh3y, ['Vertical Position [microns]', 'Intensity [a.u.]', 'Intensity After Propagation to Waist\n(vertical cut at x = 0)'])
+        uti_plot1d(arI3y, plotMesh3y, ['Vertical Position [microns]', 'Intensity [a.u.]', 'Intensity After Propagation through Perfect CRL to Waist\n(vertical cut at x = 0)'])
     if arP3 != None:
-        uti_plot2d(arP3, plotMesh3x, plotMesh3y, ['Horizontal Position [microns]', 'Vertical Position [microns]', 'Phase After Propagation to Waist'])
+        uti_plot2d(arP3, plotMesh3x, plotMesh3y, ['Horizontal Position [microns]', 'Vertical Position [microns]', 'Phase After Propagation through Perfect CRL to Waist'])
 
 uti_plot_show() #show all graphs (blocks script execution; close all graph windows to proceed)
 print('done')

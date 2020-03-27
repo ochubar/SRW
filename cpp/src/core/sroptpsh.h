@@ -20,7 +20,8 @@
 
 class srTPhaseShift : public srTFocusingElem {
 
-	DOUBLE* tPhaseShiftData;
+	//DOUBLE* tPhaseShiftData;
+	double* tPhaseShiftData; //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
 
 public:
 	int FunNo;
@@ -82,12 +83,16 @@ public:
 		if(MethNo == 2) return PropagateRadiationMeth_2(pRadAccessData, ParPrecWfrPropag, ResBeforeAndAfterVect);
 		return 0;
 	}
+
+	//int PropagateRadiationSimple(srTSRWRadStructAccessData* pRadAccessData, void* pBuf=0) //OC06092019
+	//OC01102019 (restored)
 	int PropagateRadiationSimple(srTSRWRadStructAccessData* pRadAccessData)
 	{
 		int result;
 		srTWaveAccessData PhShWaveAccessData;
 		if(result = SetUpPhaseShiftWave(*pRadAccessData, PhShWaveAccessData)) return result;
-		tPhaseShiftData = (DOUBLE*)(PhShWaveAccessData.pWaveData);
+		//tPhaseShiftData = (DOUBLE*)(PhShWaveAccessData.pWaveData);
+		tPhaseShiftData = (double*)(PhShWaveAccessData.pWaveData); //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
 
 		if(pRadAccessData->Pres != 0) if(result = SetRadRepres(pRadAccessData, 0)) return result;
 		if(result = TraverseRadZXE(pRadAccessData)) return result;
@@ -102,7 +107,8 @@ public:
 		int result;
 		srTWaveAccessData PhShWaveAccessData1D;
 		if(result = SetUpPhaseShiftWave1D(*pSect1D, PhShWaveAccessData1D)) return result;
-		tPhaseShiftData = (DOUBLE*)(PhShWaveAccessData1D.pWaveData);
+		//tPhaseShiftData = (DOUBLE*)(PhShWaveAccessData1D.pWaveData);
+		tPhaseShiftData = (double*)(PhShWaveAccessData1D.pWaveData); //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
 
 		if(pSect1D->Pres != 0) if(result = SetRadRepres1D(pSect1D, 0)) return result;
 		if(result = TraverseRad1D(pSect1D)) return result;
@@ -113,7 +119,8 @@ public:
 		return 0;
 	}
 	
-	void RadPointModifier(srTEXZ& EXZ, srTEFieldPtrs& EPtrs)
+	void RadPointModifier(srTEXZ& EXZ, srTEFieldPtrs& EPtrs, void* pBuf=0) //OC29082019
+	//void RadPointModifier(srTEXZ& EXZ, srTEFieldPtrs& EPtrs)
 	{// e in eV; Length in m !!!
 	 // Operates on Coord. side !!!
 		double TwoPi_d_Lambda_m = EXZ.e*5.0676816042E+06;
@@ -134,7 +141,9 @@ public:
 			*(EPtrs.pEzRe) = NewEzRe; *(EPtrs.pEzIm) = NewEzIm; 
 		}
 	}
-  	void RadPointModifier1D(srTEXZ& EXZ, srTEFieldPtrs& EPtrs)
+
+  	void RadPointModifier1D(srTEXZ& EXZ, srTEFieldPtrs& EPtrs, void* pBuf=0) //OC06092019
+  	//void RadPointModifier1D(srTEXZ& EXZ, srTEFieldPtrs& EPtrs)
 	{// e in eV; Length in m !!!
 	 // Operates on Coord. side !!!
 		double TwoPi_d_Lambda_m = EXZ.e*5.0676816042E+06;

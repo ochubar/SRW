@@ -394,6 +394,59 @@ EXP int CALL srwlCalcPartTrajFromKickMatr(SRWLPrtTrj* pTrj, SRWLKickM* arKickM, 
 
 //-------------------------------------------------------------------------
 
+SRWLPrtTrj* SetupTrjFromMagFld(SRWLParticle* pPartInitCond, SRWLMagFldC* pMagFld, double* precPar)
+{//To be used by srwlCalcElecFieldSR, srwlCalcPowDenSR, and maybe other API functions
+	//if(precPar == 0) return 0;
+	int locErNo = 0;
+
+	SRWLPrtTrj *pTrj = new SRWLPrtTrj();
+
+	int npTraj = 100000;
+	//int npTraj = 10000; //OCTEST160815
+	//if((nPrecPar <= 0) || (nPrecPar > 4)) npTraj = (int)precPar[4];
+	if(precPar != 0) npTraj = (int)precPar[4];
+
+	pTrj->arX = new double[npTraj];
+	pTrj->arXp = new double[npTraj];
+	pTrj->arY = new double[npTraj];
+	pTrj->arYp = new double[npTraj];
+	pTrj->arZ = new double[npTraj]; //required?
+	pTrj->arZp = new double[npTraj]; //required?
+	pTrj->partInitCond = *pPartInitCond; //pWfr->partBeam.partStatMom1;
+
+	pTrj->np = npTraj;
+
+	double sStartInt = 0.; //longitudinal position to start integration
+	double sEndInt = 0.; //longitudinal position to end integration
+	if(precPar != 0)
+	{
+		sStartInt = precPar[2];
+		sEndInt = precPar[3];
+	}
+
+	//pTrj->ctStart = precPar[2] - pTrj->partInitCond.z; //precPar[2]; //OC_GIANLUCA
+	//pTrj->ctEnd = precPar[3] - pTrj->partInitCond.z;//precPar[3]; //OC_GIANLUCA
+	//processing of the case pTrj->ctStart >= pTrj->ctEnd takes place in srwlCalcPartTraj
+	pTrj->ctStart = sStartInt - pTrj->partInitCond.z; //precPar[2]; //OC_GIANLUCA
+	pTrj->ctEnd = sEndInt - pTrj->partInitCond.z;//precPar[3]; //OC_GIANLUCA
+
+	double* precParForTrj = 0; //assume default for the moment; to update later (?)
+	if(locErNo = srwlCalcPartTraj(pTrj, pMagFld, precParForTrj))
+	{
+		if(pTrj->arX != 0) { delete[] pTrj->arX; pTrj->arX = 0;}
+		if(pTrj->arXp != 0) { delete[] pTrj->arXp; pTrj->arXp = 0;}
+		if(pTrj->arY != 0) { delete[] pTrj->arY; pTrj->arY = 0;}
+		if(pTrj->arYp != 0) { delete[] pTrj->arYp; pTrj->arYp = 0;}
+		if(pTrj->arZ != 0) { delete[] pTrj->arZ; pTrj->arZ = 0;}
+		if(pTrj->arZp != 0) { delete[] pTrj->arZp; pTrj->arZp = 0;}
+		delete pTrj;
+		throw locErNo;
+	}
+	return pTrj;
+}
+
+//-------------------------------------------------------------------------
+
 EXP int CALL srwlCalcElecFieldSR(SRWLWfr* pWfr, SRWLPrtTrj* pTrj, SRWLMagFldC* pMagFld, double* precPar, int nPrecPar)
 {
 	if((pWfr == 0) || (precPar == 0)) return SRWL_INCORRECT_PARAM_FOR_SR_COMP;
@@ -411,38 +464,34 @@ EXP int CALL srwlCalcElecFieldSR(SRWLWfr* pWfr, SRWLPrtTrj* pTrj, SRWLMagFldC* p
 
 	try 
 	{
-		if(!trjIsDefined)
-		{
-			pTrj = new SRWLPrtTrj();
+		if(!trjIsDefined) pTrj = SetupTrjFromMagFld(&(pWfr->partBeam.partStatMom1), pMagFld, precPar); //OC23022020
+		//{
+		//	pTrj = new SRWLPrtTrj();
+		//	int npTraj = 100000;
+		//	//int npTraj = 10000; //OCTEST160815
+		//	if((nPrecPar <= 0) || (nPrecPar > 4)) npTraj = (int)precPar[4];
+		//	pTrj->arX = new double[npTraj];
+		//	pTrj->arXp = new double[npTraj];
+		//	pTrj->arY = new double[npTraj];
+		//	pTrj->arYp = new double[npTraj];
+		//	pTrj->arZ = new double[npTraj]; //required?
+		//	pTrj->arZp = new double[npTraj]; //required?
+		//	pTrj->partInitCond = pWfr->partBeam.partStatMom1;
+		//	pTrj->np = npTraj;
+		//	double sStartInt = 0.; //longitudinal position to start integration
+		//	if((nPrecPar <= 0) || (nPrecPar > 2)) sStartInt = precPar[2];
+		//	double sEndInt = 0.; //longitudinal position to end integration
+		//	if((nPrecPar <= 0) || (nPrecPar > 3)) sEndInt = precPar[3];
 
-			int npTraj = 100000;
-			//int npTraj = 10000; //OCTEST160815
-			if((nPrecPar <= 0) || (nPrecPar > 4)) npTraj = (int)precPar[4];
-			pTrj->arX = new double[npTraj];
-			pTrj->arXp = new double[npTraj];
-			pTrj->arY = new double[npTraj];
-			pTrj->arYp = new double[npTraj];
-			pTrj->arZ = new double[npTraj]; //required?
-			pTrj->arZp = new double[npTraj]; //required?
-			pTrj->partInitCond = pWfr->partBeam.partStatMom1;
+		//	//pTrj->ctStart = precPar[2] - pTrj->partInitCond.z; //precPar[2]; //OC_GIANLUCA
+		//	//pTrj->ctEnd = precPar[3] - pTrj->partInitCond.z;//precPar[3]; //OC_GIANLUCA
+		//	//processing of the case pTrj->ctStart >= pTrj->ctEnd takes place in srwlCalcPartTraj
+		//	pTrj->ctStart = sStartInt - pTrj->partInitCond.z; //precPar[2]; //OC_GIANLUCA
+		//	pTrj->ctEnd = sEndInt - pTrj->partInitCond.z;//precPar[3]; //OC_GIANLUCA
 
-			pTrj->np = npTraj;
-
-			double sStartInt = 0.; //longitudinal position to start integration
-			if((nPrecPar <= 0) || (nPrecPar > 2)) sStartInt = precPar[2];
-
-			double sEndInt = 0.; //longitudinal position to end integration
-			if((nPrecPar <= 0) || (nPrecPar > 3)) sEndInt = precPar[3];
-
-			//pTrj->ctStart = precPar[2] - pTrj->partInitCond.z; //precPar[2]; //OC_GIANLUCA
-			//pTrj->ctEnd = precPar[3] - pTrj->partInitCond.z;//precPar[3]; //OC_GIANLUCA
-			//processing of the case pTrj->ctStart >= pTrj->ctEnd takes place in srwlCalcPartTraj
-			pTrj->ctStart = sStartInt - pTrj->partInitCond.z; //precPar[2]; //OC_GIANLUCA
-			pTrj->ctEnd = sEndInt - pTrj->partInitCond.z;//precPar[3]; //OC_GIANLUCA
-
-			double* precParForTrj = 0; //assume default for the moment; to update later (?)
-			if(locErNo = srwlCalcPartTraj(pTrj, pMagFld, precParForTrj)) throw locErNo;
-		}
+		//	double* precParForTrj = 0; //assume default for the moment; to update later (?)
+		//	if(locErNo = srwlCalcPartTraj(pTrj, pMagFld, precParForTrj)) throw locErNo;
+		//}
 		else pWfr->partBeam.partStatMom1 = pTrj->partInitCond;
 
 		srTTrjDat trjData(pTrj); //this calculates interpolating structure required for SR calculation
@@ -616,35 +665,35 @@ EXP int CALL srwlCalcPowDenSR(SRWLStokes* pStokes, SRWLPartBeam* pElBeam, SRWLPr
 	int locErNo = 0;
 	try 
 	{
-		if(!trjIsDefined)
-		{
-			int npTraj = 100000; //default
-			if(precPar != 0) npTraj = (int)precPar[4];
+		if(!trjIsDefined) pTrj = SetupTrjFromMagFld(&(pElBeam->partStatMom1), pMagFld, precPar); //OC23022020
+		//{
+		//	int npTraj = 100000; //default
+		//	if(precPar != 0) npTraj = (int)precPar[4];
 
-			pTrj = new SRWLPrtTrj();
-			pTrj->arX = new double[npTraj];
-			pTrj->arXp = new double[npTraj];
-			pTrj->arY = new double[npTraj];
-			pTrj->arYp = new double[npTraj];
-			pTrj->arZ = new double[npTraj]; //required?
-			pTrj->arZp = new double[npTraj]; //required?
-			pTrj->np = npTraj;
-			pTrj->partInitCond = pElBeam->partStatMom1;
+		//	pTrj = new SRWLPrtTrj();
+		//	pTrj->arX = new double[npTraj];
+		//	pTrj->arXp = new double[npTraj];
+		//	pTrj->arY = new double[npTraj];
+		//	pTrj->arYp = new double[npTraj];
+		//	pTrj->arZ = new double[npTraj]; //required?
+		//	pTrj->arZp = new double[npTraj]; //required?
+		//	pTrj->np = npTraj;
+		//	pTrj->partInitCond = pElBeam->partStatMom1;
 
-			pTrj->ctStart = -pTrj->partInitCond.z; //?
-			pTrj->ctEnd = -pTrj->partInitCond.z; //?
-			if(precPar != 0)
-			{
-				if(precPar[2] < precPar[3])
-				{
-					pTrj->ctStart += precPar[2];
-					pTrj->ctEnd += precPar[3];
-					//processing of the case pTrj->ctStart >= pTrj->ctEnd takes place in srwlCalcPartTraj
-				}
-			}
-			double* precParForTrj = 0; //assume default for the moment; to update later (?)
-			if(locErNo = srwlCalcPartTraj(pTrj, pMagFld, precParForTrj)) throw locErNo;
-		}
+		//	pTrj->ctStart = -pTrj->partInitCond.z; //?
+		//	pTrj->ctEnd = -pTrj->partInitCond.z; //?
+		//	if(precPar != 0)
+		//	{
+		//		if(precPar[2] < precPar[3])
+		//		{
+		//			pTrj->ctStart += precPar[2];
+		//			pTrj->ctEnd += precPar[3];
+		//			//processing of the case pTrj->ctStart >= pTrj->ctEnd takes place in srwlCalcPartTraj
+		//		}
+		//	}
+		//	double* precParForTrj = 0; //assume default for the moment; to update later (?)
+		//	if(locErNo = srwlCalcPartTraj(pTrj, pMagFld, precParForTrj)) throw locErNo;
+		//}
 
 		srTTrjDat trjData(pTrj); //this calculates interpolating structure required for SR calculation
 		trjData.EbmDat.SetCurrentAndMom2(pElBeam->Iavg, pElBeam->arStatMom2, 21);
@@ -699,32 +748,59 @@ EXP int CALL srwlCalcPowDenSR(SRWLStokes* pStokes, SRWLPartBeam* pElBeam, SRWLPr
 
 //-------------------------------------------------------------------------
 
-EXP int CALL srwlCalcIntFromElecField(char* pInt, SRWLWfr* pWfr, char polar, char intType, char depType, double e, double x, double y)
+EXP int CALL srwlCalcIntFromElecField(char* pInt, SRWLWfr* pWfr, char polar, char intType, char depType, double e, double x, double y, double* pMeth, void* pFldTrj) //OC23022020
+//EXP int CALL srwlCalcIntFromElecField(char* pInt, SRWLWfr* pWfr, char polar, char intType, char depType, double e, double x, double y, double *pMeth) //OC16122019
+//EXP int CALL srwlCalcIntFromElecField(char* pInt, SRWLWfr* pWfr, char polar, char intType, char depType, double e, double x, double y, int *pMeth) //OC13122019
+//EXP int CALL srwlCalcIntFromElecField(char* pInt, SRWLWfr* pWfr, char polar, char intType, char depType, double e, double x, double y)
 {
 	//double start; //Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP
 	//get_walltime (&start);
 
 	if((pWfr == 0) || (pInt == 0)) return SRWL_INCORRECT_PARAM_FOR_INT_EXTR;
 
+	SRWLPrtTrj *pTrj=0; //OC23022020
+	srTTrjDat *pTrjDat=0;
+	bool trjDataShouldBeDel = false;
 	try 
 	{
 		srTSRWRadStructAccessData wfr(pWfr);
 		CHGenObj hWfr(&wfr, true);
 		srTRadGenManip radGenManip(hWfr);
 		
-		////Re-defining intType
-		////from SRWL convention: 0- Single-Elec. Intensity; 1- Multi-Elec. Intensity; 2- Single-Elec. Flux; 3- Multi-Elec. Flux; 4- Single-Elec. Rad. Phase; 5- Re(E); 6- Im(E); 7- Time or Photon Energy Integrated Intensity
-		////to old SRW convention: 0- Single-Elec. Intensity; 1- Multi-Elec. Intensity; 2- Single-Elec. Rad. Phase; 3- Re(E); 4- Single-Elec. Flux; 5- Multi-Elec. Flux; 6- Im(E); 7- Time or Photon Energy Integrated Intensity
+		//Re-defining intType
+		//from SRWL convention: 0- Single-Elec. Intensity; 1- Multi-Elec. Intensity; 2- Single-Elec. Flux; 3- Multi-Elec. Flux; 4- Single-Elec. Rad. Phase; 5- Re(E); 6- Im(E); 7- Time or Photon Energy Integrated Intensity; 8-"Single-Electron" Mutual Intensity (i.e. E(r)E*(r')) 
+		//to old SRW convention: 0- Single-Elec. Intensity; 1- Multi-Elec. Intensity; 2- Single-Elec. Rad. Phase; 3- Re(E); 4- Single-Elec. Flux; 5- Multi-Elec. Flux; 6- Im(E); 7- Time or Photon Energy Integrated Intensity; 8-"Single-Electron" Mutual Intensity (i.e. E(r)E*(r')) 
 		//if(intType == 2) intType = 4;
 		//else if(intType == 3) intType = 5;
 		//else if(intType == 4) intType = 2;
 		//else if(intType == 5) intType = 3;
+		char arIntTypeConv[] = {0,1,4,5,2,3,6,7,8};
+
+		if(pFldTrj != 0) //OC23022020
+		{
+			char typeFldTrj = 1; //assuming SRWLMagFldC*
+			if(pMeth != 0) typeFldTrj = (char)pMeth[6];
+
+			if(typeFldTrj <= 1)
+			{
+				pTrj = SetupTrjFromMagFld(&(pWfr->partBeam.partStatMom1), (SRWLMagFldC*)pFldTrj, pMeth+11);
+				trjDataShouldBeDel = true;
+			}
+			else if(typeFldTrj == 2) pTrj = (SRWLPrtTrj*)pFldTrj;
+
+			pTrjDat = new srTTrjDat(pTrj); //this calculates interpolating structure required for SR calculation
+			pTrjDat->EbmDat.SetCurrentAndMom2(pWfr->partBeam.Iavg, pWfr->partBeam.arStatMom2, 21);
+			//pFldTrj = pTrjData;
+		}
+
+		radGenManip.ExtractRadiation((int)polar, (int)arIntTypeConv[intType], (int)depType, wfr.Pres, e, x, y, pInt, pMeth, pTrjDat); //OC23022020
+		//radGenManip.ExtractRadiation((int)polar, (int)arIntTypeConv[intType], (int)depType, wfr.Pres, e, x, y, pInt, pMeth); //OC13122019
 		//radGenManip.ExtractRadiation((int)polar, (int)intType, (int)depType, wfr.Pres, e, x, y, pInt);
 
 		//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
 		//srwlPrintTime(":srwlCalcIntFromElecField : before ExtractRadiation",&start);
 
-		radGenManip.ExtractRadiationSRWL(polar, intType, depType, wfr.Pres, e, x, y, pInt); //OC19082018
+		//radGenManip.ExtractRadiationSRWL(polar, intType, depType, wfr.Pres, e, x, y, pInt); //OC19082018
 
 		//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
 		//srwlPrintTime(":srwlCalcIntFromElecField : ExtractRadiation",&start);
@@ -736,6 +812,17 @@ EXP int CALL srwlCalcIntFromElecField(char* pInt, SRWLWfr* pWfr, char polar, cha
 	{
 		return erNo;
 	}
+	if(trjDataShouldBeDel)
+	{
+		if(pTrj->arX != 0) { delete[] pTrj->arX; pTrj->arX = 0;}
+		if(pTrj->arXp != 0) { delete[] pTrj->arXp; pTrj->arXp = 0;}
+		if(pTrj->arY != 0) { delete[] pTrj->arY; pTrj->arY = 0;}
+		if(pTrj->arYp != 0) { delete[] pTrj->arYp; pTrj->arYp = 0;}
+		if(pTrj->arZ != 0) { delete[] pTrj->arZ; pTrj->arZ = 0;}
+		if(pTrj->arZp != 0) { delete[] pTrj->arZp; pTrj->arZp = 0;}
+		delete pTrj;
+	}
+	if(pTrjDat != 0) delete pTrjDat;
 	return 0;
 }
 
@@ -782,6 +869,27 @@ EXP int CALL srwlResizeElecField(SRWLWfr* pWfr, char type, double* par)
 
 			if(locErNo = GenOptElem.RadResizeGenE(wfr, resPar)) return locErNo; //to make it static or put it into srTSRWRadStructAccessData eventually?
 		}
+
+		wfr.OutSRWRadPtrs(*pWfr);
+		UtiWarnCheck();
+	}
+	catch(int erNo) 
+	{
+		return erNo;
+	}
+	return 0;
+}
+
+//-------------------------------------------------------------------------
+
+EXP int CALL srwlResizeElecFieldMesh(SRWLWfr* pWfr, SRWLRadMesh* pMesh, double* par)
+{
+	if((pWfr == 0) || (pMesh == 0) || (par == 0)) return SRWL_INCORRECT_PARAM_FOR_RESIZE; //make separate message for resize on mesh?
+
+	try
+	{
+		srTSRWRadStructAccessData wfr(pWfr);
+		wfr.Resize(*pMesh, par);
 
 		wfr.OutSRWRadPtrs(*pWfr);
 		UtiWarnCheck();

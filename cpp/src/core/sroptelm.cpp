@@ -136,7 +136,8 @@ int srTGenOptElem::SetupOpticalElement(srTStringVect* pOptElemInfo, srTDataMD* p
 
 //*************************************************************************
 
-int srTGenOptElem::TraverseRadZXE(srTSRWRadStructAccessData* pRadAccessData)
+int srTGenOptElem::TraverseRadZXE(srTSRWRadStructAccessData* pRadAccessData, void* pBufVars) //OC29082019
+//int srTGenOptElem::TraverseRadZXE(srTSRWRadStructAccessData* pRadAccessData)
 {
 	float *pEx0 = pRadAccessData->pBaseRadX;
 	float *pEz0 = pRadAccessData->pBaseRadZ;
@@ -198,7 +199,8 @@ int srTGenOptElem::TraverseRadZXE(srTSRWRadStructAccessData* pRadAccessData)
 				}
 
 				EXZ.aux_offset = izPerZ + ixPerX + iePerE;
-				RadPointModifier(EXZ, EFieldPtrs);
+				RadPointModifier(EXZ, EFieldPtrs, pBufVars); //OC29082019
+				//RadPointModifier(EXZ, EFieldPtrs);
 
 				//iTotTest++; //OCTEST
 
@@ -266,7 +268,8 @@ int srTGenOptElem::TraverseRadZXE(srTSRWRadStructAccessData* pRadAccessData)
 				}
 
 				EXZ.aux_offset = izPerZ + ixPerX + iePerE;
-				RadPointModifier(EXZ, EFieldPtrs);
+				RadPointModifier(EXZ, EFieldPtrs, pBufVars); //OC29082019
+				//RadPointModifier(EXZ, EFieldPtrs);
 
 				iePerE += 2;
 				EXZ.e += pRadAccessData->eStep;
@@ -282,7 +285,8 @@ int srTGenOptElem::TraverseRadZXE(srTSRWRadStructAccessData* pRadAccessData)
 
 //*************************************************************************
 
-int srTGenOptElem::TraverseRad1D(srTRadSect1D* pSect1D)
+int srTGenOptElem::TraverseRad1D(srTRadSect1D* pSect1D, void* pBufVars) //OC06092019
+//int srTGenOptElem::TraverseRad1D(srTRadSect1D* pSect1D)
 {
 	float *tEx = pSect1D->pEx;
 	float *tEz = pSect1D->pEz;
@@ -303,7 +307,8 @@ int srTGenOptElem::TraverseRad1D(srTRadSect1D* pSect1D)
 		EFieldPtrs.pEzRe = tEz;
 		EFieldPtrs.pEzIm = tEz + 1;
 
-		RadPointModifier1D(EXZ, EFieldPtrs);
+		RadPointModifier1D(EXZ, EFieldPtrs, pBufVars); //OC06092019
+		//RadPointModifier1D(EXZ, EFieldPtrs);
 
 		if(tEx != 0) tEx += 2; 
 		if(tEz != 0) tEz += 2;
@@ -1363,10 +1368,10 @@ int srTGenOptElem::SetRadRepres(srTSRWRadStructAccessData* pRadAccessData, char 
 					if(ar_zStartInSlicesE != 0) FFT2DInfo_local.yStart = ar_zStartInSlicesE[ie];
 
 					FFT2DInfo_local.pData = AuxEx;
-					if(results[ie] = FFT2D.Make2DFFT(FFT2DInfo_local,&Plan2DFFT)) continue;
+					if(results[ie] = FFT2D.Make2DFFT(FFT2DInfo_local, &Plan2DFFT)) continue;
 
 					FFT2DInfo_local.pData = AuxEz;
-					if(results[ie] = FFT2D.Make2DFFT(FFT2DInfo_local,&Plan2DFFT)) continue;
+					if(results[ie] = FFT2D.Make2DFFT(FFT2DInfo_local, &Plan2DFFT)) continue;
 
 					if(WfrEdgeCorrShouldBeTreated)
 					{
@@ -2134,8 +2139,40 @@ int srTGenOptElem::RadResizeGen(srTSRWRadStructAccessData& SRWRadStructAccessDat
 	//double start;
 	//get_walltime(&start);
 
-	if((RadResizeStruct.pxm == 1.) && (RadResizeStruct.pxd == 1.) && (RadResizeStruct.pzm == 1.) && (RadResizeStruct.pzd == 1.)) return 0;
+	//if((RadResizeStruct.pxm == 1.) && (RadResizeStruct.pxd == 1.) && (RadResizeStruct.pzm == 1.) && (RadResizeStruct.pzd == 1.)) return 0;
+	if((RadResizeStruct.pxm == 1.) && (RadResizeStruct.pxd == 1.) && (RadResizeStruct.pzm == 1.) && (RadResizeStruct.pzd == 1.) && (RadResizeStruct.ShiftTypeBeforeRes <= 0)) return 0; //OC11072019
 	int result = 0;
+
+	//OC11072019
+	char shTyp = RadResizeStruct.ShiftTypeBeforeRes;
+	if((RadResizeStruct.eCenShift > 0) && (shTyp & 4)) //((shTyp == 4) || (shTyp == 6) || (shTyp == 5) || (shTyp == 7)) //shift vs E required
+	{
+		double reTot = SRWRadStructAccessData.eStep*(SRWRadStructAccessData.ne - 1);
+		double reLeft = RadResizeStruct.eCenShift - SRWRadStructAccessData.eStart;
+		if((reLeft > 0.) && (RadResizeStruct.eCenShift < (SRWRadStructAccessData.eStart + reTot)))
+		{
+			RadResizeStruct.RelCenPosE = reLeft/reTot;
+		}
+	}
+	if(shTyp & 1) //((shTyp == 1) || (shTyp == 3) || (shTyp == 5) || (shTyp == 7))) //shift vs X required
+	{
+		double rxTot = SRWRadStructAccessData.xStep*(SRWRadStructAccessData.nx - 1);
+		//double rxTot = SRWRadStructAccessData.xStep*SRWRadStructAccessData.nx;
+		double rxLeft = RadResizeStruct.xCenShift - SRWRadStructAccessData.xStart;
+		if((rxLeft > 0.) && (RadResizeStruct.xCenShift < (SRWRadStructAccessData.xStart + rxTot)))
+		{
+			RadResizeStruct.RelCenPosX = rxLeft/rxTot;
+		}
+	}
+	if(shTyp & 2) //((shTyp == 2) || (shTyp == 3) || (shTyp == 6) || (shTyp == 7)) //shift vs Z required
+	{
+		double rzTot = SRWRadStructAccessData.zStep*(SRWRadStructAccessData.nz - 1);
+		double rzLeft = RadResizeStruct.zCenShift - SRWRadStructAccessData.zStart;
+		if((rzLeft > 0.) && (RadResizeStruct.zCenShift < (SRWRadStructAccessData.zStart + rzTot)))
+		{
+			RadResizeStruct.RelCenPosZ = rzLeft/rzTot;
+		}
+	}
 
 	bool ExIsOK = SRWRadStructAccessData.pBaseRadX != 0;
 	bool EzIsOK = SRWRadStructAccessData.pBaseRadZ != 0;
@@ -2642,7 +2679,7 @@ int srTGenOptElem::RadResizeGen(srTSRWRadStructAccessData& SRWRadStructAccessDat
 				if(result = NewSRWRadStructAccessData.CreateNewWfrStruct(RadStructNames)) return result;		
 #endif
 #if defined(SRWLIB_STATIC) || defined(SRWLIB_SHARED) //OC161115
-				if (result = NewSRWRadStructAccessData.ModifyWfrNeNxNz('x', true)) return result;
+				if(result = NewSRWRadStructAccessData.ModifyWfrNeNxNz('x', true)) return result;
 #endif
 				float *tRadX = NewSRWRadStructAccessData.pBaseRadX;
 				//for(long j=0; j<TotAmOfNewData; j++) *(tRadX++) = 0.;
@@ -2903,7 +2940,7 @@ int srTGenOptElem::RadResizeCore(srTSRWRadStructAccessData& OldRadAccessData, sr
 
 				if((izStOld != izStOldPrev) || (ixStOld != ixStOldPrev))
 				{
-					UseLowOrderInterp_PolCompX = 0, UseLowOrderInterp_PolCompZ = 0;
+					UseLowOrderInterp_PolCompX = 0; UseLowOrderInterp_PolCompZ = 0;
 
 					//long TotOffsetOld = izStOld*PerZ_Old + ixStOld*PerX_Old + Two_ie;
 					long long TotOffsetOld = izStOld*PerZ_Old + ixStOld*PerX_Old + Two_ie;
@@ -5072,8 +5109,10 @@ int srTGenOptElem::ExtractPhase1D(srTWaveAccessData& InWaveAccessData, double* p
 int srTGenOptElem::GenAuxPropagate4x4PropMatr(srTSRWRadStructAccessData* pRadAccessData, double* OptElem4x4Matr, double* OptElem4Vect)
 {
 	int i, j, k;
-	DOUBLE *OldMatrStrPtrs[4];
-	DOUBLE *OldVect = pRadAccessData->p4x4PropMatr + 16;
+	//DOUBLE *OldMatrStrPtrs[4];
+	//DOUBLE *OldVect = pRadAccessData->p4x4PropMatr + 16;
+	double *OldMatrStrPtrs[4]; //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
+	double *OldVect = pRadAccessData->p4x4PropMatr + 16;
 	double ResMatr[16], ResVect[4];
 	double *ResMatrStrPtrs[4], *OptElemMatrStrPtrs[4];
 	for(i=0; i<4; i++)
@@ -5104,7 +5143,8 @@ int srTGenOptElem::GenAuxPropagate4x4PropMatr(srTSRWRadStructAccessData* pRadAcc
 		}
 	}
 
-	DOUBLE* t4x4PropMatr = pRadAccessData->p4x4PropMatr;
+	//DOUBLE* t4x4PropMatr = pRadAccessData->p4x4PropMatr;
+	double* t4x4PropMatr = pRadAccessData->p4x4PropMatr; //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
 	double* tResMatr = ResMatr;
 	for(i=0; i<16; i++) *(t4x4PropMatr++) = *(tResMatr++);
 

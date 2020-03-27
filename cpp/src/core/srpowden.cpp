@@ -613,12 +613,6 @@ int srTRadIntPowerDensity::ComputePowerDensityAtPoint(float* pPowDens)
 					TrjHndl.rep->CompTrjDataDerivedAtPointPowDens(s, *pBtx, *pBtz, *pX, *pZ, *pBx, *pBz);
 				}
 
-					//DEBUG
-					if(i == 287)
-					{
-						int aha = 1;
-					}
-
 				PowDensFun(s, *pBx, *pBtx, *pX, *pBz, *pBtz, *pZ, Fx, Fz);
 				Sum1X += Fx; Sum1Z += Fz;
 

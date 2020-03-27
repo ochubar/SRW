@@ -1,10 +1,94 @@
 ﻿#############################################################################
-# SRWLib for Python: Undulator Utilities v 0.02
+# SRWLib for Python: Undulator Utilities v 0.03
 #############################################################################
 
 from srwlib import *
 import uti_parse
 import uti_io
+
+#****************************************************************************
+#****************************************************************************
+# Global Constants
+#****************************************************************************
+#****************************************************************************
+
+_Pi = 3.14159265358979
+_ElCh = 1.60217646263E-19 #1.602189246E-19 #Electron Charge [Q]
+_ElMass_kg = 9.1093818872E-31 #9.10953447E-31 #Electron Mass in [kg]
+_ElMass_MeV = 0.51099890221 #Electron Mass in [MeV]
+_LightSp = 2.9979245812E+08 #Speed of Light [m/c]
+_Light_eV_mu = 1.23984197 #OC23062019 #1.23984186 #Wavelength <-> Photon Energy conversion constant ([um] <-> [eV])
+_PlanckConst_eVs = 4.13566766225E-15 #Planck constant in [eV*s]
+
+#****************************************************************************
+def srwl_uti_und_predef():
+    #Undulator params in the order: _per,   _len,   _ky,    _kx,    _phy,   _phx,   _sy,    _sx
+    allUnd = [
+        ['SCU14-2m',            [0.014,     2.0,    2.20,   0,      0,      0,      -1,      1]],
+        ['CPMU14-4m',           [0.014,     4.0,    1.70,   0,      0,      0,      -1,      1]],
+        ['CPMU17-3m',           [0.017,     3.0,    1.70,   0,      0,      0,      -1,      1]],
+        
+        ['IVU20-3m',            [0.020,     3.0,    1.83,   0,      0,      0,      -1,      1]],
+        ['IVU21-1.5m',          [0.021,     1.5,    1.79,   0,      0,      0,      -1,      1]],
+        ['IVU22-3m',            [0.022,     3.0,    1.52,   0,      0,      0,      -1,      1]],
+        ['IVU23-2.8m',          [0.023,     2.8,    2.05,   0,      0,      0,      -1,      1]],
+        
+        ['EPU49-2m LH',         [0.049,     2.0,    4.30,   0,      0,      0,       1,     -1]],
+        ['EPU49-2m LV',         [0.049,     2.0,    0,      3.20,   0,      0,       1,     -1]],
+        ['EPU49-2m C',          [0.049,     2.0,    2.60,   2.60,   0,      0,       1,     -1]],
+        ['EPU49-2m LT',         [0.049,     2.0,    1.90,   1.90,   0.7854, -0.7854, 1,     -1]],
+
+        ['EPU57-3.5m LH',       [0.057,     3.5,    4.41,   0,      0,      0,       1,     -1]],
+        ['EPU57-3.5m LV',       [0.057,     3.5,    0,      3.06,   0,      0,       1,     -1]],
+        ['EPU57-3.5m C',        [0.057,     3.5,    2.51,   2.51,   0,      0,       1,     -1]],
+        ['EPU57-3.5m LT',       [0.057,     3.5,    1.80,   1.80,   0.7854, -0.7854, 1,     -1]],
+
+        ['EPU105-2.7m LH',      [0.105,     2.7,    11.15,  0,      0,      0,       1,     -1]],
+        ['EPU105-2.7m LV',      [0.105,     2.7,    0,      9.20,   0,      0,       1,     -1]],
+        ['EPU105-2.7m C',       [0.105,     2.7,    7.085,  7.085,  0,      0,       1,     -1]],
+        ['EPU105-2.7m LT',      [0.105,     2.7,    4.714,  4.714,  0.7854, -0.7854, 1,     -1]],
+
+        ['DW100-7m',            [0.100,     7.0,    16.80,  0,      0,      0,       1,     -1]],
+    ]
+    return allUnd
+
+#****************************************************************************
+def srwl_uti_und(_nm, _per=None, _len=None, _ky=None, _kx=None, _phy=None, _phx=None, _sy=None, _sx=None):
+    """Instantiates undulator / wiggler structures describing different existing IDs
+    :param _nm: string identifying a source
+    :return: SRWLMagFldU object
+    """
+
+    allUnd = srwl_uti_und_predef()
+    sTest = _nm.replace(' ', '')
+    #sTest = sTest.replace('-', '')
+    sTest = sTest.capitalize()
+
+    resUnd = SRWLMagFldU()
+    nUnd = len(allUnd)
+
+    multK2B = (2.*_Pi*_ElMass_kg*_LightSp)/_ElCh
+
+    for i in range(nUnd):
+        curInf = allUnd[i]
+        curStr = curInf[0]
+        curStr = curStr.replace(' ', '')
+        #curStr = curStr.replace('-', '')
+        curStr = curStr.capitalize()
+        if sTest == curStr:
+            ar = curInf[1]
+            if(_per is not None): ar[0] = _per
+            if(_len is not None): ar[1] = _len
+            if(_ky is not None): ar[2] = _ky
+            if(_kx is not None): ar[3] = _kx
+            if(_phy is not None): ar[4] = _phy
+            if(_phx is not None): ar[5] = _phx
+            if(_sy is not None): ar[6] = _sy
+            if(_sx is not None): ar[7] = _sx
+            
+            resUnd.set_sin(_per=ar[0], _len=ar[1], _by=ar[2]*multK2B/ar[0], _bx=ar[3]*multK2B/ar[0], _phy=ar[4], _phx=ar[5], _sy=ar[6], _sx=ar[7])
+            return resUnd
+    return None
 
 #****************************************************************************
 def srwl_und_cor_fld_int(_mag3d, _dist_bw_kicks, _rms_len_kicks=0.05, _zc=0, _zcMesh=0, _zRange=0, _dupl=False):
@@ -657,11 +741,13 @@ def srwl_uti_und_gen_file_names_for_conv(_ifln, _ofn_core=None, _pref_gap=None, 
 
             listVal = [fnOrig, fnRes, gap]
 
-            if(modeFin is not ''):
+            if(modeFin != ''): #OC23032020 (to fix Py3.8 warning)
+            #if(modeFin is not ''):
                 fnRes += '_m' + modeFin
                 listVal.append(modeFin)
                 
-            if(phase is not ''):
+            if(phase != ''): #OC23032020 (to fix Py3.8 warning)
+            #if(phase is not ''):
                 fnRes += '_ph' + str(phase)
                 listVal.append(phase)
             

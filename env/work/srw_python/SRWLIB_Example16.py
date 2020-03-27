@@ -210,6 +210,7 @@ try:
     from matplotlib import pyplot as plt
     fig = plt.figure(figsize=(10, 7))
     ax = fig.add_subplot(111)
+
     ax.plot(sIn, arIinY, '--g.', label='SRW (before aperture)')
     ax.plot(sOut, arI1y, '-r.', label='SRW ({}m after aperture)'.format(driftLength))
     if analyticalIntens:

@@ -140,7 +140,8 @@ srTCompositeOptElem::srTCompositeOptElem(const SRWLOptC& opt)
 			else if((strcmp(sType, "zp") == 0) || (strcmp(sType, "ZP") == 0))
 			{
 				SRWLOptZP *p = (SRWLOptZP*)(*t_arOpt);
-				pOptElem = new srTZonePlate(p->nZones, p->rn, p->thick, p->atLen1, p->atLen2, p->delta1, p->delta2, p->x, p->y);
+				pOptElem = new srTZonePlate(p->nZones, p->rn, p->thick, p->atLen1, p->atLen2, p->delta1, p->delta2, p->x, p->y, p->e0); //OC22062019
+				//pOptElem = new srTZonePlate(p->nZones, p->rn, p->thick, p->atLen1, p->atLen2, p->delta1, p->delta2, p->x, p->y);
 			}
 			else if(strcmp(sType, "waveguide") == 0)
 			{
@@ -305,7 +306,8 @@ int srTCompositeOptElem::PropagateRadiationGuided(srTSRWRadStructAccessData& wfr
 			//TO IMPLEMENT: eventual shift of wavefront before resizing!!!
 
 			if((::fabs(curPropResizeInst.pxd - 1.) > tolRes) || (::fabs(curPropResizeInst.pxm - 1.) > tolRes) ||
-			   (::fabs(curPropResizeInst.pzd - 1.) > tolRes) || (::fabs(curPropResizeInst.pzm - 1.) > tolRes))
+			   //(::fabs(curPropResizeInst.pzd - 1.) > tolRes) || (::fabs(curPropResizeInst.pzm - 1.) > tolRes))
+			   (::fabs(curPropResizeInst.pzd - 1.) > tolRes) || (::fabs(curPropResizeInst.pzm - 1.) > tolRes) || (curPropResizeInst.ShiftTypeBeforeRes > 0)) //OC11072019
 				if(res = RadResizeGen(wfr, curPropResizeInst)) return res;
 
 			//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
@@ -375,7 +377,11 @@ int srTCompositeOptElem::ExtractPropagatedIntensity(srTSRWRadStructAccessData& w
 		{
 			char *&arCurI = *(arI + ii);
 			char pol = *(arID[1] + ii);
-			char type = *(arID[2] + ii);
+
+			//char type = *(arID[2] + ii);
+			char arIntTypeConv[] = {0,1,4,5,2,3,6,7,8}; //OC14122019
+			char type = arIntTypeConv[*(arID[2] + ii)];
+
 			char dep = *(arID[3] + ii);
 			char pres = *(arID[4] + ii);
 			SRWLRadMesh &mesh = *(arIM + ii);
@@ -398,7 +404,8 @@ int srTCompositeOptElem::ExtractPropagatedIntensity(srTSRWRadStructAccessData& w
 			//Extract the intensity (repeating how this is done in srwlCalcIntFromElecField)
 			CHGenObj hWfr(&wfr, true);
 			srTRadGenManip radGenManip(hWfr);
-			radGenManip.ExtractRadiationSRWL(pol, type, dep, pres, mesh.eStart, mesh.xStart, mesh.yStart, arCurI);
+			radGenManip.ExtractRadiation(pol, type, dep, pres, mesh.eStart, mesh.xStart, mesh.yStart, arCurI); //OC13122019
+			//radGenManip.ExtractRadiationSRWL(pol, type, dep, pres, mesh.eStart, mesh.xStart, mesh.yStart, arCurI);
 
 			//Updating mesh for intensity with data from wavefront
 			wfr.GetIntMesh(dep, mesh);

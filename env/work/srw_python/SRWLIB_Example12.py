@@ -47,7 +47,7 @@ def setUndulator(_en, _bd=0):
     2000.: 0.296978
   }
 
-  numPer = 61.5 #Number of ID Periods (without counting for terminations (3.5m, 57mm)
+  numPer = 61 #61.5 #Number of ID Periods (without counting for terminations (3.5m, 57mm)
   undPer = 0.057 #Period Length [m]
   By =  BbE[_en]*(1 + _bd) #Peak Vertical field [T]
   print('By=', By, 'T')

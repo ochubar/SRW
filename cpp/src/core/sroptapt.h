@@ -45,6 +45,8 @@ public:
 		return 0;
 	}
 	//int PropagateRadiationMeth_0(srTSRWRadStructAccessData* pRadAccessData)
+	//int PropagateRadiationSingleE_Meth_0(srTSRWRadStructAccessData* pRadAccessData, srTSRWRadStructAccessData* pPrevRadAccessData, void* pBuf = 0) //OC06092019
+	//OC01102019 (restored)
 	int PropagateRadiationSingleE_Meth_0(srTSRWRadStructAccessData* pRadAccessData, srTSRWRadStructAccessData* pPrevRadAccessData)
 	{
 		int result;
@@ -72,6 +74,8 @@ public:
 
 	virtual void SetNewNonZeroWfrLimits(srTSRWRadStructAccessData*) {}
 
+	//int PropagateRadiationSimple(srTSRWRadStructAccessData* pRadAccessData, void* pBuf=0) //OC06092019
+	//OC01102019 (restored)
 	int PropagateRadiationSimple(srTSRWRadStructAccessData* pRadAccessData)
 	{
 		int result;
@@ -81,6 +85,9 @@ public:
 		SetNewNonZeroWfrLimits(pRadAccessData);
 		return 0;
 	}
+
+	//int PropagateRadiationSimple1D(srTRadSect1D* pSect1D, void* pBuf=0) //OC06092019
+	//OC01102019 (restored)
 	int PropagateRadiationSimple1D(srTRadSect1D* pSect1D)
 	{
 		int result;
@@ -132,7 +139,8 @@ public:
 
 	srTRectAperture() {}
 
-	void RadPointModifier(srTEXZ& EXZ, srTEFieldPtrs& EPtrs)
+	void RadPointModifier(srTEXZ& EXZ, srTEFieldPtrs& EPtrs, void* pBufVars=0) //OC29082019
+	//void RadPointModifier(srTEXZ& EXZ, srTEFieldPtrs& EPtrs)
 	{
 		const double SmallOffset = 1.E-10;
 		double xRel = EXZ.x - TransvCenPoint.x, zRel = EXZ.z - TransvCenPoint.y;
@@ -152,9 +160,12 @@ public:
 			*(EPtrs.pEzRe) = 0.; *(EPtrs.pEzIm) = 0.;
 		}
 	}
-	void RadPointModifier1D(srTEXZ& EXZ, srTEFieldPtrs& EPtrs)
+
+	void RadPointModifier1D(srTEXZ& EXZ, srTEFieldPtrs& EPtrs, void* pBufVars=0) //OC06092019
+	//void RadPointModifier1D(srTEXZ& EXZ, srTEFieldPtrs& EPtrs)
 	{
-		RadPointModifier(EXZ, EPtrs); // Check this
+		RadPointModifier(EXZ, EPtrs, pBufVars); //OC06092019
+		//RadPointModifier(EXZ, EPtrs); // Check this
 	}
 
 	void SetNewNonZeroWfrLimits(srTSRWRadStructAccessData* pRadAccessData) 
@@ -222,7 +233,8 @@ public:
 	}
 	srTRectObstacle() {}
 
-	void RadPointModifier(srTEXZ& EXZ, srTEFieldPtrs& EPtrs)
+	void RadPointModifier(srTEXZ& EXZ, srTEFieldPtrs& EPtrs, void* pBufVars=0) //OC29082019
+	//void RadPointModifier(srTEXZ& EXZ, srTEFieldPtrs& EPtrs)
 	{
 		const double SmallOffset = 1.E-10;
 		double xRel = EXZ.x - TransvCenPoint.x, zRel = EXZ.z - TransvCenPoint.y;
@@ -307,7 +319,8 @@ public:
 
 	srTCircAperture() {}
 
-	void RadPointModifier(srTEXZ& EXZ, srTEFieldPtrs& EPtrs)
+	void RadPointModifier(srTEXZ& EXZ, srTEFieldPtrs& EPtrs, void* pBufVars=0) //OC29082019
+	//void RadPointModifier(srTEXZ& EXZ, srTEFieldPtrs& EPtrs)
 	{
 		double xRel = EXZ.x - TransvCenPoint.x, zRel = EXZ.z - TransvCenPoint.y;
 
@@ -323,9 +336,12 @@ public:
 			*(EPtrs.pEzRe) = 0.; *(EPtrs.pEzIm) = 0.;
 		}
 	}
-	void RadPointModifier1D(srTEXZ& EXZ, srTEFieldPtrs& EPtrs)
+
+	void RadPointModifier1D(srTEXZ& EXZ, srTEFieldPtrs& EPtrs, void* pBufVars=0) //OC06092019
+	//void RadPointModifier1D(srTEXZ& EXZ, srTEFieldPtrs& EPtrs)
 	{
-		RadPointModifier(EXZ, EPtrs); // Check this
+		RadPointModifier(EXZ, EPtrs, pBufVars); //OC06092019
+		//RadPointModifier(EXZ, EPtrs); // Check this
 	}
 
 	void SetNewNonZeroWfrLimits(srTSRWRadStructAccessData* pRadAccessData) 
@@ -398,7 +414,8 @@ public:
 
 	srTCircObstacle() {}
 
-	void RadPointModifier(srTEXZ& EXZ, srTEFieldPtrs& EPtrs)
+	void RadPointModifier(srTEXZ& EXZ, srTEFieldPtrs& EPtrs, void* pBufVars=0) //OC29082019
+	//void RadPointModifier(srTEXZ& EXZ, srTEFieldPtrs& EPtrs)
 	{
 		double xRel = EXZ.x - TransvCenPoint.x, zRel = EXZ.z - TransvCenPoint.y;
 

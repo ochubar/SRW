@@ -57,6 +57,11 @@ class Backend(object):
         self._plot_1D_ir(arY, arX, labels, fig)
         return self._maybe_savefig(fig)
 
+    def uti_plot1d_m(self, ars, labels=('X', 'Y'), styles=None, legend=None): #OC25102019
+        fig = self._pl.figure()
+        self._plot_1D_m(ars, labels, fig, styles=styles, legend=legend)
+        return self._maybe_savefig(fig)
+
     #def plot2D(ar2d,x_range,y_range,labels=('Horizontal position, mm','Vertical position, mm')):
     def uti_plot2d(self, ar2d, x_range, y_range, labels=('Horizontal Position [m]','Vertical Position [m]')):
         #fig = _pl.figure(figsize=(12,8))
@@ -252,6 +257,8 @@ class Backend(object):
         if isinstance(ar1d,(list,array)): ar1d = np.array(ar1d)
 
         x = np.linspace(x_range[0],x_range[1],x_range[2])
+        #print('_plot_1D:', x_range)
+        
         ax = fig.add_subplot(typ)
         ax.plot(x,ar1d)
         ax.grid()
@@ -261,6 +268,85 @@ class Backend(object):
         if(len(labels) > 2):
             ax.set_title(labels[2])
 
+    def _plot_1D_m(self, ars, labels, fig, typ=111, styles=None, legend=None): #OC25102019
+        #Assumed: ars = [curve_1,curve_2,...], where curve_i can be:
+        # curve_i = [[y1_i,y2_i,...],[x_min_i,x_max_i,nx_i]] or
+        # curve_i = [[y1_i,y2_i,...],[x1_i,x2_i,...]] or
+        # curve_i = [[x1_i,y1_i],[x2_i,y2_i],...] 
+
+        nCurves = len(ars)
+        ax = fig.add_subplot(typ)
+
+        legendWasUsed = False
+        for i in range(nCurves):
+            ar_i = ars[i] #individual curve
+            len_ar_i = len(ar_i)
+
+            curStyle = None
+            if(styles is not None):
+                if(isinstance(styles, (list, array))):
+                    if(i < len(styles)): curStyle = styles[i]
+            curLegend = None
+            if(legend is not None):
+                if(isinstance(legend, (list, array))):
+                    if(i < len(legend)): curLegend = legend[i]
+                    
+            arx = None
+            ary = None
+
+            if(len_ar_i == 2):
+                ar_i_0 = ar_i[0]
+                ar_i_1 = ar_i[1]
+                len_ar_i_0 = len(ar_i_0)
+                len_ar_i_1 = len(ar_i_1)
+                #if((len_ar_i_1 == 3) and (len_ar_i_0 == 3)): 
+                #    if(ar_i_1[2] == 3): #assuming [[y1,y2,y3],[x_min_i,x_max_i,nx_i]]
+                #        ary = ar_i_0
+                #        arx = np.linspace(ar_i_1[0], ar_i_1[1], ar_i_1[2])
+                #    else: #assuming [[y1,y2,y3],[x1,x2,x3]]
+                #        ary = ar_i_0
+                #        arx = ar_i_1
+                if(len_ar_i_1 == 3): #OC21022019
+                    if(len_ar_i_0 == 3): 
+                        if(ar_i_1[2] == 3): #assuming [[y1,y2,y3],[x_min_i,x_max_i,nx_i]]
+                            ary = ar_i_0
+                            arx = np.linspace(ar_i_1[0], ar_i_1[1], ar_i_1[2])
+                        else: #assuming [[y1,y2,y3],[x1,x2,x3]]
+                            ary = ar_i_0
+                            arx = ar_i_1
+                    elif(len_ar_i_0 == ar_i_1[2]): #assuming [[y1,y2,y3,y4,...],[x_min_i,x_max_i,nx_i]]
+                        ary = ar_i_0
+                        arx = np.linspace(ar_i_1[0], ar_i_1[1], ar_i_1[2])
+                    
+                elif((len_ar_i_1 == 2) and (len_ar_i_0 == 2)): #assuming [[x1,y1],[x2,y2]]
+                    arx = [ar_i_0[0],ar_i_1[0]]
+                    ary = [ar_i_0[1],ar_i_1[1]]
+
+                elif((len_ar_i_1 != 1) and (len_ar_i_1 == len_ar_i_1)): #assuming [[y1,y2,...],[x1,x2,...]]
+                    ary = ar_i_0
+                    arx = ar_i_1
+
+            elif(len_ar_i > 2): #assuming [[x1_i,y1_i],[x2_i,y2_i],...]
+                arx = [0]*len_ar_i
+                ary = [0]*len_ar_i
+                for j in range(len_ar_i):
+                    ar_ij = ar_i[j]
+                    arx[j] = ar_ij[0]
+                    ary[j] = ar_ij[1]
+                    
+            if((curStyle is None) and (curLegend is None)): ax.plot(arx, ary)
+            elif((curStyle is not None) and (curLegend is None)): ax.plot(arx, ary, curStyle)
+            elif((curStyle is None) and (curLegend is not None)): ax.plot(arx, ary, label=curLegend)
+            elif((curStyle is not None) and (curLegend is not None)): ax.plot(arx, ary, curStyle, label=curLegend)
+
+            if(curLegend is not None): legendWasUsed = True
+
+        if(legendWasUsed): ax.legend()
+        ax.grid()
+        ax.set_xlabel(labels[0])
+        ax.set_ylabel(labels[1])
+        if(len(labels) > 2): ax.set_title(labels[2])
+                    
     def _plot_2D(self, ar2d, x_range, y_range, labels, fig, typ=111):
         totLen = int(x_range[2]*y_range[2])
         lenAr2d = len(ar2d)
@@ -611,9 +697,12 @@ class Backend(object):
         import matplotlib.pyplot
         pl = matplotlib.pyplot
         try:
-            pl.figure(figsize=(0,0))
+            pl.figure(figsize=(1,1)) #OC08032020 (the line below throws exception with ~recent matplotlib)
+            #pl.figure(figsize=(0,0))
             pl.close('all')
         except:
+        #except Exception as e:
+            #print(str(e))
             old = backend
             (backend, fname_format) = self._default_file_backend(fname_format)
             pl.switch_backend(backend)

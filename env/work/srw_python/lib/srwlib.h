@@ -355,6 +355,7 @@ struct SRWLStructOpticsZonePlate {
 	double delta1, delta2; /* refractuve index decrements of the "main" and "complementary" materials */
 	double atLen1, atLen2; /* attenuation length [m] of the "main" and "complementary" materials */
 	double x, y; /* transverse coordinates of center [m] */
+	double e0; /* average photon energy (for calculation zone position corrections) */
 };
 typedef struct SRWLStructOpticsZonePlate SRWLOptZP;
 
@@ -435,6 +436,19 @@ struct SRWLStructOpticsMirrorEllipsoid {
 	SRWLOptMir baseMir; /* general information about the mirror */
 };
 typedef struct SRWLStructOpticsMirrorEllipsoid SRWLOptMirEl;
+
+/**
+ * Optical Element:
+ * Paraboloidal Mirror ("mirror: paraboloid" type)
+ */
+struct SRWLStructOpticsMirrorParaboloid {
+	double f; /* focal length [m] */
+	char uc; /* mirror use case: 'f'- focusing (assuming source at infinity), 'c'- collimating (Lassuming image at infinity) */
+	double angGraz; /* grazing angle [rad] at mirror center at perfect orientation */
+	double radSag; /* sagital radius of curvature [m] at mirror center */
+	SRWLOptMir baseMir; /* general information about the mirror */
+};
+typedef struct SRWLStructOpticsMirrorParaboloid SRWLOptMirPar;
 
 /**
  * Optical Element:
@@ -685,6 +699,8 @@ EXP int CALL srwlCalcPowDenSR(SRWLStokes* pStokes, SRWLPartBeam* pElBeam, SRWLPr
  *             5- Re(E): Real part of Single-Electron Electric Field;
  *             6- Im(E): Imaginary part of Single-Electron Electric Field;
  *             7- "Single-Electron" Intensity, integrated over Time or Photon Energy (i.e. Fluence);
+ *             8- "Single-Electron" Mutual Intensity (i.e. E(r)E*(r'))
+ *             9- "Multi-Electron" Mutual Intensity
  * @param [in] depType type of dependence to extract: 
  *             0- vs e (photon energy or time);
  *             1- vs x (horizontal position or angle);
@@ -696,10 +712,26 @@ EXP int CALL srwlCalcPowDenSR(SRWLStokes* pStokes, SRWLPartBeam* pElBeam, SRWLPr
  * @param [in] e photon energy (to keep fixed)
  * @param [in] x horizontal position (to keep fixed)
  * @param [in] y vertical position (to keep fixed)
+ * @param [in] arMeth array of (Mutual) Intensity extraction method-related parameters:
+ *			   arMeth[0]: method number (0- simple calculation of Intensity (default); 1- calculation of Intensity with instant averaging; 2- add new Intensity value to previous one);
+ *			   arMeth[1]: method-dependent parameter: if(arMeth[0]==1) it is iteration number
+ *			   arMeth[2]: horizontal wavefront radius of curvature defining quadratic term of radiation phase to be "subtracted" before calculation of Mutual Intensity (to be taken into account if != 0)
+ *			   arMeth[3]: vertical wavefront radius of curvature defining quadratic term of radiation phase to be "subtracted" before calculation of Mutual Intensity (to be taken into account if != 0)
+ *			   arMeth[4]: horizontal wavefront center defining quadratic term of radiation phase to be "subtracted" before calculation of Mutual Intensity
+ *			   arMeth[5]: vertical wavefront center defining quadratic term of radiation phase to be "subtracted" before calculation of Mutual Intensity
+ *			   arMeth[6]: type of auxiliary data (pointed by pFldTrj) on central electron (for finite-energy-spread calculations): 0- none, 1- SRWLMagFldC*, 2- SRWLPrtTrj*
+ *			   arMeth[7]: number of transverse e-beam phase-space points for multi-e mutual intensity (if arMeth[8] == 0) or number of horizontal e-beam phase-space points for multi-e mutual intensity (if arMeth[8] > 0)
+ *			   arMeth[8]: number of vertical e-beam phase-space points for multi-e mutual intensity (if it is <= 0, then arMeth[7] will be treated as number of combined of transverse e-beam phase-space points)
+ *			   arMeth[9]: number of points vs electron energy for multi-e mutual intensity (if it is <= 0, then arMeth[7] will be treated as number of combined of transverse e-beam phase-space points)
+ *			   arMeth[10]: intergration method over e-beam phase space (0- simple pseudo-random numbers, 1- LPtau sequences)
+ *			   arMeth[11]-[17]: precPar for srwlCalcElecFieldSR
+ * @param [in] pFldTrj auxiliary pointer to magnetic field or trajectory of central electron
  * @return	integer error (>0) or warnig (<0) code
  * @see ...
  */
-EXP int CALL srwlCalcIntFromElecField(char* pInt, SRWLWfr* pWfr, char pol, char intType, char depType, double e, double x, double y);
+EXP int CALL srwlCalcIntFromElecField(char* pInt, SRWLWfr* pWfr, char pol, char intType, char depType, double e, double x, double y, double* arMeth=0, void* pFldTrj=0);
+//EXP int CALL srwlCalcIntFromElecField(char* pInt, SRWLWfr* pWfr, char pol, char intType, char depType, double e, double x, double y, double* arMeth=0);
+//EXP int CALL srwlCalcIntFromElecField(char* pInt, SRWLWfr* pWfr, char pol, char intType, char depType, double e, double x, double y);
 
 /** 
  * "Resizes" Electric Field Wavefront vs transverse positions / angles or photon energy / time
@@ -723,6 +755,18 @@ EXP int CALL srwlCalcIntFromElecField(char* pInt, SRWLWfr* pWfr, char pol, char 
  * @see ...
  */
 EXP int CALL srwlResizeElecField(SRWLWfr* pWfr, char type, double* par);
+
+/** 
+ * "Resizes" Electric Field Wavefront vs transverse positions / angles or / and photon energy / time according to a given set of mesh parameters
+ * @param [in, out] pWfr pointer to pre-calculated Wavefront structure
+ * @param [in] pMesh mesh structure the resulting Electric Field should be sampled on 
+ * @param [in] par array of parameters: 
+ *			[0]- method (0- regular method, without FFT, 1- "special" method involving FFT)
+ *          [1]- allow or not treatment of quadratic phase term (0- don't allow, 1- allow)
+ * @return	integer error (>0) or warnig (<0) code
+ * @see ...
+ */
+EXP int CALL srwlResizeElecFieldMesh(SRWLWfr* pWfr, SRWLRadMesh* pMesh, double* par);
 
 /** 
  * Changes Representation of Electric Field: coordinates<->angles, frequency<->time

@@ -15,6 +15,10 @@
 #include "gmfft.h"
 #include "gmmeth.h"
 //#include "gminterp.h"
+#include "gmrand.h"
+#include "srtrjdat.h"
+#include "srradint.h"
+
 #include "srerror.h"
 
 //DEBUG
@@ -222,7 +226,8 @@ int srTRadGenManip::ExtractSingleElecIntensity1DvsE(srTRadExtract& RadExtract)
 	srTSRWRadStructAccessData& RadAccessData = *((srTSRWRadStructAccessData*)(hRadAccessData.ptr()));
 
 	float *pI = 0;
-	DOUBLE *pId = 0;
+	//DOUBLE *pId = 0;
+	double *pId = 0; //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
 	if(Int_or_ReE != 2) pI = RadExtract.pExtractedData;
 	else pId = RadExtract.pExtractedDataD;
 
@@ -281,7 +286,8 @@ int srTRadGenManip::ExtractSingleElecIntensity1DvsX(srTRadExtract& RadExtract)
 	srTSRWRadStructAccessData& RadAccessData = *((srTSRWRadStructAccessData*)(hRadAccessData.ptr()));
 
 	float *pI = 0;
-	DOUBLE *pId = 0;
+	//DOUBLE *pId = 0;
+	double *pId = 0; //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
 	if(Int_or_ReE != 2) pI = RadExtract.pExtractedData;
 	else pId = RadExtract.pExtractedDataD;
 
@@ -373,7 +379,8 @@ int srTRadGenManip::ExtractSingleElecIntensity1DvsZ(srTRadExtract& RadExtract)
 	srTSRWRadStructAccessData& RadAccessData = *((srTSRWRadStructAccessData*)(hRadAccessData.ptr()));
 
 	float *pI = 0;
-	DOUBLE *pId = 0;
+	//DOUBLE *pId = 0;
+	double *pId = 0; //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
 	if(Int_or_ReE != 2) pI = RadExtract.pExtractedData;
 	else pId = RadExtract.pExtractedDataD;
 
@@ -465,7 +472,8 @@ int srTRadGenManip::ExtractSingleElecIntensity2DvsXZ(srTRadExtract& RadExtract)
 	srTSRWRadStructAccessData& RadAccessData = *((srTSRWRadStructAccessData*)(hRadAccessData.ptr()));
 
 	float *pI = 0;
-	DOUBLE *pId = 0;
+	//DOUBLE *pId = 0;
+	double *pId = 0; //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
 	if(Int_or_ReE != 2) pI = RadExtract.pExtractedData;
 	else pId = RadExtract.pExtractedDataD;
 
@@ -704,7 +712,95 @@ int srTRadGenManip::ExtractSingleElecIntensity3D(srTRadExtract& RadExtract)
 //*************************************************************************
 
 int srTRadGenManip::ExtractSingleElecMutualIntensityVsX(srTRadExtract& RadExtract)
-{//OC06092018
+{//OC15122019
+ //This assumes "normal" data alignment in the complex Hermitian "matrix" E(x)*E*(x'), and fills-out "upper triangular" part of it plus the diagonal
+	int res = 0;
+	int PolCom = RadExtract.PolarizCompon;
+	int Int_or_ReE = RadExtract.Int_or_Phase;
+	srTSRWRadStructAccessData& RadAccessData = *((srTSRWRadStructAccessData*)(hRadAccessData.ptr()));
+
+	float *pMI0 = RadExtract.pExtractedData;
+	float *pEx0 = RadAccessData.pBaseRadX;
+	float *pEz0 = RadAccessData.pBaseRadZ;
+
+	long long nz = RadAccessData.nz, nx = RadAccessData.nx, ne = RadAccessData.ne;
+
+	long long PerX = ne << 1;
+	long long PerZ = PerX*nx;
+	long long PerArg = nx << 1; //Row or Column length of the MI matrix represented by real numbers
+
+	long long ie0=0, ie1=0, iz0=0, iz1=0;
+	double InvStepRelArg1, InvStepRelArg2;
+
+	SetupIntCoord('z', RadExtract.z, iz0, iz1, InvStepRelArg2);
+	SetupIntCoord('e', RadExtract.ePh, ie0, ie1, InvStepRelArg1);
+
+	const double tolRelArg = 1.e-08;
+	bool DontNeedInterp = false;
+	if(((iz0 == iz1) || (fabs(InvStepRelArg2) < tolRelArg)) && 
+	   ((ie0 == ie1) || (fabs(InvStepRelArg1) < tolRelArg))) DontNeedInterp = true;
+
+	long long Two_ie0 = ie0 << 1, Two_ie1 = ie1 << 1;
+	long long iz0PerZ = iz0*PerZ, iz1PerZ = iz1*PerZ;
+
+	float *pExInitE0Z0 = pEx0 + iz0PerZ + Two_ie0, *pEzInitE0Z0 = pEz0 + iz0PerZ + Two_ie0;
+	float *pExT = pExInitE0Z0, *pEzT = pEzInitE0Z0;
+	float *pEx = pExInitE0Z0, *pEz = pEzInitE0Z0;
+
+	float *pExInitE1Z0, *pEzInitE1Z0, *pExInitE0Z1, *pEzInitE0Z1, *pExInitE1Z1, *pEzInitE1Z1;
+	float *arExPtrsT[4], *arEzPtrsT[4], *arExPtrs[4], *arEzPtrs[4];
+	if(!DontNeedInterp)
+	{
+		pExInitE1Z0 = pEx0 + iz0PerZ + Two_ie1; pEzInitE1Z0 = pEz0 + iz0PerZ + Two_ie1;
+		pExInitE0Z1 = pEx0 + iz1PerZ + Two_ie0; pEzInitE0Z1 = pEz0 + iz1PerZ + Two_ie0;
+		pExInitE1Z1 = pEx0 + iz1PerZ + Two_ie1; pEzInitE1Z1 = pEz0 + iz1PerZ + Two_ie1;
+		arExPtrsT[0] = pExInitE0Z0; arExPtrsT[1] = pExInitE1Z0; arExPtrsT[2] = pExInitE0Z1; arExPtrsT[3] = pExInitE1Z1;
+		arEzPtrsT[0] = pEzInitE0Z0; arEzPtrsT[1] = pEzInitE1Z0; arEzPtrsT[2] = pEzInitE0Z1; arEzPtrsT[3] = pEzInitE1Z1;
+		arExPtrs[0] = pExInitE0Z0; arExPtrs[1] = pExInitE1Z0; arExPtrs[2] = pExInitE0Z1; arExPtrs[3] = pExInitE1Z1;
+		arEzPtrs[0] = pEzInitE0Z0; arEzPtrs[1] = pEzInitE1Z0; arEzPtrs[2] = pEzInitE0Z1; arEzPtrs[3] = pEzInitE1Z1;
+	}
+
+	double iter = 0, *pMeth = RadExtract.pMeth;
+	if(pMeth != 0)
+	{
+		if(*pMeth == 1) iter = *(pMeth + 1);
+		else if(*pMeth == 2) iter = -1;
+	}
+
+	for(long long ixt=0; ixt<nx; ixt++)
+	{
+		float *pMI = pMI0 + ixt*PerArg;
+		for(long long ix=0; ix<=ixt; ix++)
+		{
+			if(DontNeedInterp)
+			{
+				if(res = MutualIntensityComponent(pEx, pExT, pEz, pEzT, PolCom, iter, pMI)) return res;
+				pEx += PerX; pEz += PerX;
+			}
+			else
+			{
+				if(res = MutualIntensityComponentSimpleInterpol2D(arExPtrs, arExPtrsT, arEzPtrs, arEzPtrsT, InvStepRelArg1, InvStepRelArg2, PolCom, iter, pMI)) return res;
+				for(int i=0; i<4; i++) { arExPtrs[i] += PerX; arEzPtrs[i] += PerX;}
+			}
+			pMI += 2;
+		}
+
+		if(DontNeedInterp)
+		{
+			pEx = pExInitE0Z0;
+			pEz = pEzInitE0Z0;
+			pExT += PerX; pEzT += PerX;
+		}
+		else
+		{
+			arExPtrs[0] = pExInitE0Z0; arExPtrs[1] = pExInitE1Z0; arExPtrs[2] = pExInitE0Z1; arExPtrs[3] = pExInitE1Z1;
+			arEzPtrs[0] = pEzInitE0Z0; arEzPtrs[1] = pEzInitE1Z0; arEzPtrs[2] = pEzInitE0Z1; arEzPtrs[3] = pEzInitE1Z1;
+			for(int i=0; i<4; i++) { arExPtrsT[i] += PerX; arEzPtrsT[i] += PerX;}
+		}
+	}
+
+/** //OC06092018
+	//Previous version, assuming special alignment (diagonal data first, etc.)
 	int res = 0;
 	int PolCom = RadExtract.PolarizCompon;
 	int Int_or_ReE = RadExtract.Int_or_Phase;
@@ -728,6 +824,9 @@ int srTRadGenManip::ExtractSingleElecMutualIntensityVsX(srTRadExtract& RadExtrac
 	bool NeedInterp = true;
 	if(((iz0 == iz1) || (fabs(InvStepRelArg2) < tolRelArg)) && 
 	   ((ie0 == ie1) || (fabs(InvStepRelArg1) < tolRelArg))) NeedInterp = false;
+
+	int iter = 0, *pMeth = RadExtract.pMeth; //OC14122019
+	if(pMeth != 0) { if(*pMeth == 1) iter = *(pMeth + 1);}
 
 	//long Two_ie0 = ie0 << 1, Two_ie1 = ie1 << 1;
 	long long Two_ie0 = ie0 << 1, Two_ie1 = ie1 << 1; //OC26042019
@@ -800,24 +899,115 @@ int srTRadGenManip::ExtractSingleElecMutualIntensityVsX(srTRadExtract& RadExtrac
 				float *arEzPtrs[] = { (pEz_StartForE_iz0 + Two_ie0), (pEz_StartForE_iz0 + Two_ie1),
 									  (pEz_StartForE_iz1 + Two_ie0), (pEz_StartForE_iz1 + Two_ie1)};
 				ExPtrs = arExPtrs; EzPtrs = arEzPtrs;
-				if(res = MutualIntensityComponentSimpleInterpol2D(ExPtrs, ExPtrsT, EzPtrs, EzPtrsT, InvStepRelArg1, InvStepRelArg2, PolCom, pMI)) return res;
+				if(res = MutualIntensityComponentSimpleInterpol2D(ExPtrs, ExPtrsT, EzPtrs, EzPtrsT, InvStepRelArg1, InvStepRelArg2, PolCom, iter, pMI)) return res; //OC14122019
+				//if(res = MutualIntensityComponentSimpleInterpol2D(ExPtrs, ExPtrsT, EzPtrs, EzPtrsT, InvStepRelArg1, InvStepRelArg2, PolCom, pMI)) return res;
 			}
 			else
 			{
 				float *pEx = pEx_StartForE_iz0 + Two_ie0, *pExT = pEx_StartForE_iz0_t + Two_ie0;
 				float *pEz = pEz_StartForE_iz0 + Two_ie0, *pEzT = pEz_StartForE_iz0_t + Two_ie0;
-				if(res = MutualIntensityComponent(pEx, pExT, pEz, pEzT, PolCom, pMI)) return res;
+				if(res = MutualIntensityComponent(pEx, pExT, pEz, pEzT, PolCom, iter, pMI)) return res; //OC14122019
+				//if(res = MutualIntensityComponent(pEx, pExT, pEz, pEzT, PolCom, pMI)) return res;
 			}
 			pMI += 2;
 		}
 	}
+**/
 	return 0;
 }
 
 //*************************************************************************
 
 int srTRadGenManip::ExtractSingleElecMutualIntensityVsZ(srTRadExtract& RadExtract)
-{//OC10092018
+{//OC15122019
+ //This assumes "normal" data alignment in the complex Hermitian "matrix" E(y)*E*(y'), and fills-out "upper triangular" part of it plus the diagonal
+	int res = 0;
+	int PolCom = RadExtract.PolarizCompon;
+	int Int_or_ReE = RadExtract.Int_or_Phase;
+	srTSRWRadStructAccessData& RadAccessData = *((srTSRWRadStructAccessData*)(hRadAccessData.ptr()));
+	
+	float *pMI0 = RadExtract.pExtractedData;
+	float *pEx0 = RadAccessData.pBaseRadX;
+	float *pEz0 = RadAccessData.pBaseRadZ;
+
+	long long nz = RadAccessData.nz, nx = RadAccessData.nx, ne = RadAccessData.ne;
+
+	long long PerX = ne << 1;
+	long long PerZ = PerX*nx;
+	long long PerArg = nz << 1; //Row or Column length of the MI matrix represented by real numbers
+
+	long long ie0=0, ie1=0, ix0=0, ix1=0;
+	double InvStepRelArg1, InvStepRelArg2;
+
+	SetupIntCoord('x', RadExtract.x, ix0, ix1, InvStepRelArg2);
+	SetupIntCoord('e', RadExtract.ePh, ie0, ie1, InvStepRelArg1);
+
+	const double tolRelArg = 1.e-08;
+	bool DontNeedInterp = false;
+	if(((ix0 == ix1) || (fabs(InvStepRelArg2) < tolRelArg)) &&
+	   ((ie0 == ie1) || (fabs(InvStepRelArg1) < tolRelArg))) DontNeedInterp = true;
+
+	long long Two_ie0 = ie0 << 1, Two_ie1 = ie1 << 1;
+	long long ix0PerX = ix0*PerX, ix1PerX = ix1*PerX;
+
+	float *pExInitE0X0 = pEx0 + ix0PerX + Two_ie0, *pEzInitE0X0 = pEz0 + ix0PerX + Two_ie0;
+	float *pExT = pExInitE0X0, *pEzT = pEzInitE0X0;
+	float *pEx = pExInitE0X0, *pEz = pEzInitE0X0;
+
+	float *pExInitE1X0, *pEzInitE1X0, *pExInitE0X1, *pEzInitE0X1, *pExInitE1X1, *pEzInitE1X1;
+	float *arExPtrsT[4], *arEzPtrsT[4], *arExPtrs[4], *arEzPtrs[4];
+	if(!DontNeedInterp)
+	{
+		pExInitE1X0 = pEx0 + ix0PerX + Two_ie1; pEzInitE1X0 = pEz0 + ix0PerX + Two_ie1;
+		pExInitE0X1 = pEx0 + ix1PerX + Two_ie0; pEzInitE0X1 = pEz0 + ix1PerX + Two_ie0;
+		pExInitE1X1 = pEx0 + ix1PerX + Two_ie1; pEzInitE1X1 = pEz0 + ix1PerX + Two_ie1;
+		arExPtrsT[0] = pExInitE0X0; arExPtrsT[1] = pExInitE1X0; arExPtrsT[2] = pExInitE0X1; arExPtrsT[3] = pExInitE1X1;
+		arEzPtrsT[0] = pEzInitE0X0; arEzPtrsT[1] = pEzInitE1X0; arEzPtrsT[2] = pEzInitE0X1; arEzPtrsT[3] = pEzInitE1X1;
+		arExPtrs[0] = pExInitE0X0; arExPtrs[1] = pExInitE1X0; arExPtrs[2] = pExInitE0X1; arExPtrs[3] = pExInitE1X1;
+		arEzPtrs[0] = pEzInitE0X0; arEzPtrs[1] = pEzInitE1X0; arEzPtrs[2] = pEzInitE0X1; arEzPtrs[3] = pEzInitE1X1;
+	}
+
+	double iter = 0, *pMeth = RadExtract.pMeth;
+	if(pMeth != 0)
+	{
+		if(*pMeth == 1) iter = *(pMeth + 1);
+		else if(*pMeth == 2) iter = -1;
+	}
+
+	for(long long izt=0; izt<nz; izt++)
+	{
+		float *pMI = pMI0 + izt*PerArg;
+		for(long long iz=0; iz<=izt; iz++)
+		{
+			if(DontNeedInterp)
+			{
+				if(res = MutualIntensityComponent(pEx, pExT, pEz, pEzT, PolCom, iter, pMI)) return res;
+				pEx += PerZ; pEz += PerZ;
+			}
+			else
+			{
+				if(res = MutualIntensityComponentSimpleInterpol2D(arExPtrs, arExPtrsT, arEzPtrs, arEzPtrsT, InvStepRelArg1, InvStepRelArg2, PolCom, iter, pMI)) return res;
+				for(int i=0; i<4; i++) { arExPtrs[i] += PerZ; arEzPtrs[i] += PerZ;}
+			}
+			pMI += 2;
+		}
+
+		if(DontNeedInterp)
+		{
+			pEx = pExInitE0X0;
+			pEz = pEzInitE0X0;
+			pExT += PerZ; pEzT += PerZ;
+		}
+		else
+		{
+			arExPtrs[0] = pExInitE0X0; arExPtrs[1] = pExInitE1X0; arExPtrs[2] = pExInitE0X1; arExPtrs[3] = pExInitE1X1;
+			arEzPtrs[0] = pEzInitE0X0; arEzPtrs[1] = pEzInitE1X0; arEzPtrs[2] = pEzInitE0X1; arEzPtrs[3] = pEzInitE1X1;
+			for(int i=0; i<4; i++) { arExPtrsT[i] += PerZ; arEzPtrsT[i] += PerZ;}
+		}
+	}
+
+/** //OC10092018
+	//Previous version, assuming special alignment (diagonal data first, etc.)
 	int res = 0;
 	int PolCom = RadExtract.PolarizCompon;
 	int Int_or_ReE = RadExtract.Int_or_Phase;
@@ -841,6 +1031,9 @@ int srTRadGenManip::ExtractSingleElecMutualIntensityVsZ(srTRadExtract& RadExtrac
 	bool NeedInterp = true;
 	if(((ix0 == ix1) || (fabs(InvStepRelArg2) < tolRelArg)) && 
 	   ((ie0 == ie1) || (fabs(InvStepRelArg1) < tolRelArg))) NeedInterp = false;
+
+	int iter = 0, *pMeth = RadExtract.pMeth; //OC14122019
+	if(pMeth != 0) { if(*pMeth == 1) iter = *(pMeth + 1); }
 
 	//long Two_ie0 = ie0 << 1, Two_ie1 = ie1 << 1;
 	long long Two_ie0 = ie0 << 1, Two_ie1 = ie1 << 1; //OC26042019
@@ -918,51 +1111,137 @@ int srTRadGenManip::ExtractSingleElecMutualIntensityVsZ(srTRadExtract& RadExtrac
 				float *arEzPtrs[] = { (pEz_StartForE_ix0 + Two_ie0), (pEz_StartForE_ix0 + Two_ie1),
 									  (pEz_StartForE_ix1 + Two_ie0), (pEz_StartForE_ix1 + Two_ie1)};
 				ExPtrs = arExPtrs; EzPtrs = arEzPtrs;
-				if(res = MutualIntensityComponentSimpleInterpol2D(ExPtrs, ExPtrsT, EzPtrs, EzPtrsT, InvStepRelArg1, InvStepRelArg2, PolCom, pMI)) return res;
+				if(res = MutualIntensityComponentSimpleInterpol2D(ExPtrs, ExPtrsT, EzPtrs, EzPtrsT, InvStepRelArg1, InvStepRelArg2, PolCom, iter, pMI)) return res; //OC14122019
+				//if(res = MutualIntensityComponentSimpleInterpol2D(ExPtrs, ExPtrsT, EzPtrs, EzPtrsT, InvStepRelArg1, InvStepRelArg2, PolCom, pMI)) return res;
 			}
 			else
 			{
 				float *pEx = pEx_StartForE_ix0 + Two_ie0, *pExT = pEx_StartForE_ix0_t + Two_ie0;
 				float *pEz = pEz_StartForE_ix0 + Two_ie0, *pEzT = pEz_StartForE_ix0_t + Two_ie0;
-				if(res = MutualIntensityComponent(pEx, pExT, pEz, pEzT, PolCom, pMI)) return res;
+				if(res = MutualIntensityComponent(pEx, pExT, pEz, pEzT, PolCom, iter, pMI)) return res; //OC14122019
+				//if(res = MutualIntensityComponent(pEx, pExT, pEz, pEzT, PolCom, pMI)) return res;
 			}
 			pMI += 2;
 		}
 	}
+**/
 	return 0;
 }
 
 //*************************************************************************
 
 int srTRadGenManip::ExtractSingleElecMutualIntensityVsXZ(srTRadExtract& RadExtract)
-{//OC11092018
+{//OC13122019
+ //This assumes "normal" data alignment in the complex "matrix" E(x,y)*E*(x',y')
 	int res = 0;
 	int PolCom = RadExtract.PolarizCompon;
 	int Int_or_ReE = RadExtract.Int_or_Phase;
 	srTSRWRadStructAccessData& RadAccessData = *((srTSRWRadStructAccessData*)(hRadAccessData.ptr()));
 
-	float *pMI = RadExtract.pExtractedData;
+	float *pMI0 = RadExtract.pExtractedData;
 	float *pEx0 = RadAccessData.pBaseRadX;
 	float *pEz0 = RadAccessData.pBaseRadZ;
 
-	long long PerX = RadAccessData.ne << 1;
-	long long PerZ = PerX*RadAccessData.nx;
+	long long nz = RadAccessData.nz, nx = RadAccessData.nx, ne = RadAccessData.ne;
+	long long nxnz = nx*nz;
 
-	//long ie0=0, ie1=0;
-	long long ie0=0, ie1=0; //OC26042019
+	long long PerX = ne << 1;
+	long long PerZ = PerX*nx;
+	long long PerArg = nxnz << 1; //Row or Column length of the MI matrix represented by real numbers
+
+	long long ie0=0, ie1=0;
 	double InvStepRelArg=0;
 
 	SetupIntCoord('e', RadExtract.ePh, ie0, ie1, InvStepRelArg);
 
 	const double tolRelArg = 1.e-08;
-	bool NeedInterp = true;
-	if((ie0 == ie1) || (fabs(InvStepRelArg) < tolRelArg)) NeedInterp = false;
+	bool DontNeedInterp = false;
+	if((ie0 == ie1) || (fabs(InvStepRelArg) < tolRelArg)) DontNeedInterp = true;
 
-	//long Two_ie0 = ie0 << 1, Two_ie1 = ie1 << 1;
-	//long nz = RadAccessData.nz, nx = RadAccessData.nx;
-	long long Two_ie0 = ie0 << 1, Two_ie1 = ie1 << 1; //OC26042019
-	long long nz = RadAccessData.nz, nx = RadAccessData.nx;
+	long long Two_ie0 = ie0 << 1, Two_ie1 = ie1 << 1;
 
+	float *pExInit0 = pEx0 + Two_ie0, *pEzInit0 = pEz0 + Two_ie0;
+	float *pExInit1 = pEx0 + Two_ie1, *pEzInit1 = pEz0 + Two_ie1;
+
+	float *pExT = pExInit0, *pEzT = pEzInit0;
+	float *pEx = pExInit0, *pEz = pEzInit0;
+
+	float *arExPtrsT[] = { pExInit0, pExInit1 }, *arEzPtrsT[] = { pEzInit0, pEzInit1 };
+	float *arExPtrs[] = { pExInit0, pExInit1 }, *arEzPtrs[] = { pEzInit0, pEzInit1 };
+
+	double iter = 0, Rx = 0, Rz = 0, xc = 0, zc = 0;
+	double *pMeth = RadExtract.pMeth;
+	if(pMeth != 0) 
+	{ 
+		if(*pMeth == 1) iter = *(pMeth + 1);
+		else if(*pMeth == 2) iter = -1;
+
+		Rx = pMeth[2], Rz = pMeth[3], xc = pMeth[4], zc = pMeth[5];
+	}
+	double RobsXorig = RadAccessData.RobsX;
+	double RobsZorig = RadAccessData.RobsZ;
+	double xc_orig = RadAccessData.xc;
+	double zc_orig = RadAccessData.zc;
+	bool WfrQuadTermCanBeTreatedAtResizeXorig = RadAccessData.WfrQuadTermCanBeTreatedAtResizeX;
+	bool WfrQuadTermCanBeTreatedAtResizeZorig = RadAccessData.WfrQuadTermCanBeTreatedAtResizeZ;
+	if((Rx != 0) || (Rz != 0))
+	{
+		RadAccessData.RobsX = Rx;
+		RadAccessData.RobsZ = Rz;
+		RadAccessData.xc = xc;
+		RadAccessData.zc = zc;
+		RadAccessData.WfrQuadTermCanBeTreatedAtResizeX = (Rx == 0)? false : true;
+		RadAccessData.WfrQuadTermCanBeTreatedAtResizeZ = (Rz == 0)? false : true;
+		RadAccessData.TreatQuadPhaseTerm('r', PolCom); //, int ieOnly=-1)
+	}
+
+	for(long long it=0; it<nxnz; it++)
+	{
+		float *pMI = pMI0 + it*PerArg;
+		for(long long i=0; i<=it; i++)
+		{
+			if(DontNeedInterp)
+			{
+				if(res = MutualIntensityComponent(pEx, pExT, pEz, pEzT, PolCom, iter, pMI)) return res;
+				pEx += PerX; pEz += PerX;
+			}
+			else
+			{
+				if(res = MutualIntensityComponentSimpleInterpol(arExPtrs, arExPtrsT, arEzPtrs, arEzPtrsT, InvStepRelArg, PolCom, iter, pMI)) return res;
+				arExPtrs[0] += PerX; arExPtrs[1] += PerX;
+				arEzPtrs[0] += PerX; arEzPtrs[1] += PerX;
+			}
+			pMI += 2;
+		}
+
+		if(DontNeedInterp)
+		{
+			pEx = pExInit0;
+			pEz = pEzInit0;
+			pExT += PerX; pEzT += PerX;
+		}
+		else
+		{
+			arExPtrs[0] = pExInit0; arExPtrs[0] = pExInit1;
+			arEzPtrs[0] = pEzInit0; arEzPtrs[0] = pEzInit1;
+			arExPtrsT[0] += PerX; arExPtrsT[1] += PerX;
+			arEzPtrsT[0] += PerX; arEzPtrsT[1] += PerX;
+		}
+	}
+
+	if(RadAccessData.WfrQuadTermCanBeTreatedAtResizeX || RadAccessData.WfrQuadTermCanBeTreatedAtResizeZ)
+	{
+		RadAccessData.TreatQuadPhaseTerm('a', PolCom); //, int ieOnly=-1)
+		RadAccessData.RobsX = RobsXorig;
+		RadAccessData.RobsZ = RobsZorig;
+		RadAccessData.xc = xc_orig;
+		RadAccessData.zc = zc_orig;
+		RadAccessData.WfrQuadTermCanBeTreatedAtResizeX = WfrQuadTermCanBeTreatedAtResizeXorig;
+		RadAccessData.WfrQuadTermCanBeTreatedAtResizeZ = WfrQuadTermCanBeTreatedAtResizeZorig;
+	}
+
+/** //OC11092018
+	//Previous version, assuming special alignment (diagonal data first, etc.)
 	//First RadAccessData.nx values are the "normal" intensity (real diagonal elements of mutual intensity)
 	long long izPerZ = 0;
 	for(long long iz=0; iz<nz; iz++) //OC26042019
@@ -1031,9 +1310,101 @@ int srTRadGenManip::ExtractSingleElecMutualIntensityVsXZ(srTRadExtract& RadExtra
 			pMI += 2;
 		}
 	}
+**/
 	return 0;
 }
 
+//*************************************************************************
+/**
+int srTRadGenManip::ComputeMultiElecMutualIntensityVsXZ(srTRadExtract& RadExtract, srTTrjDat* pTrjDat)
+{//OC23022020 (under development - OC23032020)
+	int res = 0;
+	int PolCom = RadExtract.PolarizCompon;
+	int Int_or_ReE = RadExtract.Int_or_Phase;
+	srTSRWRadStructAccessData& RadAccessData = *((srTSRWRadStructAccessData*)(hRadAccessData.ptr()));
+
+	float *pMI0 = RadExtract.pExtractedData;
+	float *pEx0 = RadAccessData.pBaseRadX;
+	float *pEz0 = RadAccessData.pBaseRadZ;
+
+	long long nz = RadAccessData.nz, nx = RadAccessData.nx, ne = RadAccessData.ne;
+	long long nxnz = nx*nz;
+
+	long long PerX = ne << 1;
+	long long PerZ = PerX*nx;
+	long long PerArg = nxnz << 1; //Row or Column length of the complex MI matrix represented by real numbers
+
+	long long ie0=0, ie1=0;
+	double InvStepRelArg=0;
+
+	SetupIntCoord('e', RadExtract.ePh, ie0, ie1, InvStepRelArg);
+	const double tolRelArg = 1.e-08;
+	bool DontNeedInterpE = false;
+	if((ie0 == ie1) || (fabs(InvStepRelArg) < tolRelArg)) DontNeedInterpE = true;
+
+	double Rx = 0., Rz = 0., xc = 0., zc = 0.;
+	int nElecXY = 1000, nElecX = 0, nElecY = 0, nElecE = 1;
+	char elecIntMeth = 0;
+	double *pMeth = RadExtract.pMeth;
+	if(pMeth != 0)
+	{
+		//if(*pMeth == 1) iter = *(pMeth + 1);
+		//else if(*pMeth == 2) iter = -1;
+		Rx = pMeth[2], Rz = pMeth[3], xc = pMeth[4], zc = pMeth[5];
+		if(pMeth[8] <= 0.)
+		{
+			if(pMeth[7] > 0.) nElecXY = (int)pMeth[7];
+			nElecX = 0; nElecY = 0;
+		}
+		else
+		{
+			if(pMeth[7] > 0.) nElecX = (int)pMeth[7]; 
+			nElecY = (int)pMeth[8]; nElecXY = 0;
+		}
+		if(pMeth[9] >= 1.) nElecE = (int)pMeth[9]; 
+		if(pMeth[10] >= 0.) elecIntMeth = (char)pMeth[10];
+	}
+
+	srTEbmDat EbmDat;
+	if(res = RadAccessData.OutElectronBeamStruct(EbmDat)) return res;
+	if((EbmDat.Mee <= 0.) || (pTrjDat == 0)) nElecE = 1;
+
+	CGenMathRand LocRand;
+	srTRadInt RadInt;
+	srTWfrSmp AuxSmp;
+
+	double elecEc = EbmDat.Energy, elecSigE = 0.;
+	if(nElecE > 1)
+	{
+		elecSigE = sqrt(EbmDat.Mee)*elecEc;
+		RadAccessData.SetObsParamFromWfr(AuxSmp);
+	}
+
+
+	int nElecE_mi_1 = nElecE - 1;
+	for(int iElecE=0; iElecE<nElecE; iElecE++)
+	{
+
+
+
+
+		if((pTrjDat != 0) && (iElecE < nElecE_mi_1))
+		{
+			double newElecE = LocRand.NextRandGauss(elecEc, elecSigE, elecIntMeth);
+			pTrjDat->EbmDat.Energy = newElecE;
+			pTrjDat->EbmDat.SetupGamma(newElecE);
+			if(res = pTrjDat->ComputeInterpolatingStructure_FromTrj()) return res;
+			
+			//RadInt.ComputeElectricFieldFreqDomain(pTrjDat, &AuxSmp, &precElecFld, &wfr, 0);
+
+		}
+			
+	}
+
+
+	return 0;
+}
+**/
 //*************************************************************************
 
 int srTRadGenManip::ComputeConvolutedIntensity(srTRadExtract& RadExtract)
@@ -1251,22 +1622,28 @@ void srTRadGenManip::PropagateElecBeamMoments(srTElecBeamMoments& ElecBeamMom)
 	srTSRWRadStructAccessData& RadAccessData = *((srTSRWRadStructAccessData*)(hRadAccessData.ptr()));
 
 	int i, j;
-	DOUBLE *MatrStrPtrs[4];
+	//DOUBLE *MatrStrPtrs[4];
+	double *MatrStrPtrs[4]; //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
 	for(i=0; i<4; i++)
 	{
 		int i4 = i << 2;
 		MatrStrPtrs[i] = RadAccessData.p4x4PropMatr + i4;
 	}
 
-	DOUBLE *Vect = RadAccessData.p4x4PropMatr + 16;
+	//DOUBLE *Vect = RadAccessData.p4x4PropMatr + 16;
+	double *Vect = RadAccessData.p4x4PropMatr + 16; //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
 
 // First-Order Moments
-	DOUBLE InitFirstOrderMom[] = { ElecBeamMom.Mx, ElecBeamMom.Mxp, ElecBeamMom.Mz, ElecBeamMom.Mzp};
-	DOUBLE FinFirstOrderMom[4];
+	//DOUBLE InitFirstOrderMom[] = { ElecBeamMom.Mx, ElecBeamMom.Mxp, ElecBeamMom.Mz, ElecBeamMom.Mzp};
+	//DOUBLE FinFirstOrderMom[4];
+	double InitFirstOrderMom[] = { ElecBeamMom.Mx, ElecBeamMom.Mxp, ElecBeamMom.Mz, ElecBeamMom.Mzp};
+	double FinFirstOrderMom[4]; //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
 	for(i=0; i<4; i++)
 	{
-		DOUBLE Res_i = 0.;
-		DOUBLE *MatrStrPtrs_i = MatrStrPtrs[i];
+		//DOUBLE Res_i = 0.;
+		//DOUBLE *MatrStrPtrs_i = MatrStrPtrs[i];
+		double Res_i = 0.; //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
+		double *MatrStrPtrs_i = MatrStrPtrs[i];
 		for(j=0; j<4; j++)
 		{
 			Res_i += MatrStrPtrs_i[j]*InitFirstOrderMom[j];
@@ -1279,41 +1656,71 @@ void srTRadGenManip::PropagateElecBeamMoments(srTElecBeamMoments& ElecBeamMom)
 	ElecBeamMom.Mzp = FinFirstOrderMom[3];
 
 // Second-Order Moments
-	DOUBLE* pStr = *MatrStrPtrs;
-	DOUBLE a00 = pStr[0], a01 = pStr[1], a02 = pStr[2], a03 = pStr[3];
+	//DOUBLE* pStr = *MatrStrPtrs;
+	//DOUBLE a00 = pStr[0], a01 = pStr[1], a02 = pStr[2], a03 = pStr[3];
+	double* pStr = *MatrStrPtrs; //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
+	double a00 = pStr[0], a01 = pStr[1], a02 = pStr[2], a03 = pStr[3];
 	pStr = MatrStrPtrs[1];
-	DOUBLE a10 = pStr[0], a11 = pStr[1], a12 = pStr[2], a13 = pStr[3];
+	//DOUBLE a10 = pStr[0], a11 = pStr[1], a12 = pStr[2], a13 = pStr[3];
+	double a10 = pStr[0], a11 = pStr[1], a12 = pStr[2], a13 = pStr[3]; //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
 	pStr = MatrStrPtrs[2];
-	DOUBLE a20 = pStr[0], a21 = pStr[1], a22 = pStr[2], a23 = pStr[3];
+	//DOUBLE a20 = pStr[0], a21 = pStr[1], a22 = pStr[2], a23 = pStr[3];
+	double a20 = pStr[0], a21 = pStr[1], a22 = pStr[2], a23 = pStr[3]; //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
 	pStr = MatrStrPtrs[3];
-	DOUBLE a30 = pStr[0], a31 = pStr[1], a32 = pStr[2], a33 = pStr[3];
-	DOUBLE Str0[] = { a00*a00, 2*a00*a01, a01*a01, a02*a02, 2*a02*a03, a03*a03, 2*a00*a02, 2*a01*a02, 2*a00*a03, 2*a01*a03};
-	DOUBLE Str1[] = { a00*a10, a01*a10 + a00*a11, a01*a11, a02*a12, a03*a12 + a02*a13, a03*a13, a02*a10 + a00*a12, a02*a11 + a01*a12, a03*a10 + a00*a13, a03*a11 + a01*a13};
-	DOUBLE Str2[] = { a10*a10, 2*a10*a11, a11*a11, a12*a12, 2*a12*a13, a13*a13, 2*a10*a12, 2*a11*a12, 2*a10*a13, 2*a11*a13};
-	DOUBLE Str3[] = { a20*a20, 2*a20*a21, a21*a21, a22*a22, 2*a22*a23, a23*a23, 2*a20*a22, 2*a21*a22, 2*a20*a23, 2*a21*a23};
-	DOUBLE Str4[] = { a20*a30, a21*a30 + a20*a31, 21*a31, a22*a32, a23*a32 + a22*a33, a23*a33, a22*a30 + a20*a32, a22*a31 + a21*a32, a23*a30 + a20*a33, a23*a31 + a21*a33};
-	DOUBLE Str5[] = { a30*a30, 2*a30*a31, a31*a31, a32*a32, 2*a32*a33, a33*a33, 2*a30*a32, 2*a31*a32, 2*a30*a33, 2*a31*a33};
-	DOUBLE Str6[] = { a00*a20, a01*a20 + a00*a21, a01*a21, a02*a22, a03*a22 + a02*a23, a03*a23, a02*a20 + a00*a22, a02*a21 + a01*a22, a03*a20 + a00*a23, a03*a21 + a01*a23};
-	DOUBLE Str7[] = { a10*a20, a11*a20 + a10*a21, a11*a21, a12*a22, a13*a22 + a12*a23, a13*a23, a12*a20 + a10*a22, a12*a21 + a11*a22, a13*a20 + a10*a23, a13*a21 + a11*a23};
-	DOUBLE Str8[] = { a00*a30, a01*a30 + a00*a31, a01*a31, a02*a32, a03*a32 + a02*a33, a03*a33, a02*a30 + a00*a32, a02*a31 + a01*a32, a03*a30 + a00*a33, a03*a31 + a01*a33};
-	DOUBLE Str9[] = { a10*a30, a11*a30 + a10*a31, a11*a31, a12*a32, a13*a32 + a12*a33, a13*a33, a12*a30 + a10*a32, a12*a31 + a11*a32, a13*a30 + a10*a33, a13*a31 + a11*a33};
-	DOUBLE *Matr10x10[10];
-	Matr10x10[0] = (DOUBLE*)&Str0; 
-	Matr10x10[1] = (DOUBLE*)&Str1; 
-	Matr10x10[2] = (DOUBLE*)&Str2; 
-	Matr10x10[3] = (DOUBLE*)&Str3; 
-	Matr10x10[4] = (DOUBLE*)&Str4; 
-	Matr10x10[5] = (DOUBLE*)&Str5; 
-	Matr10x10[6] = (DOUBLE*)&Str6; 
-	Matr10x10[7] = (DOUBLE*)&Str7; 
-	Matr10x10[8] = (DOUBLE*)&Str8; 
-	Matr10x10[9] = (DOUBLE*)&Str9; 
-	DOUBLE InitSecondOrderMom[] = { ElecBeamMom.Mxx, ElecBeamMom.Mxxp, ElecBeamMom.Mxpxp, ElecBeamMom.Mzz, ElecBeamMom.Mzzp, ElecBeamMom.Mzpzp, ElecBeamMom.Mxz, ElecBeamMom.Mxpz, ElecBeamMom.Mxzp, ElecBeamMom.Mxpzp};
-	DOUBLE FinSecondOrderMom[10];
+	//DOUBLE a30 = pStr[0], a31 = pStr[1], a32 = pStr[2], a33 = pStr[3];
+	//DOUBLE Str0[] = { a00*a00, 2*a00*a01, a01*a01, a02*a02, 2*a02*a03, a03*a03, 2*a00*a02, 2*a01*a02, 2*a00*a03, 2*a01*a03};
+	//DOUBLE Str1[] = { a00*a10, a01*a10 + a00*a11, a01*a11, a02*a12, a03*a12 + a02*a13, a03*a13, a02*a10 + a00*a12, a02*a11 + a01*a12, a03*a10 + a00*a13, a03*a11 + a01*a13};
+	//DOUBLE Str2[] = { a10*a10, 2*a10*a11, a11*a11, a12*a12, 2*a12*a13, a13*a13, 2*a10*a12, 2*a11*a12, 2*a10*a13, 2*a11*a13};
+	//DOUBLE Str3[] = { a20*a20, 2*a20*a21, a21*a21, a22*a22, 2*a22*a23, a23*a23, 2*a20*a22, 2*a21*a22, 2*a20*a23, 2*a21*a23};
+	//DOUBLE Str4[] = { a20*a30, a21*a30 + a20*a31, 21*a31, a22*a32, a23*a32 + a22*a33, a23*a33, a22*a30 + a20*a32, a22*a31 + a21*a32, a23*a30 + a20*a33, a23*a31 + a21*a33};
+	//DOUBLE Str5[] = { a30*a30, 2*a30*a31, a31*a31, a32*a32, 2*a32*a33, a33*a33, 2*a30*a32, 2*a31*a32, 2*a30*a33, 2*a31*a33};
+	//DOUBLE Str6[] = { a00*a20, a01*a20 + a00*a21, a01*a21, a02*a22, a03*a22 + a02*a23, a03*a23, a02*a20 + a00*a22, a02*a21 + a01*a22, a03*a20 + a00*a23, a03*a21 + a01*a23};
+	//DOUBLE Str7[] = { a10*a20, a11*a20 + a10*a21, a11*a21, a12*a22, a13*a22 + a12*a23, a13*a23, a12*a20 + a10*a22, a12*a21 + a11*a22, a13*a20 + a10*a23, a13*a21 + a11*a23};
+	//DOUBLE Str8[] = { a00*a30, a01*a30 + a00*a31, a01*a31, a02*a32, a03*a32 + a02*a33, a03*a33, a02*a30 + a00*a32, a02*a31 + a01*a32, a03*a30 + a00*a33, a03*a31 + a01*a33};
+	//DOUBLE Str9[] = { a10*a30, a11*a30 + a10*a31, a11*a31, a12*a32, a13*a32 + a12*a33, a13*a33, a12*a30 + a10*a32, a12*a31 + a11*a32, a13*a30 + a10*a33, a13*a31 + a11*a33};
+	//DOUBLE *Matr10x10[10];
+	double a30 = pStr[0], a31 = pStr[1], a32 = pStr[2], a33 = pStr[3]; //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
+	double Str0[] = { a00*a00, 2*a00*a01, a01*a01, a02*a02, 2*a02*a03, a03*a03, 2*a00*a02, 2*a01*a02, 2*a00*a03, 2*a01*a03};
+	double Str1[] = { a00*a10, a01*a10 + a00*a11, a01*a11, a02*a12, a03*a12 + a02*a13, a03*a13, a02*a10 + a00*a12, a02*a11 + a01*a12, a03*a10 + a00*a13, a03*a11 + a01*a13};
+	double Str2[] = { a10*a10, 2*a10*a11, a11*a11, a12*a12, 2*a12*a13, a13*a13, 2*a10*a12, 2*a11*a12, 2*a10*a13, 2*a11*a13};
+	double Str3[] = { a20*a20, 2*a20*a21, a21*a21, a22*a22, 2*a22*a23, a23*a23, 2*a20*a22, 2*a21*a22, 2*a20*a23, 2*a21*a23};
+	double Str4[] = { a20*a30, a21*a30 + a20*a31, 21*a31, a22*a32, a23*a32 + a22*a33, a23*a33, a22*a30 + a20*a32, a22*a31 + a21*a32, a23*a30 + a20*a33, a23*a31 + a21*a33};
+	double Str5[] = { a30*a30, 2*a30*a31, a31*a31, a32*a32, 2*a32*a33, a33*a33, 2*a30*a32, 2*a31*a32, 2*a30*a33, 2*a31*a33};
+	double Str6[] = { a00*a20, a01*a20 + a00*a21, a01*a21, a02*a22, a03*a22 + a02*a23, a03*a23, a02*a20 + a00*a22, a02*a21 + a01*a22, a03*a20 + a00*a23, a03*a21 + a01*a23};
+	double Str7[] = { a10*a20, a11*a20 + a10*a21, a11*a21, a12*a22, a13*a22 + a12*a23, a13*a23, a12*a20 + a10*a22, a12*a21 + a11*a22, a13*a20 + a10*a23, a13*a21 + a11*a23};
+	double Str8[] = { a00*a30, a01*a30 + a00*a31, a01*a31, a02*a32, a03*a32 + a02*a33, a03*a33, a02*a30 + a00*a32, a02*a31 + a01*a32, a03*a30 + a00*a33, a03*a31 + a01*a33};
+	double Str9[] = { a10*a30, a11*a30 + a10*a31, a11*a31, a12*a32, a13*a32 + a12*a33, a13*a33, a12*a30 + a10*a32, a12*a31 + a11*a32, a13*a30 + a10*a33, a13*a31 + a11*a33};
+	double *Matr10x10[10];
+	//Matr10x10[0] = (DOUBLE*)&Str0; 
+	//Matr10x10[1] = (DOUBLE*)&Str1; 
+	//Matr10x10[2] = (DOUBLE*)&Str2; 
+	//Matr10x10[3] = (DOUBLE*)&Str3; 
+	//Matr10x10[4] = (DOUBLE*)&Str4; 
+	//Matr10x10[5] = (DOUBLE*)&Str5; 
+	//Matr10x10[6] = (DOUBLE*)&Str6; 
+	//Matr10x10[7] = (DOUBLE*)&Str7; 
+	//Matr10x10[8] = (DOUBLE*)&Str8; 
+	//Matr10x10[9] = (DOUBLE*)&Str9; 
+	Matr10x10[0] = (double*)&Str0; //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
+	Matr10x10[1] = (double*)&Str1; 
+	Matr10x10[2] = (double*)&Str2; 
+	Matr10x10[3] = (double*)&Str3; 
+	Matr10x10[4] = (double*)&Str4; 
+	Matr10x10[5] = (double*)&Str5; 
+	Matr10x10[6] = (double*)&Str6; 
+	Matr10x10[7] = (double*)&Str7; 
+	Matr10x10[8] = (double*)&Str8; 
+	Matr10x10[9] = (double*)&Str9; 
+	//DOUBLE InitSecondOrderMom[] = { ElecBeamMom.Mxx, ElecBeamMom.Mxxp, ElecBeamMom.Mxpxp, ElecBeamMom.Mzz, ElecBeamMom.Mzzp, ElecBeamMom.Mzpzp, ElecBeamMom.Mxz, ElecBeamMom.Mxpz, ElecBeamMom.Mxzp, ElecBeamMom.Mxpzp};
+	//DOUBLE FinSecondOrderMom[10];
+	double InitSecondOrderMom[] = { ElecBeamMom.Mxx, ElecBeamMom.Mxxp, ElecBeamMom.Mxpxp, ElecBeamMom.Mzz, ElecBeamMom.Mzzp, ElecBeamMom.Mzpzp, ElecBeamMom.Mxz, ElecBeamMom.Mxpz, ElecBeamMom.Mxzp, ElecBeamMom.Mxpzp};
+	double FinSecondOrderMom[10]; //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
 	for(i=0; i<10; i++)
 	{
-		DOUBLE Res_i = 0.;
-		DOUBLE *MatrStr_i = Matr10x10[i];
+		//DOUBLE Res_i = 0.;
+		//DOUBLE *MatrStr_i = Matr10x10[i];
+		double Res_i = 0.; //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
+		double *MatrStr_i = Matr10x10[i];
 		for(j=0; j<10; j++)
 		{
 			Res_i += MatrStr_i[j]*InitSecondOrderMom[j];
@@ -1662,8 +2069,10 @@ int srTRadGenManip::TryToMakePhaseContinuous(srTWaveAccessData& WaveData)
 
 	//long ix, iz;
 	long long ix, iz; //OC26042019
-	DOUBLE *pData = (DOUBLE*)(WaveData.pWaveData);
-	DOUBLE *tm = pData + izMid*Nx;
+	//DOUBLE *pData = (DOUBLE*)(WaveData.pWaveData);
+	//DOUBLE *tm = pData + izMid*Nx;
+	double *pData = (double*)(WaveData.pWaveData); //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
+	double *tm = pData + izMid*Nx;
 	double *t = CenterSlice;
 	for(ix=0; ix<Nx; ix++) *(t++) = *(tm++);
 	TryToMakePhaseContinuous1D(CenterSlice, Nx, -1, 0.);
@@ -1691,7 +2100,9 @@ void srTRadGenManip::TryToMakePhaseContinuous1D(double* Slice, long long Np, lon
 //void srTRadGenManip::TryToMakePhaseContinuous1D(double* Slice, long Np, long i0, float Phi0)
 {
 	const double TwoPi = 6.2831853071796;
+	//OCTEST17082019
 	const double cFlip = TwoPi - 2.5; // To steer
+	//const double cFlip = TwoPi - 3.; //2.5; // To steer
 
 	float PhToAdd0 = (float)((i0 != -1)? (Phi0 - Slice[i0]) : 0.);
 
@@ -1748,50 +2159,58 @@ void srTRadGenManip::TryToMakePhaseContinuous1D(double* Slice, long long Np, lon
 }
 
 //*************************************************************************
-
-void srTRadGenManip::ExtractRadiation(int PolarizCompon, int Int_or_Phase, int SectID, int TransvPres, double e, double x, double z, char* pData)
-{
-	if(pData == 0) throw INCORRECT_PARAMS_WFR_COMPON_EXTRACT;
-
-	srTSRWRadStructAccessData& RadAccessData = *((srTSRWRadStructAccessData*)(hRadAccessData.ptr()));
-	srTGenOptElem GenOptElem;
-	srTRadExtract RadExtract(PolarizCompon, Int_or_Phase, SectID, TransvPres, e, x, z, pData);
-
-			//DEBUG
-			//srTIgorSend::WarningMessage("ExtractRadiation #1");
-			//END DEBUG
-
-	int res;
-	if(TransvPres != RadAccessData.Pres)
-		if(res = GenOptElem.SetRadRepres(&RadAccessData, char(TransvPres))) throw res;
-	
-	if(RadExtract.Int_or_Phase == 1)
-	{//1- Multi-Elec Intensity
-		if(res = ComputeConvolutedIntensity(RadExtract)) throw res;
-	}
-	else if(RadExtract.Int_or_Phase == 4) //OC
-	{//4- Sigle-Elec. Flux
-		if(res = ExtractFluxFromWfr(RadExtract, 's')) throw res;
-	}
-	else if(RadExtract.Int_or_Phase == 5) //OC
-	{//5- Multi-Elec. Flux
-		if(res = ExtractFluxFromWfr(RadExtract, 'm')) throw res;
-	}
-	else if(RadExtract.Int_or_Phase == 8) //OC06092018
-	{
-		if(res = ExtractSingleElecMutualIntensity(RadExtract)) throw res;
-	}
-	else
-	{
-		if(res = ExtractSingleElecIntensity(RadExtract)) throw res;
-	}
-
-			//DEBUG
-			//srTIgorSend::WarningMessage("ExtractRadiation: ready out");
-			//END DEBUG
-
-	//if(res = SetupExtractedWaveData(RadExtract, ExtractedWaveData)) return res;
-}
+//OC13122019 (moved to .h)
+//void srTRadGenManip::ExtractRadiation(int PolarizCompon, int Int_or_Phase, int SectID, int TransvPres, double e, double x, double z, char* pData)
+//{
+//	if(pData == 0) throw INCORRECT_PARAMS_WFR_COMPON_EXTRACT;
+//
+//	srTSRWRadStructAccessData& RadAccessData = *((srTSRWRadStructAccessData*)(hRadAccessData.ptr()));
+//	srTGenOptElem GenOptElem;
+//	srTRadExtract RadExtract(PolarizCompon, Int_or_Phase, SectID, TransvPres, e, x, z, pData);
+//
+//			//DEBUG
+//			//srTIgorSend::WarningMessage("ExtractRadiation #1");
+//			//END DEBUG
+//
+//	int res;
+//	if(TransvPres != RadAccessData.Pres)
+//		if(res = GenOptElem.SetRadRepres(&RadAccessData, char(TransvPres))) throw res;
+//	
+//	if(RadExtract.Int_or_Phase == 1)
+//	{//1- Multi-Elec Intensity
+//		if(res = ComputeConvolutedIntensity(RadExtract)) throw res;
+//	}
+//	else if(RadExtract.Int_or_Phase == 4) //OC
+//	{//4- Sigle-Elec. Flux
+//		if(res = ExtractFluxFromWfr(RadExtract, 's')) throw res;
+//	}
+//	else if(RadExtract.Int_or_Phase == 5) //OC
+//	{//5- Multi-Elec. Flux
+//		if(res = ExtractFluxFromWfr(RadExtract, 'm')) throw res;
+//	}
+//	else if(RadExtract.Int_or_Phase == 8) //OC06092018
+//	{
+//		if(res = ExtractSingleElecMutualIntensity(RadExtract)) throw res;
+//	}
+//	else
+//	{
+//		if(res = ExtractSingleElecIntensity(RadExtract)) throw res;
+//	}
+//
+//	//OCTEST17082019
+//	//if((RadExtract.Int_or_Phase == 2) && (RadExtract.PlotType == 3))
+//	//{
+//	//	srTWaveAccessData ExtrWaveData;
+//	//	if(res = SetupExtractedWaveData(RadExtract, ExtrWaveData)) throw res;
+//	//	if(res = TryToMakePhaseContinuous(ExtrWaveData)) throw res;
+//	//}
+//
+//			//DEBUG
+//			//srTIgorSend::WarningMessage("ExtractRadiation: ready out");
+//			//END DEBUG
+//
+//	//if(res = SetupExtractedWaveData(RadExtract, ExtractedWaveData)) return res;
+//}
 
 //*************************************************************************
 

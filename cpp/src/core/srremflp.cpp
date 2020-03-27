@@ -32,7 +32,8 @@ int srTAuxRemoveFlips::GenRemoveFlips(srTWaveAccessData& WaveData)
 	{
 		if(*(WaveData.WaveType) == 'd')
 		{
-			DOUBLE* pData = (DOUBLE*)(WaveData.pWaveData);
+			//DOUBLE* pData = (DOUBLE*)(WaveData.pWaveData);
+			double* pData = (double*)(WaveData.pWaveData); //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
 			RemoveFlips1D(pData, *(WaveData.DimSizes), 0, double(*pData));
 		}
 		else if(*(WaveData.WaveType) == 'f')
@@ -61,7 +62,8 @@ int srTAuxRemoveFlips::GenRemoveFlips(srTWaveAccessData& WaveData)
 
 //*************************************************************************
 
-void srTAuxRemoveFlips::RemoveFlips1D(DOUBLE* Slice, long long Np, long long i0, double Phi0) //OC26042019
+void srTAuxRemoveFlips::RemoveFlips1D(double* Slice, long long Np, long long i0, double Phi0) //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
+//void srTAuxRemoveFlips::RemoveFlips1D(DOUBLE* Slice, long long Np, long long i0, double Phi0) //OC26042019
 //void srTAuxRemoveFlips::RemoveFlips1D(DOUBLE* Slice, long Np, long i0, double Phi0)
 {
 	const double TwoPi = 6.2831853071796;
@@ -74,7 +76,8 @@ void srTAuxRemoveFlips::RemoveFlips1D(DOUBLE* Slice, long long Np, long long i0,
 	long long OtherHalfNp = Np - HalfNp;
 
 	double PhToAdd = PhToAdd0;
-	DOUBLE *t = Slice + HalfNp - 1; 
+	//DOUBLE *t = Slice + HalfNp - 1; 
+	double *t = Slice + HalfNp - 1; 
 	*t += PhToAdd;
 	double PrevPh = *(t--);
 	for(long long i=0; i<(HalfNp - 1); i++) //OC26042019
@@ -190,7 +193,8 @@ int srTAuxRemoveFlips::RemoveFlips2D_D(srTWaveAccessData& WaveData)
 	long long Nx = WaveData.DimSizes[0]; //OC26042019
 	long long Nz = WaveData.DimSizes[1];
 
-	DOUBLE* CenterSlice = new DOUBLE[Nx];
+	//DOUBLE* CenterSlice = new DOUBLE[Nx];
+	double* CenterSlice = new double[Nx];
 	if(CenterSlice == 0) return MEMORY_ALLOCATION_FAILURE;
 
 	//long ixMid = Nx >> 1, izMid = Nz >> 1;
@@ -199,13 +203,17 @@ int srTAuxRemoveFlips::RemoveFlips2D_D(srTWaveAccessData& WaveData)
 	long long izMid = Nz >> 1; //OC26042019
 	long long ix, iz;
 
-	DOUBLE *pData = (DOUBLE*)(WaveData.pWaveData);
-	DOUBLE *tm = pData + izMid*Nx;
-	DOUBLE *t = CenterSlice;
+	//DOUBLE *pData = (DOUBLE*)(WaveData.pWaveData);
+	//DOUBLE *tm = pData + izMid*Nx;
+	//DOUBLE *t = CenterSlice;
+	double *pData = (double*)(WaveData.pWaveData); //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
+	double *tm = pData + izMid*Nx;
+	double *t = CenterSlice;
 	for(ix=0; ix<Nx; ix++) *(t++) = *(tm++);
 	RemoveFlips1D(CenterSlice, Nx, -1, 0.);
 
-	DOUBLE* AuxSlice = new DOUBLE[Nz];
+	//DOUBLE* AuxSlice = new DOUBLE[Nz];
+	double* AuxSlice = new double[Nz]; //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
 	if(AuxSlice == 0) return MEMORY_ALLOCATION_FAILURE;
 
 	for(ix=0; ix<Nx; ix++)

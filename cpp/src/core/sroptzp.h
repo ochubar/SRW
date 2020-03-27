@@ -32,6 +32,7 @@ class srTZonePlate : public srTFocusingElem {
 	double RnMaxe2;
 	double m_aModH, m_bModH, m_cModH, m_dModH;
 	bool m_ModH_IsDefined;
+	double m_lamb0e2; //OC22062019
 
 public:
 
@@ -63,10 +64,13 @@ public:
 		if(AmOfStr > 14) m_ZoneHeightRatioIntermedToCen2 = atof((*pElemInfo)[14]); // ratio
 
 		RnMaxe2 = RnMax*RnMax;
+		m_lamb0e2 = 0; //OC22062019
 
 		DefineAttenModulConstants();
 	}
-	srTZonePlate(int _nZones, double _rn, double _thick, double _atLen1, double _atLen2, double _delta1, double _delta2, double _x=0, double _y=0)
+
+	srTZonePlate(int _nZones, double _rn, double _thick, double _atLen1, double _atLen2, double _delta1, double _delta2, double _x=0, double _y=0, double _e0=0) //OC22062019
+	//srTZonePlate(int _nZones, double _rn, double _thick, double _atLen1, double _atLen2, double _delta1, double _delta2, double _x=0, double _y=0)
 	{
 		Nzones = _nZones;
 		RnMax = _rn; // input in m
@@ -83,6 +87,13 @@ public:
         m_ZoneIntermedNum1 = m_ZoneIntermedNum2 = -1;
 
 		RnMaxe2 = RnMax*RnMax;
+
+		m_lamb0e2 = 0.; //OC22062019
+		if(_e0 > 0.)
+		{
+			double lamb0 = 1.23984186e-06/_e0;
+			m_lamb0e2 = lamb0*lamb0;
+		}
 
 		DefineAttenModulConstants();
 	}
@@ -112,6 +123,8 @@ public:
 		return result;
 	}
 
+	//int PropagateRadiationSimple(srTSRWRadStructAccessData* pRadAccessData, void* pBuf=0) //OC06092019
+	//OC01102019 (restored)
 	int PropagateRadiationSimple(srTSRWRadStructAccessData* pRadAccessData)
 	{
 		int result;
@@ -143,7 +156,8 @@ public:
 		//FocDistZ = FocDistX;
 	}
 
-	void RadPointModifier(srTEXZ& EXZ, srTEFieldPtrs& EPtrs)
+	void RadPointModifier(srTEXZ& EXZ, srTEFieldPtrs& EPtrs, void* pBufVars=0) //OC29082019
+	//void RadPointModifier(srTEXZ& EXZ, srTEFieldPtrs& EPtrs)
 	{// e in eV; Length in m !!!
 	 // Operates on Coord. side !!!
 		double xRel = EXZ.x - TransvCenPoint.x, zRel = EXZ.z - TransvCenPoint.y;
@@ -172,7 +186,16 @@ public:
 		}
 		else
 		{
-			int CurZoneNum = int(re2*Nzones/RnMaxe2) + 1;
+			int CurZoneNum = 0;
+			if(m_lamb0e2 <= 0.) CurZoneNum = int(re2*Nzones/RnMaxe2) + 1;
+			else
+			{
+				double aux1 = RnMaxe2/(Nzones*m_lamb0e2);
+				double aux2 = aux1 - 0.25*Nzones;
+				CurZoneNum = int(0.5*Nzones - 2.*aux1 + 2.*sqrt(re2/m_lamb0e2 + aux2*aux2)) + 1;
+			}
+
+			//int CurZoneNum = int(re2*Nzones/RnMaxe2) + 1;
 
 			bool CurZoneNumIsEven = (CurZoneNum == ((CurZoneNum >> 1) << 1));
 			int par = (CurZoneNumIsEven? 2 : 1);
@@ -187,7 +210,12 @@ public:
 			double CurHeightComplem = 0;
 			if(m_ModH_IsDefined && CurZoneNumIsEven)
 			{
-				double rnm1 = sqrt(RnMaxe2*(CurZoneNum - 1)/Nzones), rn = sqrt(RnMaxe2*CurZoneNum/Nzones);
+				int CurZoneNum_mi_1 = CurZoneNum - 1; //OC22062019
+				double rnm1 = sqrt(RnMaxe2*CurZoneNum_mi_1/Nzones - 0.25*m_lamb0e2*CurZoneNum_mi_1*(Nzones - CurZoneNum_mi_1)); //OC22062019
+				double rn = sqrt(RnMaxe2*CurZoneNum/Nzones - 0.25*m_lamb0e2*CurZoneNum*(Nzones - CurZoneNum)); //OC22062019
+				//OC22062019: the above correction makes more accurate zone positioning: rn = sqrt(n*lamda*f + 0.25*n^2*lambda^2)
+				//double rnm1 = sqrt(RnMaxe2*(CurZoneNum - 1)/Nzones), rn = sqrt(RnMaxe2*CurZoneNum/Nzones);
+
 				double rZoneCen = 0.5*(rnm1 + rn);
 				CurHeight = ((m_aModH*rZoneCen + m_bModH)*rZoneCen + m_cModH)*rZoneCen + m_dModH;
 				CurHeightComplem = Thickness - CurHeight;
@@ -221,7 +249,8 @@ public:
 		}
 	}
 
-  	void RadPointModifier1D(srTEXZ& EXZ, srTEFieldPtrs& EPtrs)
+  	void RadPointModifier1D(srTEXZ& EXZ, srTEFieldPtrs& EPtrs, void* pBufVar=0) //OC06092019
+  	//void RadPointModifier1D(srTEXZ& EXZ, srTEFieldPtrs& EPtrs)
 	{// e in eV; Length in m !!!
 	 // Operates on Coord. side !!!
 		double ArgRel = (EXZ.VsXorZ == 'x')? (EXZ.x - TransvCenPoint.x) : (EXZ.z - TransvCenPoint.y);
@@ -266,7 +295,12 @@ public:
 			double CurHeightComplem = 0;
 			if(m_ModH_IsDefined && CurZoneNumIsEven)
 			{
-				double rnm1 = sqrt(RnMaxe2*(CurZoneNum - 1)/Nzones), rn = sqrt(RnMaxe2*CurZoneNum/Nzones);
+				int CurZoneNum_mi_1 = CurZoneNum - 1; //OC22062019
+				double rnm1 = sqrt(RnMaxe2*CurZoneNum_mi_1/Nzones - 0.25*m_lamb0e2*CurZoneNum_mi_1*(Nzones - CurZoneNum_mi_1)); //OC22062019
+				double rn = sqrt(RnMaxe2*CurZoneNum/Nzones - 0.25*m_lamb0e2*CurZoneNum*(Nzones - CurZoneNum)); //OC22062019
+				//OC22062019: the above correction makes more accurate zone positioning: rn = sqrt(n*lamda*f + 0.25*n^2*lambda^2)
+				//double rnm1 = sqrt(RnMaxe2*(CurZoneNum - 1)/Nzones), rn = sqrt(RnMaxe2*CurZoneNum/Nzones);
+
 				double rZoneCen = 0.5*(rnm1 + rn);
 				CurHeight = ((m_aModH*rZoneCen + m_bModH)*rZoneCen + m_cModH)*rZoneCen + m_dModH;
 				CurHeightComplem = Thickness - CurHeight;

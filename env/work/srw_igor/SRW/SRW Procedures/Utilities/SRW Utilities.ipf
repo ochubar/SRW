@@ -2196,22 +2196,23 @@ variable ny = dimsize(w, 1)
 variable ystep = dimdelta(w, 1)
 variable ymax = ymin + (ny - 1)*ystep
 
-//if(x < xmin)
-//	x = xmin
-//endif
-//if(x > xmax)
-//	x = xmax
-//endif
-//if(y < ymin)
-//	y = ymin
-//endif
-//if(y > ymax)
-//	y = ymax
-//endif
-//OC23112017
-if((x < xmin) || (x > xmax) || (y < ymin) || (y > ymax))
-	return 0
+//OC13012020 (uncommented)
+if(x < xmin)
+	x = xmin
 endif
+if(x > xmax)
+	x = xmax
+endif
+if(y < ymin)
+	y = ymin
+endif
+if(y > ymax)
+	y = ymax
+endif
+//OC23112017
+//if((x < xmin) || (x > xmax) || (y < ymin) || (y > ymax))
+//	return 0
+//endif
 
 variable x0 = xmin + trunc((x - xmin)/xstep)*xstep
 if(x0 >= xmax)
@@ -3769,20 +3770,33 @@ if(cmpstr(sTestSymbStokesN, "#") == 0)
 endif
 //currently, this proc reads only first Stokes component (s0) -- to upgrade
 
-variable isMutual = 0, isCmplx = 0
+variable isMutual = 0, isCmplx = 0, isDegCoh = 0
 string sEnt = $nmHeader[0]
+//if(cmpstr(sEnt[0, 6], "#Mutual") == 0)
+
+string strLabelEntity = "Intensity" //OC13112019
+
+if(cmpstr(sEnt[0, 19], "#Degree of Coherence") == 0)
+	isDegCoh = 1
+	strLabelEntity = "Degree of Coherence" //OC13112019
+endif
+//if((cmpstr(sEnt[0, 6], "#Mutual") == 0) || (cmpstr(sEnt[0, 19], "#Degree of Coherence") == 0))
 if(cmpstr(sEnt[0, 6], "#Mutual") == 0)
 	isMutual = 1
+	strLabelEntity = "Mutual Intensity" //OC13112019
 endif
+
 if(cmpstr(sEnt[0, 14], "#Complex Mutual") == 0)
 	isMutual = 1
 	isCmplx = 1
+	strLabelEntity = "Complex Mutual Intensity" //OC13112019
 endif
 
 //print phEnStart, phEnEnd, phEnN, horPosStart, horPosEnd, horPosN
 
 variable nVal = phEnN*horPosN*vertPosN
-if(isMutual != 0)
+//if(isMutual != 0)
+if((isMutual != 0) || (isDegCoh != 0)) //OC12112019
 	if(phEnN == 1)
 		if(horPosN == 1)
 			nVal = vertPosN*vertPosN
@@ -3930,6 +3944,59 @@ if(vertPosN > 1)
 	endif			
 endif
 
+if(isDegCoh != 0) //OC12112019
+	numDim = 2
+	strLabelEntity = "Degree of Coherence"
+	if(horPosN > 1)
+		arg1Start = horPosStart
+		arg1End = horPosEnd
+		arg1N = horPosN
+		strUnit1 = "m"
+		strLabel1 = "(x1+x2)/2"
+		if(strlen(strInUnitHorPos) > 0)
+			strUnit1 = strInUnitHorPos
+			if(cmpstr(strInUnitHorPos, "rad") == 0)
+				strLabel1 = "(x'1+x'2)/2"
+			endif
+		endif
+		arg2Start = (horPosStart - horPosEnd)/2
+		arg2End = (horPosEnd - horPosStart)/2
+		arg2N = horPosN
+		strUnit2 = "m"
+		strLabel2 = "(x1-x2)/2"
+		if(strlen(strInUnitHorPos) > 0)
+			strUnit2 = strInUnitHorPos
+			if(cmpstr(strInUnitHorPos, "rad") == 0)
+				strLabel2 = "(x'1-x'2)/2"
+			endif
+		endif
+	endif
+	if(vertPosN > 1)	
+		arg1Start = vertPosStart
+		arg1End = vertPosEnd
+		arg1N = vertPosN
+		strUnit1 = "m"
+		strLabel1 = "(y1+y2)/2"
+		if(strlen(strInUnitVertPos) > 0)
+			strUnit1 = strInUnitVertPos
+			if(cmpstr(strInUnitVertPos, "rad") == 0)
+				strLabel1 = "(y'1+y'2)/2"
+			endif
+		endif
+		arg2Start = (vertPosStart - vertPosEnd)/2
+		arg2End = (vertPosEnd - vertPosStart)/2
+		arg2N = vertPosN
+		strUnit2 = "m"
+		strLabel2 = "(y1-y2)/2"
+		if(strlen(strInUnitVertPos) > 0)
+			strUnit2 = strInUnitVertPos
+			if(cmpstr(strInUnitVertPos, "rad") == 0)
+				strLabel2 = "(y'1-y'2)/2"
+			endif
+		endif
+	endif
+endif
+
 string nmWaveMDx = nmWaveMD + "x"
 string nmWaveMDy = nmWaveMD + "y"
 //print numDim, strLabel1, strLabel2
@@ -3993,6 +4060,9 @@ if(numDim == 2)
 		if(disp == 2)
 			display $nmWaveMDx
 			Label bottom strLabel1
+			if(strlen(strLabelEntity) > 0) //OC13112019
+				Label left strLabelEntity
+			endif
 			SrwUtiGraphAddFrameAndGrid()
 		endif
 		make/O/N=(arg2N) $nmWaveMDy
@@ -4001,6 +4071,9 @@ if(numDim == 2)
 		if(disp == 2)	
 			display $nmWaveMDy
 			Label bottom strLabel2
+			if(strlen(strLabelEntity) > 0) //OC13112019
+				Label left strLabelEntity
+			endif
 			SrwUtiGraphAddFrameAndGrid()
 		endif
 	else
@@ -4011,6 +4084,9 @@ if(numDim == 2)
 		if(disp == 2)
 			display $nmReWaveMDx, $nmImWaveMDx
 			Label bottom strLabel1
+			if(strlen(strLabelEntity) > 0) //OC13112019
+				Label left strLabelEntity
+			endif
 			SrwUtiGraphAddFrameAndGrid()
 		endif
 		make/O/N=(arg2N) $nmReWaveMDy, $nmImWaveMDy
@@ -4020,6 +4096,9 @@ if(numDim == 2)
 		if(disp == 2)	
 			display $nmReWaveMDy, $nmImWaveMDy
 			Label bottom strLabel2
+			if(strlen(strLabelEntity) > 0) //OC13112019
+				Label left strLabelEntity
+			endif
 			SrwUtiGraphAddFrameAndGrid()
 		endif
 	endif
