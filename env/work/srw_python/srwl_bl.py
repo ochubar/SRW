@@ -5,7 +5,7 @@
 # of a complete user beamline in a synchrotron radiation source.
 # Under development!!!
 # Authors/Contributors: O.C., Maksim Rakitin, An He
-# v 0.10
+# v 0.11
 #############################################################################
 
 from __future__ import print_function #Python 2.7 compatibility
@@ -764,12 +764,16 @@ class SRWLBeamline(object):
 
         if(_op is None): #OC16122018
             if(_v is not None):
-                if(_v.op_func is None):
-                    raise Exception('Optics container structure (SRWLOptC) or function for setting it up is not defined')
-                else: _op = _v.op_func(_v) #assuming _v.op_func is reference to set_optics function of virtual beamline script
+                if(hasattr(_v, 'op_func')): #OC28032020
+                    if(_v.op_func is None):
+                        _op = _v.op_func(_v) #assuming _v.op_func is reference to set_optics function of virtual beamline script
+                #if(_v.op_func is None):
+                #    raise Exception('Optics container structure (SRWLOptC) or function for setting it up is not defined')
+                #else: _op = _v.op_func(_v) #assuming _v.op_func is reference to set_optics function of virtual beamline script
 
         #print(_v)
-        if(_v is not None): #OC28042018
+        if((_v is not None) and (_op is not None)): #OC28032020
+        #if(_v is not None): #OC28042018
             if(_v.op_dp != 0):
                 _op.append_drift(_v.op_dp)
         
@@ -2825,11 +2829,12 @@ class SRWLBeamline(object):
             avgPhEn = _v.w_e
             if(_v.w_ef > 0): avgPhEn = 0.5*(_v.w_e + _v.w_ef)
             self.set_optics(_op, _v)
-            opOrientData = self.optics.get_orient_lab_fr(_e=avgPhEn, _r=_v.op_r)
-            if(opOrientData is not None): #OC29012020
-                if(len(opOrientData) > 0):
-                    uti_io.write_ascii_data_rows(_file_path=os.path.join(_v.fdir, _v.op_fno), _rows=opOrientData, _str_sep='\t',
-                                                 _str_head='#Types of optical elements and Cartesian coordinates of their center positions and base vectors (t, s, n) in the Lab frame')
+            if(self.optics is not None): #OC28032020
+                opOrientData = self.optics.get_orient_lab_fr(_e=avgPhEn, _r=_v.op_r)
+                if(opOrientData is not None): #OC29012020
+                    if(len(opOrientData) > 0):
+                        uti_io.write_ascii_data_rows(_file_path=os.path.join(_v.fdir, _v.op_fno), _rows=opOrientData, _str_sep='\t',
+                                                     _str_head='#Types of optical elements and Cartesian coordinates of their center positions and base vectors (t, s, n) in the Lab frame')
             
         #---calculate single-e and multi-e intensity distributions (before and after wavefront propagation through a beamline)
         if(_v.si or _v.ws or _v.gi or _v.wg or _v.wm):
