@@ -3367,7 +3367,8 @@ class SRWLOptG(SRWLOpt):
         cff2 = _cff*_cff
         cff2_mi_1 = cff2 - 1
         #OC24032020
-        sinBeta = (m_lamb_k0*cff2 - sqrt(m_lamb_k0*m_lamb_k0*cff2 + cff2_mi_1*cff2_mi_1))/cff2_mi_1 if(_m >= 0) else (m_lamb_k0*cff2 + sqrt(m_lamb_k0*m_lamb_k0*cff2 + cff2_mi_1*cff2_mi_1))/cff2_mi_1
+        sinBeta = (m_lamb_k0*cff2 - sqrt(m_lamb_k0*m_lamb_k0*cff2 + cff2_mi_1*cff2_mi_1))/cff2_mi_1 if(self.m >= 0) else (m_lamb_k0*cff2 + sqrt(m_lamb_k0*m_lamb_k0*cff2 + cff2_mi_1*cff2_mi_1))/cff2_mi_1 #AH29032020
+        #sinBeta = (m_lamb_k0*cff2 - sqrt(m_lamb_k0*m_lamb_k0*cff2 + cff2_mi_1*cff2_mi_1))/cff2_mi_1 if(_m >= 0) else (m_lamb_k0*cff2 + sqrt(m_lamb_k0*m_lamb_k0*cff2 + cff2_mi_1*cff2_mi_1))/cff2_mi_1
         sinAlpha = m_lamb_k0 - sinBeta
         if((sinBeta < -1.) or (sinBeta > 1.) or (sinAlpha < -1.) or (sinAlpha > 1.)): return None, None
         
