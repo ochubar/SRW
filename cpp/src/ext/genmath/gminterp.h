@@ -421,9 +421,9 @@ public:
 		double f20_mi_f21_d_x1_mi_x2_x2_x2_mi_xm1_y1 = (f20 - f21)/(x1_mi_x2_x2_x2_mi_xm1*y1);
 		double x1_x1_mi_x2_x1_mi_xm1_y1 = x1_x1_mi_x2_x1_mi_xm1*y1;
 		double f11_mi_f10_d_x1_x1_mi_x2_x1_mi_xm1_y1 = (f11 - f10)/x1_x1_mi_x2_x1_mi_xm1_y1;
-		double x1_mi_x2_x2_mi_xm1_x2 = x1_mi_x2*x2_mi_xm1*x2;
+		//double x1_mi_x2_x2_mi_xm1_x2 = x1_mi_x2*x2_mi_xm1*x2; //OC01062020 (catch by Xcode)
 		double fm10_mi_fm11_d_x1_mi_xm1_xm1_x2_mi_xm1_y1 = (fm10 - fm11)/x1_mi_xm1_xm1_x2_mi_xm1_y1;
-		double y2_y1_mi_y2_y2_mi_ym1 = y2*y1_mi_y2*y2_mi_ym1;
+		//double y2_y1_mi_y2_y2_mi_ym1 = y2*y1_mi_y2*y2_mi_ym1; //OC01062020
 		double y1_p_y2 = y1 + y2, y1_p_ym1 = y1 + ym1, y2_p_ym1 = y2 + ym1;
 		double y1_y2 = y1*y2, y1_ym1 = y1*ym1, y2_ym1 = y2*ym1;
 		double y1_y2_ym1 = y1_y2*ym1;

@@ -136,6 +136,16 @@ int srTGenOptElem::SetupOpticalElement(srTStringVect* pOptElemInfo, srTDataMD* p
 
 //*************************************************************************
 
+int srTGenOptElem::ExtraDataExpected(const char* sElemID) //OC01062020
+{
+	if(sElemID == 0) return 0;
+
+	if((!strcmp(sElemID, "ThinGen")) || (!strcmp(sElemID, "Mirror"))) return 1;
+	else return 0;
+}
+
+//*************************************************************************
+
 int srTGenOptElem::TraverseRadZXE(srTSRWRadStructAccessData* pRadAccessData, void* pBufVars) //OC29082019
 //int srTGenOptElem::TraverseRadZXE(srTSRWRadStructAccessData* pRadAccessData)
 {
@@ -725,6 +735,12 @@ int srTGenOptElem::SetupWfrEdgeCorrData(srTSRWRadStructAccessData* pRadAccessDat
 {
 	int result;
 
+	//OC17052020
+	if(pRadAccessData->xWfrMax <= pRadAccessData->xStart) return 0;
+	else if(pRadAccessData->xWfrMin >= (pRadAccessData->xStart + (pRadAccessData->xStep)*(pRadAccessData->nx - 1))) return 0;
+	if(pRadAccessData->zWfrMax <= pRadAccessData->zStart) return 0;
+	else if(pRadAccessData->zWfrMin >= (pRadAccessData->zStart + (pRadAccessData->zStep)*(pRadAccessData->nz - 1))) return 0;
+
 	double xAbsTol = 0.05*pRadAccessData->xStep;
 	double zAbsTol = 0.05*pRadAccessData->zStep;
 //--X
@@ -932,6 +948,10 @@ int srTGenOptElem::SetupWfrEdgeCorrData(srTSRWRadStructAccessData* pRadAccessDat
 int srTGenOptElem::SetupWfrEdgeCorrData1D(srTRadSect1D* pRadSect1D, float* pDataEx, float* pDataEz, srTDataPtrsForWfrEdgeCorr1D& DataPtrsForWfrEdgeCorr)
 {
 	//int result;
+	//OC17052020
+	if(pRadSect1D->WfrMax <= pRadSect1D->ArgStart) return 0;
+	else if(pRadSect1D->WfrMin >= (pRadSect1D->ArgStart + (pRadSect1D->ArgStep)*(pRadSect1D->np - 1))) return 0;
+
 	double AbsTol = 0.05*pRadSect1D->ArgStep;
 
 	double WfrMinOffsetFromStart = pRadSect1D->WfrMin - pRadSect1D->ArgStart;

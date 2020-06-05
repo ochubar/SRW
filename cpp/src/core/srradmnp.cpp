@@ -225,11 +225,30 @@ int srTRadGenManip::ExtractSingleElecIntensity1DvsE(srTRadExtract& RadExtract)
 
 	srTSRWRadStructAccessData& RadAccessData = *((srTSRWRadStructAccessData*)(hRadAccessData.ptr()));
 
-	float *pI = 0;
+	bool allStokesReq = (PolCom == -5); //OC16042020
+
+	float *pI = 0, *pI1 = 0, *pI2 = 0, *pI3 = 0; //OC16042020
+	double *pId = 0, *pI1d = 0, *pI2d = 0, *pI3d = 0;
+	long ne = RadAccessData.ne;
+	//float *pI = 0;
 	//DOUBLE *pId = 0;
-	double *pId = 0; //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
-	if(Int_or_ReE != 2) pI = RadExtract.pExtractedData;
-	else pId = RadExtract.pExtractedDataD;
+	//double *pId = 0; //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
+	if(Int_or_ReE != 2)
+	{
+		pI = RadExtract.pExtractedData;
+		if(allStokesReq) //OC16042020
+		{
+			pI1 = pI + ne; pI2 = pI1 + ne; pI3 = pI2 + ne;
+		}
+	}
+	else
+	{
+		pId = RadExtract.pExtractedDataD;
+		if(allStokesReq) //OC16042020
+		{
+			pI1d = pId + ne; pI2d = pI1d + ne; pI3d = pI2d + ne;
+		}
+	}
 
 	float *pEx0 = RadAccessData.pBaseRadX;
 	float *pEz0 = RadAccessData.pBaseRadZ;
@@ -259,15 +278,38 @@ int srTRadGenManip::ExtractSingleElecIntensity1DvsE(srTRadExtract& RadExtract)
 	//long iePerE = 0;
 	long long iePerE = 0;
 
-	for(long ie=0; ie<RadAccessData.ne; ie++)
+	double BufI, BufI1, BufI2, BufI3; //OC16042020
+	for(long ie=0; ie<ne; ie++)
+	//for(long ie=0; ie<RadAccessData.ne; ie++)
 	{
 		float *ExPtrs[] = { (pEx_StartForE_ix0_iz0 + iePerE), (pEx_StartForE_ix1_iz0 + iePerE),
 							(pEx_StartForE_ix0_iz1 + iePerE), (pEx_StartForE_ix1_iz1 + iePerE)};
 		float *EzPtrs[] = { (pEz_StartForE_ix0_iz0 + iePerE), (pEz_StartForE_ix1_iz0 + iePerE),
 							(pEz_StartForE_ix0_iz1 + iePerE), (pEz_StartForE_ix1_iz1 + iePerE)};
-		double BufI = IntensityComponentSimpleInterpol2D(ExPtrs, EzPtrs, InvStepRelArg1, InvStepRelArg2, PolCom, Int_or_ReE);
-		if(RadExtract.pExtractedData != 0) *(pI++) = (float)BufI;
-		if(RadExtract.pExtractedDataD != 0) *(pId++) = (float)BufI;
+
+		if(!allStokesReq) //OC16042020
+		{
+			BufI = IntensityComponentSimpleInterpol2D(ExPtrs, EzPtrs, InvStepRelArg1, InvStepRelArg2, PolCom, Int_or_ReE);
+			if(RadExtract.pExtractedData != 0) *(pI++) = (float)BufI;
+			if(RadExtract.pExtractedDataD != 0) *(pId++) = (double)BufI; //OC17042020
+			//if(RadExtract.pExtractedDataD != 0) *(pId++) = (float)BufI;
+		}
+		else //OC16042020
+		{
+			BufI = IntensityComponentSimpleInterpol2D(ExPtrs, EzPtrs, InvStepRelArg1, InvStepRelArg2, -1, Int_or_ReE);
+			BufI1 = IntensityComponentSimpleInterpol2D(ExPtrs, EzPtrs, InvStepRelArg1, InvStepRelArg2, -2, Int_or_ReE);
+			BufI2 = IntensityComponentSimpleInterpol2D(ExPtrs, EzPtrs, InvStepRelArg1, InvStepRelArg2, -3, Int_or_ReE);
+			BufI3 = IntensityComponentSimpleInterpol2D(ExPtrs, EzPtrs, InvStepRelArg1, InvStepRelArg2, -4, Int_or_ReE);
+
+			if(RadExtract.pExtractedData != 0)
+			{
+				*(pI++) = (float)BufI; *(pI1++) = (float)BufI1; *(pI2++) = (float)BufI2; *(pI3++) = (float)BufI3;
+			}
+			if(RadExtract.pExtractedDataD != 0)
+			{
+				*(pId++) = BufI; *(pI1d++) = BufI1; *(pI2d++) = BufI2; *(pI3d++) = BufI3;
+			}
+		}
 
 		iePerE += 2; 
 	}
@@ -285,11 +327,30 @@ int srTRadGenManip::ExtractSingleElecIntensity1DvsX(srTRadExtract& RadExtract)
 
 	srTSRWRadStructAccessData& RadAccessData = *((srTSRWRadStructAccessData*)(hRadAccessData.ptr()));
 
-	float *pI = 0;
+	bool allStokesReq = (PolCom == -5); //OC17042020
+
+	float *pI = 0, *pI1 = 0, *pI2 = 0, *pI3 = 0; //OC17042020
+	double *pId = 0, *pI1d = 0, *pI2d = 0, *pI3d = 0;
+	long ne = RadAccessData.ne, nx = RadAccessData.nx;
+	//float *pI = 0;
 	//DOUBLE *pId = 0;
-	double *pId = 0; //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
-	if(Int_or_ReE != 2) pI = RadExtract.pExtractedData;
-	else pId = RadExtract.pExtractedDataD;
+	//double *pId = 0; //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
+	if(Int_or_ReE != 2)
+	{
+		pI = RadExtract.pExtractedData;
+		if(allStokesReq) //OC17042020
+		{
+			pI1 = pI + nx; pI2 = pI1 + nx; pI3 = pI2 + nx;
+		}
+	}
+	else
+	{
+		pId = RadExtract.pExtractedDataD;
+		if(allStokesReq) //OC17042020
+		{
+			pI1d = pId + nx; pI2d = pI1d + nx; pI3d = pI2d + nx;
+		}
+	}
 
 	float *pEx0 = RadAccessData.pBaseRadX;
 	float *pEz0 = RadAccessData.pBaseRadZ;
@@ -306,7 +367,8 @@ int srTRadGenManip::ExtractSingleElecIntensity1DvsX(srTRadExtract& RadExtract)
 	SetupIntCoord('z', RadExtract.z, iz0, iz1, InvStepRelArg2);
 
 	bool intOverEnIsRequired = (RadExtract.Int_or_Phase == 7) && (RadAccessData.ne > 1); //OC140813
-	double *arAuxInt = 0, resInt;
+	double *arAuxInt = 0, resInt, resInt1, resInt2, resInt3; //OC17042020
+	//double *arAuxInt = 0, resInt;
 	if(intOverEnIsRequired)
 	{
 		arAuxInt = new double[RadAccessData.ne];
@@ -326,8 +388,10 @@ int srTRadGenManip::ExtractSingleElecIntensity1DvsX(srTRadExtract& RadExtract)
 	float *pEz_StartForX_iz0 = pEz0 + iz0PerZ, *pEz_StartForX_iz1 = pEz0 + iz1PerZ;
 	//long ixPerX = 0;
 	long long ixPerX = 0;
+	long ie; //OC17042020
 
-	for(long ix=0; ix<RadAccessData.nx; ix++)
+	for(long ix=0; ix<nx; ix++) //OC17042020
+	//for(long ix=0; ix<RadAccessData.nx; ix++)
 	{
 		float *pEx_StartForE_iz0 = pEx_StartForX_iz0 + ixPerX, *pEx_StartForE_iz1 = pEx_StartForX_iz1 + ixPerX;
 		float *pEz_StartForE_iz0 = pEz_StartForX_iz0 + ixPerX, *pEz_StartForE_iz1 = pEz_StartForX_iz1 + ixPerX;
@@ -348,19 +412,80 @@ int srTRadGenManip::ExtractSingleElecIntensity1DvsX(srTRadExtract& RadExtract)
 			float *pEz_StAux = pEz_StartForE_iz0;
 			float *pEz_FiAux = pEz_StartForE_iz1;
 
-			for(int ie=0; ie<RadAccessData.ne; ie++)
+			if(!allStokesReq) //OC17042020
 			{
-				*(tInt++) = IntensityComponentSimpleInterpol(pEx_StAux, pEx_FiAux, pEz_StAux, pEz_FiAux, InvStepRelArg2, PolCom, Int_or_ReE);
-				pEx_StAux += 2; pEx_FiAux += 2;
-				pEz_StAux += 2; pEz_FiAux += 2;
+				for(ie=0; ie<ne; ie++) //OC17042020
+				//for(int ie=0; ie<RadAccessData.ne; ie++)
+				{
+					*(tInt++) = IntensityComponentSimpleInterpol(pEx_StAux, pEx_FiAux, pEz_StAux, pEz_FiAux, InvStepRelArg2, PolCom, Int_or_ReE);
+					pEx_StAux += 2; pEx_FiAux += 2;
+					pEz_StAux += 2; pEz_FiAux += 2;
+				}
+				resInt = ConstPhotEnInteg*CGenMathMeth::Integ1D_FuncDefByArray(arAuxInt, RadAccessData.ne, RadAccessData.eStep);
 			}
-			resInt = ConstPhotEnInteg*CGenMathMeth::Integ1D_FuncDefByArray(arAuxInt, RadAccessData.ne, RadAccessData.eStep);
+			else //OC17042020
+			{
+				for(ie=0; ie<ne; ie++)
+				{
+					*(tInt++) = IntensityComponentSimpleInterpol(pEx_StAux, pEx_FiAux, pEz_StAux, pEz_FiAux, InvStepRelArg2, -1, Int_or_ReE);
+					pEx_StAux += 2; pEx_FiAux += 2; pEz_StAux += 2; pEz_FiAux += 2;
+				}
+				resInt = ConstPhotEnInteg*CGenMathMeth::Integ1D_FuncDefByArray(arAuxInt, RadAccessData.ne, RadAccessData.eStep);
+
+				tInt = arAuxInt; pEx_StAux = pEx_StartForE_iz0; pEx_FiAux = pEx_StartForE_iz1; pEz_StAux = pEz_StartForE_iz0; pEz_FiAux = pEz_StartForE_iz1;
+				for(ie=0; ie<ne; ie++)
+				{
+					*(tInt++) = IntensityComponentSimpleInterpol(pEx_StAux, pEx_FiAux, pEz_StAux, pEz_FiAux, InvStepRelArg2, -2, Int_or_ReE);
+					pEx_StAux += 2; pEx_FiAux += 2; pEz_StAux += 2; pEz_FiAux += 2;
+				}
+				resInt1 = ConstPhotEnInteg*CGenMathMeth::Integ1D_FuncDefByArray(arAuxInt, RadAccessData.ne, RadAccessData.eStep);
+
+				tInt = arAuxInt; pEx_StAux = pEx_StartForE_iz0; pEx_FiAux = pEx_StartForE_iz1; pEz_StAux = pEz_StartForE_iz0; pEz_FiAux = pEz_StartForE_iz1;
+				for(ie=0; ie<ne; ie++)
+				{
+					*(tInt++) = IntensityComponentSimpleInterpol(pEx_StAux, pEx_FiAux, pEz_StAux, pEz_FiAux, InvStepRelArg2, -3, Int_or_ReE);
+					pEx_StAux += 2; pEx_FiAux += 2; pEz_StAux += 2; pEz_FiAux += 2;
+				}
+				resInt2 = ConstPhotEnInteg*CGenMathMeth::Integ1D_FuncDefByArray(arAuxInt, RadAccessData.ne, RadAccessData.eStep);
+
+				tInt = arAuxInt; pEx_StAux = pEx_StartForE_iz0; pEx_FiAux = pEx_StartForE_iz1; pEz_StAux = pEz_StartForE_iz0; pEz_FiAux = pEz_StartForE_iz1;
+				for(ie=0; ie<ne; ie++)
+				{
+					*(tInt++) = IntensityComponentSimpleInterpol(pEx_StAux, pEx_FiAux, pEz_StAux, pEz_FiAux, InvStepRelArg2, -4, Int_or_ReE);
+					pEx_StAux += 2; pEx_FiAux += 2; pEz_StAux += 2; pEz_FiAux += 2;
+				}
+				resInt3 = ConstPhotEnInteg*CGenMathMeth::Integ1D_FuncDefByArray(arAuxInt, RadAccessData.ne, RadAccessData.eStep);
+			}
 		}
-		else resInt = IntensityComponentSimpleInterpol2D(ExPtrs, EzPtrs, InvStepRelArg1, InvStepRelArg2, PolCom, Int_or_ReE);
+		else
+		{
+			if(!allStokesReq) //OC17042020
+			{
+				resInt = IntensityComponentSimpleInterpol2D(ExPtrs, EzPtrs, InvStepRelArg1, InvStepRelArg2, PolCom, Int_or_ReE);
+			}
+			else //OC17042020
+			{
+				resInt = IntensityComponentSimpleInterpol2D(ExPtrs, EzPtrs, InvStepRelArg1, InvStepRelArg2, -1, Int_or_ReE);
+				resInt1 = IntensityComponentSimpleInterpol2D(ExPtrs, EzPtrs, InvStepRelArg1, InvStepRelArg2, -2, Int_or_ReE);
+				resInt2 = IntensityComponentSimpleInterpol2D(ExPtrs, EzPtrs, InvStepRelArg1, InvStepRelArg2, -3, Int_or_ReE);
+				resInt3 = IntensityComponentSimpleInterpol2D(ExPtrs, EzPtrs, InvStepRelArg1, InvStepRelArg2, -4, Int_or_ReE);
+			}
+		}
 		//OC150813
 		if(pI != 0) *(pI++) = (float)resInt;
-		if(pId != 0) *(pId++) = (double)resInt;
-
+		if(pId != 0) *(pId++) = resInt; //OC17042020
+		//if(pId != 0) *(pId++) = (double)resInt;
+		if(allStokesReq) //OC17042020
+		{
+			if(RadExtract.pExtractedData != 0)
+			{
+				*(pI1++) = (float)resInt1; *(pI2++) = (float)resInt2; *(pI3++) = (float)resInt3;
+			}
+			else
+			{
+				*(pI1d++) = resInt1; *(pI2d++) = resInt2; *(pI3d++) = resInt3;
+			}
+		}
 		ixPerX += PerX;
 	}
 	if(arAuxInt != 0) delete[] arAuxInt; //OC150813
@@ -378,19 +503,40 @@ int srTRadGenManip::ExtractSingleElecIntensity1DvsZ(srTRadExtract& RadExtract)
 
 	srTSRWRadStructAccessData& RadAccessData = *((srTSRWRadStructAccessData*)(hRadAccessData.ptr()));
 
-	float *pI = 0;
+	bool allStokesReq = (PolCom == -5); //OC17042020
+
+	float *pI = 0, *pI1 = 0, *pI2 = 0, *pI3 = 0; //OC17042020
+	double *pId = 0, *pI1d = 0, *pI2d = 0, *pI3d = 0;
+	long ne = RadAccessData.ne, nx = RadAccessData.nx, nz = RadAccessData.nz;
+	//float *pI = 0;
 	//DOUBLE *pId = 0;
-	double *pId = 0; //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
-	if(Int_or_ReE != 2) pI = RadExtract.pExtractedData;
-	else pId = RadExtract.pExtractedDataD;
+	//double *pId = 0; //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
+	if(Int_or_ReE != 2)
+	{
+		pI = RadExtract.pExtractedData;
+		if(allStokesReq) //OC17042020
+		{
+			pI1 = pI + nz; pI2 = pI1 + nz; pI3 = pI2 + nz;
+		}
+	}
+	else
+	{
+		pId = RadExtract.pExtractedDataD;
+		if(allStokesReq) //OC17042020
+		{
+			pI1d = pId + nz; pI2d = pI1d + nz; pI3d = pI2d + nz;
+		}
+	}
 
 	float *pEx0 = RadAccessData.pBaseRadX;
 	float *pEz0 = RadAccessData.pBaseRadZ;
 
 	//long PerX = RadAccessData.ne << 1;
 	//long PerZ = PerX*RadAccessData.nx;
-	long long PerX = RadAccessData.ne << 1;
-	long long PerZ = PerX*RadAccessData.nx;
+	//long long PerX = RadAccessData.ne << 1;
+	//long long PerZ = PerX*RadAccessData.nx;
+	long long PerX = ((long long)ne) << 1; //OC17042020
+	long long PerZ = PerX*nx;
 
 	//long ie0=0, ie1=0, ix0=0, ix1=0;
 	long long ie0=0, ie1=0, ix0=0, ix1=0; //OC26042019
@@ -399,7 +545,8 @@ int srTRadGenManip::ExtractSingleElecIntensity1DvsZ(srTRadExtract& RadExtract)
 	SetupIntCoord('x', RadExtract.x, ix0, ix1, InvStepRelArg2);
 
 	bool intOverEnIsRequired = (RadExtract.Int_or_Phase == 7) && (RadAccessData.ne > 1); //OC150813
-	double *arAuxInt = 0, resInt;
+	double *arAuxInt = 0, resInt, resInt1, resInt2, resInt3; //OC17042020
+	//double *arAuxInt = 0, resInt;
 	if(intOverEnIsRequired)
 	{
 		arAuxInt = new double[RadAccessData.ne];
@@ -416,8 +563,10 @@ int srTRadGenManip::ExtractSingleElecIntensity1DvsZ(srTRadExtract& RadExtract)
 	//long izPerZ = 0;
 	long long ix0PerX = ix0*PerX, ix1PerX = ix1*PerX;
 	long long izPerZ = 0;
+	long ie; //OC17042020
 
-	for(long long iz=0; iz<RadAccessData.nz; iz++) //OC26042019
+	for(long long iz=0; iz<nz; iz++) //OC17042020
+	//for(long long iz=0; iz<RadAccessData.nz; iz++) //OC26042019
 	//for(long iz=0; iz<RadAccessData.nz; iz++)
 	{
 		float *pEx_StartForX = pEx0 + izPerZ;
@@ -441,19 +590,81 @@ int srTRadGenManip::ExtractSingleElecIntensity1DvsZ(srTRadExtract& RadExtract)
 			float *pEz_StAux = pEz_StartForE_ix0;
 			float *pEz_FiAux = pEz_StartForE_ix1;
 
-			for(int ie=0; ie<RadAccessData.ne; ie++)
+			if(!allStokesReq) //OC17042020
 			{
-				*(tInt++) = IntensityComponentSimpleInterpol(pEx_StAux, pEx_FiAux, pEz_StAux, pEz_FiAux, InvStepRelArg2, PolCom, Int_or_ReE);
-				pEx_StAux += 2; pEx_FiAux += 2;
-				pEz_StAux += 2; pEz_FiAux += 2;
+				for(ie=0; ie<ne; ie++) //OC17042020
+				//for(int ie=0; ie<RadAccessData.ne; ie++)
+				{
+					*(tInt++) = IntensityComponentSimpleInterpol(pEx_StAux, pEx_FiAux, pEz_StAux, pEz_FiAux, InvStepRelArg2, PolCom, Int_or_ReE);
+					pEx_StAux += 2; pEx_FiAux += 2;
+					pEz_StAux += 2; pEz_FiAux += 2;
+				}
+				resInt = ConstPhotEnInteg*CGenMathMeth::Integ1D_FuncDefByArray(arAuxInt, ne, RadAccessData.eStep); //OC17042020
+				//resInt = ConstPhotEnInteg*CGenMathMeth::Integ1D_FuncDefByArray(arAuxInt, RadAccessData.ne, RadAccessData.eStep);
 			}
-			resInt = ConstPhotEnInteg*CGenMathMeth::Integ1D_FuncDefByArray(arAuxInt, RadAccessData.ne, RadAccessData.eStep);
+			else //OC17042020
+			{
+				for(ie=0; ie<ne; ie++)
+				{
+					*(tInt++) = IntensityComponentSimpleInterpol(pEx_StAux, pEx_FiAux, pEz_StAux, pEz_FiAux, InvStepRelArg2, -1, Int_or_ReE);
+					pEx_StAux += 2; pEx_FiAux += 2; pEz_StAux += 2; pEz_FiAux += 2;
+				}
+				resInt = ConstPhotEnInteg*CGenMathMeth::Integ1D_FuncDefByArray(arAuxInt, ne, RadAccessData.eStep);
+
+				tInt = arAuxInt; pEx_StAux = pEx_StartForE_ix0; pEx_FiAux = pEx_StartForE_ix1; pEz_StAux = pEz_StartForE_ix0; pEz_FiAux = pEz_StartForE_ix1;
+				for(ie=0; ie<ne; ie++)
+				{
+					*(tInt++) = IntensityComponentSimpleInterpol(pEx_StAux, pEx_FiAux, pEz_StAux, pEz_FiAux, InvStepRelArg2, -2, Int_or_ReE);
+					pEx_StAux += 2; pEx_FiAux += 2; pEz_StAux += 2; pEz_FiAux += 2;
+				}
+				resInt1 = ConstPhotEnInteg*CGenMathMeth::Integ1D_FuncDefByArray(arAuxInt, ne, RadAccessData.eStep);
+
+				tInt = arAuxInt; pEx_StAux = pEx_StartForE_ix0; pEx_FiAux = pEx_StartForE_ix1; pEz_StAux = pEz_StartForE_ix0; pEz_FiAux = pEz_StartForE_ix1;
+				for(ie=0; ie<ne; ie++)
+				{
+					*(tInt++) = IntensityComponentSimpleInterpol(pEx_StAux, pEx_FiAux, pEz_StAux, pEz_FiAux, InvStepRelArg2, -3, Int_or_ReE);
+					pEx_StAux += 2; pEx_FiAux += 2; pEz_StAux += 2; pEz_FiAux += 2;
+				}
+				resInt2 = ConstPhotEnInteg*CGenMathMeth::Integ1D_FuncDefByArray(arAuxInt, ne, RadAccessData.eStep);
+
+				tInt = arAuxInt; pEx_StAux = pEx_StartForE_ix0; pEx_FiAux = pEx_StartForE_ix1; pEz_StAux = pEz_StartForE_ix0; pEz_FiAux = pEz_StartForE_ix1;
+				for(ie=0; ie<ne; ie++)
+				{
+					*(tInt++) = IntensityComponentSimpleInterpol(pEx_StAux, pEx_FiAux, pEz_StAux, pEz_FiAux, InvStepRelArg2, -4, Int_or_ReE);
+					pEx_StAux += 2; pEx_FiAux += 2; pEz_StAux += 2; pEz_FiAux += 2;
+				}
+				resInt3 = ConstPhotEnInteg*CGenMathMeth::Integ1D_FuncDefByArray(arAuxInt, ne, RadAccessData.eStep);
+			}
 		}
-		else resInt = IntensityComponentSimpleInterpol2D(ExPtrs, EzPtrs, InvStepRelArg1, InvStepRelArg2, PolCom, Int_or_ReE);
+		else
+		{
+			if(!allStokesReq) //OC17042020
+			{
+				resInt = IntensityComponentSimpleInterpol2D(ExPtrs, EzPtrs, InvStepRelArg1, InvStepRelArg2, PolCom, Int_or_ReE);
+			}
+			else //OC17042020
+			{
+				resInt = IntensityComponentSimpleInterpol2D(ExPtrs, EzPtrs, InvStepRelArg1, InvStepRelArg2, -1, Int_or_ReE);
+				resInt1 = IntensityComponentSimpleInterpol2D(ExPtrs, EzPtrs, InvStepRelArg1, InvStepRelArg2, -2, Int_or_ReE);
+				resInt2 = IntensityComponentSimpleInterpol2D(ExPtrs, EzPtrs, InvStepRelArg1, InvStepRelArg2, -3, Int_or_ReE);
+				resInt3 = IntensityComponentSimpleInterpol2D(ExPtrs, EzPtrs, InvStepRelArg1, InvStepRelArg2, -4, Int_or_ReE);
+			}
+		}
 		//OC150813
 		if(pI != 0) *(pI++) = (float)resInt;
-		if(pId != 0) *(pId++) = (double)resInt;
-
+		if(pId != 0) *(pId++) = resInt; //OC17042020
+		//if(pId != 0) *(pId++) = (double)resInt;
+		if(allStokesReq) //OC17042020
+		{
+			if(RadExtract.pExtractedData != 0)
+			{
+				*(pI1++) = (float)resInt1; *(pI2++) = (float)resInt2; *(pI3++) = (float)resInt3;
+			}
+			else
+			{
+				*(pI1d++) = resInt1; *(pI2d++) = resInt2; *(pI3d++) = resInt3;
+			}
+		}
 		izPerZ += PerZ;
 	}
 	if(arAuxInt != 0) delete[] arAuxInt; //OC150813
@@ -471,26 +682,50 @@ int srTRadGenManip::ExtractSingleElecIntensity2DvsXZ(srTRadExtract& RadExtract)
 
 	srTSRWRadStructAccessData& RadAccessData = *((srTSRWRadStructAccessData*)(hRadAccessData.ptr()));
 
-	float *pI = 0;
+	bool allStokesReq = (PolCom == -5); //OC18042020
+
+	float *pI = 0, *pI1 = 0, *pI2 = 0, *pI3 = 0; //OC17042020
+	double *pId = 0, *pI1d = 0, *pI2d = 0, *pI3d = 0;
+	long ne = RadAccessData.ne, nx = RadAccessData.nx, nz = RadAccessData.nz;
+	//float *pI = 0;
 	//DOUBLE *pId = 0;
-	double *pId = 0; //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
-	if(Int_or_ReE != 2) pI = RadExtract.pExtractedData;
-	else pId = RadExtract.pExtractedDataD;
+	//double *pId = 0; //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
+	long long nxnz = ((long long)nx)*((long long)nz);
+	if(Int_or_ReE != 2)
+	{
+		pI = RadExtract.pExtractedData;
+		if(allStokesReq) //OC17042020
+		{
+			pI1 = pI + nxnz; pI2 = pI1 + nxnz; pI3 = pI2 + nxnz;
+		}
+	}
+	else
+	{
+		pId = RadExtract.pExtractedDataD;
+		if(allStokesReq) //OC17042020
+		{
+			pI1d = pId + nxnz; pI2d = pI1d + nxnz; pI3d = pI2d + nxnz;
+		}
+	}
 
 	float *pEx0 = RadAccessData.pBaseRadX;
 	float *pEz0 = RadAccessData.pBaseRadZ;
 
 	//long PerX = RadAccessData.ne << 1;
 	//long PerZ = PerX*RadAccessData.nx;
-	long long PerX = RadAccessData.ne << 1;
-	long long PerZ = PerX*RadAccessData.nx;
+	//long long PerX = RadAccessData.ne << 1;
+	//long long PerZ = PerX*RadAccessData.nx;
+	long long PerX = ((long long)ne) << 1; //OC18042020
+	long long PerZ = PerX*nx;
 
 	//long ie0=0, ie1=0;
 	long long ie0=0, ie1=0; //OC26042019
 	double InvStepRelArg=0;
 	//SetupIntCoord('e', RadExtract.ePh, ie0, ie1, InvStepRelArg); //OC140813
-	bool intOverEnIsRequired = (RadExtract.Int_or_Phase == 7) && (RadAccessData.ne > 1); //OC140813
-	double *arAuxInt = 0, resInt;
+	//bool intOverEnIsRequired = (RadExtract.Int_or_Phase == 7) && (RadAccessData.ne > 1); //OC140813
+	bool intOverEnIsRequired = (RadExtract.Int_or_Phase == 7) && (ne > 1); //OC18042020
+	double *arAuxInt = 0, resInt, resInt1, resInt2, resInt3; //OC18042020
+	//double *arAuxInt = 0, resInt;
 	if(intOverEnIsRequired)
 	{
 		arAuxInt = new double[RadAccessData.ne];
@@ -505,8 +740,10 @@ int srTRadGenManip::ExtractSingleElecIntensity2DvsXZ(srTRadExtract& RadExtract)
 	long long Two_ie0 = ie0 << 1, Two_ie1 = ie1 << 1; //OC26042019
 	//long izPerZ = 0;
 	long long izPerZ = 0;
+	long ix, ie;
 
-	for(long long iz=0; iz<RadAccessData.nz; iz++) //OC26042019
+	for(long long iz=0; iz<nz; iz++) //OC18042020
+	//for(long long iz=0; iz<RadAccessData.nz; iz++) //OC26042019
 	//for(long iz=0; iz<RadAccessData.nz; iz++)
 	{
 		float *pEx_StartForX = pEx0 + izPerZ;
@@ -518,7 +755,8 @@ int srTRadGenManip::ExtractSingleElecIntensity2DvsXZ(srTRadExtract& RadExtract)
 		float *pEx_Fi = pEx_StartForX + Two_ie1;
 		float *pEz_Fi = pEz_StartForX + Two_ie1;
 
-		for(long ix=0; ix<RadAccessData.nx; ix++)
+		for(ix=0; ix<nx; ix++) //OC18042020
+		//for(long ix=0; ix<RadAccessData.nx; ix++)
 		{
 			//float *pEx_StartForE = pEx_StartForX + ixPerX;
 			//float *pEz_StartForE = pEz_StartForX + ixPerX;
@@ -534,18 +772,82 @@ int srTRadGenManip::ExtractSingleElecIntensity2DvsXZ(srTRadExtract& RadExtract)
 				double *tInt = arAuxInt; 
 				float *pEx_StAux = pEx_St;
 				float *pEz_StAux = pEz_St;
-				for(int ie=0; ie<RadAccessData.ne; ie++)
+
+				if(!allStokesReq) //OC17042020
 				{
-					*(tInt++) = IntensityComponent(pEx_StAux, pEz_StAux, PolCom, Int_or_ReE);
-					pEx_StAux += 2;
-					pEz_StAux += 2;
+					for(ie=0; ie<ne; ie++) //OC18042020
+					//for(int ie=0; ie<RadAccessData.ne; ie++)
+					{
+						*(tInt++) = IntensityComponent(pEx_StAux, pEz_StAux, PolCom, Int_or_ReE);
+						pEx_StAux += 2;
+						pEz_StAux += 2;
+					}
+					resInt = ConstPhotEnInteg*CGenMathMeth::Integ1D_FuncDefByArray(arAuxInt, ne, RadAccessData.eStep); //OC18042020
+					//resInt = ConstPhotEnInteg*CGenMathMeth::Integ1D_FuncDefByArray(arAuxInt, RadAccessData.ne, RadAccessData.eStep);
 				}
-				resInt = ConstPhotEnInteg*CGenMathMeth::Integ1D_FuncDefByArray(arAuxInt, RadAccessData.ne, RadAccessData.eStep);
+				else
+				{
+					for(ie=0; ie<ne; ie++)
+					{
+						*(tInt++) = IntensityComponent(pEx_StAux, pEz_StAux, -1, Int_or_ReE);
+						pEx_StAux += 2; pEz_StAux += 2;
+					}
+					resInt = ConstPhotEnInteg*CGenMathMeth::Integ1D_FuncDefByArray(arAuxInt, ne, RadAccessData.eStep);
+
+					tInt = arAuxInt; pEx_StAux = pEx_St; pEz_StAux = pEz_St;
+					for(ie=0; ie<ne; ie++)
+					{
+						*(tInt++) = IntensityComponent(pEx_StAux, pEz_StAux, -2, Int_or_ReE);
+						pEx_StAux += 2; pEz_StAux += 2;
+					}
+					resInt1 = ConstPhotEnInteg*CGenMathMeth::Integ1D_FuncDefByArray(arAuxInt, ne, RadAccessData.eStep);
+
+					tInt = arAuxInt; pEx_StAux = pEx_St; pEz_StAux = pEz_St;
+					for(ie=0; ie<ne; ie++)
+					{
+						*(tInt++) = IntensityComponent(pEx_StAux, pEz_StAux, -3, Int_or_ReE);
+						pEx_StAux += 2; pEz_StAux += 2;
+					}
+					resInt2 = ConstPhotEnInteg*CGenMathMeth::Integ1D_FuncDefByArray(arAuxInt, ne, RadAccessData.eStep);
+
+					tInt = arAuxInt; pEx_StAux = pEx_St; pEz_StAux = pEz_St;
+					for(ie=0; ie<ne; ie++)
+					{
+						*(tInt++) = IntensityComponent(pEx_StAux, pEz_StAux, -4, Int_or_ReE);
+						pEx_StAux += 2; pEz_StAux += 2;
+					}
+					resInt3 = ConstPhotEnInteg*CGenMathMeth::Integ1D_FuncDefByArray(arAuxInt, ne, RadAccessData.eStep);
+				}
 			}
-			else resInt = IntensityComponentSimpleInterpol(pEx_St, pEx_Fi, pEz_St, pEz_Fi, InvStepRelArg, PolCom, Int_or_ReE);
+			else
+			{
+				if(!allStokesReq) //OC18042020
+				{
+					resInt = IntensityComponentSimpleInterpol(pEx_St, pEx_Fi, pEz_St, pEz_Fi, InvStepRelArg, PolCom, Int_or_ReE);
+				}
+				else //OC18042020
+				{
+					resInt = IntensityComponentSimpleInterpol(pEx_St, pEx_Fi, pEz_St, pEz_Fi, InvStepRelArg, -1, Int_or_ReE);
+					resInt1 = IntensityComponentSimpleInterpol(pEx_St, pEx_Fi, pEz_St, pEz_Fi, InvStepRelArg, -2, Int_or_ReE);
+					resInt2 = IntensityComponentSimpleInterpol(pEx_St, pEx_Fi, pEz_St, pEz_Fi, InvStepRelArg, -3, Int_or_ReE);
+					resInt3 = IntensityComponentSimpleInterpol(pEx_St, pEx_Fi, pEz_St, pEz_Fi, InvStepRelArg, -4, Int_or_ReE);
+				}
+			}
 			//OC140813
 			if(pI != 0) *(pI++) = (float)resInt;
-			if(pId != 0) *(pId++) = (double)resInt;
+			if(pId != 0) *(pId++) = resInt; //OC18042020
+			//if(pId != 0) *(pId++) = (double)resInt;
+			if(allStokesReq) //OC18042020
+			{
+				if(RadExtract.pExtractedData != 0)
+				{
+					*(pI1++) = (float)resInt1; *(pI2++) = (float)resInt2; *(pI3++) = (float)resInt3;
+				}
+				else
+				{
+					*(pI1d++) = resInt1; *(pI2d++) = resInt2; *(pI3d++) = resInt3;
+				}
+			}
 
 			//ixPerX += PerX;
 			pEx_St += PerX;
@@ -568,14 +870,26 @@ int srTRadGenManip::ExtractSingleElecIntensity2DvsEX(srTRadExtract& RadExtract)
 
 	srTSRWRadStructAccessData& RadAccessData = *((srTSRWRadStructAccessData*)(hRadAccessData.ptr()));
 
+	bool allStokesReq = (PolCom == -5); //OC18042020
+
 	float *pI = RadExtract.pExtractedData;
+	float *pI1 = 0, *pI2 = 0, *pI3 = 0, *pI4 = 0; //OC18042020
+	long ne = RadAccessData.ne, nx = RadAccessData.nx;
+	if(allStokesReq)
+	{
+		long long nenx = ((long long)ne)*((long long)nx);
+		pI1 = pI + nenx; pI2 = pI1 + nenx; pI3 = pI2 + nenx;
+	}
+
 	float *pEx0 = RadAccessData.pBaseRadX;
 	float *pEz0 = RadAccessData.pBaseRadZ;
 
 	//long PerX = RadAccessData.ne << 1;
 	//long PerZ = PerX*RadAccessData.nx;
-	long long PerX = RadAccessData.ne << 1;
-	long long PerZ = PerX*RadAccessData.nx;
+	//long long PerX = RadAccessData.ne << 1;
+	//long long PerZ = PerX*RadAccessData.nx;
+	long long PerX = ((long long)ne) << 1; //OC18042020
+	long long PerZ = PerX*nx;
 
 	//long iz0=0, iz1=0;
 	long long iz0=0, iz1=0; //OC26042019
@@ -589,20 +903,32 @@ int srTRadGenManip::ExtractSingleElecIntensity2DvsEX(srTRadExtract& RadExtract)
 
 	//long ixPerX = 0;
 	long long ixPerX = 0;
+	long ie; //OC18042020
 
-	for(long ix=0; ix<RadAccessData.nx; ix++)
+	for(long ix=0; ix<nx; ix++) //OC18042020
+	//for(long ix=0; ix<RadAccessData.nx; ix++)
 	{
 		float *pEx_StartForE_iz0 = pEx_StartForX_iz0 + ixPerX, *pEx_StartForE_iz1 = pEx_StartForX_iz1 + ixPerX;
 		float *pEz_StartForE_iz0 = pEz_StartForX_iz0 + ixPerX, *pEz_StartForE_iz1 = pEz_StartForX_iz1 + ixPerX;
 		long iePerE = 0;
 
-		for(long ie=0; ie<RadAccessData.ne; ie++)
+		for(ie=0; ie<ne; ie++) //OC18042020
+		//for(long ie=0; ie<RadAccessData.ne; ie++)
 		{
 			float *pEx_St = pEx_StartForE_iz0 + iePerE, *pEx_Fi = pEx_StartForE_iz1 + iePerE;
 			float *pEz_St = pEz_StartForE_iz0 + iePerE, *pEz_Fi = pEz_StartForE_iz1 + iePerE;
 
-			*(pI++) = IntensityComponentSimpleInterpol(pEx_St, pEx_Fi, pEz_St, pEz_Fi, InvStepRelArg, PolCom, Int_or_ReE);
-
+			if(!allStokesReq) //OC18042020
+			{
+				*(pI++) = IntensityComponentSimpleInterpol(pEx_St, pEx_Fi, pEz_St, pEz_Fi, InvStepRelArg, PolCom, Int_or_ReE);
+			}
+			else //OC18042020
+			{
+				*(pI++) = IntensityComponentSimpleInterpol(pEx_St, pEx_Fi, pEz_St, pEz_Fi, InvStepRelArg, -1, Int_or_ReE);
+				*(pI1++) = IntensityComponentSimpleInterpol(pEx_St, pEx_Fi, pEz_St, pEz_Fi, InvStepRelArg, -2, Int_or_ReE);
+				*(pI2++) = IntensityComponentSimpleInterpol(pEx_St, pEx_Fi, pEz_St, pEz_Fi, InvStepRelArg, -3, Int_or_ReE);
+				*(pI3++) = IntensityComponentSimpleInterpol(pEx_St, pEx_Fi, pEz_St, pEz_Fi, InvStepRelArg, -4, Int_or_ReE);
+			}
 			iePerE += 2;
 		}
 		ixPerX += PerX;
@@ -619,14 +945,26 @@ int srTRadGenManip::ExtractSingleElecIntensity2DvsEZ(srTRadExtract& RadExtract)
 
 	srTSRWRadStructAccessData& RadAccessData = *((srTSRWRadStructAccessData*)(hRadAccessData.ptr()));
 
+	bool allStokesReq = (PolCom == -5); //OC18042020
+
 	float *pI = RadExtract.pExtractedData;
+	float *pI1 = 0, *pI2 = 0, *pI3 = 0, *pI4 = 0; //OC18042020
+	long ne = RadAccessData.ne, nx = RadAccessData.nx, nz = RadAccessData.nz;
+	if(allStokesReq)
+	{
+		long long nenz = ((long long)ne)*((long long)nz);
+		pI1 = pI + nenz; pI2 = pI1 + nenz; pI3 = pI2 + nenz;
+	}
+
 	float *pEx0 = RadAccessData.pBaseRadX;
 	float *pEz0 = RadAccessData.pBaseRadZ;
 
 	//long PerX = RadAccessData.ne << 1;
 	//long PerZ = PerX*RadAccessData.nx;
-	long long PerX = RadAccessData.ne << 1;
-	long long PerZ = PerX*RadAccessData.nx;
+	//long long PerX = RadAccessData.ne << 1;
+	//long long PerZ = PerX*RadAccessData.nx;
+	long long PerX = ((long long)ne) << 1; //OC18042020
+	long long PerZ = PerX*nx;
 
 	//long ix0=0, ix1=0;
 	long long ix0=0, ix1=0; //OC26042019
@@ -637,8 +975,10 @@ int srTRadGenManip::ExtractSingleElecIntensity2DvsEZ(srTRadExtract& RadExtract)
 	//long izPerZ = 0;
 	long long ix0PerX = ix0*PerX, ix1PerX = ix1*PerX;
 	long long izPerZ = 0;
+	long ie;
 
-	for(long iz=0; iz<RadAccessData.nz; iz++)
+	for(long iz=0; iz<nz; iz++) //OC18042020
+	//for(long iz=0; iz<RadAccessData.nz; iz++)
 	{
 		float *pEx_StartForX = pEx0 + izPerZ;
 		float *pEz_StartForX = pEz0 + izPerZ;
@@ -647,12 +987,23 @@ int srTRadGenManip::ExtractSingleElecIntensity2DvsEZ(srTRadExtract& RadExtract)
 		float *pEz_StartForE_ix0 = pEz_StartForX + ix0PerX, *pEz_StartForE_ix1 = pEz_StartForX + ix1PerX;
 		long iePerE = 0;
 
-		for(long ie=0; ie<RadAccessData.ne; ie++)
+		for(ie=0; ie<ne; ie++) //OC18042020
+		//for(long ie=0; ie<RadAccessData.ne; ie++)
 		{
 			float *pEx_St = pEx_StartForE_ix0 + iePerE, *pEx_Fi = pEx_StartForE_ix1 + iePerE;
 			float *pEz_St = pEz_StartForE_ix0 + iePerE, *pEz_Fi = pEz_StartForE_ix1 + iePerE;
 
-			*(pI++) = IntensityComponentSimpleInterpol(pEx_St, pEx_Fi, pEz_St, pEz_Fi, InvStepRelArg, PolCom, Int_or_ReE);
+			if(!allStokesReq) //OC18042020
+			{
+				*(pI++) = IntensityComponentSimpleInterpol(pEx_St, pEx_Fi, pEz_St, pEz_Fi, InvStepRelArg, PolCom, Int_or_ReE);
+			}
+			else //OC18042020
+			{
+				*(pI++) = IntensityComponentSimpleInterpol(pEx_St, pEx_Fi, pEz_St, pEz_Fi, InvStepRelArg, -1, Int_or_ReE);
+				*(pI1++) = IntensityComponentSimpleInterpol(pEx_St, pEx_Fi, pEz_St, pEz_Fi, InvStepRelArg, -2, Int_or_ReE);
+				*(pI2++) = IntensityComponentSimpleInterpol(pEx_St, pEx_Fi, pEz_St, pEz_Fi, InvStepRelArg, -3, Int_or_ReE);
+				*(pI3++) = IntensityComponentSimpleInterpol(pEx_St, pEx_Fi, pEz_St, pEz_Fi, InvStepRelArg, -4, Int_or_ReE);
+			}
 			iePerE += 2;
 		}
 		izPerZ += PerZ;
@@ -669,37 +1020,61 @@ int srTRadGenManip::ExtractSingleElecIntensity3D(srTRadExtract& RadExtract)
 
 	srTSRWRadStructAccessData& RadAccessData = *((srTSRWRadStructAccessData*)(hRadAccessData.ptr()));
 
+	bool allStokesReq = (PolCom == -5); //OC17042020
+
 	float *pI = RadExtract.pExtractedData;
+	float *pI1 = 0, *pI2 = 0, *pI3 = 0, *pI4 = 0; //OC17042020
+	long ne = RadAccessData.ne, nx = RadAccessData.nx, nz = RadAccessData.nz;
+	if(allStokesReq)
+	{
+		long long nTot = ((long long)ne)*((long long)nx)*((long long)nz);
+		pI1 = pI + nTot; pI2 = pI1 + nTot; pI3 = pI2 + nTot;
+	}
+
 	float *pEx0 = RadAccessData.pBaseRadX;
 	float *pEz0 = RadAccessData.pBaseRadZ;
 
 	//long PerX = RadAccessData.ne << 1;
 	//long PerZ = PerX*RadAccessData.nx;
 	//long izPerZ = 0;
-	long long PerX = RadAccessData.ne << 1;
-	long long PerZ = PerX*RadAccessData.nx;
+	//long long PerX = RadAccessData.ne << 1;
+	//long long PerZ = PerX*RadAccessData.nx;
+	long long PerX = ((long long)ne) << 1; //OC17042020
+	long long PerZ = PerX*nx;
 	long long izPerZ = 0;
 
-	for(long iz=0; iz<RadAccessData.nz; iz++)
+	for(long iz=0; iz<nz; iz++) //OC17042020
+	//for(long iz=0; iz<RadAccessData.nz; iz++)
 	{
 		float *pEx_StartForX = pEx0 + izPerZ;
 		float *pEz_StartForX = pEz0 + izPerZ;
 		//long ixPerX = 0;
 		long long ixPerX = 0;
 
-		for(long ix=0; ix<RadAccessData.nx; ix++)
+		for(long ix=0; ix<nx; ix++) //OC17042020
+		//for(long ix=0; ix<RadAccessData.nx; ix++)
 		{
 			float *pEx_StartForE = pEx_StartForX + ixPerX;
 			float *pEz_StartForE = pEz_StartForX + ixPerX;
 			long iePerE = 0;
 
-			for(long ie=0; ie<RadAccessData.ne; ie++)
+			for(long ie=0; ie<ne; ie++) //OC17042020
+			//for(long ie=0; ie<RadAccessData.ne; ie++)
 			{
 				float* pEx = pEx_StartForE + iePerE;
 				float* pEz = pEz_StartForE + iePerE;
 
-				*(pI++) = IntensityComponent(pEx, pEz, PolCom, Int_or_ReE);
-
+				if(!allStokesReq) //OC16042020
+				{
+					*(pI++) = IntensityComponent(pEx, pEz, PolCom, Int_or_ReE);
+				}
+				else //OC16042020
+				{
+					*(pI++) = IntensityComponent(pEx, pEz, -1, Int_or_ReE);
+					*(pI1++) = IntensityComponent(pEx, pEz, -2, Int_or_ReE);
+					*(pI2++) = IntensityComponent(pEx, pEz, -3, Int_or_ReE);
+					*(pI3++) = IntensityComponent(pEx, pEz, -3, Int_or_ReE);
+				}
 				iePerE += 2; 
 			}
 			ixPerX += PerX; 

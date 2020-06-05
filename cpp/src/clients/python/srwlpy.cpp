@@ -104,6 +104,7 @@ static const char strEr_BadArg_UtiUndFromMagFldTab[] = "Incorrect arguments for 
 static const char strEr_BadArg_UtiUndFindMagFldInterpInds[] = "Incorrect arguments for magnetic field interpolaton index search function";
 static const char strEr_BadArg_UtiIntInf[] = "Incorrect arguments for function analyzing intensity distributions";
 static const char strEr_BadArg_UtiIntProc[] = "Incorrect arguments for function performing misc. operations on intensity distributions";
+static const char strEr_BadArg_UtiVer[] = "Incorrect arguments for function returning SRW version number";
 
 /************************************************************************//**
  * Global objects to be used across different function calls
@@ -443,8 +444,10 @@ void CopyPyClassNameToC(PyObject* pObj, char* c_str, int maxLenStr)
 		{
 			if(strcmp(sTypeName, "instance") != 0)
 			{
-				int len = (int)strlen(sTypeName);
-				if(len > maxLenStr) len = maxLenStr;
+				size_t len = strlen(sTypeName); //OC14052020
+				//int len = (int)strlen(sTypeName);
+				//if(len > maxLenStr) len = maxLenStr;
+				if(len > (size_t)maxLenStr) len = maxLenStr; //OC14052020
 				strncpy(c_str, sTypeName, len);
 				c_str[len] = '\0';
 				return;
@@ -5208,6 +5211,31 @@ static PyObject* srwlpy_UtiUndFindMagFldInterpInds(PyObject *self, PyObject *arg
 }
 
 /************************************************************************//**
+ * Returns version number / ID of SRW for Python
+ ***************************************************************************/
+static PyObject* srwlpy_UtiVer(PyObject *self, PyObject *args)
+{
+	PyObject *oResVer=0;
+	try
+	{
+		int iCode = 1;
+		if(!PyArg_ParseTuple(args, "|i:UtiVer", &iCode)) throw strEr_BadArg_UtiVer;
+
+		char sVer[256];
+		ProcRes(srwlUtiVerNo(sVer, iCode));
+
+		oResVer = Py_BuildValue("s", sVer);
+		Py_XINCREF(oResVer); //?
+	}
+	catch(const char* erText)
+	{
+		PyErr_SetString(PyExc_RuntimeError, erText);
+		//PyErr_PrintEx(1);
+	}
+	return oResVer;
+}
+
+/************************************************************************//**
  * Python C API stuff: module & method definition2, etc.
  ***************************************************************************/
 
@@ -5250,6 +5278,7 @@ static PyMethodDef srwlpy_methods[] = {
 	{"UtiIntProc", srwlpy_UtiIntProc, METH_VARARGS, "UtiIntProc() Performs misc. operations on one or two intensity distributions"},
 	{"UtiUndFromMagFldTab", srwlpy_UtiUndFromMagFldTab, METH_VARARGS, "UtiUndFromMagFldTab() Attempts to create periodic undulator structure from tabulated magnetic field"},
 	{"UtiUndFindMagFldInterpInds", srwlpy_UtiUndFindMagFldInterpInds, METH_VARARGS, "UtiUndFindMagFldInterpInds() Finds indexes of undulator gap and phase values and associated magnetic fields requiired to be used in field interpolation based on gap and phase"},
+	{"UtiVer", srwlpy_UtiVer, METH_VARARGS, "UtiVerNo() Returns version number / ID of SRW for Python"},
 	{NULL, NULL}
 };
 

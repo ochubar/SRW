@@ -61,6 +61,7 @@ More specifically, to rebuild "SRW_MAC64.xop" on Mac OSX, install (when necessar
 6. Find the file "SRW Macro Help.ifn" inside the "SRW:SRW Help" folder. Make a shortcut to this file and move the shortcut in "Igor Pro Folder:Igor Help Files".
 
 7. Start Igor Pro. At the first start after the SRW installation, Igor may show a dialog box suggesting to compile the help file "SRW Macro Help.ifn". Choose to compile it. Finally, you should obtain inside Igor new menu item(s) named "SRW...".
+NOTE: Mac users may not be able to start Igor Pro with SRW (in particular the XOP module SRW_MAC64.xop) installed from the first attempt because of Security / Protection reinforced by Apple in recent versions of macOS. One may be able to walk this around after the initial bad start of Igor by doing the following. In the Apple menu, sub-menu "System Preferences", in "Security & Privacy" group, in its "General" tab, click on "Allow Anyway" to the right from the text: "SRW_MAC64 was blocked from use because it is not from an identified developer". After this, start again Igor; the process may be again interrupted by another macOS dialog with the text: "macOS cannot verify the developer of "SRW_MAC64". Are you sure you want to open it?". In that dialog, click on "Open" - this should enable start of Igor and initialization of SRW in it. These confirmations have to be only once (subsequent (re-)starts of Igor should go smoothly).
 
 ====================================
 GETTING STARTED

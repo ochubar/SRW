@@ -89,6 +89,7 @@ public:
 	int ErrorCode;
 
 	static int SetupOpticalElement(srTStringVect*, srTDataMD*, srTSRWRadStructAccessData*, srTGenOptElemHndl&);
+	static int ExtraDataExpected(const char* sElemID); //OC01062020
 
 	srTGenOptElem() 
 	{

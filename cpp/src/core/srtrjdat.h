@@ -805,6 +805,7 @@ inline int srTTrjDat::EvaluateMemAvailBeforeTrjComp()
 	else return 0;
 #endif
 
+	return 0; //OC14052020
 }
 
 //*************************************************************************

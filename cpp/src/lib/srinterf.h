@@ -187,9 +187,14 @@ struct srTDataMD {
 	double DimStartValues[11];
 	double DimSteps[11];
 	char DimScales[11][4]; //OC040912
-	char DimUnits[11][255];
-	char DataUnits[255];
-	char DataName[255];
+	//char DimUnits[11][255];
+	//char DataUnits[255];
+	//char DataName[255];
+	//OC01062020
+	char DimUnits[11][256];
+	char DataUnits[256];
+	char DataName[256];
+
 	int hState; //auxiliary
 };
 

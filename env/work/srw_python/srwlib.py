@@ -21,7 +21,6 @@ import shutil
 import time
 
 from srwl_uti_cryst import *
-import uti_math
 
 #try:
 #    from uti_plot import * #universal simple plotting module distributed together with SRWLib
@@ -1064,16 +1063,22 @@ class SRWLStokes(object):
         eNpWfr = _more_stokes.mesh.ne
         xStartWfr = _more_stokes.mesh.xStart
         xNpWfr = _more_stokes.mesh.nx
+        #DEBUG
+        #print('xNpWfr=', xNpWfr)
+        #print('_more_stokes.mesh.xFin=', _more_stokes.mesh.xFin)
+        #print('xStartWfr=', xStartWfr)
+
         xStepWfr = 0
-        if(xNpWfr  > 1):
+        if(xNpWfr > 1):
             xStepWfr = (_more_stokes.mesh.xFin - xStartWfr)/(xNpWfr - 1)
         yStartWfr = _more_stokes.mesh.yStart
         yNpWfr = _more_stokes.mesh.ny
         yStepWfr = 0
-        if(yNpWfr  > 1):
+        if(yNpWfr > 1):
             yStepWfr = (_more_stokes.mesh.yFin - yStartWfr)/(yNpWfr - 1)
         #DEBUG
         #print('avg_update_interp: iter=', _iter)
+        #print('xStepWfr = ', xStepWfr)
         #END DEBUG
 
         nRadWfr = eNpWfr*xNpWfr*yNpWfr
@@ -2288,7 +2293,8 @@ class SRWLWfr(object):
     #        #END DEBUG
     #        srwl.ResizeElecField(self, 'c', [0, xRangeFact, xResolFact, yRangeFact, yResolFact, xCenFact, yCenFact])
     
-    def calc_stokes(self, _stokes, _n_stokes_comp=4): #OC04052018
+    def calc_stokes(self, _stokes, _n_stokes_comp=4, _rx_avg=0, _ry_avg=0, _xc_avg=0, _yc_avg=0): #OC21052020
+    #def calc_stokes(self, _stokes, _n_stokes_comp=4): #OC04052018
     #def calc_stokes(self, _stokes):
         """Calculate Stokes parameters from Electric Field"""
         if(_stokes.mutual <= 0):
@@ -2405,6 +2411,12 @@ class SRWLWfr(object):
                 iy1_perY = iyWfr1*perY
                 iy_perYr = iy*perYr
 
+                #OC21052020
+                y_mi_ycE2_d_Ry = 0
+                if(_ry_avg != 0):
+                    y_mi_yc = yRes - _yc_avg
+                    y_mi_ycE2_d_Ry = y_mi_yc*y_mi_yc/_ry_avg
+
                 xRes = xStartRes
                 for ix in range(xNpRes):
                     ixWfr0 = 0
@@ -2422,7 +2434,15 @@ class SRWLWfr(object):
                     ix0_perX = ixWfr0*perX
                     ix1_perX = ixWfr1*perX
                     ix_perXr = ix*perXr
-                    
+
+                    #OC21052020
+                    x_mi_xcE2_d_Rx = 0
+                    if(_rx_avg != 0):
+                        x_mi_xc = xRes - _xc_avg
+                        x_mi_xcE2_d_Rx = x_mi_xc*x_mi_xc/_rx_avg
+
+                    quadTermBare = x_mi_xcE2_d_Rx + y_mi_ycE2_d_Ry #OC21052020
+     
                     eRes = eStartRes
                     for ie in range(eNpRes):
                         ieWfr0 = 0
@@ -2442,6 +2462,7 @@ class SRWLWfr(object):
                         ie_perE = ie*perE
 
                         ofstR = ie_perE + ix_perXr + iy_perYr
+                        ofstR_p_1 = ofstR + 1 #OC21052020
                                 
                         ofst000 = ie0_perE + ix0_perX + iy0_perY
                         ofst100 = ie1_perE + ix0_perX + iy0_perY
@@ -2486,7 +2507,8 @@ class SRWLWfr(object):
                         a011 = a000 - f001 - f010 + f011
                         a111 = f001 + f010 - f011 + f100 - f101 - f110 + f111 - a000
                         #auxArEx[ir + 1] = a000 + (a100 + (a110 + a111*ty)*tx + a101*ty)*te + (a010 + a011*ty)*tx + a001*ty
-                        auxArEx[ofstR + 1] = a000 + (a100 + (a110 + a111*ty)*tx + a101*ty)*te + (a010 + a011*ty)*tx + a001*ty
+                        #auxArEx[ofstR + 1] = a000 + (a100 + (a110 + a111*ty)*tx + a101*ty)*te + (a010 + a011*ty)*tx + a001*ty
+                        auxArEx[ofstR_p_1] = a000 + (a100 + (a110 + a111*ty)*tx + a101*ty)*te + (a010 + a011*ty)*tx + a001*ty #OC21052020
 
                         a000 = self.arEy[ofst000]
                         f100 = self.arEy[ofst100]
@@ -2522,8 +2544,24 @@ class SRWLWfr(object):
                         a011 = a000 - f001 - f010 + f011
                         a111 = f001 + f010 - f011 + f100 - f101 - f110 + f111 - a000
                         #auxArEy[ir + 1] = a000 + (a100 + (a110 + a111*ty)*tx + a101*ty)*te + (a010 + a011*ty)*tx + a001*ty
-                        auxArEy[ofstR + 1] = a000 + (a100 + (a110 + a111*ty)*tx + a101*ty)*te + (a010 + a011*ty)*tx + a001*ty
-                        
+                        #auxArEy[ofstR + 1] = a000 + (a100 + (a110 + a111*ty)*tx + a101*ty)*te + (a010 + a011*ty)*tx + a001*ty
+                        auxArEy[ofstR_p_1] = a000 + (a100 + (a110 + a111*ty)*tx + a101*ty)*te + (a010 + a011*ty)*tx + a001*ty #OC21052020
+
+                        #OC21052020
+                        if(quadTermBare != 0): #Removing the Quadratic Phase Term if _rx_avg != 0 or _ry_avg != 0
+                            #pi_d_lamb = eRes*2.53384080189e+06
+                            quadPhTerm = -eRes*2.53384080189e+06*quadTermBare
+                            cosPhTerm = cos(quadPhTerm)
+                            sinPhTerm = sin(quadPhTerm)
+                            reEx = auxArEx[ofstR]
+                            imEx = auxArEx[ofstR_p_1]
+                            auxArEx[ofstR] = reEx*cosPhTerm - imEx*sinPhTerm
+                            auxArEx[ofstR_p_1] = imEx*cosPhTerm + reEx*sinPhTerm
+                            reEy = auxArEy[ofstR]
+                            imEy = auxArEy[ofstR_p_1]
+                            auxArEy[ofstR] = reEy*cosPhTerm - imEy*sinPhTerm
+                            auxArEy[ofstR_p_1] = imEy*cosPhTerm + reEy*sinPhTerm
+
                         #ir += 2
                         eRes += eStepRes
                     xRes += xStepRes
@@ -2537,6 +2575,7 @@ class SRWLWfr(object):
             perX = perE*eNpRes
             perY = perX*xNpRes
             ir = 0
+
             for iy in range(yNpRes):
                 iy_perY = iy*perY
                 for iyp in range(yNpRes):
@@ -2604,6 +2643,46 @@ class SRWLOpt(object):
         tv = [1,0,0]; sv = [0,1,0]; nv = [0,0,1]
         ex = [1,0,0]; ey = [0,1,0]; ez = [0,0,1]
         return [[tv, sv, nv], [ex, ey, ez], [ex, ey, ez]] #[2] is transposed of [ex, ey, ez], to be used for fast space transformation calc.
+
+    def set_rand_par(self, _rand_par): #OC23042020
+        """Sets list of params to be eventually randomized in some types of calculations
+        :param _rand_par: list of params to be randomized; each element of this list should be: ['param_name', val_avg, val_gange, meth]
+        """
+        #Add checking / parsing _rand_par content here?
+        self.RandParam = _rand_par
+
+    def randomize(self): #OC23042020
+        """Randomizes parameters of optical element according to self.RandParam to simulate e.g. impact of vibrations on coherence (in P-C calculations)
+        """
+        if(not hasattr(self, 'RandParam')): return
+        if(self.RandParam is None): return
+        nPar = len(self.RandParam)
+        if(nPar == 0): return
+        if(not isinstance(self.RandParam, list)): return
+
+        randMeth = 'uni' #uniform distribution by default
+
+        for i in range(nPar):
+            curParData = self.RandParam[i]
+            if(not isinstance(curParData, list)): continue
+            lenCurParData = len(curParData)
+            if(lenCurParData < 2): continue
+            curParName = curParData[0]
+            if(not hasattr(self, curParName)): continue
+
+            newVal = curParData[1]
+            if(lenCurParData > 2):
+                randRange = curParData[2]
+                if(lenCurParData > 3):
+                    randMeth = curParData[3]
+                    randMeth = randMeth.lower()
+                if(randMeth == 'uni'):
+                    randAmp = 0.5*randRange
+                    newVal += random.uniform(-randAmp, randAmp)
+                elif(randMeth == 'gsn'):
+                    randRMS = randRange/2.354820045
+                    newVal += random.gauss(0, randRMS)
+            setattr(self, curParName, newVal)
 
 class SRWLOptD(SRWLOpt):
     """Optical Element: Drift Space"""
@@ -2880,6 +2959,53 @@ class SRWLOptT(SRWLOpt):
         del arAux
         #print(len(arOut))
         return arOut
+
+    def randomize(self): #OC28042020 (overwriting base-class function)
+        """Randomizes parameters of optical element according to self.RandParam to simulate e.g. impact of vibrations on coherence (in P-C calculations)
+        """
+        if(not hasattr(self, 'RandParam')): return
+        if(self.RandParam is None): return
+        nPar = len(self.RandParam)
+        if(nPar == 0): return
+        if(not isinstance(self.RandParam, list)): return
+
+        randMeth = 'uni' #uniform distribution by default
+
+        for i in range(nPar):
+            curParData = self.RandParam[i]
+            if(not isinstance(curParData, list)): continue
+            lenCurParData = len(curParData)
+            if(lenCurParData < 2): continue
+            curParName = curParData[0]
+
+            if((curParName == 'x') or (curParName == 'y')):
+            #if(not hasattr(self, curParName)): continue
+                newVal = curParData[1]
+                if(lenCurParData > 2):
+                    randRange = curParData[2]
+                    if(lenCurParData > 3):
+                        randMeth = curParData[3]
+                        randMeth = randMeth.lower()
+                    if(randMeth == 'uni'):
+                        randAmp = 0.5*randRange
+                        newVal += random.uniform(-randAmp, randAmp)
+                    elif(randMeth == 'gsn'):
+                        randRMS = randRange/2.354820045
+                        newVal += random.gauss(0, randRMS)
+
+                #setattr(self, curParName, newVal)
+                if(curParName == 'x'):
+                    xHalfRange = 0.5*(self.mesh.xFin - self.mesh.xStart)
+                    self.mesh.xStart = newVal - xHalfRange
+                    self.mesh.xFin = newVal + xHalfRange
+                elif(curParName == 'y'):
+                    yHalfRange = 0.5*(self.mesh.yFin - self.mesh.yStart)
+                    self.mesh.yStart = newVal - yHalfRange
+                    self.mesh.yFin = newVal + yHalfRange
+                elif(curParName == 'e'):
+                    eHalfRange = 0.5*(self.mesh.eFin - self.mesh.eStart)
+                    self.mesh.eStart = newVal - eHalfRange
+                    self.mesh.eFin = newVal + eHalfRange
 
 class SRWLOptMir(SRWLOpt):
     """Optical Element: Mirror (focusing)"""
@@ -3645,7 +3771,8 @@ class SRWLOptCryst(SRWLOpt):
                     _m[2][0]*_v[0] + _m[2][1]*_v[1] + _m[2][2]*_v[2]]
         
         def normV(_a):
-            return sqrt(sum(n**2 for n in _a))
+            return sqrt(sum(n*n for n in _a)) #OC24052020
+            #return sqrt(sum(n**2 for n in _a))
 
         #dSi = 5.43096890 # Si lattice constant (A)
         eV2wA = 12398.4193009 # energy to wavelength conversion factor 12398.41930092394
@@ -3977,6 +4104,16 @@ class SRWLOptC(SRWLOpt):
                 #print('norm_ex=', uti_math.vect_norm(bmFrTrfMatr[0]), 'norm_ey=', uti_math.vect_norm(bmFrTrfMatr[1]), 'norm_ez=', uti_math.vect_norm(bmFrTrfMatr[2]))
 
         return resData
+
+    def randomize(self):
+        """Overrides SRWLOpt.randomize(); randomizes parameters of optical elements in the container
+        """
+        if(not hasattr(self, 'arOpt')): return
+        if(self.arOpt is None): return
+        if(not isinstance(self.arOpt, list)): return
+        lenArOpt = len(self.arOpt)
+        if(lenArOpt <= 0): return
+        for i in range(lenArOpt): self.arOpt[i].randomize()
 
 #****************************************************************************
 #****************************************************************************
@@ -5961,8 +6098,12 @@ class SRWLDet(object):
                 nTot = meshIn.ne*meshIn.nx*meshIn.ny
                 arI = array('f', [0]*nTot)
                 for i in range(nTot): arI[i] = _stk[i]
-                
+
+            #DEBUG
+            #print('treat_int: meshIn.xStart=', meshIn.xStart, ' meshIn.xFin=', meshIn.xFin)
+            
             sktIn = SRWLStokes(arI, 'f', meshIn.eStart, meshIn.eFin, meshIn.ne, meshIn.xStart, meshIn.xFin, meshIn.nx, meshIn.yStart, meshIn.yFin, meshIn.ny)
+            
         else: 
             if(not isinstance(_stk, SRWLStokes)): raise Exception('An object of SRWLStokes class is expected')
             meshIn = _stk.mesh
@@ -6248,12 +6389,197 @@ def srwl_uti_read_intens_ascii(_file_path, _num_type='f'):
     f.close()
     return array(_num_type, arInt), resMesh
 
+#**********************Auxiliary function to write tabulated resulting Intensity data to an HDF5 file:
+def srwl_uti_save_intens_hdf5(_ar_intens, _mesh, _file_path, _n_stokes=1,
+                              _arLabels=['Photon Energy', 'Horizontal Position', 'Vertical Position', 'Intensity'],
+                              _arUnits=['eV', 'm', 'm', 'ph/s/.1%bw/mm^2'], _mutual=0, _cmplx=0): #RAC30032020
+    #To review!
+    ### Load package Numpy
+    try:
+        import numpy as np
+    except:
+        raise Exception('NumPy can not be loaded. You may need to install numpy. If you are using pip, you can use the following command to install it: \npip install numpy')
+        #print('NumPy can not be loaded. You may need to install numpy. If you are using pip, you can use the following ' + 
+        #      "command to install it: \npip install numpy")
+        
+    ### Load package h5py
+    try:
+        import h5py as h5
+    except:
+        raise Exception('h5py can not be loaded. You may need to install h5py. If you are using pip, you can use the following command to install it: \npip install h5py')
+        #print('h5py can not be loaded. You may need to install h5py. If you are using pip, you can use the following ' + 
+        #      "command to install it: \npip install h5py")
+
+    ### Begin time record of creating and placing objects
+    #t0 = time.time();
+    
+    #Get argument Lables
+    arLabelUnit = [_arLabels[i] + ' [' + _arUnits[i] + ']' for i in range(4)]
+    arLabelUnit_ascii = [xx.encode("ascii", "ignore") for xx in arLabelUnit] #convert from U19 to ascii for h5py
+    arLabels_ascii = [xx.encode("ascii", "ignore") for xx in _arLabels] #convert from U19 to ascii for h5py
+    sUnitEnt = arLabelUnit[3]
+
+    if(_mutual != 0):
+        sUnitEntParts = ['']
+        if((sUnitEnt is not None) and (len(sUnitEnt) > 0)): sUnitEntParts = sUnitEnt.split(' ')
+        sUnitEntTest = sUnitEnt
+        if(len(sUnitEntParts) > 0): sUnitEntTest = sUnitEntParts[0]
+        sUnitEntTest = sUnitEntTest.replace(' ', '')
+        if(sUnitEntTest.lower != 'mutual'):
+            sPrefix = 'Mutual' #this prefix is a switch meaning eventual special processing in viewing utilities
+            if(_cmplx != 0): sPrefix = 'Complex Mutual'
+            if(sUnitEnt.startswith(' ') == False): sPrefix += ' '
+            sUnitEnt = sPrefix + sUnitEnt
+
+    #Create intensity data set as numpy array
+    nComp = 1
+    if _n_stokes > 0:
+        nComp = _n_stokes
+    nRadPt = _mesh.ne*_mesh.nx*_mesh.ny
+    if(_mutual > 0): nRadPt *= nRadPt
+    nVal = nRadPt*nComp #_mesh.ne*_mesh.nx*_mesh.ny*nComp
+    if(_cmplx != 0): nVal *= 2
+    intensity_data = np.array([_ar_intens[ii] for ii in range(nVal)])
+
+    #Write file header and data set (compound datatype) as hdf5
+    with h5.File(_file_path, 'w') as hf:
+        #params 
+        hf.create_dataset('eStart', data=_mesh.eStart)
+        hf.create_dataset('eFin', data=_mesh.eFin)
+        hf.create_dataset('ne', data=_mesh.ne)
+        hf.create_dataset('xStart', data=_mesh.xStart)
+        hf.create_dataset('xFin', data=_mesh.xFin)   
+        hf.create_dataset('nx', data=_mesh.nx)
+        hf.create_dataset('yStart', data=_mesh.yStart)
+        hf.create_dataset('yFin', data=_mesh.yFin)
+        hf.create_dataset('ny', data=_mesh.ny)
+        hf.create_dataset('n_stokes', data=_n_stokes)
+        hf.create_dataset('mutual', data=_mutual)
+        hf.create_dataset('cmplx', data=_cmplx)        
+        #labels
+        hf.create_dataset('arLabels', data=arLabels_ascii)
+        hf.create_dataset('arLabelUnit', data=arLabelUnit_ascii)
+        hf.create_dataset('sUnitEnt', data=sUnitEnt) 
+        #intensity
+        hf.create_dataset('intensity_data', data=intensity_data)
+    hf.close()
+    #Print competed time
+    #print('HDF5 completed (lasted', round(time.time() - t0, 6), 's)')
+
+#**********************Auxiliary function to read-in intensity data from an hdf5 file (format is defined in srwl_uti_save_intens_hdf5)
+def srwl_uti_read_intens_hdf5(_file_path, _num_type='f'): #RAC30032020
+    #To review!
+    ### Load package Numpy
+    try:
+        import numpy as np
+    except:
+        raise Exception('NumPy can not be loaded. You may need to install numpy. If you are using pip, you can use the following command to install it: \npip install numpy')
+        #print('NumPy can not be loaded. You may need to install numpy. If you are using pip, you can use the following ' + 
+        #      "command to install it: \npip install numpy")
+    ### Load package h5py
+    try:
+        import h5py as h5
+    except:
+        raise Exception('h5py can not be loaded. You may need to install h5py. If you are using pip, you can use the following command to install it: \npip install h5py')
+        #print('h5py can not be loaded. You may need to install h5py. If you are using pip, you can use the following ' + 
+        #      "command to install it: \npip install h5py")
+
+    hf = h5.File(_file_path, 'r')
+    resMesh = SRWLRadMesh()
+
+    #Get params from hdf5 data sets
+    resMesh.eStart = float(hf.get('eStart'))
+    resMesh.eFin = float(hf.get('eFin'))
+    resMesh.ne = int(hf.get('ne'))
+    resMesh.xStart = float(hf.get('xStart'))  
+    resMesh.xFin = float(hf.get('xFin'))
+    resMesh.nx = int(hf.get('nx'))
+    resMesh.yStart = float(hf.get('yStart'))
+    resMesh.yFin = float(hf.get('yFin'))
+    resMesh.ny = int(hf.get('ny'))
+
+    #Get intensity data from hdf5 data set
+    arInt = np.array(hf.get('intensity_data'), dtype=_num_type)
+
+    return arInt, resMesh
+
+#**********************Auxiliary function to convert an hdf5 file to an ASCII file
+def srwl_uti_convert_intens_hdf5_to_ascii(_file_path): #RAC30032020
+    #To review!
+    ### Load package Numpy
+    try:
+        import numpy as np
+    except:
+        raise Exception('NumPy can not be loaded. You may need to install numpy. If you are using pip, you can use the following command to install it: \npip install numpy')
+        #print('NumPy can not be loaded. You may need to install numpy. If you are using pip, you can use the following ' + 
+        #      "command to install it: \npip install numpy")
+        
+    ### Load package h5py
+    try:
+        import h5py as h5
+    except:
+        raise Exception('h5py can not be loaded. You may need to install h5py. If you are using pip, you can use the following command to install it: \npip install h5py')
+        #print('h5py can not be loaded. You may need to install h5py. If you are using pip, you can use the following ' + 
+        #      "command to install it: \npip install h5py")
+    
+    hf = h5.File(_file_path, 'r')
+    
+    #Get params from hdf5 data sets
+    eStart = float(hf.get('eStart'))
+    eFin = float(hf.get('eFin'))
+    ne = int(hf.get('ne'))
+    xStart = float(hf.get('xStart'))  
+    xFin = float(hf.get('xFin'))
+    nx = int(hf.get('nx'))
+    yStart = float(hf.get('yStart'))
+    yFin = float(hf.get('yFin'))
+    ny = int(hf.get('ny'))
+    n_stokes = int(hf.get('n_stokes'))
+    mutual = int(hf.get('mutual'))
+    cmplx = int(hf.get('cmplx'))
+    
+    #Get labels
+    arLabels = hf.get('arLabels')
+    arLabelUnit = hf.get('arLabelUnit')
+    sUnitEnt = hf.get('sUnitEnt')
+    
+    #Convert intensity data from hdf5 data set to numpy array
+    intensity_data = hf.get('intensity_data').value #intensity_data is now an ndarray.
+    
+    #Create ascii file
+    f = open(_file_path + '-ascii.dat', 'w')
+    
+    f.write('#' + sUnitEnt + ' (C-aligned, inner loop is vs ' + arLabels[0] + ', outer loop vs ' + arLabels[2] + ')\n')
+    f.write('#' + repr(eStart) + ' #Initial ' + arLabelUnit[0] + '\n')
+    f.write('#' + repr(eFin) + ' #Final ' + arLabelUnit[0] + '\n')
+    f.write('#' + repr(ne) + ' #Number of points vs ' + arLabels[0] + '\n')
+    f.write('#' + repr(xStart) + ' #Initial ' + arLabelUnit[1] + '\n')
+    f.write('#' + repr(xFin) + ' #Final ' + arLabelUnit[1] + '\n')
+    f.write('#' + repr(nx) + ' #Number of points vs ' + arLabels[1] + '\n')
+    f.write('#' + repr(yStart) + ' #Initial ' + arLabelUnit[2] + '\n')
+    f.write('#' + repr(yFin) + ' #Final ' + arLabelUnit[2] + '\n')
+    f.write('#' + repr(ny) + ' #Number of points vs ' + arLabels[2] + '\n')
+            
+    nComp = 1
+    if n_stokes > 0:
+        f.write('#' + repr(n_stokes) + ' #Number of components\n')
+        nComp = n_stokes
+    nRadPt = ne*nx*ny
+    if(mutual > 0): nRadPt *= nRadPt
+    
+    nVal = nRadPt*nComp #ne*nx*ny*nComp
+    if(cmplx != 0): nVal *= 2 #OC06052018
+
+    for ii in range(nVal): #write all data into one column using "C-alignment" as a "flat" 1D array
+        f.write(' ' + repr(intensity_data[ii]) + '\n')
+
+    f.close()
+
 #**********************Auxiliary function to write auxiliary/debugging information to an ASCII file:
 ##def srwl_uti_save_text(_text, _file_path):
 ##    f = open(_file_path, 'w')
 ##    f.write(_text + '\n')
 ##    f.close()
-
 #def srwl_uti_save_text(_text, _file_path, mode='a', newline='\n'): #MR28092016
 def srwl_uti_save_text(_text, _file_path, mode='w', newline='\n'): #MR29092016
     with open(_file_path, mode) as f:  
@@ -6831,7 +7157,8 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
                                #_rand_meth=1, _tryToUseMPI=True, _wr=0., _det=None): #OC06122016
                                #_rand_meth=1, _tryToUseMPI=True, _wr=0., _wre=0., _det=None): #OC05012017
                                #_rand_meth=1, _tryToUseMPI=True, _wr=0., _wre=0., _det=None, _me_approx=0): #OC05042017
-                               _rand_meth=1, _tryToUseMPI=True, _wr=0., _wre=0., _det=None, _me_approx=0, _file_bkp=False): #OC14082018
+                               #_rand_meth=1, _tryToUseMPI=True, _wr=0., _wre=0., _det=None, _me_approx=0, _file_bkp=False): #OC14082018
+                               _rand_meth=1, _tryToUseMPI=True, _wr=0., _wre=0., _det=None, _me_approx=0, _file_bkp=False, _rand_opt=False): #OC24042020
     """
     Calculate Stokes Parameters of Emitted (and Propagated, if beamline is defined) Partially-Coherent SR
     :param _e_beam: Finite-Emittance e-beam (SRWLPartBeam type)
@@ -6870,6 +7197,7 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
     :param _det: detector object for post-processing of final intensity (instance of SRWLDet)
     :param _me_approx: approximation to be used at multi-electron integration: 0- none (i.e. do standard M-C integration over 5D phase space volume of e-beam), 1- integrate numerically only over e-beam energy spread and use convolution to treat transverse emittance
     :param _file_bkp: create or not backup files with resulting multi-electron radiation characteristics
+    :param _rand_opt: randomize parameters of optical elements at each fully-coherent wavefront propagation (e.g. to simulate impact of vibrations) or not
     """
 
     doMutual = 0 #OC30052017
@@ -7019,7 +7347,8 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
             meshRes2.ne = 1
 
     calcSpecFluxSrc = False
-    if((_char == 10) and (_mesh.nx == 1) and (_mesh.ny == 1)):
+    if(((_char == 10) or (_char == 11)) and (_mesh.nx == 1) and (_mesh.ny == 1)): #OC16042020
+    #if((_char == 10) and (_mesh.nx == 1) and (_mesh.ny == 1)):
         calcSpecFluxSrc = True
         ePhIntegMult *= 1.e+06*(_mesh.xFin - _mesh.xStart)*(_mesh.yFin - _mesh.yStart) #to obtain Flux from Intensity (Flux/mm^2)
 
@@ -7136,8 +7465,12 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
         raise Exception("This calculation method requires more than one observation point in the horizontal and vertical directions")
 
     if(_mesh.ne > 1):
-        #OC15092017
-        depTypeInt = 6 #vs e&x&y (photon energy or time, horizontal and vertical positions or angles)
+        #OC16042020
+        if((_mesh.nx <= 1) and (_mesh.ny <= 1)): depTypeInt = 0 #vs e (photon energy or time)
+        else:
+            #OC15092017
+            depTypeInt = 6 #vs e&x&y (photon energy or time, horizontal and vertical positions or angles)
+
         phEnInt = 0.5*(_mesh.eStart + _mesh.eFin)
         #depTypeME_Approx = 6 #vs e&x&y (photon energy or time, horizontal and vertical positions or angles)
         #phEnME_Approx = 0.5*(_mesh.eStart + _mesh.eFin)
@@ -7235,6 +7568,7 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
                 wfr2.dRy = _wre
         
         if(_opt_bl is not None): #OC16012017
+            #if(_rand_opt): _opt_bl.randomize() #OC24042020: don't randomize here yet
             srwl.PropagElecField(wfr, _opt_bl)
 
         #print('completed (lasted', round(time.time() - t0, 6), 's)') #DEBUG
@@ -7308,6 +7642,14 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
             #comMPI.Bcast([arMesh, MPI.FLOAT], root=MPI.ROOT)
             #comMPI.Bcast([arMesh, MPI.FLOAT])
 
+            #OC21052020
+            if(_char == 41): #If Intensity and Degree of Coherence is required, send over average Wavefront Radii of Curvature for eventual subtraction of Quadratic Phase Terms (to improve accuracy of Degrre of Coherence)
+                RxAvg = wfr.Rx
+                if(0.2*abs(RxAvg) < abs(wfr.dRx)): RxAvg = 0
+                RyAvg = wfr.Ry
+                if(0.2*abs(RyAvg) < abs(wfr.dRy)): RyAvg = 0
+                arMesh.extend((RxAvg, RyAvg, wfr.xc, wfr.yc))
+
             #print('DEBUG MESSAGE: Rank0 is about to broadcast mesh of Propagated central wavefront')
             for iRank in range(nProc - 1):
                 dst = iRank + 1
@@ -7365,11 +7707,13 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
     #slaves = [] #an he
     #print('DEBUG MESSAGE: rank=', rank)
     numComp = 1
-    if(_char == 20): numComp = 4 #OC16012017
+    if((_char == 1) or (_char == 11) or (_char == 20)): numComp = 4 #OC16042020
+    #if(_char == 20): numComp = 4 #OC16012017
 
     if(_opt_bl is None): arPrecParSR[6] = 0 #Ensure non-automatic choice of numbers of points if there is no beamline
 
     bkpFileToBeSaved = False #OC14082018
+    RxAvg = 0; RyAvg = 0; xcAvg = 0; ycAvg = 0 #OC21052020
 
     if((rank > 0) or (nProc == 1)):
 
@@ -7381,6 +7725,9 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
             #if(_char == 4): nNumToRecv = 18 #OC31052017 #Cuts of Mutual Intensity vs X & Y
             if((_char == 4) or (_char == 5)): nNumToRecv = 18 #OC15072019 #Cuts of Mutual Intensity and/or Degree of Coherence vs X & Y
             if(_pres_ang == 2): nNumToRecv += 9 #OC26122018
+
+            #If Intensity and Degree of Coherence is required, send over average Wavefront Radii of Curvature for eventual subtraction of Quadratic Phase Terms (to improve accuracy of Degrre of Coherence)
+            if(_char == 41): nNumToRecv += 4 #OC21052020 
             
             arMesh = array('f', [0]*nNumToRecv)
 
@@ -7389,6 +7736,7 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
             comMPI.Recv([arMesh, MPI.FLOAT], source=MPI.ANY_SOURCE)
             #comMPI.Bcast([arMesh, MPI.FLOAT], root=0)
             #print("received mesh %d -> %d" % (_stat.Get_source(), rank))
+            
             meshRes.eStart = arMesh[0]
             meshRes.eFin = arMesh[1]
             meshRes.ne = int(arMesh[2])
@@ -7418,8 +7766,8 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
                 meshRes2.yStart = arMesh[15]
                 meshRes2.yFin = arMesh[16]
                 meshRes2.ny = int(arMesh[17])
-
-                iStA = 18 #OC23122018
+                iStA += 9 #OC21052020
+                #iStA = 18 #OC23122018
 
             if(_pres_ang == 2): #OC23122018
                 if(meshResA is None):
@@ -7434,8 +7782,15 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
                 meshResA.yStart = arMesh[iStA + 6]
                 meshResA.yFin = arMesh[iStA + 7]
                 meshResA.ny = int(arMesh[iStA + 8])
+                iStA += 9 #OC21052020 
 
-            #sys.exit(0)
+            if(_char == 41): #OC21052020
+                RxAvg = arMesh[iStA]
+                RyAvg = arMesh[iStA + 1]
+                xcAvg = arMesh[iStA + 2]
+                ycAvg = arMesh[iStA + 3]
+
+            #sys.exit(0) #DEBUG
 
         nRadPt = meshRes.ne*meshRes.nx*meshRes.ny
         if(doMutual > 0): nRadPt *= nRadPt
@@ -7712,8 +8067,17 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
                         wfr.dRx = _wre
                         wfr.dRy = _wre
 
+                    if(_rand_opt): _opt_bl.randomize() #OC24042020
+                    #DEBUG OC24042020
+                    #print('TEST: Coordinates of optical element center:', _opt_bl.arOpt[13].x, _opt_bl.arOpt[13].y)
+                    #print('TEST: Coordinates of optical element center:', 0.5*(_opt_bl.arOpt[15].mesh.yStart + _opt_bl.arOpt[15].mesh.yFin))
+                    #print('TEST: Coordinates of optical element center:', 0.5*(_opt_bl.arOpt[2].mesh.yStart + _opt_bl.arOpt[2].mesh.yFin))
+                    #END DEBUG
+                    #print('Before srwl.PropagElecField(wfr, _opt_bl)') #DEBUG
+                    
                     srwl.PropagElecField(wfr, _opt_bl) #propagate Electric Field emitted by the electron
 
+                    #print('srwl.PropagElecField(wfr, _opt_bl) OK') #DEBUG
                     #print('completed (lasted', round(time.time() - t0, 6), 's)') #DEBUG
                     #print('DEBUG: Commented-out: PropagElecField')
 
@@ -7779,14 +8143,25 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
                     wfr.copy_comp(workStokes) #OC15012017: copy electric field components to Stokes structure
                 elif(_char == 0): #OC15092017
                     srwl.CalcIntFromElecField(workStokes.arS, wfr, 6, 0, depTypeInt, phEnInt, 0., 0.)
+                    
+                elif((_char == 1) or (_char == 11)): #OC16042020
+                    #meshWorkStokes = workStokes.mesh #DEBUG
+                    #print('workStokes: ne=', meshWorkStokes.ne, 'nx=', meshWorkStokes.nx, 'ny=', meshWorkStokes.ny, 'len(arS)=', len(workStokes.arS))
+                    srwl.CalcIntFromElecField(workStokes.arS, wfr, -5, 0, depTypeInt, phEnInt, 0., 0.) #All Stokes
+                    
                 else: 
                     wfr.calc_stokes(workStokes, _n_stokes_comp=numComp) #calculate Stokes parameters from Electric Field
+
                     if(workStokes2 is not None): #OC30052017
-                        if(wfr2 is None): wfr.calc_stokes(workStokes2, _n_stokes_comp=numComp)
-                        else: wfr2.calc_stokes(workStokes2, _n_stokes_comp=numComp)
+                        #OC21052020
+                        if(wfr2 is None): wfr.calc_stokes(workStokes2, _n_stokes_comp=numComp, _rx_avg=RxAvg, _ry_avg=RyAvg, _xc_avg=xcAvg, _yc_avg=ycAvg)
+                        else: wfr2.calc_stokes(workStokes2, _n_stokes_comp=numComp, _rx_avg=RxAvg, _ry_avg=RyAvg, _xc_avg=xcAvg, _yc_avg=ycAvg)
+                        #if(wfr2 is None): wfr.calc_stokes(workStokes2, _n_stokes_comp=numComp)
+                        #else: wfr2.calc_stokes(workStokes2, _n_stokes_comp=numComp)
 
                     if(workStokes3 is not None): #OC03052018
-                        wfr.calc_stokes(workStokes3, _n_stokes_comp=numComp)
+                        wfr.calc_stokes(workStokes3, _n_stokes_comp=numComp, _rx_avg=RxAvg, _ry_avg=RyAvg, _xc_avg=xcAvg, _yc_avg=ycAvg) #OC21052020
+                        #wfr.calc_stokes(workStokes3, _n_stokes_comp=numComp)
 
                 if(_pres_ang == 2): #23122018
                     wfr.unitElFldAng = 1 #?

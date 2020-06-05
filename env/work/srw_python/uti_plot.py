@@ -29,8 +29,8 @@ Modules:
 
 .. moduleauthor:: Rob Nagler <nagler@radiasoft.net>
 """
-import sys
 import uti_plot_com
+import sys
 import traceback
 
 _backend = None
@@ -126,7 +126,10 @@ def uti_plot1d_ir(ary, arx=None, labels=('Longitudinal Position [m]', 'Horizonta
 def uti_plot1d_m(ars, labels=('X', 'Y'), units=None, styles=None, legend=None): #OC25102019
     """Plot multiple one-dimensional curves in one graph
 
-    :param array ars: multiple data arrays, including abscissa and ordinate sub-array
+    :param array ars: multiple data arrays, assuming: ars = [curve_1,curve_2,...], where curve_i can be:
+        curve_i = [[y1_i,y2_i,...],[x_min_i,x_max_i,nx_i]] or
+        curve_i = [[y1_i,y2_i,...],[x1_i,x2_i,...]] or
+        curve_i = [[x1_i,y1_i],[x2_i,y2_i],...] 
     :param tuple labels: (x-axis, y-axis)
     :param tuple units: (x-units, y-units)
     """
@@ -137,19 +140,19 @@ def uti_plot1d_m(ars, labels=('X', 'Y'), units=None, styles=None, legend=None): 
 
     _backend.uti_plot1d_m(ars, labels, styles, legend)
 
-def uti_plot2d(ar2d, x_range, y_range, labels=('Horizontal Position [m]','Vertical Position [m]'), units=None):
+def uti_plot2d(ar2d, x_range=None, y_range=None, labels=('Horizontal Position [m]','Vertical Position [m]'), units=None): #OC30052020
+#def uti_plot2d(ar2d, x_range, y_range, labels=('Horizontal Position [m]','Vertical Position [m]'), units=None):
     """Generate quad mesh plot from given "flattened" array
 
-    :param array ar2d: data points, assuming: ar2d = [curve_1,curve_2,...], where curve_i can be:
-                    curve_i = [[y1_i,y2_i,...],[x_min_i,x_max_i,nx_i]] or
-                    curve_i = [[y1_i,y2_i,...],[x1_i,x2_i,...]] or
-                    curve_i = [[x1_i,y1_i],[x2_i,y2_i],...] 
+    :param array ar2d: flat 2d array or list of data points, non-flat 2d array or list, or PIL image
     :param list x_range: Passed to numpy.linspace(start sequence, stop sequnce, num samples)
     :param list y_range: y axis (same structure as x_range)
     :param tuple labels: [x-axis, y-axis]
     """
     #if '_backend' not in locals(): uti_plot_init() #?
-    if(units is not None):
+
+    if((units is not None) and (x_range is not None) and (y_range is not None)): #OC30052020
+    #if(units is not None):
         x_range, x_unit = uti_plot_com.rescale_dim(x_range, units[0])
         y_range, y_unit = uti_plot_com.rescale_dim(y_range, units[1])
         units = [x_unit, y_unit,  units[2]]
@@ -161,7 +164,7 @@ def uti_plot2d(ar2d, x_range, y_range, labels=('Horizontal Position [m]','Vertic
 def uti_plot2d1d(ar2d, x_range, y_range, x=0, y=0, labels=('Horizontal Position', 'Vertical Position', 'Intensity'), units=None, graphs_joined=True):
     """Generate 2d quad mesh plot from given "flattened" array, and 1d cuts passing through (x, y)
 
-    :param array ar2d: data points
+    :param array ar2d: flat 2d array of data points
     :param list x_range: Passed to numpy.linspace(start sequence, stop sequnce, num samples)
     :param list y_range: y axis (same structure as x_range)
     :param x: x value for 1d cut
@@ -216,6 +219,9 @@ def uti_plot2d1d(ar2d, x_range, y_range, x=0, y=0, labels=('Horizontal Position'
     labels = [label2D, label1X, label1Y]
 
     _backend.uti_plot2d1d(ar2d, x_range, y_range, x, y, labels, graphs_joined)
+
+#def uti_plot_img(_img, _x_range=None, _y_range=None, ): #OC29052020
+#    _backend.uti_plot_img(_img)
 
 def uti_plot_data_file(_fname, _read_labels=1, _e=0, _x=0, _y=0, _graphs_joined=True, #Same as uti_data_file_plot, but better fits function name decoration rules in this module (uti_plot*)
                        _multicolumn_data=False, _column_x=None, _column_y=None, #MR31102017

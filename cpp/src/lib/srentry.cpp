@@ -102,7 +102,7 @@ void UtiWarnCheck()
 
 EXP int CALL srUtiVerNo(char* VerNoStr)
 {//to modify at each new release!
-	char CurVerStr[] = "3.965"; //"3.87";
+	char CurVerStr[] = "3.97"; //"3.965"; //"3.87";
 
 	strcpy(VerNoStr, CurVerStr);
 	return 0;

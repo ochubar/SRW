@@ -549,7 +549,7 @@ EXP void CALL srwlUtiSetProgrIndFunc(int (*pExtFunc)(double curVal));
  * @return	integer error (>0) or warnig (<0) code
  * @see ...
  */
-EXP int CALL srwlUtiVerNo(char* verNoStr, int code);
+EXP int CALL srwlUtiVerNo(char* verNoStr, int code =1);
 
 /** 
  * Provides text of error or warning based on its number.  

@@ -253,10 +253,14 @@ void srTRadIntThickBeam::ComputeTotalStokesDistrViaSingleElec(srTEbmDat* pElecBe
 	if(pWfrSmp != 0) { delete pWfrSmp; pWfrSmp = 0;}
 	//if(pRad != 0) { delete pRad; pRad = 0;}
 
-	if(ArrAuxDataS0 != 0) { delete ArrAuxDataS0; ArrAuxDataS0 = 0;}
-	if(ArrAuxDataS1 != 0) { delete ArrAuxDataS1; ArrAuxDataS1 = 0;}
-	if(ArrAuxDataS2 != 0) { delete ArrAuxDataS2; ArrAuxDataS2 = 0;}
-	if(ArrAuxDataS3 != 0) { delete ArrAuxDataS3; ArrAuxDataS3 = 0;}
+	if(ArrAuxDataS0 != 0) { delete[] ArrAuxDataS0; ArrAuxDataS0 = 0;} //OC19052020, pointed-out by Paul Fuoss
+	if(ArrAuxDataS1 != 0) { delete[] ArrAuxDataS1; ArrAuxDataS1 = 0;}
+	if(ArrAuxDataS2 != 0) { delete[] ArrAuxDataS2; ArrAuxDataS2 = 0;}
+	if(ArrAuxDataS3 != 0) { delete[] ArrAuxDataS3; ArrAuxDataS3 = 0;}
+	//if(ArrAuxDataS0 != 0) { delete ArrAuxDataS0; ArrAuxDataS0 = 0;}
+	//if(ArrAuxDataS1 != 0) { delete ArrAuxDataS1; ArrAuxDataS1 = 0;}
+	//if(ArrAuxDataS2 != 0) { delete ArrAuxDataS2; ArrAuxDataS2 = 0;}
+	//if(ArrAuxDataS3 != 0) { delete ArrAuxDataS3; ArrAuxDataS3 = 0;}
 }
 
 //*************************************************************************

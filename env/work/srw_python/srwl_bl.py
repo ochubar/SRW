@@ -5,7 +5,7 @@
 # of a complete user beamline in a synchrotron radiation source.
 # Under development!!!
 # Authors/Contributors: O.C., Maksim Rakitin, An He
-# v 0.11
+# v 0.13
 #############################################################################
 
 from __future__ import print_function #Python 2.7 compatibility
@@ -17,6 +17,8 @@ import uti_math
 import uti_io
 #import optparse #MR081032016 #Consider placing import argparse here
 import time
+import re #OC23052020
+import zipfile #OC23052020
 
 try: #OC05042018
     import cPickle as pickle
@@ -365,7 +367,7 @@ class SRWLBeamline(object):
             self.mag_approx.arYc.append(0)
             self.mag_approx.arZc.append(_zc)
 
-        #print('At the end of set_mag_multipole, mag_approx:', self.mag_approx)
+        #print('At the end of set_mag_multipole, mag_approx:', self.mag_approx) #DEBUG
         return self.mag_approx
 
     #------------------------------------------------------------------------
@@ -1801,7 +1803,9 @@ class SRWLBeamline(object):
     #def calc_wfr_emit_prop_me(self, _mesh, _sr_samp_fact=1, _sr_meth=2, _sr_rel_prec=0.01, _in_wr=0., _mag_type=1, _n_part_tot=100000, _n_part_avg_proc=10, _n_save_per=50, _pres_ang=0, _char=0, _x0=0, _y0=0, _e_ph_integ=0, _rand_meth=1, _fname=None):
     #def calc_wfr_emit_prop_me(self, _mesh, _sr_samp_fact=1, _sr_meth=2, _sr_rel_prec=0.01, _in_wr=0., _mag_type=1, _n_part_tot=100000, _n_part_avg_proc=10, _n_save_per=50, _pres_ang=0, _char=0, _x0=0, _y0=0, _e_ph_integ=0, _rand_meth=1, _fname=None, _det=None): #OC06122016
     #def calc_wfr_emit_prop_me(self, _mesh, _sr_samp_fact=1, _sr_meth=2, _sr_rel_prec=0.01, _in_wr=0., _in_wre=0., _mag_type=1, _n_part_tot=100000, _n_part_avg_proc=10, _n_save_per=50, _pres_ang=0, _char=0, _x0=0, _y0=0, _e_ph_integ=0, _rand_meth=1, _fname=None, _det=None, _me_approx=0): #OC05042017
-    def calc_wfr_emit_prop_me(self, _mesh, _sr_samp_fact=1, _sr_meth=2, _sr_rel_prec=0.01, _in_wr=0., _in_wre=0., _mag_type=1, _n_part_tot=100000, _n_part_avg_proc=10, _n_save_per=50, _pres_ang=0, _char=0, _x0=0, _y0=0, _e_ph_integ=0, _rand_meth=1, _fname=None, _det=None, _me_approx=0, _fbk=False): #OC14082018
+    #def calc_wfr_emit_prop_me(self, _mesh, _sr_samp_fact=1, _sr_meth=2, _sr_rel_prec=0.01, _in_wr=0., _in_wre=0., _mag_type=1, _n_part_tot=100000, _n_part_avg_proc=10, _n_save_per=50, _pres_ang=0, _char=0, _x0=0, _y0=0, _e_ph_integ=0, _rand_meth=1, _fname=None, _det=None, _me_approx=0, _fbk=False): #OC14082018
+    def calc_wfr_emit_prop_me(self, _mesh, _sr_samp_fact=1, _sr_meth=2, _sr_rel_prec=0.01, _in_wr=0., _in_wre=0., _mag_type=1, _n_part_tot=100000, _n_part_avg_proc=10, _n_save_per=50,
+                              _pres_ang=0, _char=0, _x0=0, _y0=0, _e_ph_integ=0, _rand_meth=1, _fname=None, _det=None, _me_approx=0, _fbk=False, _op_rnd=False): #OC24042020
         """Calculates multi-electron (/ partially coherent) SR emission and wavefront propagation
         :param _mesh: mesh (grid) on which the initial wavefront has to be calculated (SRWLRadMesh instance)
         :param _sr_samp_fact: oversampling factor for calculating of initial wavefront for subsequent propagation (effective if >0)
@@ -1847,11 +1851,15 @@ class SRWLBeamline(object):
         if((not hasattr(self, 'optics')) or (not isinstance(self.optics, SRWLOptC))):
             raise Exception('Incorrect optics container (SRWLOptC) structure')
 
-        if(_mag_type == 1):
-            if(self.mag_approx is None): raise Exception('Approximate Magnetic Field is not defined')
-        elif(_mag_type == 2):
-            if(self.mag is None): raise Exception('Magnetic Field is not defined')
-        else: raise Exception('Incorrect Magnetic Field type identificator')
+        #OC26042020 (commented-out to make Gaussian Schell or Zernike source work)
+        #if(_mag_type == 1):
+        #    if(self.mag_approx is None): raise Exception('Approximate Magnetic Field is not defined')
+        #elif(_mag_type == 2):
+        #    if(self.mag is None): raise Exception('Magnetic Field is not defined')
+        #else: raise Exception('Incorrect Magnetic Field type identificator')
+
+        #print(self.mag_approx) #DEBUG
+        #print(self.mag) #DEBUG
 
         magToUse = self.mag_approx
         if(_mag_type == 2): magToUse = self.mag
@@ -1875,7 +1883,8 @@ class SRWLBeamline(object):
             #_e_ph_integ = _e_ph_integ, _rand_meth = _rand_meth, _det = _det) #OC06122016
             #_e_ph_integ = _e_ph_integ, _rand_meth = _rand_meth, _det = _det, _me_approx = _multi_e_approx) #OC05042017
             _e_ph_integ = _e_ph_integ, _rand_meth = _rand_meth, _det = _det, _me_approx = _me_approx, 
-            _file_bkp = True if(_fbk == True) else False) #OC14082018
+            #_file_bkp = True if(_fbk == True) else False) #OC14082018
+            _file_bkp = _fbk, _rand_opt = _op_rnd) #OC24042020
 
     #------------------------------------------------------------------------
     def cost_func_aux_int_distr(self, _x, *_aux):
@@ -2315,6 +2324,12 @@ class SRWLBeamline(object):
         :param _v: an object containing set of variables / options defining SR source and required calculations
         :param _op: optical element container (SRWLOptC instance) that is assumed to be set up before calling this function and eventually used for wavefront propagation
         """
+        
+        #try: #OC23052020
+        #    from mpi4py import MPI
+        #    self.comMPI = MPI.COMM_WORLD
+        #except:
+        #    self.comMPI = None
 
         #---perform optimization of beamline and possibly source parameters (this should be processed before any other things)
         if(_v.om): #since the optimization modifies params in _v and calls calc_all, it goes first
@@ -2327,7 +2342,7 @@ class SRWLBeamline(object):
                 print('Optimization can not be performed (probably because required libraries are missing).')
                 return
 
-            try:
+            try: #OC23052020
                 from mpi4py import MPI
                 self.comMPI = MPI.COMM_WORLD
             except:
@@ -2376,7 +2391,8 @@ class SRWLBeamline(object):
             if((_v.rs_type != 't') and (_v.rs_type != 'c')): #not ID with tabulated magnetic field, including dependence on gap / phase (and e-beam)
                 if hasattr(_v, 'und_g'): del _v.und_g
 
-            if((_v.rs_type != 'd') and (_v.rs_type != 'c')): #not idealized dipole magnet with eventual gradient (and e-beam)
+            if((_v.rs_type != 'd') and (_v.rs_type != 'm') and (_v.rs_type != 'c')): #not idealized dipole magnet with eventual gradient (and e-beam)
+            #if((_v.rs_type != 'd') and (_v.rs_type != 'c')): #not idealized dipole magnet with eventual gradient (and e-beam)
                 if hasattr(_v, 'mag_bx'): _v.mag_bx = 0
                 if hasattr(_v, 'mag_by'): _v.mag_by = 0
                 if hasattr(_v, 'mag_gn'): _v.mag_gn = 0
@@ -2516,17 +2532,50 @@ class SRWLBeamline(object):
                         _add = 1)
 
         #---setup magnetic field: undulator, tabulated (e.g. measured) magnetic field (a set of 3D magnetic field data files for different gaps / phases with a summary file)
+        if hasattr(_v, 'und_mfz'): #OC23052020
+            if len(_v.und_mfz) > 0:
+                testPath = os.path.join(os.getcwd(), self.dir_main, _v.und_mfz)
+                if os.path.exists(testPath):
+                    z = zipfile.ZipFile(testPath) #OC23052020: from Sirepo script-generation code by P. Moeller, R. Nagner
+                    rank = 0
+                    comMPI = None
+                    try:
+                        from mpi4py import MPI
+                        comMPI = MPI.COMM_WORLD
+                        rank = comMPI.Get_rank()
+                    except: pass
+                    #print(z) #DEBUG
+                    
+                    #rank = 0 if self.comMPI is None else self.comMPI.Get_rank()
+                    if rank == 0:
+                        z.extractall(path=os.path.join(os.getcwd(), self.dir_main))
+                        #z.extractall()
+                        #print('Zip file unzipped') #DEBUG
+                    
+                    if comMPI is not None: comMPI.Barrier()
+                    magMeasSummaryFileFound = False
+                    for f in z.namelist():
+                        if re.search(r'\.txt', f): #summary file
+                            _v.und_mfs = os.path.basename(f)
+                            _v.und_mdir = os.path.dirname(f) or './'
+                            magMeasSummaryFileFound = True
+                            break
+                    if not magMeasSummaryFileFound:
+                        raise RuntimeError('Magnetic measurement / simulation summary *.txt file can not be found')
+
         magnMeasDirExists = False
         if hasattr(_v, 'und_mdir'):
             self.dir_magn_meas = _v.und_mdir
             if(len(self.dir_magn_meas) > 0): magnMeasDirExists = True
+            #print('self.dir_magn_meas = ', self.dir_magn_meas) #DEBUG
+
         magnMeasSumFileExists = False
         if hasattr(_v, 'und_mfs'):
             self.fn_magn_meas_sum = _v.und_mfs
             if(magnMeasDirExists):
                 testPath = os.path.join(os.getcwd(), self.dir_main, self.dir_magn_meas, self.fn_magn_meas_sum)
                 magnMeasSumFileExists = os.path.exists(testPath) 
-                #print(testPath)
+                #print(testPath) #DEBUG
 
         if magnMeasSumFileExists and hasattr(_v, 'und_g'):
             if(_v.und_g > 0.):
@@ -2535,6 +2584,7 @@ class SRWLBeamline(object):
                 phase_mode = 'p1'
                 if hasattr(_v, 'und_phm'): phase_mode = _v.und_phm
 
+                #print('Before set_und_tab()') #DEBUG
                 self.set_und_tab(#setup undulator source from measured magnetic field data
                     _gap = _v.und_g,
                     _ph_mode = phase_mode,
@@ -2575,6 +2625,7 @@ class SRWLBeamline(object):
         if hasattr(_v, 'mag_r') == False: _v.mag_r = 0
         if hasattr(_v, 'mag_zc') == False: _v.mag_zc = 0
         if((_v.mag_bx != 0) or (_v.mag_by != 0) or (_v.mag_gn != 0) or (_v.mag_gs != 0)):
+            print('Before setting up multipole') #DEBUG
             self.set_mag_multipole(#setup dipole / quad magnet parameters
                 _bx = _v.mag_bx,
                 _by = _v.mag_by,
@@ -3018,7 +3069,8 @@ class SRWLBeamline(object):
                     _det = detector,
                     #_multi_e_approx = _v.wm_am)
                     _me_approx = _v.wm_am, #) #OC13042018
-                    _fbk = True if(_v.wm_fbk) else False) #OC14082018
+                    _fbk = True if(_v.wm_fbk) else False, #) #OC14082018
+                    _op_rnd = True if(_v.op_rnd) else False) #OC24042020
 
         #---plot results of all calculatiopns here (because the plotting "from the middle of the script" may hang up script execution)
         #uti_plot_init('TkAgg') #make the backend name an input option or move this to uti_plot ?
@@ -3383,6 +3435,7 @@ def srwl_uti_std_options():
         ['und_mdir', 's', 'magn_meas', 'name of magnetic measurements sub-folder'],
         ['und_mfs', 's', '', 'name of undulator magnetic measurements for different gaps summary file'],
         ['und2_mfs', 's', '', 'name of second undulator magnetic measurements for different gaps summary file'],
+        ['und_mfz', 's', '', 'name of zip-file of directory with magnetic measurement files for different gaps + summary file (if it is defined, it overrides the values of und_mdir and und_mfs)'],
 
         ['und_b2e', '', '', 'estimate undulator fundamental photon energy (in [eV]) for the amplitude of sinusoidal magnetic field defined by und_b or und_bx, und_by', 'store_true'],
         ['und_e2b', '', '', 'estimate undulator field amplitude (in [T]) for the photon energy defined by w_e', 'store_true'],
@@ -3390,8 +3443,8 @@ def srwl_uti_std_options():
 #---Dipole Magnet (with eventual field gradient)
         ['mag_by', 'f', 0., 'vertical magnetic field [T]'],
         ['mag_bx', 'f', 0., 'horizontal magnetic field [T]'],
-        ['mag_bn', 'f', 0., 'normal magnetic field quadrupole [T/m]'],
-        ['mag_bs', 'f', 0., 'skew magnetic field quadrupole [T/m]'],
+        ['mag_gn', 'f', 0., 'gradient of normal magnetic field quadrupole [T/m]'],
+        ['mag_gs', 'f', 0., 'gradient of skew magnetic field quadrupole [T/m]'],
         ['mag_len', 'f', 3.0, 'magnetic length [m]'],
         ['mag_led', 'f', 0., 'magnetic edge length bw 10% and 90% of peak field [m]; G/(1 + ((z-zc)/d)^2)^2 field dependence is assumed'],
         ['mag_r', 'f', 0., 'radius of curvature of central trajectory [m] (for simulating e.g. quadrupole component integrated to a bending magnet; effective if > 0)'],
@@ -3572,6 +3625,7 @@ def srwl_uti_std_options():
         ['op_r', 'f', 30., 'longitudinal position of the first optical element [m]'],
         ['op_dp', 'f', 0., 'length of drift space to be applied after propagation through a beamline [m]'],
         ['op_fno', 's', '', 'file name for saving orientations of optical elements in the lab frame'],
+        ['op_rnd', '', '', 'randomize parameters of optical elements or not (the randomizaiton params have to be defined separately)', 'store_true'], #OC24042020
 
     #Detector parameters
         ['d_x', 'f', 0., 'central horizontal position [m] of detector active area'],

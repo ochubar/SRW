@@ -743,6 +743,10 @@ inline int srTSend::RadValDirectOut(complex<double>* RadVal)
 	if(gCallSpinProcess && SpinProcess()) return SR_COMP_PROC_ABORTED;
 	return 0;
 
+#else
+
+	return 0; //OC14052020
+
 #endif
 }
 
@@ -763,6 +767,10 @@ inline int srTSend::RadValDirectOut(srTEFourier& RadVal)
 
 	if(gCallSpinProcess && SpinProcess()) return SR_COMP_PROC_ABORTED;
 	return 0;
+
+#else
+
+	return 0; //OC14052020
 
 #endif
 }

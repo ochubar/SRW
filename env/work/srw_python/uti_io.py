@@ -12,7 +12,8 @@ def write_text(_text, _file_path):
     f.close()
 
 #**********************Auxiliary function to read-in data comumns from ASCII file (2D table):
-def read_ascii_data_cols(_file_path, _str_sep, _i_col_start=0, _i_col_end=-1, _n_line_skip=0, _float=True): #OC24112019
+def read_ascii_data_cols(_file_path, _str_sep, _i_col_start=0, _i_col_end=-1, _n_line_skip=0, _float=True, _n_line_skip_end=0): #OC20042020
+#def read_ascii_data_cols(_file_path, _str_sep, _i_col_start=0, _i_col_end=-1, _n_line_skip=0, _float=True): #OC24112019
 #def read_ascii_data_cols(_file_path, _str_sep, _i_col_start=0, _i_col_end=-1, _n_line_skip=0):
     """
     Auxiliary function to read-in data comumns from ASCII file (2D table)
@@ -32,7 +33,8 @@ def read_ascii_data_cols(_file_path, _str_sep, _i_col_start=0, _i_col_end=-1, _n
     #for iCol in range(nCol):
     #    resCols.append([])
 
-    nRows = len(lines) - _n_line_skip
+    nRows = len(lines) - _n_line_skip - _n_line_skip_end #OC20042020
+    #nRows = len(lines) - _n_line_skip
 
     for i in range(nRows):
         curLine = lines[_n_line_skip + i]

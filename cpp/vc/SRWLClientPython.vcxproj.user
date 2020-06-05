@@ -20,7 +20,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug_Py3_8|x64'">
     <LocalDebuggerCommand>..\..\Python38_x64\python.exe</LocalDebuggerCommand>
-    <LocalDebuggerCommandArguments>SRWLIB_Example03.py</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>auto_gen_2d_obj_chx.py</LocalDebuggerCommandArguments>
     <LocalDebuggerWorkingDirectory>C:\SoftwareDevelopments\SRW_Dev\env\work\srw_python</LocalDebuggerWorkingDirectory>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>

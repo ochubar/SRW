@@ -401,13 +401,21 @@ int srTDriftSpace::PropagateRadiationSimple_PropToWaist(srTSRWRadStructAccessDat
 	if(result = SetupWfrEdgeCorrData(pRadAccessData, pRadAccessData->pBaseRadX, pRadAccessData->pBaseRadZ, DataPtrsForWfrEdgeCorr)) return result;
 
 #if !defined(_FFTW3) && defined(_WITH_OMP) //OC29082019
-	if(m_frwPlan2DFFT != 0)
-	{
-		FFT2DInfo.pData = pRadAccessData->pBaseRadX;
-		if(result = FFT2D.Make2DFFT(FFT2DInfo, &m_frwPlan2DFFT)) return result;
-		FFT2DInfo.pData = pRadAccessData->pBaseRadZ;
-		if(result = FFT2D.Make2DFFT(FFT2DInfo, &m_frwPlan2DFFT)) return result;
-	}
+	//OC04062020
+	fftwnd_plan *pPlan2DFFT = (m_frwPlan2DFFT != 0)? &m_frwPlan2DFFT : 0;
+	FFT2DInfo.pData = pRadAccessData->pBaseRadX;
+	if(result = FFT2D.Make2DFFT(FFT2DInfo, pPlan2DFFT)) return result;
+	FFT2DInfo.pData = pRadAccessData->pBaseRadZ;
+	if(result = FFT2D.Make2DFFT(FFT2DInfo, pPlan2DFFT)) return result;
+
+	//OC04062020 (commented-out)
+	//if(m_frwPlan2DFFT != 0)
+	//{
+	//	FFT2DInfo.pData = pRadAccessData->pBaseRadX;
+	//	if(result = FFT2D.Make2DFFT(FFT2DInfo, &m_frwPlan2DFFT)) return result;
+	//	FFT2DInfo.pData = pRadAccessData->pBaseRadZ;
+	//	if(result = FFT2D.Make2DFFT(FFT2DInfo, &m_frwPlan2DFFT)) return result;
+	//}
 #else
 //OCTEST01102019: commented-out the above (to see if this will fix problem of TD calcs)
 	FFT2DInfo.pData = pRadAccessData->pBaseRadX;
@@ -494,13 +502,21 @@ int srTDriftSpace::PropagateRadiationSimple_PropToWaistBeyondParax(srTSRWRadStru
 	if(result = SetupWfrEdgeCorrData(pRadAccessData, pRadAccessData->pBaseRadX, pRadAccessData->pBaseRadZ, DataPtrsForWfrEdgeCorr)) return result;
 
 #if !defined(_FFTW3) && defined(_WITH_OMP) //OC29082019
-	if(m_frwPlan2DFFT != 0)
-	{
-		FFT2DInfo.pData = pRadAccessData->pBaseRadX;
-		if(result = FFT2D.Make2DFFT(FFT2DInfo, &m_frwPlan2DFFT)) return result;
-		FFT2DInfo.pData = pRadAccessData->pBaseRadZ;
-		if(result = FFT2D.Make2DFFT(FFT2DInfo, &m_frwPlan2DFFT)) return result;
-	}
+	//OC04062020
+	fftwnd_plan *pPlan2DFFT = (m_frwPlan2DFFT != 0)? &m_frwPlan2DFFT : 0;
+	FFT2DInfo.pData = pRadAccessData->pBaseRadX;
+	if(result = FFT2D.Make2DFFT(FFT2DInfo, pPlan2DFFT)) return result;
+	FFT2DInfo.pData = pRadAccessData->pBaseRadZ;
+	if(result = FFT2D.Make2DFFT(FFT2DInfo, pPlan2DFFT)) return result;
+	
+	//OC04062020 (commented-out)
+	//if(m_frwPlan2DFFT != 0)
+	//{
+	//	FFT2DInfo.pData = pRadAccessData->pBaseRadX;
+	//	if(result = FFT2D.Make2DFFT(FFT2DInfo, &m_frwPlan2DFFT)) return result;
+	//	FFT2DInfo.pData = pRadAccessData->pBaseRadZ;
+	//	if(result = FFT2D.Make2DFFT(FFT2DInfo, &m_frwPlan2DFFT)) return result;
+	//}
 #else
 //OCTEST01102019: commented-out the above (to see if this will fix problem of TD calcs)
 	FFT2DInfo.pData = pRadAccessData->pBaseRadX;
@@ -600,14 +616,22 @@ int srTDriftSpace::PropagateRadiationSimple_PropFromWaist(srTSRWRadStructAccessD
 	//FFT2DInfo.pData = pRadAccessData->pBaseRadZ;
 	//if(result = FFT2D.Make2DFFT(FFT2DInfo)) return result;
 
-#if !defined(_FFTW3) && defined(_WITH_OMP) //OC01102019
-	if(m_frwPlan2DFFT != 0)
-	{
-		FFT2DInfo.pData = pRadAccessData->pBaseRadX;
-		if(result = FFT2D.Make2DFFT(FFT2DInfo, &m_frwPlan2DFFT)) return result;
-		FFT2DInfo.pData = pRadAccessData->pBaseRadZ;
-		if(result = FFT2D.Make2DFFT(FFT2DInfo, &m_frwPlan2DFFT)) return result;
-	}
+#if (!defined(_FFTW3)) && defined(_WITH_OMP) //OC01102019
+	//OC04062020
+	fftwnd_plan *pPlan2DFFT = (m_frwPlan2DFFT != 0)? &m_frwPlan2DFFT : 0;
+	FFT2DInfo.pData = pRadAccessData->pBaseRadX;
+	if(result = FFT2D.Make2DFFT(FFT2DInfo, pPlan2DFFT)) return result;
+	FFT2DInfo.pData = pRadAccessData->pBaseRadZ;
+	if(result = FFT2D.Make2DFFT(FFT2DInfo, pPlan2DFFT)) return result;
+
+	//OC04062020 (commented-out)
+	//if(m_frwPlan2DFFT != 0)
+	//{
+	//	FFT2DInfo.pData = pRadAccessData->pBaseRadX;
+	//	if(result = FFT2D.Make2DFFT(FFT2DInfo, &m_frwPlan2DFFT)) return result;
+	//	FFT2DInfo.pData = pRadAccessData->pBaseRadZ;
+	//	if(result = FFT2D.Make2DFFT(FFT2DInfo, &m_frwPlan2DFFT)) return result;
+	//}
 #else
 	FFT2DInfo.pData = pRadAccessData->pBaseRadX;
 	if(result = FFT2D.Make2DFFT(FFT2DInfo)) return result;

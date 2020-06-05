@@ -105,6 +105,7 @@ public:
 		AllowPropToWaist = 1; // To switch
 		AnalytTreatSubType = 0; //OC01102019 (moved to srTDriftSpace)
 		UseExactRxRzForAnalytTreatQuadPhaseTerm = false; //OC01102019 (moved to srTDriftSpace)
+		TreatPath = 0; //OC03062020 (add this to Igor interface ?)
 	}
 
 	//int PropagateRadiation(srTSRWRadStructAccessData* pRadAccessData, int MethNo, srTRadResizeVect& ResizeBeforeAndAfterVect)

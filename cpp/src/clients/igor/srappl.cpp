@@ -598,13 +598,73 @@ int srTApplication::PropagateRadiation(srTIgorRadPropagInputStruct* pRadPropagIn
 	//in some optical elements, StringArr[1] contains name of numerical wave describing optical element
 	srTDataMD OptElemNumData;
 	OptElemNumData.pData = 0;
-	if(OptElemInfo[1] != 0)
+	//if(OptElemInfo[1] != 0)
+	if(srTGenOptElem::ExtraDataExpected(OptElemInfo[0]) && (OptElemInfo[1] != 0)) //OC02062020
 	{
 		if(*OptElemInfo[1] != '\0')
 		{
 #ifdef __IGOR_PRO__
+//#ifndef __MAC__
 			srTIgorSend::FetchNumWave(OptElemInfo[1], &OptElemNumData);
 			//if fetch doesn't succeed, this is normal here
+//#else //RL23052020: modifications made to walk around code crashes after compilation with Xcode 11.2(?) in optimized mode (contents of FetchNumWave and GetNumWaveData copied below)
+//			waveHndl wHndl = FetchWave(OptElemInfo[1]);
+//			if(wHndl == 0 || wHndl == NIL) return 0;//NUMERIC_WAVE_REQUIRED;
+//
+//			int waveType = WaveType(wHndl);
+//			if(waveType == NT_FP32)
+//			{
+//				*(OptElemNumData.DataType) = 'f';
+//				*(OptElemNumData.DataType + 1) = '\0';
+//			}
+//			else if(waveType == (NT_FP32 | NT_CMPLX))
+//			{
+//				*(OptElemNumData.DataType) = 'c';
+//				*(OptElemNumData.DataType + 1) = 'f';
+//			}
+//			else if(waveType == NT_FP64)
+//			{
+//				*(OptElemNumData.DataType) = 'd';
+//				*(OptElemNumData.DataType + 1) = '\0';
+//			}
+//			else if(waveType == (NT_FP64 | NT_CMPLX))
+//			{
+//				*(OptElemNumData.DataType) = 'c';
+//				*(OptElemNumData.DataType + 1) = 'd';
+//			}
+//			else return NUMERIC_WAVE_REQUIRED;
+//
+//			CountInt AuxDimSizes[11];
+//
+//			if(result = MDGetWaveDimensions(wHndl, &(OptElemNumData.AmOfDims), AuxDimSizes)) return result;
+//
+//			for(int ii = 0; ii < 11; ii++) OptElemNumData.DimSizes[ii] = AuxDimSizes[ii]; //OC06062019 (port to XOP7)
+//
+//							//DOUBLE Step, Start;
+//			double Step, Start; //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
+//			char Units[MAX_UNIT_CHARS + 1];
+//
+//			for(long iDim=0; iDim<OptElemNumData.AmOfDims; iDim++)
+//			{
+//				if(result = MDGetWaveScaling(wHndl, iDim, &Step, &Start)) return result;
+//				OptElemNumData.DimSteps[iDim] = Step;
+//				OptElemNumData.DimStartValues[iDim] = Start;
+//
+//				if(result = MDGetWaveUnits(wHndl, iDim, Units)) return result;
+//				strcpy(OptElemNumData.DimUnits[iDim], Units);
+//			}
+//
+//			if(result = MDGetWaveUnits(wHndl, -1, Units)) return result;
+//			strcpy(OptElemNumData.DataUnits, Units);
+//
+//			WaveName(wHndl, OptElemNumData.DataName);
+//
+//			BCInt dataOffset; //OC26042019 (port to XOP7)
+//			if(result = MDAccessNumericWaveData(wHndl, kMDWaveAccessMode0, &dataOffset)) return result;
+//
+//			OptElemNumData.hState = 0; //MoveLockHandle(wavH);
+//			OptElemNumData.pData = (char*)(*wHndl) + dataOffset;
+//#endif
 #endif
 		}
 	}
@@ -657,13 +717,73 @@ int srTApplication::PropagateWavefront(srTIgorWfrPropag* pWfrPropagInputStruct)
 	OptElemNumData.pData = 0;
 	if(OptElemInfo.size() > 1)
 	{
-		if(OptElemInfo[1] != 0)
+		//if(OptElemInfo[1] != 0)
+		if(srTGenOptElem::ExtraDataExpected(OptElemInfo[0]) && (OptElemInfo[1] != 0)) //OC02062020
 		{
 			if(*OptElemInfo[1] != '\0')
 			{
 #ifdef __IGOR_PRO__
+//#ifndef __MAC__
 				srTIgorSend::FetchNumWave(OptElemInfo[1], &OptElemNumData);
 				//if fetch doesn't succeed - this is normal here
+//#else //RL23052020: modifications made to walk around code crashes after compilation with Xcode 11.2(?) in optimized mode (contents of FetchNumWave and GetNumWaveData copied below)
+//				waveHndl wHndl = FetchWave(OptElemInfo[1]);
+//				if(wHndl == 0 || wHndl == NIL) return 0;//NUMERIC_WAVE_REQUIRED;
+//
+//				int waveType = WaveType(wHndl);
+//				if(waveType == NT_FP32)
+//				{
+//					*(OptElemNumData.DataType) = 'f';
+//					*(OptElemNumData.DataType + 1) = '\0';
+//				}
+//				else if(waveType == (NT_FP32 | NT_CMPLX))
+//				{
+//					*(OptElemNumData.DataType) = 'c';
+//					*(OptElemNumData.DataType + 1) = 'f';
+//				}
+//				else if(waveType == NT_FP64)
+//				{
+//					*(OptElemNumData.DataType) = 'd';
+//					*(OptElemNumData.DataType + 1) = '\0';
+//				}
+//				else if(waveType == (NT_FP64 | NT_CMPLX))
+//				{
+//					*(OptElemNumData.DataType) = 'c';
+//					*(OptElemNumData.DataType + 1) = 'd';
+//				}
+//				else return NUMERIC_WAVE_REQUIRED;
+//
+//				CountInt AuxDimSizes[11];
+//
+//				if(result = MDGetWaveDimensions(wHndl, &(OptElemNumData.AmOfDims), AuxDimSizes)) return result;
+//
+//				for(int ii = 0; ii < 11; ii++) OptElemNumData.DimSizes[ii] = AuxDimSizes[ii]; //OC06062019 (port to XOP7)
+//
+//				//DOUBLE Step, Start;
+//				double Step, Start; //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
+//				char Units[MAX_UNIT_CHARS + 1];
+//
+//				for(long iDim=0; iDim<OptElemNumData.AmOfDims; iDim++)
+//				{
+//					if(result = MDGetWaveScaling(wHndl, iDim, &Step, &Start)) return result;
+//					OptElemNumData.DimSteps[iDim] = Step;
+//					OptElemNumData.DimStartValues[iDim] = Start;
+//
+//					if(result = MDGetWaveUnits(wHndl, iDim, Units)) return result;
+//					strcpy(OptElemNumData.DimUnits[iDim], Units);
+//				}
+//
+//				if(result = MDGetWaveUnits(wHndl, -1, Units)) return result;
+//				strcpy(OptElemNumData.DataUnits, Units);
+//
+//				WaveName(wHndl, OptElemNumData.DataName);
+//
+//				BCInt dataOffset; //OC26042019 (port to XOP7)
+//				if(result = MDAccessNumericWaveData(wHndl, kMDWaveAccessMode0, &dataOffset)) return result;
+//
+//				OptElemNumData.hState = 0; //MoveLockHandle(wavH);
+//				OptElemNumData.pData = (char*)(*wHndl) + dataOffset;
+//#endif
 #endif
 			}
 		}

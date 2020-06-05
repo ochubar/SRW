@@ -3960,10 +3960,14 @@ int srTSend::GetWaveAccessData(srTHandleOfOneWaveStruct* pHandleOfOneWaveStruct,
 	else return NUMERIC_WAVE_REQUIRED;
 
 	int result;
-	CountInt AuxDimSizes[10];
+	//CountInt AuxDimSizes[10];
+	CountInt AuxDimSizes[MAX_DIMENSIONS + 1]; //OC02062020
+
 	//if(result = MDGetWaveDimensions(wavH, &(pWaveAccessData->AmOfDims), pWaveAccessData->DimSizes)) return result;
 	if(result = MDGetWaveDimensions(wavH, &(pWaveAccessData->AmOfDims), AuxDimSizes)) return result;
-	for(int ii=0; ii<10; ii++) pWaveAccessData->DimSizes[ii] = AuxDimSizes[ii]; //OC06062019 (port to XOP7)
+
+	//for(int ii=0; ii<10; ii++) pWaveAccessData->DimSizes[ii] = AuxDimSizes[ii]; //OC06062019 (port to XOP7)
+	for(int ii=0; ii<=MAX_DIMENSIONS; ii++) pWaveAccessData->DimSizes[ii] = AuxDimSizes[ii]; //OC02062020
 
 	//DOUBLE Step, Start;
 	double Step, Start; //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
@@ -3989,7 +3993,6 @@ int srTSend::GetWaveAccessData(srTHandleOfOneWaveStruct* pHandleOfOneWaveStruct,
 	pWaveAccessData->pWaveData = (char*)(*wavH) + dataOffset;
 
 	return 0;
-
 //#else
 
 	//todo

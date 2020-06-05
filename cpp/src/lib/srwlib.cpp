@@ -73,10 +73,12 @@ void UtiWarnCheck()
 
 EXP int CALL srwlUtiVerNo(char* verNoStr, int code)
 {//to modify at each new release!
-	if(verNoStr == 0) return SRWL_NO_FUNC_ARG_DATA;
+	//if(verNoStr == 0) return SRWL_NO_FUNC_ARG_DATA;
+	//OC03062020 (commented-out the above)
 
-	const char strCurrenVersionSRW[] = "3.964";
-	const char strCurrenVersionSRWLIB[] = "0.055";
+	//To modify at each new release!
+	const char strCurrenVersionSRW[] = "4.00"; //"3.964"; //to be used e.g. for Python interface
+	const char strCurrenVersionSRWLIB[] = "0.06"; //"0.055"; //Never used?
 
 	const char *pStr=0;
 	switch(code) {

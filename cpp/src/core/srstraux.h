@@ -895,8 +895,16 @@ struct srTRadSect1D {
 		{
 			float Ix = (*tEx)*(*tEx) + (*(tEx+1))*(*(tEx+1)); tEx += 2;
 			float Iz = (*tEz)*(*tEz) + (*(tEz+1))*(*(tEz+1)); tEz += 2;
-			if(Ix > Iz) if(Ix > Imax) { Imax = Ix; cOut = 'x';}
-			else if(Iz > Ix) if(Iz > Imax) { Imax = Iz; cOut = 'z';}
+			//if(Ix > Iz) if(Ix > Imax) { Imax = Ix; cOut = 'x';}
+			//else if(Iz > Ix) if(Iz > Imax) { Imax = Iz; cOut = 'z';}
+			if(Ix > Iz) //OC18052020, pointed-out by P. Fuoss (LCLS)
+			{
+				if(Ix > Imax) { Imax = Ix; cOut = 'x';}
+			}
+			else if(Iz > Ix)
+			{
+				if(Iz > Imax) { Imax = Iz; cOut = 'z';}
+			}
 		}
 		return cOut;
 	}

@@ -23,7 +23,7 @@ proc SrwInit(v)
 Variable v=1
 Silent 1						|	Initializing SRW  ...
 
-String/G SrwVerProc="3.965"
+String/G SrwVerProc="3.97"
 String VerExt=srVerNo()
 String SrwURL="http://ftp.esrf.fr/pub/InsertionDevices/"
 

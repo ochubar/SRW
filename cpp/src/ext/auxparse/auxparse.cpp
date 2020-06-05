@@ -458,7 +458,8 @@ void CAuxParse::StringVect2ArrNoAlloc(vector<string>& vs, char** as, int& numStr
 			//*p_as = new char[curSize + 1];
 			//const char* curStr = it->c_str();
 			const char* curStr = curString.c_str();
-			int lenCurStr = (int)strlen(curStr);
+			//int lenCurStr = (int)strlen(curStr);
+			size_t lenCurStr = strlen(curStr); //OC14052020
 			strncpy(as[i], curStr, lenCurStr);
 			*(as[i] + lenCurStr) = '\0';
 		}

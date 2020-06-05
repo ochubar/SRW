@@ -599,7 +599,8 @@ int CGenMathFFT1D::Make1DFFT(CGenMathFFT1DInfo& FFT1DInfo)
 		}
 #endif //ifndef _WITH_OMP
 
-		int arN[] = {Nx};
+		int arN[] = {(int)Nx}; //OC14052020
+		//int arN[] = {Nx};
 		if(DataToFFT != 0)
 		{
 			//Plan1DFFT = fftwf_plan_many_dft(1, arN, FFT1DInfo.HowMany, DataToFFT, NULL, 1, Nx, pOutDataFFT, NULL, 1, Nx, FFTW_FORWARD, flags); 
@@ -679,7 +680,8 @@ int CGenMathFFT1D::Make1DFFT(CGenMathFFT1DInfo& FFT1DInfo)
 
 #endif
 
-		int arN[] = {Nx};
+		int arN[] = {(int)Nx}; //OC14052020
+		//int arN[] = {Nx};
 		if(DataToFFT != 0)
 		{
 			//Plan1DFFT = fftwf_plan_many_dft(1, arN, FFT1DInfo.HowMany, DataToFFT, NULL, 1, Nx, pOutDataFFT, NULL, 1, Nx, FFTW_BACKWARD, flags); 
