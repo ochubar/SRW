@@ -115,20 +115,17 @@ def srwl_und_flux_en(Ib,kxmax,kzmax,kmin,numkpts,E_elec,lam_u,phix,phiz,n,nPer,e
     #compute kvals and Evals
     #lam_u: undulator wavelength in cm
     kmax = math.sqrt(kxmax**2+kzmax**2)
-    dk = (kmax - kmin)/numkpts
-    kvals=np.arange(kmin, kmax,dk)
+    kvals=np.linspace(kmin, kmax, numkpts)
     #compute Evals
     Evals = KtoE(kvals,E_elec,lam_u,n)
     #compute kxvals and kzvals
     if kxmax > kmin:
-        dkx = (kxmax-kmin)/numkpts
-        kxvals = np.arange(kmin,kxmax,dkx)
+        kxvals=np.linspace(kmin,kxmax,numkpts)
     else:
         kxvals = np.zeros(numkpts)
 
     if kzmax > kmin:
-        dkz = (kzmax-kmin)/numkpts
-        kzvals = np.arange(kmin,kzmax,dkz)
+        kzvals=np.linspace(kmin,kzmax,numkpts)
     else:
         kzvals = np.zeros(numkpts)
 
@@ -159,20 +156,17 @@ def srwl_und_size_en(kxmax,kzmax,kmin,numkpts,E_elec,lam_u,phix,phiz,n,nPer,enDe
     #compute kvals and Evals
     #lam_u: undulator wavelength in cm
     kmax = math.sqrt(kxmax**2+kzmax**2)
-    dk = (kmax - kmin)/numkpts
-    kvals=np.arange(kmin, kmax,dk)
+    kvals=np.linspace(kmin, kmax, numkpts)
     #compute Evals
     Evals = KtoE(kvals,E_elec,lam_u,n)
     #compute kxvals and kzvals
     if kxmax > kmin:
-        dkx = (kxmax-kmin)/numkpts
-        kxvals = np.arange(kmin,kxmax,dkx)
+        kxvals=np.linspace(kmin,kxmax,numkpts)
     else:
         kxvals = np.zeros(numkpts)
 
     if kzmax > kmin:
-        dkz = (kzmax-kmin)/numkpts
-        kzvals = np.arange(kmin,kzmax,dkz)
+        kzvals=np.linspace(kmin,kzmax,numkpts)
     else:
         kzvals = np.zeros(numkpts)
 
@@ -202,20 +196,17 @@ def srwl_und_div_en(kxmax,kzmax,kmin,numkpts,E_elec,lam_u,phix,phiz,n,nPer,enDet
     #compute kvals and Evals
     #lam_u: undulator wavelength in cm
     kmax = math.sqrt(kxmax**2+kzmax**2)
-    dk = (kmax - kmin)/numkpts
-    kvals=np.arange(kmin, kmax,dk)
+    kvals=np.linspace(kmin, kmax, numkpts)
     #compute Evals
     Evals = KtoE(kvals,E_elec,lam_u,n)
     #compute kxvals and kzvals
     if kxmax > kmin:
-        dkx = (kxmax-kmin)/numkpts
-        kxvals = np.arange(kmin,kxmax,dkx)
+        kxvals=np.linspace(kmin,kxmax,numkpts)
     else:
         kxvals = np.zeros(numkpts)
 
     if kzmax > kmin:
-        dkz = (kzmax-kmin)/numkpts
-        kzvals = np.arange(kmin,kzmax,dkz)
+        kzvals=np.linspace(kmin,kzmax,numkpts)
     else:
         kzvals = np.zeros(numkpts)
 
@@ -251,20 +242,17 @@ def srwl_und_ang_flux_en(Ib,kxmax,kzmax,kmin,numkpts,E_elec,lam_u,phix,phiz,n,nP
      #compute kvals and Evals
      #lam_u: undulator wavelength in cm
     kmax = math.sqrt(kxmax**2+kzmax**2)
-    dk = (kmax - kmin)/numkpts
-    kvals=np.arange(kmin, kmax,dk)
+    kvals=np.linspace(kmin, kmax, numkpts)
     #compute Evals
     Evals = KtoE(kvals,E_elec,lam_u,n)
     #compute kxvals and kzvals
     if kxmax > kmin:
-        dkx = (kxmax-kmin)/numkpts
-        kxvals = np.arange(kmin,kxmax,dkx)
+        kxvals=np.linspace(kmin,kxmax,numkpts)
     else:
         kxvals = np.zeros(numkpts)
 
     if kzmax > kmin:
-        dkz = (kzmax-kmin)/numkpts
-        kzvals = np.arange(kmin,kzmax,dkz)
+        kzvals=np.linspace(kmin,kzmax,numkpts)
     else:
         kzvals = np.zeros(numkpts)
 
@@ -303,20 +291,17 @@ def srwl_und_bright_en(Ib,kx,kz,phix,phiz,n,E_elec,lam_u,nPer,epeak,enDetPar,rel
     #compute kvals and Evals
     #lam_u: undulator wavelength in cm
     kmax = math.sqrt(kxmax**2+kzmax**2)
-    dk = (kmax - kmin)/numkpts
-    kvals=np.arange(kmin, kmax,dk)
+    kvals=np.linspace(kmin, kmax, numkpts)
     #compute Evals
     Evals = KtoE(kvals,E_elec,lam_u,n)
     #compute kxvals and kzvals
     if kxmax > kmin:
-        dkx = (kxmax-kmin)/numkpts
-        kxvals = np.arange(kmin,kxmax,dkx)
+        kxvals=np.linspace(kmin, kxmax, numkpts)
     else:
         kxvals = np.zeros(numkpts)
 
     if kzmax > kmin:
-        dkz = (kzmax-kmin)/numkpts
-        kzvals = np.arange(kmin,kzmax,dkz)
+        kzvals=np.linspace(kmin, kzmax, numkpts)
     else:
         kzvals = np.zeros(numkpts)
 
