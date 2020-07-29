@@ -1,2 +1,4 @@
 *.pyc
-
+*.o
+data_example*
+.idea
