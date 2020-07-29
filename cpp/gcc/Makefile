@@ -9,24 +9,23 @@ LIB_DIR=	$(SOFT_DEV_DIR)/../ext_lib
 
 MODE ?= 0
 
-
-CC=cc
-CXX=c++
-
 ifeq ($(OS),Windows_NT)
+	CC ?= cc
+	CXX ?= c++
 	OSFLAG += -DWIN32
 else
 	UNAME_S := $(shell uname -s)
 	ifeq ($(UNAME_S),Linux)
+		CC ?= cc
+		CXX ?= c++
 		OSFLAG += -DLINUX
 	endif
 	ifeq ($(UNAME_S),Darwin)
 		OSFLAG += -D__MAC__
-		CC  = gcc
-		CXX = g++ -stdlib=libc++ -mmacosx-version-min=10.9
+		CC  ?= gcc
+		CXX ?= g++ -stdlib=libc++ -mmacosx-version-min=10.9
 	endif
 endif
-
 
 SRW_SRC_DEF=	-D_GNU_SOURCE -D__USE_XOPEN2K8 -DFFTW_ENABLE_FLOAT -D_GM_WITHOUT_BASE -DSRWLIB_STATIC -DNO_TIMER -DANSI_DECLARATORS -DTRILIBRARY $(OSFLAG)
 CFLAGS=	-O3 -fPIC -I$(SRW_SRC_GEN_DIR) -I$(SRW_SRC_LIB_DIR) -I$(SH_SRC_PARSE_DIR) -I$(SH_SRC_GEN_MATH_DIR) $(SRW_SRC_DEF) 
