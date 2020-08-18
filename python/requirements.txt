@@ -1,0 +1,6 @@
+# List required packages in this file, one per line.
+matplotlib
+# mpi4py
+numpy
+pillow
+scipy
