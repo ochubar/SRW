@@ -1,31 +1,17 @@
-#from distutils.core import setup, Extension
 from setuptools import setup, Extension
 import os
 
-#srwlpy = Extension(
-#    'srwlpy',
-#    extra_link_args=['-fopenmp'],
-#    extra_compile_args=['-Wno-sign-compare','-Wno-parentheses','-fopenmp','-Wno-write-strings'],
-#    define_macros=[('MAJOR_VERSION', '1'), ('MINOR_VERSION', '0')],
-#    include_dirs=[os.path.abspath('../src/lib')],
-#    libraries=['srw', 'm', 'fftw'],
-#    library_dirs=[os.path.abspath('../gcc'), os.path.abspath('../../ext_lib')],
-#    sources=[os.path.abspath('../src/clients/python/srwlpy.cpp')])
-
 ext_kwargs = {'define_macros': [('MAJOR_VERSION', '1'), ('MINOR_VERSION', '0')], 
-              'include_dirs': [os.path.abspath('../src/lib')], 
-              #'libraries': ['srw', 'm', 'fftw'], #OC07022019
-              'library_dirs': [os.path.abspath('../gcc'), os.path.abspath('../../ext_lib')], 
+              'include_dirs': [os.path.abspath('../src/lib')],
+              'library_dirs': [os.path.abspath('../src'), os.path.abspath('../ext_lib')],
               'sources': [os.path.abspath('../src/clients/python/srwlpy.cpp')]} 
 
 if 'MODE' in os.environ: 
     sMode = str(os.environ['MODE'])
-    if sMode == 'omp': 
-        #ext_kwargs.update({'extra_link_args': ['-fopenmp'], 
+    if sMode == 'omp':
         ext_kwargs.update({'libraries': ['srw', 'm', 'fftw'], #OC07022019
                            'extra_link_args': ['-fopenmp'], 
-                           'extra_compile_args': ['-Wno-sign-compare','-Wno-parentheses','-fopenmp','-Wno-write-strings']}) 
-    #elif sMode != '0': 
+                           'extra_compile_args': ['-Wno-sign-compare','-Wno-parentheses','-fopenmp','-Wno-write-strings']})
     elif sMode == '0': 
         ext_kwargs.update({'libraries': ['srw', 'm', 'fftw3f', 'fftw3']}) #OC07022019
     else:

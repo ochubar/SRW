@@ -9,10 +9,11 @@
 # Updated by Maksim Rakitin (NSLS-II, BNL) on May 2, 2016.
 
 root_dir = $(realpath .)
-env_dir = $(root_dir)/env
 ext_dir = $(root_dir)/ext_lib
-gcc_dir = $(root_dir)/cpp/gcc
-py_dir = $(root_dir)/cpp/py
+src_dir = $(root_dir)/src
+py_dir = $(root_dir)/python
+examples_dir = $(root_dir)/examples/python/
+
 fftw2_version = fftw-2.1.5
 fftw2_dir = $(fftw2_version)
 fftw2_file = $(fftw2_version).tar.gz
@@ -20,8 +21,7 @@ fftw3_version = fftw-3.3.8
 fftw3_dir = $(fftw3_version)
 fftw3_file = $(fftw3_version).tar.gz
 log_fftw = /dev/null
-examples_dir = $(env_dir)/work/srw_python
-#example10_data_dir = $(examples_dir)/data_example_10
+
 export MODE ?= 0
 
 nofftw: core pylib
@@ -91,7 +91,7 @@ fftw3:
 fftw: fftw2 fftw3 fftw3f
 
 core: 
-	cd $(gcc_dir); make -j8 clean lib
+	cd $(src_dir); make -j8 clean lib
 
 pylib:
 	cd $(py_dir); make python

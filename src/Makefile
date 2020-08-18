@@ -1,11 +1,11 @@
-SOFT_DEV_DIR=	../
-SRW_SRC_DIR=	$(SOFT_DEV_DIR)/src
-SRW_SRC_GEN_DIR=	$(SRW_SRC_DIR)/core
-SRW_SRC_LIB_DIR=	$(SRW_SRC_DIR)/lib
-SRW_SRC_GENESIS_DIR=	$(SRW_SRC_DIR)/ext/genesis/genesis_july08
-SH_SRC_PARSE_DIR=	$(SRW_SRC_DIR)/ext/auxparse
-SH_SRC_GEN_MATH_DIR=	$(SRW_SRC_DIR)/ext/genmath
-LIB_DIR=	$(SOFT_DEV_DIR)/../ext_lib
+SOFT_DEV_DIR=../
+SRW_SRC_DIR=$(SOFT_DEV_DIR)/src
+SRW_SRC_GEN_DIR=$(SRW_SRC_DIR)/core
+SRW_SRC_LIB_DIR=$(SRW_SRC_DIR)/lib
+SRW_SRC_GENESIS_DIR=$(SRW_SRC_DIR)/ext/genesis/
+SH_SRC_PARSE_DIR=$(SRW_SRC_DIR)/ext/auxparse
+SH_SRC_GEN_MATH_DIR=$(SRW_SRC_DIR)/ext/genmath
+LIB_DIR=$(SOFT_DEV_DIR)/ext_lib
 
 MODE ?= 0
 
@@ -43,15 +43,34 @@ $(error Unknown SRW compilation option)
 endif
 endif
 
-PYPATH=/nsls2/projects/bldev/bldev-env
-#PYPATH=/usr
-#PYFLAGS=-I$(PYPATH)/include/python3.2m -L$(PYPATH)/lib/python3.2
-PYFLAGS=-I$(PYPATH)/include/python2.7 -L$(PYPATH)/lib/python2.7
-#PYFLAGS=-I$(PYPATH)/include/python2.6 -L$(PYPATH)/lib/python2.6
+PYFLAGS=-I$(shell python -c "from __future__ import print_function; from sysconfig import get_paths as gp; print(gp()['include'])")
+PYFLAGS+=-L$(shell python -c "from __future__ import print_function; from sysconfig import get_paths as gp; print(gp()['stdlib'])")
 
-OBJ=	auxparse.o gmfft.o gmfit.o gminterp.o gmmeth.o gmtrans.o srclcuti.o srcradint.o srctrjdt.o sremitpr.o srgsnbm.o srgtrjdt.o srisosrc.o srmagcnt.o srmagfld.o srmatsta.o sroptapt.o sroptcnt.o sroptdrf.o sroptel2.o sroptel3.o sroptelm.o sroptfoc.o sroptgrat.o sroptgtr.o sropthck.o sroptcryst.o sroptmat.o sroptpsh.o sroptshp.o sroptsmr.o sroptwgr.o sroptzp.o sroptzps.o srpersto.o srpowden.o srprdint.o srprgind.o srpropme.o srptrjdt.o srradinc.o srradint.o srradmnp.o srradstr.o srremflp.o srsase.o srsend.o srstowig.o srsysuti.o srthckbm.o srthckbm2.o srtrjaux.o srtrjdat.o srtrjdat3d.o all_com.o check.o diagno.o esource.o field.o incoherent.o initrun.o input.o loadbeam.o loadrad.o magfield.o main.o math.o mpi.o output.o partsim.o pushp.o rpos.o scan.o source.o stepz.o string.o tdepend.o timerec.o track.o srerror.o srwlib.o 
+# src/ext/auxparse
+OBJ =   auxparse.o
 
-PRG=	libsrw.a
+# src/ext/genmath
+OBJ +=  gmfft.o gmfit.o gminterp.o gmmeth.o gmtrans.o
+
+# src/core
+OBJ +=  srclcuti.o srcradint.o srctrjdt.o sremitpr.o srgsnbm.o srgtrjdt.o srisosrc.o
+OBJ +=  srmagcnt.o srmagfld.o srmatsta.o sroptapt.o sroptcnt.o sroptdrf.o sroptel2.o
+OBJ +=  sroptel3.o sroptelm.o sroptfoc.o sroptgrat.o sroptgtr.o sropthck.o sroptcryst.o
+OBJ +=  sroptmat.o sroptpsh.o sroptshp.o sroptsmr.o sroptwgr.o sroptzp.o sroptzps.o
+OBJ +=  srpersto.o srpowden.o srprdint.o srprgind.o srpropme.o srptrjdt.o srradinc.o
+OBJ +=  srradint.o srradmnp.o srradstr.o srremflp.o srsase.o srsend.o srstowig.o srsysuti.o
+OBJ +=  srthckbm.o srthckbm2.o srtrjaux.o srtrjdat.o srtrjdat3d.o
+
+# src/ext/genesis
+OBJ +=  all_com.o check.o diagno.o esource.o field.o incoherent.o initrun.o
+OBJ +=  input.o loadbeam.o loadrad.o magfield.o main.o math.o mpi.o output.o
+OBJ +=  partsim.o pushp.o rpos.o scan.o source.o stepz.o string.o tdepend.o
+OBJ +=  timerec.o track.o srerror.o
+
+# src/lib
+OBJ +=  srwlib.o
+
+PRG= libsrw.a
 
 lib:	$(OBJ)
 	ar -cvq $(PRG) *.o
@@ -74,10 +93,10 @@ lib:	$(OBJ)
 	$(CC) $(CFLAGS) -c $<  
 
 pylib:
-	$(CXX) -shared $(CFLAGS) $(PYFLAGS) -o srwlpy.so ../src/clients/python/srwlpy.cpp libsrw.a $(LDFLAGS)
+	$(CXX) -shared $(CFLAGS) $(PYFLAGS) -o srwlpy.so $(SRW_SRC_DIR)/clients/python/srwlpy.cpp libsrw.a $(LDFLAGS)
 
 srwlclient: $(SRW_SRC_DIR)/clients/c/srwlclient.cpp
-	$(CXX) $(CFLAGS) -O3 -o srwlclient ../src/clients/c/srwlclient.cpp libsrw.a $(LDFLAGS)
+	$(CXX) $(CFLAGS) -O3 -o srwlclient $(SRW_SRC_DIR)/clients/c/srwlclient.cpp libsrw.a $(LDFLAGS)
 
 clean:
 	rm -f *.o *.so *.a srwlclient
