@@ -9,9 +9,9 @@ of propagation of a gaussian beam through a drift with an analytical estimation.
 # v. 0.03
 
 from __future__ import print_function
-import uti_plot
-from srwlib import *
-from uti_math import matr_prod, fwhm
+import srwpy.uti_plot
+from srwpy.srwlib import *
+from srwpy.uti_math import matr_prod, fwhm
 
 print('SRWLIB Python Example # 15:')
 print('Calculating propagation of a gaussian beam through a drift and comparison with the analytical calculation.')

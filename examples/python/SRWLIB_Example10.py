@@ -6,7 +6,7 @@
 #############################################################################
 
 from __future__ import print_function #Python 2.7 compatibility
-from srwlib import *
+from srwpy.srwlib import *
 import os
 import time
 

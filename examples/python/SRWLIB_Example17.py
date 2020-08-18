@@ -7,9 +7,9 @@
 #############################################################################
 
 from __future__ import print_function #Python 2.7 compatibility
-from srwlib import *
-from srwl_uti_smp import *
-from uti_plot import * #required for plotting
+from srwpy.srwlib import *
+from srwpy.srwl_uti_smp import *
+from srwpy.uti_plot import * #required for plotting
 import copy
 import os
 import sys
