@@ -29,7 +29,7 @@ Modules:
 
 .. moduleauthor:: Rob Nagler <nagler@radiasoft.net>
 """
-import uti_plot_com
+from . import uti_plot_com
 import sys
 import traceback
 
@@ -53,7 +53,7 @@ def uti_plot_init(backend=DEFAULT_BACKEND, fname_format=None):
     global _backend
     if backend is not None:
         try:
-            import uti_plot_matplotlib
+            from . import uti_plot_matplotlib
             _backend = uti_plot_matplotlib.Backend(backend, fname_format)
             return
         except:

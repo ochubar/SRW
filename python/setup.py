@@ -1,5 +1,5 @@
-from setuptools import setup, Extension
 import os
+from setuptools import setup, find_packages, Extension
 
 ext_kwargs = {'define_macros': [('MAJOR_VERSION', '1'), ('MINOR_VERSION', '0')], 
               'include_dirs': [os.path.abspath('../src/lib')],
@@ -28,4 +28,5 @@ setup(name='SRW Python interface',
       long_description='''
 This is SRW for Python.
 ''',
+      packages=find_packages(exclude=['docs', 'tests']),
       ext_modules=[srwlpy])

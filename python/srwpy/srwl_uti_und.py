@@ -2,10 +2,9 @@
 # SRWLib for Python: Undulator Utilities v 0.03
 #############################################################################
 
-from srwlib import *
-import uti_parse
-import uti_io
-import uti_math
+from .srwlib import *
+from . import uti_parse
+from . import uti_io
 
 #****************************************************************************
 #****************************************************************************

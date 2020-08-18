@@ -9,12 +9,12 @@
 #############################################################################
 
 from __future__ import print_function #Python 2.7 compatibility
-from srwlib import *
-from srwl_uti_mag import *
-from srwl_uti_und import *
-from uti_plot import *
-import uti_math
-import uti_io
+from .srwlib import *
+from .srwl_uti_mag import *
+from .srwl_uti_und import *
+from .uti_plot import *
+from . import uti_math
+from . import uti_io
 #import optparse #MR081032016 #Consider placing import argparse here
 import time
 import re #OC23052020

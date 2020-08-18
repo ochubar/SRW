@@ -6,7 +6,7 @@ python: srwlpy.so
 
 srwlpy.so:
 	MODE=$(MODE) python setup.py build_ext --build-lib='../src'
-	cp ../src/srwlpy*.so ./srwlpy.so
+	cp ../src/srwlpy*.so ./srwpy/srwlpy.so
 	rm -rf build
 
 clean:
