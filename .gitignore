@@ -1,3 +1,6 @@
+ext_lib
+docs/source/cookbook
+docs/build/
 *.pyc
 *.o
 data_example*
