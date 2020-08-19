@@ -468,10 +468,10 @@ def srwl_opt_setup_smp_rnd_obj2d( #RAC06052020
     :param _nx: number of transmission data points in the horizontal direction
     :param _ny: number of transmission data points in the vertical direction
     :param _dens: approximate density of objects [number of objects per mm^2]
-    :param _edge_frac edge fraction defining how close to the edge can an object be placed on the object plane
+    :param _edge_frac: edge fraction defining how close to the edge can an object be placed on the object plane
     :param _sim_step_size: step size [m] that the simulation will take before trying to place an object (not used in some cases?)
     :param _obj_type: shape of objects to be generated: 1= rectangle, 2= ellipse, 3= triangle, 4= polygon, 5= random shapes
-    :param _r_min_bw_obj:  minimum distance [m] between the centers of any two randomly placed objects 
+    :param _r_min_bw_obj: minimum distance [m] between the centers of any two randomly placed objects
     :param _obj_size_min: minimum allowed size of objects [m]
     :param _obj_size_max: maximum allowed size of objects [m]
     :param _size_dist: type of distribution of object sizes: 1- uniform, 2- normal (Gaussian), 3- Flory–Schulz
@@ -479,11 +479,15 @@ def srwl_opt_setup_smp_rnd_obj2d( #RAC06052020
     :param _ang_max: maximum rotation angle of shape [degrees]
     :param _ang_dist: distribution of rotation angle. Choices are: 1=uniform, 2=normal(Gaussian), 3=Flory–Schulz
     :param _rand_alg: randomization algorithm:
+
         1=  uniform seeding (default); algorithm will create a set of objects positioned on a uniform rectangular grid,
-            based on density, minimum and maximum object size, and the minimum distance between objects;
-            it then applies random seeded noise to the point locations;
+        based on density, minimum and maximum object size, and the minimum distance between objects;
+        it then applies random seeded noise to the point locations;
+
         2=  2D random walk: each object will be positioned using a 2D random walk algorithm;
+
     :param _obj_par1: optional parameter defining object shapes; its meaning depends on the choice of object type (i.e. the value of _obj_type):
+
         if _obj_type == 1 (rectangle): it is ratio of width to length (length is the longest dimension);
             leaving it as None (default) will set the width to length ratio to 1, unless _obj_par2 = True
             is selected to randomize the width to length ratio;
@@ -499,16 +503,18 @@ def srwl_opt_setup_smp_rnd_obj2d( #RAC06052020
         if _obj_type == 5 (random shapes): list of identifiers of shapes to randomly generate
             (1= square, 2= circle, 3= triangle, 4= hexagon, 5= any of 1-4);
             leaving it as None will generate all shape options as [1,2,3,4,5]
+
     :param _obj_par2: optional switch (True / False) defining randomization of object shapes, depending on object type (i.e. the value of _obj_type):
+
         if _obj_type == 1 (rectangle): randomizes the width to length ratio;
         if _obj_type == 2 (ellipse): randomizes the minor to major semi-axes ratio;
         if _obj_type == 3 (triangle): randomizes the height (y, or "opposite") to width (x, or adjunct) ratio;
         if _obj_type == 4 (regular polygon): randomizes the numer of polygon vertices;
+
     :param _extTr: transmission outside the grid/mesh is zero (0), or it is same as on boundary (1)
     :param _e_start: initial value of photon energy (active if > 0 and if _delta and _atten_len are arrays / lists)
     :param _e_fin: final value of photon energy (active if > 0 and if _delta and _atten_len are arrays / lists)
-    :param _ret: type of return: 'srw' returns SRWLOptT type transmission object which simulates the Sample (default),
-        'img' returns processed PIL image object, 'all' returns both SRWLOptT object and PIL image.
+    :param _ret: type of return: 'srw' returns SRWLOptT type transmission object which simulates the Sample (default), 'img' returns processed PIL image object, 'all' returns both SRWLOptT object and PIL image.
     :return: by default, transmission (SRWLOptT) type optical element which simulates the Sample; other options are defined by _ret variable
     """
 

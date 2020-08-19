@@ -118,19 +118,19 @@ def uni_rnd_seed(num, rx_pixels, ry_pixels, obj_max_size, min_dist=16, _seed=Non
     Evenly space "num" points over a (rx, ry) grid.
 
     :param num: particle number.
-    :param rx_pixels: range of the horizontal coordinate [pixels] for which 
-        the transmission is defined.
-    :param ry_pixels: range of the vertical coordinate [pixels] for which 
-        the transmission is defined.
+    :param rx_pixels: range of the horizontal coordinate [pixels] for which the transmission is defined.
+    :param ry_pixels: range of the vertical coordinate [pixels] for which the transmission is defined.
     :param _obj_size_max: maximum allowed size of objects [pixels]
     :param min_dist = 16: minimum distance [pixels] between objects.    
 
     For num_x points in x-direction with spacing delta_x in a 2D array of width
     "w" and height "h":
+
         num_x = sqrt[(w/h)*num + (w-h)^2 / (4*h^2)] - [(w-h) / (2*h)]
         
     For num_y points in y-direction with spacing delta_y in a 2D array of width
     "w" and height "h":
+
         num_y = num / num_x
 
     To get (x,y) point pairs you need delta_x = delta_y. If delta_x != delta_y
@@ -219,17 +219,24 @@ def on_pxy(px, py, bx=100, by=None,
     :param py: mesgrid, coordination of y, shape will be [point number, point number]
     :param bx: box size (x), namely each frame size [array size (pixels)]
     :param by: box size (y), namely each frame size [array size (pixels)]
-    :param _obj_type = 1: shape of objects. 
+    :param _obj_type = 1: shape of objects.
+
         Choices: 1=rectangle, 2=ellipse, 3=triangle, 4=polygon, 5=random_shapes
+
     :param _obj_size_min = 10: minimum allowed size of objects [pixels]
     :param _obj_size_max = 10: maximum allowed size of objects [pixels]
-    :param _size_dist = 1: distribution of sizes. 
+    :param _size_dist = 1: distribution of sizes.
+
         Choices are: 1=uniform, 2=normal(Gaussian), 3=Flory–Schulz
+
     :param _ang_min = 0: minimum rotation angle of shape [degrees].
     :param _ang_max = 0: maximum rotation angle of shape [degrees].
-    :param _ang_dist = 1: distribution of rotation angle. 
+    :param _ang_dist = 1: distribution of rotation angle.
+
         Choices are: 1=uniform, 2=normal(Gaussian), 3=Flory–Schulz
-    :param _obj_par1 = None: 
+
+    :param _obj_par1 = None:
+
         rectangle: ratio of width to length (length is the longest dimension). 
             Leaving value as None will give 1.0 (square) as width to length 
             ratio unless _obj_par2 = True is selected to randomize the 
@@ -248,15 +255,18 @@ def on_pxy(px, py, bx=100, by=None,
             polygon vertices. Max vertices = 12.
         random shapes: Which shapes to randomly generate.
             Choices are:
-                [1='rectangle',2='ellipse',3='triangle',4='polygon'].
+            [1='rectangle',2='ellipse',3='triangle',4='polygon'].
             Leaving value as None will give all shape options as:[1,2,3,4]
+
     :param _obj_par2 = None:
+
         rectangle: value set to True will randomize the width to length ratio.
         ellipse: Value set to True will randomize the minor to major semi-axes ratio.
         triangle: value set to True will randomize the height (y, or "opposite")
-            to width (x, or adjunct) ratio.
+        to width (x, or adjunct) ratio.
         regular polygon: Value set to True will randomize the numer of polygon 
-            vertices.
+        vertices.
+
     :return:array with shapes at (px,py) locations.
     '''
 
@@ -292,17 +302,24 @@ def get_shape(cx, cy, _obj_type = 1,
 
     :param cx: x coordinate of object center.
     :param cy: y coordinate of object center.
-    :param _obj_type = 1: shape of objects. Choices are: 
+    :param _obj_type = 1: shape of objects. Choices are:
+
         1=rectangle, 2=ellipse, 3=triangle, 4=ploygon, 5=random_shapes
+
     :param _obj_size_min = 10: minimum allowed size of objects [pixels]
     :param _obj_size_max = 10: maximum allowed size of objects [pixels]
-    :param _size_dist = 1: distribution of sizes. Choices are: 
+    :param _size_dist = 1: distribution of sizes. Choices are:
+
         1=uniform, 2=normal(Gaussian), 3=Flory–Schulz
+
     :param _ang_min = 0: minimum rotation angle of objects [degrees].
     :param _ang_max = 0: maximum rotation angle of objects [degrees].
-    :param _ang_dist = 1: distribution of rotation angle. Choices are: 
+    :param _ang_dist = 1: distribution of rotation angle. Choices are:
+
         1=uniform, 2=normal(Gaussian), 3=Flory–Schulz
-    :param _obj_par1 = None: 
+
+    :param _obj_par1 = None:
+
         rectangle: ratio of width to length (length is the longest dimension). 
             Leaving value as None will give 1.0 (square) as width to length 
             ratio unless _obj_par2 = True is selected to randomize the 
@@ -322,8 +339,10 @@ def get_shape(cx, cy, _obj_type = 1,
         random shapes: Which shapes to randomly generate.
             Choices are [1='rectangle',2='ellipse',3='triangle',4='polygon'].
             Leaving value as None will give all shape options as:
-                [1,2,3,4]
+            [1,2,3,4]
+
     :param _obj_par2 = None:
+
         rectangle: value set to True will randomize the width 
             to length ratio.
         ellipse: Value set to True will randomize the minor to major 
@@ -332,6 +351,7 @@ def get_shape(cx, cy, _obj_type = 1,
             to width (x, or adjunct) ratio.
         regular polygon: Value set to True will randomize the numer of 
             polygon vertices. Max vertices = 12.
+
     '''
 
     if _obj_type == 1: #rectangle
@@ -670,13 +690,18 @@ def obj_opt_par(_obj_type = 1, _obj_size_min = 10, _obj_size_max = 10, _size_dis
                 _default_axis_ratio = 1.0, _obj_par1 = None, _obj_par2 = None): #RAC25032020
     '''Object Optional Parameters
 
-        :param _obj_type = 1: shape of objects. Choices are: 
+        :param _obj_type = 1: shape of objects. Choices are:
+
             1=rectangle, 2=ellipse, 3=triangle, 4=polygon, 5=random_shapes
+
         :param _obj_size_min = 10: minimum allowed size of rectangle [pixels]
         :param _obj_size_max = 10: maximum allowed size of rectangle [pixels]
-        :param _size_dist = 1: distribution of sizes. Choices are: 
+        :param _size_dist = 1: distribution of sizes. Choices are:
+
             1=uniform, 2=normal(Gaussian), 3=Flory–Schulz
-        :param _obj_par1 = None: 
+
+        :param _obj_par1 = None:
+
             rectangle: ratio of width to length (length is the 
                 longest dimension). 
                 Leaving value as None will give 1.0 (square) as width to length 
@@ -698,8 +723,10 @@ def obj_opt_par(_obj_type = 1, _obj_size_min = 10, _obj_size_max = 10, _size_dis
             random shapes: Which shapes to randomly generate.
                 Choices are [1='rectangle',2='ellipse',3='triangle',4='polygon'].
                 Leaving value as None will give all shape options as:
-                    [1,2,3,4]
+                [1,2,3,4]
+
         :param _obj_par2 = None:
+
             rectangle: value set to True will randomize the width 
                 to length ratio.
             ellipse: Value set to True will randomize the minor to major 
@@ -708,6 +735,7 @@ def obj_opt_par(_obj_type = 1, _obj_size_min = 10, _obj_size_max = 10, _size_dis
                 to width ratio.
             regular polygon: Value set to True will randomize the numer of polygon 
                 vertices. Max vertices = 12.
+
     '''
 
     #Default number of regular polygon vertices
@@ -853,7 +881,8 @@ def rot_obj_vert(cx, cy, _rows, _columns, _ang_min = 0, _ang_max = 0, _ang_dist 
         :param _columns: y coordinates of object vertices (array).
         :param _ang_min = 0: minimum rotation angle of shape [degrees].
         :param _ang_max = 0: maximum rotation angle of shape [degrees].
-        :param _ang_dist = 1: distribution of rotation angle. Choices are: 
+        :param _ang_dist = 1: distribution of rotation angle. Choices are:
+
             1=uniform, 2=normal(Gaussian), 3=Flory–Schulz
     '''
 
@@ -899,7 +928,8 @@ def get_dist(_min_value, _max_value, _dist = 1): #RAC30032020
     Distribution Parameters
         :param _min_value = 0: minimum value.
         :param _max_value = 0: maximum value.
-        :param _dist = 1: distribution of value selection. Choices are: 
+        :param _dist = 1: distribution of value selection. Choices are:
+
             1=uniform, 2=normal(Gaussian), 3=Flory–Schulz
     '''
 

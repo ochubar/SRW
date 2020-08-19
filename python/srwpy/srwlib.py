@@ -1619,7 +1619,8 @@ class SRWLStokes(object):
 
     def to_int(self, _pol=6):
         """Calculates / "extracts" intensity at a given polarization from the Stokes components
-        :param _pol: polarization component to extract: 
+        :param _pol: polarization component to extract:
+
             0- Linear Horizontal; 
             1- Linear Vertical; 
             2- Linear 45 degrees; 
@@ -1627,6 +1628,7 @@ class SRWLStokes(object):
             4- Circular Right; 
             5- Circular Left; 
             6- Total
+
         :return: 1D array with (C-aligned) resulting intensity data
         """
 
@@ -3080,9 +3082,11 @@ class SRWLOptMir(SRWLOpt):
         :param _npt: number of mesh points to represent mirror in tangential direction (used for "thin" approximation)
         :param _nps: number of mesh points to represent mirror in sagital direction (used for "thin" approximation)
         :param _treat_in_out: switch specifying how to treat input and output wavefront before and after the main propagation through the optical element:
+
                 0- assume that the input wavefront is defined in the plane before the optical element, and the output wavefront is required in a plane just after the element;
                 1- assume that the input wavefront is defined in the plane at the optical element center and the output wavefront is also required at the element center;
                 2- assume that the input wavefront is defined in the plane at the optical element center and the output wavefront is also required at the element center; however, before the propagation though the optical element, the wavefront should be propagated through a drift back to a plane just before the optical element, then a special propagator will bring the wavefront to a plane at the optical element exit, and after this the wavefront will be propagated through a drift back to the element center;
+
         :param _ext_in: optical element extent on the input side, i.e. distance between the input plane and the optical center (positive, in [m]) to be used at wavefront propagation manipulations; if 0, this extent will be calculated internally from optical element parameters
         :param _ext_out: optical element extent on the output side, i.e. distance between the optical center and the output plane (positive, in [m]) to be used at wavefront propagation manipulations; if 0, this extent will be calculated internally from optical element parameters        
         """
@@ -3604,10 +3608,12 @@ class SRWLOptG(SRWLOpt):
 
     def find_orient(self, _en, _cff=None, _ang_graz=0, _ang_roll=0): #OC21112019
         """Finds optimal crystal orientation in the input beam frame (i.e. surface normal and tangential vectors) and the orientation of the output beam frame (i.e. coordinates of the longitudinal and horizontal vectors in the input beam frame)
+
         :param _en: photon energy [eV]
         :param _cff: PGM cff parameter, i.e. cos(beta)/cos(alpha); it will be taken into account if _e_avg != 0; if _cff is not None, it dominates over _ang_graz (i.e. it forces its recalculation)
         :param _ang_graz: grazing incidence angle [rad] the grating should be aligned for; it will be taken into account if _e_avg != 0 and _cff is None
-        :param _ang_roll: roll angle [rad] (i.e. angle of diffraction plane angle rotation about incident beam axis) the grating should be alligned for: it is taken into account when _e_avg != 0; _ang_roll = 0 corresponds to the vertical beam deflection; pi/2 to the horizontal deflection; any value in between is allowed
+        :param _ang_roll: roll angle [rad] (i.e. angle of diffraction plane angle rotation about incident beam axis) the grating should be alligned for; it is taken into account when _e_avg != 0; _ang_roll = 0 corresponds to the vertical beam deflection; pi/2 to the horizontal deflection; any value in between is allowed
+
         """
 
         if((_en <= 0) or ((_cff is None) and (_ang_graz == 0))): return None
@@ -3814,6 +3820,7 @@ class SRWLOptCryst(SRWLOpt):
         :param _ang_dif_pl: diffraction plane angle (0 corresponds to the vertical deflection; pi/2 to the horizontal deflection; any value in between is allowed)
         :param _uc: crystal use case: 1- Bragg Reflection, 2- Bragg Transmission (Laue cases to be added)
         :return: list of two triplets of vectors:
+
                 out[0] is the list of 3 base vectors [tangential, saggital, normal] defining the crystal orientation
                 out[1] is the list of 3 base vectors [ex, ey, ez] defining orientation of the output beam frame
                 the cartesian coordinates of all these vectors are given in the frame of the input beam
@@ -3974,6 +3981,7 @@ class SRWLOptCryst(SRWLOpt):
     def get_orient(self, _e=0): #OC17112019
         """Returns data on orientation of optical element in the frame of incident beam (should be called after the optical element was completely set up)
         :return: list of two triplets of vectors:
+
                 out[0] is the list of 3 base vectors [tangential, saggital, normal] defining the crystal orientation
                 out[1] is the list of 3 base vectors [ex, ey, ez] defining orientation of the output beam frame
                 the cartesian coordinates of all these vectors are given in the frame of the input beam
@@ -7365,6 +7373,7 @@ def srwl_uti_math_seq_halton(i, base=2):
 def srwl_wfr_prop_drifts(_wfr, _dz, _nz, _pp, _do3d=False, _nx=-1, _ny=-1, _rx=0, _ry=0, _xc=0, _yc=0, _pol=6, _type=0, _ord_interp=1):
     """
     Propagates wavefront over free space in a number of steps and generates intensity distributions vs (z,x) and (z,y) and possibly (z,x,y)
+
     :param _wfr: input/output wavefront
     :param _dz: longitudinal step size for the drifts
     :param _nz: number of drift steps to be made
@@ -7377,23 +7386,28 @@ def srwl_wfr_prop_drifts(_wfr, _dz, _nz, _pp, _do3d=False, _nx=-1, _ny=-1, _rx=0
     :param _xc: horizontal position for vertical cut of intensity
     :param _yc: vertical position for horizontal cut of intensity
     :param _pol: switch specifying polarization component to be extracted:
+
             =0 -Linear Horizontal; 
             =1 -Linear Vertical; 
             =2 -Linear 45 degrees; 
             =3 -Linear 135 degrees;
             =4 -Circular Right; 
             =5 -Circular Left; 
-            =6 -Total
+            =6 -Total;
+
     :param _type: switch specifying "type" of a characteristic to be extracted:
-            =0 -"Single-Electron" Intensity; 
-            =1 -"Multi-Electron" Intensity; 
-            =2 -"Single-Electron" Flux; 
+
+            =0 -"Single-Electron" Intensity;
+            =1 -"Multi-Electron" Intensity;
+            =2 -"Single-Electron" Flux;
             =3 -"Multi-Electron" Flux; 
             =4 -"Single-Electron" Radiation Phase; 
             =5 -Re(E): Real part of Single-Electron Electric Field;
             =6 -Im(E): Imaginary part of Single-Electron Electric Field;
-            =7 -"Single-Electron" Intensity, integrated over Time or Photon Energy (i.e. Fluence)
+            =7 -"Single-Electron" Intensity, integrated over Time or Photon Energy (i.e. Fluence);
+
     :param _ord_interp: interpolation order for final intensity calc.
+
     :return resulting intensity distributions
     """
 
@@ -7593,6 +7607,7 @@ def srwl_wfr_fn(_fn_core, _type, _form='ascii'): #OC15022021
     Generate standard filenames for radiation characteristics from a given core name
     :param _fn_core: core filename
     :param _type: type of radiation characteristic:
+
         0- Electric Field
         1- Spectral Intensity, i.e. Spectral Flux per Unit Surface Area
         2- Spectral Angular Intensity, i.e. Spectral Flux per Unit Solid Angle
@@ -7901,6 +7916,7 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
     :param _opt_bl: optical beamline (container) to propagate the radiation through (SRWLOptC type)
     :param _pres_ang: switch specifying presentation of the resulting Stokes parameters: coordinate (0) or angular (1) or both (2, to implement !!!)
     :param _char: radiation characteristic to calculate:
+
         0- Total Intensity, i.e. Flux per Unit Surface Area (s0);
         1- Four Stokes components of Flux per Unit Surface Area;
         2- Mutual Intensity Cut (2D) vs X;
@@ -7915,13 +7931,16 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
         20- Electric Field (sum of fields from all macro-electrons, assuming CSR)
         40- Total Intensity, i.e. Flux per Unit Surface Area (s0), Mutual Intensity and Degree of Coherence Cuts vs X & Y;
         41- Total Intensity, i.e. Flux per Unit Surface Area (s0) and Degree of Coherence Cuts vs X & Y;
+
     :param _x0: horizontal center position for mutual intensity calculation
     :param _y0: vertical center position for mutual intensity calculation
     :param _e_ph_integ: integration over photon energy is required (1) or not (0); if the integration is required, the limits are taken from _mesh
     :param _rand_meth: method for generation of pseudo-random numbers for e-beam phase-space integration:
+
         1- standard pseudo-random number generator
         2- Halton sequences
         3- LPtau sequences (to be implemented)
+
     :param _tryToUseMPI: switch specifying whether MPI should be attempted to be used
     :param _wr: initial wavefront radius [m] to assume at wavefront propagation (is taken into account if != 0)
     :param _wre: initial wavefront radius error [m] to assume at wavefront propagation (is taken into account if != 0)

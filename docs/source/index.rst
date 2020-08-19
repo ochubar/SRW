@@ -9,13 +9,13 @@ SRW Documentation
    usage
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Examples Gallery
 
    cookbook/index
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Publications
 
    literature
@@ -24,4 +24,5 @@ SRW Documentation
    :maxdepth: 1
    :caption: Developers
 
+   api/index
    release-history

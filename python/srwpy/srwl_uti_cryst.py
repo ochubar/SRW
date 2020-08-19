@@ -56,6 +56,7 @@ def srwl_uti_cryst_pol_f(_en, _hr, _mat='Si'):
     :param _hr: Miller's indices of reflection
     :param _mat: crystal material
     :return [psi0r, psi0i, psiHr, psiHi]:
+
         psi0r, psi0i - real and imaginary parts of the 0-th Fourier components
         psiHr, psiHi - real and imaginary parts of the H-th Fourier components
     """

@@ -1,6 +1,5 @@
 ﻿"""uti_plot_com module containing plot utilities not specific to a particular backend
 
-.. moduleauthor:: 
 """
 from copy import *
 from array import *
@@ -179,7 +178,6 @@ def rescale_range(allrange, _ar_units, _ec=0, _xc=0, _yc=0):
 
     :param tuple allrange: Order of ranges: e, x, y
     :param tuple _ar_units: units for ranges [e, x, y]
-    :param 
     """
     e0, e1, ne, x0, x1, nx, y0, y1, ny = allrange
 

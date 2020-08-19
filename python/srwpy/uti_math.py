@@ -771,23 +771,26 @@ def get_dist_norm(_min, _max, _scale=1.0, _size=None): #RAC30032020
     :param _min: minimum possible value.
     :param _max: maximum possible value.
     :param _scale = 1.0: Standard deviation (spread or “width”) of the distribution.
-    :param _size = None: (int or tuple of ints) 
-        Output shape. If the given shape is, e.g., (m, n, k), then m * n * k 
-        samples are drawn. If size is None (default), a single value is  returned 
-        if loc and scale are both scalars. Otherwise, np.broadcast(loc, scale).size 
-        samples are drawn.
+    :param _size = None: (int or tuple of ints)
 
-    The probability density for the Gaussian distribution is:
 
-    p(x) = \frac{1}{\sqrt{ 2 \pi \sigma^2 }} e^{ - \frac{ (x - \mu)^2 } {2 \sigma^2} }
+    Output shape. If the given shape is, e.g., (m, n, k), then m * n * k
+    samples are drawn. If size is None (default), a single value is  returned
+    if loc and scale are both scalars. Otherwise, np.broadcast(loc, scale).size
+    samples are drawn.
 
-    Where \mu is the mean and \sigma the standard deviation. The square of the 
-    standard deviation, \sigma^2, is called the variance. The function has its peak 
-    at the mean, and its “spread” increases with the standard deviation 
-    (the function reaches 0.607 times its maximum at x + \sigma and x - \sigma [2]). 
-    This implies that numpy.random.normal is more likely to return samples lying 
+    Where \mu is the mean and \sigma the standard deviation. The square of the
+    standard deviation, \sigma^2, is called the variance. The function has its peak
+    at the mean, and its "spread" increases with the standard deviation
+    (the function reaches 0.607 times its maximum at x + \sigma and x - \sigma [2]).
+    This implies that numpy.random.normal is more likely to return samples lying
     close to the mean, rather than those far away.
+
     '''
+    # The probability density for the Gaussian distribution is:
+    # p(x) = \frac{1}{\sqrt{ 2 \pi \sigma^2 }} e^{ - \frac{ (x - \mu)^2 } {2 \sigma^2}}
+
+
     ### Load package Numpy
     #try:
     #    import numpy as np
