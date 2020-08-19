@@ -1,15 +1,27 @@
-.. Packaging Scientific Python documentation master file, created by
-   sphinx-quickstart on Thu Jun 28 12:35:56 2018.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
-
-srwpy Documentation
-===================
+SRW Documentation
+=================
 
 .. toctree::
    :maxdepth: 2
+   :caption: Getting Started
 
-   cookbook/index
    installation
    usage
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Examples Gallery
+
+   cookbook/index
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Publications
+
+   literature
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Developers
+
    release-history
