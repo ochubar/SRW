@@ -1,5 +1,5 @@
-srwpy
-=====
+SRW Python
+==========
 
 .. toctree::
    :maxdepth: 4

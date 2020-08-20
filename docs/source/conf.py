@@ -17,6 +17,7 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 
+import breathe
 import os
 import sys
 import re
@@ -36,7 +37,7 @@ sys.path.insert(0, os.path.abspath(os.path.dirname('__file__')))
 # ones.
 extensions = [
     'sphinx.ext.autodoc',
-    'sphinx.ext.autosummary',
+    # 'sphinx.ext.autosummary',
     'sphinx.ext.githubpages',
     'sphinx.ext.intersphinx',
     'sphinx.ext.mathjax',
@@ -47,6 +48,7 @@ extensions = [
     'numpydoc',
     'sphinx_copybutton',
     'sphinx_gallery.gen_gallery',
+    'breathe'
 ]
 
 autodoc_mock_imports = ["pykern", "skimage"]
@@ -208,8 +210,6 @@ texinfo_documents = [
 ]
 
 
-
-
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {
     'python': ('https://docs.python.org/3/', None),
@@ -218,3 +218,12 @@ intersphinx_mapping = {
     'pandas': ('https://pandas.pydata.org/pandas-docs/stable', None),
     'matplotlib': ('https://matplotlib.org', None),
 }
+
+# -- Options for Breathe output --------------------------------
+
+# Breath configuration
+breathe_projects = {
+    'SRWCore': '../build/doxyxml_core',
+    'SRWLib': '../build/doxyxml_lib'
+}
+breathe_default_project = 'SRWCore'

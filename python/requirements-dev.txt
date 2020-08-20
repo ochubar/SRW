@@ -13,6 +13,8 @@ pillow # required by sphinx-gallery
 sphinx-copybutton
 sphinx-gallery
 sphinx_rtd_theme
+doxygen
+breathe
 # PyPI deployment tools
 setuptools
 twine
