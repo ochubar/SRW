@@ -49,14 +49,8 @@ set(core_source_files
     srtrjdat3d.cpp
 )
 
-add_library(core ${core_source_files})
-
-if (USE_FFTW3)
-    target_link_libraries(core auxparse genmath fftw fftwf)
-else()
-    target_link_libraries(core auxparse genmath fftw)
-endif()
-
+add_library(core OBJECT ${core_source_files})
+target_link_libraries(core genesis)
 target_include_directories(core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_include_directories(core PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../lib>

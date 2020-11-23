@@ -1,22 +1,42 @@
 set(srw_lib_source_files
     srwlib.cpp
     srwlib.h
+    srerror.cpp
+    srerror.h
 )
 
-add_library(srwlib ${srw_lib_source_files})
+add_library(srw STATIC
+    ${srw_lib_source_files}
+    $<TARGET_OBJECTS:core>
+    $<TARGET_OBJECTS:genesis>
+    $<TARGET_OBJECTS:genmath>
+    $<TARGET_OBJECTS:auxparse>
+)
 
-if (USE_FFTW3)
-    target_link_libraries(srwlib auxparse genmath genesis core fftw fftwf)
-else()
-    find_package(FFTW CONFIG REQUIRED)
-    get_property(_loc TARGET FFTW::fftw PROPERTY LOCATION)
-    message(STATUS "Found FFTW: ${_loc} (found version ${FFTW_VERSION})")
-    target_link_libraries(srwlib auxparse genmath genesis core FFTW::fftw)
-endif()
+find_package(FFTW REQUIRED COMPONENTS FLOAT_LIB DOUBLE_LIB)
+message(STATUS "Found FFTW3: ${FFTW_DOUBLE_LIB}")
+message(STATUS "Found FFTW3F: ${FFTW_FLOAT_LIB}")
 
-target_include_directories(srwlib PUBLIC
+
+target_link_libraries(srw PUBLIC core m FFTW::Float FFTW::Double)
+
+set(LINK_FLAGS ${LINK_FLAGS} "-Wl,-whole-archive")
+
+
+target_include_directories(srw PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/>
 )
-target_include_directories(srwlib PUBLIC
+target_include_directories(srw PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../core>
 )
+target_include_directories(srw PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../ext/auxparse>
+)
+target_include_directories(srw PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../ext/genesis>
+)
+target_include_directories(srw PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../ext/genmath>
+)
+
+install(TARGETS srw LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})

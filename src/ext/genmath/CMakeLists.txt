@@ -11,13 +11,6 @@ set(genmath_source_files
     gmtrans.h
 )
 
-add_library(genmath ${genmath_source_files})
-
-if (USE_FFTW3)
-    target_link_libraries(genmath auxparse fftw fftwf)
-else()
-    target_link_libraries(genmath auxparse fftw)
-endif()
-
-
+add_library(genmath OBJECT ${genmath_source_files})
+target_link_libraries(genmath PUBLIC auxparse)
 target_include_directories(genmath PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

@@ -2,7 +2,11 @@
 cmake_minimum_required(VERSION 3.5 FATAL_ERROR)
 
 # Project name
-project(SRW)
+project(SRW LANGUAGES C)
+
+cmake_policy(SET CMP0074 NEW)
+
+include(GNUInstallDirs)
 
 # Folder for helper modules (Find*.cmake)
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
@@ -27,35 +31,35 @@ option(BUILD_CLIENT_IGOR "Activate Igor Pro Client library build" OFF)
 
 # Temporary path for FFTW in case we need to build it
 set(STAGED_INSTALL_PREFIX ${CMAKE_BINARY_DIR}/stage)
+message(STATUS "${PROJECT_NAME} staged install: ${STAGED_INSTALL_PREFIX}")
 
+# External Libraries
 add_subdirectory(ext_lib)
 
-# OS Dependent configurations
-if(UNIX)
-    if (APPLE)  # MacOS
-        add_definitions(-D__MAC__)
-    else() # Linux
-        add_definitions(-DLINUX)
-    endif()
-else() # Windows
-    add_definitions(-DWIN32)
-endif()
-
-# Add definitions needed to build SRW
-add_definitions(-D_GNU_SOURCE -D__USE_XOPEN2K8 -DFFTW_ENABLE_FLOAT)
-add_definitions(-D_GM_WITHOUT_BASE -DSRWLIB_STATIC -DNO_TIMER)
-add_definitions(-DANSI_DECLARATORS -DTRILIBRARY)
-
 if(USE_OPENMP)
-    add_definitions(-D_WITH_OMP)
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fopenmp -Wno-write-strings")
-    set(USE_FFTW3 OFF)
+    set(CORE_DEPENDS fftw_external)
     #LDFLAGS += -lfftw
 else()
-    add_definitions(-D_FFTW3)
-    set(USE_FFTW3 ON)
+    set(CORE_DEPENDS fftw3_external)
     #LDFLAGS+= -lfftw3f -lfftw3
 endif()
 
-# Main source directory
-add_subdirectory(src)
+include(ExternalProject)
+ExternalProject_Add(${PROJECT_NAME}_core
+  DEPENDS
+    ${CORE_DEPENDS}
+  SOURCE_DIR
+    ${CMAKE_CURRENT_LIST_DIR}/src
+  CMAKE_ARGS
+    -DFFTW_ROOT=${FFTW_ROOT}
+    -DBUILD_CLIENTS=${BUILD_CLIENTS}
+    -DBUILD_CLIENT_PYTHON=${BUILD_CLIENT_PYTHON}
+    -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
+  CMAKE_CACHE_ARGS
+    -DCMAKE_C_FLAGS:STRING=${CMAKE_C_FLAGS}
+    -DCMAKE_PREFIX_PATH:PATH=${CMAKE_PREFIX_PATH}
+  BUILD_ALWAYS
+    1
+  INSTALL_COMMAND
+    ""
+  )
