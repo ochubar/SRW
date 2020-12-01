@@ -9,9 +9,10 @@ from setuptools.command.build_ext import build_ext
 
 
 class CMakeExtension(Extension):
-    def __init__(self, name, sourcedir=''):
+    def __init__(self, name, sourcedir='', package_name=''):
         Extension.__init__(self, name, sources=[])
         self.sourcedir = os.path.abspath(sourcedir)
+        self.package_name = package_name
 
 
 class CMakeBuild(build_ext):
@@ -34,6 +35,7 @@ class CMakeBuild(build_ext):
     def build_extension(self, ext):
         extdir = os.path.abspath(
             os.path.dirname(self.get_ext_fullpath(ext.name)))
+        extdir = os.path.join(extdir, ext.package_name)
         cmake_args = [
             '-DBUILD_CLIENTS=ON',
             '-DBUILD_CLIENT_PYTHON=ON',
@@ -52,6 +54,9 @@ class CMakeBuild(build_ext):
                               cwd=self.build_temp)
         print()  # Add an empty line for cleaner output
 
+base_dir = os.path.dirname(os.path.realpath(__file__))
+original_src_dir = os.path.join(base_dir, '..')
+
 setup(name='srwpy',
       version='1.0',
       description='This is SRW for Python',
@@ -63,6 +68,6 @@ This is SRW for Python.
 ''',
       packages=find_packages(exclude=['docs', 'tests']),
       zip_safe=False,
-      ext_modules=[CMakeExtension('srwlpy', '..')],
+      ext_modules=[CMakeExtension('srwlpy', original_src_dir, 'srwpy')],
       cmdclass=dict(build_ext=CMakeBuild)
 )
