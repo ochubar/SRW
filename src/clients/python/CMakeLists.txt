@@ -12,6 +12,8 @@ find_package(PythonLibs ${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR} EXACT RE
 
 target_link_libraries(srwlpy srw)
 
+# We need the undefined dynamic_lookup to overcome issues with a statically linked
+# python. More details here: https://gitlab.kitware.com/vtk/vtk/-/issues/17214
 set_target_properties(srwlpy PROPERTIES LINK_FLAGS "-undefined dynamic_lookup")
 
 target_include_directories(srwlpy PRIVATE
