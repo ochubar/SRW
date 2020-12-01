@@ -13,12 +13,7 @@ add_library(srw STATIC
     $<TARGET_OBJECTS:auxparse>
 )
 
-find_package(FFTW REQUIRED COMPONENTS FLOAT_LIB DOUBLE_LIB)
-message(STATUS "Found FFTW3: ${FFTW_DOUBLE_LIB}")
-message(STATUS "Found FFTW3F: ${FFTW_FLOAT_LIB}")
-
-
-target_link_libraries(srw PUBLIC core m FFTW::Float FFTW::Double)
+target_link_libraries(srw PUBLIC core m ${FFTW_DOUBLE_LIB} ${FFTW_FLOAT_LIB})
 
 set(LINK_FLAGS ${LINK_FLAGS} "-Wl,-whole-archive")
 

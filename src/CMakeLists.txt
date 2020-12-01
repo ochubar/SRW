@@ -1,17 +1,3 @@
-project(SRW_core)
-cmake_minimum_required(VERSION 3.5 FATAL_ERROR)
-
-cmake_policy(SET CMP0074 NEW)
-
-# Uncomment for VERBOSE Makefiles. Useful for debugging.
-set(CMAKE_VERBOSE_MAKEFILE ON)
-
-# Folder for helper modules (Find*.cmake)
-set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/../cmake" ${CMAKE_MODULE_PATH})
-
-include(GNUInstallDirs)
-
-
 # OS Dependent configurations
 if(UNIX)
     if (APPLE)  # MacOS
