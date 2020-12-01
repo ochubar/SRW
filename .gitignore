@@ -1,8 +1,18 @@
+# Python build products
+python/build/
+python/dist/
+python/srwpy.egg-info/
+
+# Documentation artifacts
 docs/source/cookbook
 docs/build/
+
+# Python and C compiled files
 *.pyc
 *.o
 data_example*
 .idea
+
+# Compiled libraries
 *.a
 *.so
