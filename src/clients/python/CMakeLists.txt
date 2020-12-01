@@ -10,7 +10,9 @@ find_package(PythonInterp REQUIRED)
 # we require python development headers
 find_package(PythonLibs ${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR} EXACT REQUIRED)
 
-target_link_libraries(srwlpy srw ${PYTHON_LIBRARIES})
+target_link_libraries(srwlpy srw)
+
+set_target_properties(srwlpy PROPERTIES LINK_FLAGS "-undefined dynamic_lookup")
 
 target_include_directories(srwlpy PRIVATE
     ${PYTHON_INCLUDE_DIRS}

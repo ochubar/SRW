@@ -28,16 +28,15 @@ add_definitions(-D_GNU_SOURCE -D__USE_XOPEN2K8 -DFFTW_ENABLE_FLOAT)
 add_definitions(-D_GM_WITHOUT_BASE -DSRWLIB_STATIC -DNO_TIMER)
 add_definitions(-DANSI_DECLARATORS -DTRILIBRARY)
 
+add_compile_options(-fPIC)
+
 if(USE_OPENMP)
     add_definitions(-D_WITH_OMP)
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fopenmp -Wno-write-strings")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp -Wno-write-strings")
+    add_compile_options(-fopenmp -Wno-write-strings)
     set(USE_FFTW3 OFF)
     #LDFLAGS += -lfftw
 else()
     add_definitions(-D_FFTW3)
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
     set(USE_FFTW3 ON)
     #LDFLAGS+= -lfftw3f -lfftw3
 endif()
