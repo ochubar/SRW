@@ -16,15 +16,15 @@ add_definitions(-DANSI_DECLARATORS -DTRILIBRARY)
 
 add_compile_options(-fPIC)
 
+message(STATUS "Compiler is: ${CMAKE_C_COMPILER} | ${CMAKE_CXX_COMPILER}")
+
 if(USE_OPENMP)
+    find_package(OpenMP REQUIRED)
     add_definitions(-D_WITH_OMP)
-    add_compile_options(-fopenmp -Wno-write-strings)
-    set(USE_FFTW3 OFF)
-    #LDFLAGS += -lfftw
+    message(STATUS "OpenMP libomp location: ${OpenMP_libomp_LIBRARY} | Include: ${OpenMP_CXX_INCLUDE_DIRS}")
+    message(STATUS "OpenMP Flags: C -> ${OpenMP_C_FLAGS} | CXX -> ${OpenMP_CXX_FLAGS}")
 else()
     add_definitions(-D_FFTW3)
-    set(USE_FFTW3 ON)
-    #LDFLAGS+= -lfftw3f -lfftw3
 endif()
 
 add_subdirectory(ext)

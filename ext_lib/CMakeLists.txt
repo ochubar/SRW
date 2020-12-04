@@ -1,1 +1,7 @@
-add_subdirectory(fftw3)
+if(USE_OPENMP)
+    message(STATUS "Looking for FFTW2")
+    add_subdirectory(fftw)
+else()
+    message(STATUS "Looking for FFTW3")
+    add_subdirectory(fftw3)
+endif()

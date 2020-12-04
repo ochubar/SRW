@@ -13,10 +13,14 @@ add_library(srw STATIC
     $<TARGET_OBJECTS:auxparse>
 )
 
-target_link_libraries(srw PUBLIC core m ${FFTW_DOUBLE_LIB} ${FFTW_FLOAT_LIB})
+if (USE_OPENMP)
+    target_link_libraries(srw PUBLIC core m ${FFTW_DOUBLE_LIB} ${FFTW_FLOAT_LIB} OpenMP::OpenMP_CXX)
+    target_include_directories(srw PUBLIC ${OpenMP_CXX_INCLUDE_DIRS})
+else()
+    target_link_libraries(srw PUBLIC core m ${FFTW_DOUBLE_LIB} ${FFTW_FLOAT_LIB})
+endif()
 
 set(LINK_FLAGS ${LINK_FLAGS} "-Wl,-whole-archive")
-
 
 target_include_directories(srw PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/>
