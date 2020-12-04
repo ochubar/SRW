@@ -1,3 +1,6 @@
+# Build directory
+build/
+
 # Python build products
 python/build/
 python/dist/
