@@ -1341,14 +1341,16 @@ int srTGenOptElem::SetRadRepres(srTSRWRadStructAccessData* pRadAccessData, char 
 		//}
 #else //OC28102018: modified by SY
 
-		//Added by SY (for profiling?) at parallelizing SRW via OpenMP:
-		//srwlPrintTime("SetRadRepres : setup",&start);
-
 		//SY: return outside of parallel regions is not allowed - we do it outside
 
-		int* results = new int[pRadAccessData->ne];
-		if(results == 0) return MEMORY_ALLOCATION_FAILURE;
-		for(long ie = 0; ie < pRadAccessData->ne; ie++) results[ie]=0;
+		int* single_results = new int[pRadAccessData->ne];
+		if(single_results == 0) return MEMORY_ALLOCATION_FAILURE;
+		for(long ie = 0; ie < pRadAccessData->ne; ie++) single_results[ie]=0;
+
+		int max_threads = omp_get_max_threads();
+		int* thread_results = new int[max_threads];
+		if(thread_results == 0) return MEMORY_ALLOCATION_FAILURE;
+		for(int tn = 0; tn < max_threads; tn++) thread_results[tn] = 0;
 
 		//SY: creation (and deletion) of FFTW plans is not thread-safe. Have to do this outside of threads.
 		//(and we don't need to recreate plans for same dimensions anyway)
@@ -1372,14 +1374,14 @@ int srTGenOptElem::SetRadRepres(srTSRWRadStructAccessData* pRadAccessData, char 
 					//members are changed inside Make2DFFT.
 					CGenMathFFT2DInfo FFT2DInfo_local = FFT2DInfo;
 
-					if(results[ie] = ExtractRadSliceConstE(pRadAccessData, ie, AuxEx, AuxEz)) continue;
+					if(single_results[ie] = ExtractRadSliceConstE(pRadAccessData, ie, AuxEx, AuxEz)) continue;
 
 					srTDataPtrsForWfrEdgeCorr DataPtrsForWfrEdgeCorr;
 					if(WfrEdgeCorrShouldBeTreated)
 					{
 						if(CoordOrAng == 1)
 						{
-							if(results[ie] = SetupWfrEdgeCorrData(pRadAccessData, AuxEx, AuxEz, DataPtrsForWfrEdgeCorr)) continue;
+							if(single_results[ie] = SetupWfrEdgeCorrData(pRadAccessData, AuxEx, AuxEz, DataPtrsForWfrEdgeCorr)) continue;
 						}
 					}
 
@@ -1388,10 +1390,10 @@ int srTGenOptElem::SetRadRepres(srTSRWRadStructAccessData* pRadAccessData, char 
 					if(ar_zStartInSlicesE != 0) FFT2DInfo_local.yStart = ar_zStartInSlicesE[ie];
 
 					FFT2DInfo_local.pData = AuxEx;
-					if(results[ie] = FFT2D.Make2DFFT(FFT2DInfo_local, &Plan2DFFT)) continue;
+					if(single_results[ie] = FFT2D.Make2DFFT(FFT2DInfo_local, &Plan2DFFT)) continue;
 
 					FFT2DInfo_local.pData = AuxEz;
-					if(results[ie] = FFT2D.Make2DFFT(FFT2DInfo_local, &Plan2DFFT)) continue;
+					if(single_results[ie] = FFT2D.Make2DFFT(FFT2DInfo_local, &Plan2DFFT)) continue;
 
 					if(WfrEdgeCorrShouldBeTreated)
 					{
@@ -1404,14 +1406,14 @@ int srTGenOptElem::SetRadRepres(srTSRWRadStructAccessData* pRadAccessData, char 
 							}
 						}
 					}
-					results[ie] = SetupRadSliceConstE(pRadAccessData, ie, AuxEx, AuxEz);
+					single_results[ie] = SetupRadSliceConstE(pRadAccessData, ie, AuxEx, AuxEz);
 					//SY: save FFT2DInfo from one of FFT2DInfo_local
 					if(ie == 0) FFT2DInfo = FFT2DInfo_local;
 				} // end for
 			}
 			else
 			{
-				results[omp_get_thread_num()] = MEMORY_ALLOCATION_FAILURE;
+				thread_results[omp_get_thread_num()] = MEMORY_ALLOCATION_FAILURE;
 			}  // end if
 			if(AuxEx != 0) delete[] AuxEx;
 			if(AuxEz != 0) delete[] AuxEz;
@@ -1420,15 +1422,15 @@ int srTGenOptElem::SetRadRepres(srTSRWRadStructAccessData* pRadAccessData, char 
 
 		fftwnd_destroy_plan(Plan2DFFT);
 
-		for(long ie = 0; ie < pRadAccessData->ne; ie++) if(results[ie]) return results[ie];
-		delete[] results;
+		// check results, free memory, exit if there was error
+		result = 0;
+		for(long ie = 0; ie < pRadAccessData->ne; ie++) if(single_results[ie]) result = single_results[ie];
+		for(int tn = 0; tn < max_threads; tn++) if(thread_results[tn]) result = thread_results[tn];
+		delete[]  single_results;
+		delete[]  thread_results;
+		if (result) return result;
 #endif
 	}
-
-	//Added by SY (for profiling?) at parallelizing SRW via OpenMP:
-	//char str[256];
-	//sprintf(str,"%s %d","::SetRadRepres : cycles:",pRadAccessData->ne);
-	//srwlPrintTime(str,&start);
 
 	pRadAccessData->xStep = FFT2DInfo.xStepTr;
 	pRadAccessData->zStep = FFT2DInfo.yStepTr;
