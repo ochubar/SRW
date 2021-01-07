@@ -24,9 +24,9 @@ else()
     BUILD_COMMAND ""
     # This cp line is important. FFTW 2 must be build inplace otherwise
     # the make part will generate invalid library...
-    COMMAND cp -r ${CMAKE_CURRENT_BINARY_DIR}/src/fftw_external/ .
+    COMMAND cp -r ${CMAKE_CURRENT_BINARY_DIR}/src/fftw_external/. .
     COMMAND ./configure --enable-float --with-pic
-    COMMAND sed -e "s/^CFLAGS = /CFLAGS = -fPIC /" -i "" Makefile
+    COMMAND sed -i.bak -e "s/^CFLAGS = /CFLAGS = -fPIC /" Makefile
     COMMAND make -j8
     COMMAND mkdir -p ${STAGED_INSTALL_PREFIX}/lib
     COMMAND cp fftw/.libs/libfftw.a ${STAGED_INSTALL_PREFIX}/lib
