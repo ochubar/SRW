@@ -29,3 +29,4 @@ set(genesis_source_files
 add_library(genesis OBJECT ${genesis_source_files})
 target_link_libraries(genesis genmath)
 target_include_directories(genesis PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_compile_definitions(genesis PRIVATE ${SRW_DEFINITIONS})

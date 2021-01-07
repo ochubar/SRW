@@ -10,11 +10,7 @@ find_package(PythonInterp REQUIRED)
 # we require python development headers
 find_package(PythonLibs ${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR} EXACT REQUIRED)
 
-target_link_libraries(srwlpy srw)
-
-# We need the undefined dynamic_lookup to overcome issues with a statically linked
-# python. More details here: https://gitlab.kitware.com/vtk/vtk/-/issues/17214
-set_target_properties(srwlpy PROPERTIES LINK_FLAGS "-undefined dynamic_lookup")
+target_link_libraries(srwlpy srw m ${FFTW_DOUBLE_LIB} ${FFTW_FLOAT_LIB})
 
 target_include_directories(srwlpy PRIVATE
     ${PYTHON_INCLUDE_DIRS}
@@ -43,6 +39,13 @@ if(UNIX)
     PROPERTIES
       SUFFIX ".so"
     )
+endif()
+if(APPLE)
+    # We need the undefined dynamic_lookup to overcome issues with a statically linked
+    # python. More details here: https://gitlab.kitware.com/vtk/vtk/-/issues/17214
+    set_target_properties(srwlpy PROPERTIES LINK_FLAGS "-undefined dynamic_lookup -shared")
+else()
+    set_target_properties(srwlpy PROPERTIES LINK_FLAGS "-shared")
 endif()
 
 install(TARGETS srwlpy LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})

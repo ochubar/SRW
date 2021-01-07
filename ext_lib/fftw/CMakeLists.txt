@@ -18,14 +18,19 @@ else()
       http://www.fftw.org/fftw-2.1.5.tar.gz
     URL_HASH
       MD5=8d16a84f3ca02a785ef9eb36249ba433
+    CMAKE_ARGS -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}
     CONFIGURE_COMMAND ""
-    BUILD_COMMAND
-        ${CMAKE_CURRENT_BINARY_DIR}/src/fftw_external/configure --enable-float --with-pic --prefix=${STAGED_INSTALL_PREFIX} &&
-        make -j8 &&
-        make install
+    BUILD_COMMAND ""
+    # This cp line is important. FFTW 2 must be build inplace otherwise
+    # the make part will generate invalid library...
+    COMMAND cp -r ${CMAKE_CURRENT_BINARY_DIR}/src/fftw_external/ .
+    COMMAND ./configure --enable-float --with-pic
+    COMMAND sed -e "s/^CFLAGS = /CFLAGS = -fPIC /" -i "" Makefile
+    COMMAND make -j8
+    COMMAND mkdir -p ${STAGED_INSTALL_PREFIX}/lib
+    COMMAND cp fftw/.libs/libfftw.a ${STAGED_INSTALL_PREFIX}/lib
     INSTALL_COMMAND ""
-    PREFIX=${CMAKE_CURRENT_BINARY_DIR}
     )
 
   include(GNUInstallDirs)

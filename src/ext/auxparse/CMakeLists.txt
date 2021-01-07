@@ -5,3 +5,4 @@ set(auxparse_source_files
 
 add_library(auxparse OBJECT ${auxparse_source_files})
 target_include_directories(auxparse PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_compile_definitions(auxparse PRIVATE ${SRW_DEFINITIONS})

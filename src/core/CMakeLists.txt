@@ -51,6 +51,8 @@ set(core_source_files
 
 add_library(core OBJECT ${core_source_files})
 target_link_libraries(core genesis)
+target_compile_definitions(core PRIVATE ${SRW_DEFINITIONS})
+
 target_include_directories(core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_include_directories(core PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../lib>

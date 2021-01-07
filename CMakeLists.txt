@@ -21,6 +21,10 @@ set(CMAKE_VERBOSE_MAKEFILE ON)
 # Uncomment for install messages
 #set(CMAKE_INSTALL_MESSAGE ALWAYS)
 
+# Uncomment for Debug Build
+#set(CMAKE_BUILD_TYPE Debug)
+
+set(CMAKE_BUILD_TYPE Release)
 
 # Option for OpenMP build, OFF by default.
 option(USE_OPENMP "Activate OpenMP build" OFF)

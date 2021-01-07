@@ -26,8 +26,8 @@ class CMakeBuild(build_ext):
 
         cmake_version = LooseVersion(re.search(r'version\s*([\d.]+)',
                                      out.decode()).group(1))
-        if cmake_version < '3.5.0':
-            raise RuntimeError("CMake >= 3.5.0 is required.")
+        if cmake_version < '3.12.0':
+            raise RuntimeError("CMake >= 3.12.0 is required.")
 
         for ext in self.extensions:
             self.build_extension(ext)

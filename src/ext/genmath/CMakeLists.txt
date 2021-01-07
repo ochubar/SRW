@@ -18,3 +18,5 @@ target_include_directories(genmath PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 if(USE_OPENMP)
     target_include_directories(genmath PUBLIC ${OpenMP_CXX_INCLUDE_DIRS})
 endif()
+
+target_compile_definitions(genmath PRIVATE ${SRW_DEFINITIONS})
