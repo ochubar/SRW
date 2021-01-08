@@ -82,13 +82,32 @@ else()
         PREFIX=${CMAKE_CURRENT_BINARY_DIR}
         )
 
+
+      set(
+        FFTW_ROOT ${STAGED_INSTALL_PREFIX}
+        CACHE PATH "Path to internally built FFTW3Config.cmake"
+        FORCE
+      )
+
+      set(
+        FFTW_DOUBLE_LIB ${STAGED_INSTALL_PREFIX}/libfftw3-3.dll
+        CACHE PATH "Path to FFTW"
+        FORCE
+      )
+
+      set(
+        FFTW_FLOAT_LIB ${STAGED_INSTALL_PREFIX}/libfftw3f-3.dll
+        CACHE PATH "Path to FFTWF"
+        FORCE
+      )
+
       # Libraries
       add_library(fftw3 STATIC IMPORTED)
       set_property(TARGET fftw3 PROPERTY IMPORTED_LOCATION ${STAGED_INSTALL_PREFIX}/libfftw3-3.dll)
       add_library(fftw3f STATIC IMPORTED)
       set_property(TARGET fftw3f PROPERTY IMPORTED_LOCATION ${STAGED_INSTALL_PREFIX}/libfftw3f-3.dll)
   endif()
-  
+
   add_dependencies(fftw3 fftw3_external)
   add_dependencies(fftw3f fftw3_external)
 
