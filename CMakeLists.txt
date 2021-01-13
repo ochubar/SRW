@@ -7,13 +7,11 @@ project(SRW)
 
 cmake_policy(SET CMP0074 NEW)
 
-include(GNUInstallDirs)
-
 # Folder for helper modules (Find*.cmake)
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
 
 # Uncomment for VERBOSE Makefiles. Useful for debugging.
-set(CMAKE_VERBOSE_MAKEFILE ON)
+#set(CMAKE_VERBOSE_MAKEFILE ON)
 
 # Useful debug for Find commands
 #set(CMAKE_FIND_DEBUG_MODE ON)
@@ -23,7 +21,6 @@ set(CMAKE_VERBOSE_MAKEFILE ON)
 
 # Uncomment for Debug Build
 #set(CMAKE_BUILD_TYPE Debug)
-
 set(CMAKE_BUILD_TYPE Release)
 
 # Option for OpenMP build, OFF by default.
@@ -46,6 +43,22 @@ option(BUILD_CLIENT_IGOR "Activate Igor Pro Client library build" OFF)
 set(STAGED_INSTALL_PREFIX ${CMAKE_BINARY_DIR}/stage)
 message(STATUS "${PROJECT_NAME} staged install: ${STAGED_INSTALL_PREFIX}")
 
+
+if(UNIX)
+  # Use /lib /bin /include /share folder structure
+  include(GNUInstallDirs)
+else()
+  if (WIN32)
+    set(${CMAKE_INSTALL_LIBDIR} "lib")
+    set(${CMAKE_INSTALL_DATADIR} "share")
+    set(${CMAKE_INSTALL_INCLUDEDIR} "include")
+    set(${CMAKE_INSTALL_BINDIR} "bin")
+    message(STATUS "Setting installation destination on Windows to: ${CMAKE_INSTALL_PREFIX}")
+  else()
+    message(FATAL_ERROR "System not UNIX nor WIN32 - not implemented yet")
+  endif()
+endif()
+
 # Force FFTW to look for STATIC libraries that we need
 set(FFTW_USE_STATIC_LIBS ON)
 
@@ -54,12 +67,3 @@ add_subdirectory(ext_lib)
 
 # Main library
 add_subdirectory(src)
-
-
-
-# TODO:
-#- Finish the Python package setup -> Done
-#- Test with OpenMP and make adjustments (FFTW2, etc) -> Done
-#- Test that
-#- Test with Windows
-#- Make sure Oleg's way still works with the VisualC++.

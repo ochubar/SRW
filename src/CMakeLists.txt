@@ -5,11 +5,12 @@ if(UNIX)
     else() # Linux
         add_definitions(-DLINUX)
     endif()
+    add_compile_options(-fPIC)
 else() # Windows
-    add_definitions(-DWIN32)
+    set(WINDOWS_EXPORT_ALL_SYMBOLS ON)
+    add_definitions(-DWIN32 -D_WINDOWS -D_USRDLL -D_CRT_SECURE_NO_WARNINGS -DNON_UNIX_STDIO -D__VC__)
 endif()
 
-add_compile_options(-fPIC)
 
 message(STATUS "Compiler is: ${CMAKE_C_COMPILER} | ${CMAKE_CXX_COMPILER}")
 

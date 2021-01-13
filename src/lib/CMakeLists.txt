@@ -15,13 +15,19 @@ add_library(srw STATIC
 
 
 # Add definitions needed to build SRW
-target_compile_definitions(srw PRIVATE ${SRW_DEFINITIONS})
+target_compile_definitions(srw PUBLIC ${SRW_DEFINITIONS})
+
+# Libraries in which SRW lib depends
+target_link_libraries(srw core ${FFTW_DOUBLE_LIB} ${FFTW_FLOAT_LIB})
+
+if (UNIX)
+    # Math library is only needed by unix. When using Windows, VS does it for you.
+    target_link_libraries(srw m)
+endif()
 
 if (USE_OPENMP)
-    target_link_libraries(srw PRIVATE core m ${FFTW_DOUBLE_LIB} ${FFTW_FLOAT_LIB} OpenMP::OpenMP_CXX)
+    target_link_libraries(srw OpenMP::OpenMP_CXX)
     target_include_directories(srw PUBLIC ${OpenMP_CXX_INCLUDE_DIRS})
-else()
-    target_link_libraries(srw PRIVATE core m ${FFTW_DOUBLE_LIB} ${FFTW_FLOAT_LIB})
 endif()
 
 target_include_directories(srw PUBLIC

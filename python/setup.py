@@ -40,17 +40,24 @@ class CMakeBuild(build_ext):
             '-DBUILD_CLIENTS=ON',
             '-DBUILD_CLIENT_PYTHON=ON',
             '-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=' + extdir,
+            '-DCMAKE_RUNTIME_OUTPUT_DIRECTORY=' + extdir,
             '-DPYTHON_EXECUTABLE=' + sys.executable]
         env = os.environ.copy()
         if 'MODE' in env:
             if env['MODE'] == 'omp':
                 cmake_args += ['-DUSE_OPENMP=ON']
+        if os.name == 'nt':
+          # We need makefile generator that does not support multi-configuration builds
+          # otherwise windows will output a Release or Debug folder in which the artifacts
+          # will be located.
+          cmake_args.append('-GNMake Makefiles')
+
         if not os.path.exists(self.build_temp):
             os.makedirs(self.build_temp)
         print('Using cmake args as: ', cmake_args)
         subprocess.check_call(['cmake', ext.sourcedir] + cmake_args,
                               cwd=self.build_temp, env=env)
-        subprocess.check_call(['cmake', '--build', '.'],
+        subprocess.check_call(['cmake', '--build', '.', '--config', 'Release'],
                               cwd=self.build_temp)
         print()  # Add an empty line for cleaner output
 
