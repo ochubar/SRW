@@ -17,10 +17,12 @@ if(FFTW_FOUND)
   )
 
 else()
-  if(UNIX)
-      message(STATUS "Suitable FFTW3 could not be located. Downloading and building!")
+  message(STATUS "Suitable FFTW3 could not be located. Downloading and building!")
+  include(ExternalProject)
 
-      include(ExternalProject)
+  if(UNIX)
+
+
       ExternalProject_Add(fftw3_external
         URL
           http://www.fftw.org/fftw-3.3.8.tar.gz
@@ -67,8 +69,6 @@ else()
       set_property(TARGET fftw3f PROPERTY IMPORTED_LOCATION ${STAGED_INSTALL_PREFIX}/lib/libfftw3f.a)
   endif()
   if(WIN32)
-      message(STATUS "Suitable FFTW3 could not be located. Downloading and building!")
-      include(ExternalProject)
       ExternalProject_Add(fftw3_external
         URL
           http://www.fftw.org/fftw-3.3.8.tar.gz
