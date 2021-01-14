@@ -57,7 +57,6 @@ Here are the cmake options along with their usage and description for SRW librar
 Option                  Type   Usage                                           Description
 ======================  ====== =============================================== ==========================================================
 -DUSE_OPENMP            (bool) -DUSE_OPENMP=<ON|OFF>                           Whether or not to build OpenMP capable library
--DBUILD_CLIENTS 		(bool) -DBUILD_CLIENTS=<ON|OFF>                        Whether or not to build `ALL` client libraries
 -DBUILD_CLIENT_C 		(bool) -DBUILD_CLIENT_C=<ON|OFF>                       Whether or not to build the C client library
 -DBUILD_CLIENT_PYTHON   (bool) -DBUILD_CLIENT_PYTHON=<ON|OFF>                  Whether or not to build the Python client library
 -DCMAKE_INSTALL_PREFIX  (str)  -DCMAKE_INSTALL_PREFIX=/home/user/software/SRW  The path in which to install the build artifacts
@@ -94,9 +93,12 @@ Here are the steps::
   $ cd SRW  # This is the folder in which you have the SRW code
   $ mkdir build
   $ cd build
-  $ cmake .. -DUSE_OPENMP=ON -DBUILD_CLIENT_C=ON -DCMAKE_INSTALL_PREFIX=C:\my_install_folder
+  $ cmake .. -GNMake Makefiles -DUSE_OPENMP=ON -DBUILD_CLIENT_C=ON -DCMAKE_INSTALL_PREFIX=C:\my_install_folder
   $ cmake --build . --config Release --target install
 
+
+Note: For Windows it is necessary to specify the *-G* option to select a build system that does not support multi-configuration builds otherwise it will install
+the artifacts in a folder called Release or Debug depending on the *--config* selected.
 
 Python Client
 =============

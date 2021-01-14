@@ -37,7 +37,6 @@ class CMakeBuild(build_ext):
             os.path.dirname(self.get_ext_fullpath(ext.name)))
         extdir = os.path.join(extdir, ext.package_name)
         cmake_args = [
-            '-DBUILD_CLIENTS=ON',
             '-DBUILD_CLIENT_PYTHON=ON',
             '-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=' + extdir,
             '-DCMAKE_RUNTIME_OUTPUT_DIRECTORY=' + extdir,

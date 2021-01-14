@@ -26,9 +26,6 @@ set(CMAKE_BUILD_TYPE Release)
 # Option for OpenMP build, OFF by default.
 option(USE_OPENMP "Activate OpenMP build" OFF)
 
-# Option for Client libraries to be built or not - See src/clients/CMakeLists.txt
-option(BUILD_CLIENTS "Activate Client libraries build" OFF)
-
 # Option for C client library to be built or not - See src/clients/CMakeLists.txt
 option(BUILD_CLIENT_C "Activate C Client library build" OFF)
 
