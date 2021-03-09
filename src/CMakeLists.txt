@@ -19,9 +19,17 @@ if(USE_OPENMP)
     message(STATUS "OpenMP libomp location: ${OpenMP_libomp_LIBRARY} | Include: ${OpenMP_CXX_INCLUDE_DIRS}")
     message(STATUS "OpenMP Flags: C -> ${OpenMP_C_FLAGS} | CXX -> ${OpenMP_CXX_FLAGS}")
     set(SRW_DEFINITIONS -D_GNU_SOURCE -D__USE_XOPEN2K8 -DFFTW_ENABLE_FLOAT -D_GM_WITHOUT_BASE -DSRWLIB_STATIC -DNO_TIMER -DANSI_DECLARATORS -DTRILIBRARY -D_WITH_OMP)
+
+    # Setup OpenMP as a linked library for all targets
+    link_libraries(OpenMP::OpenMP_CXX)
+    # Setup OpenMP include dir for all targets
+    include_directories(${OpenMP_CXX_INCLUDE_DIRS})
 else()
     set(SRW_DEFINITIONS -D_GNU_SOURCE -D__USE_XOPEN2K8 -DFFTW_ENABLE_FLOAT -D_GM_WITHOUT_BASE -DSRWLIB_STATIC -DNO_TIMER -DANSI_DECLARATORS -DTRILIBRARY -D_FFTW3)
 endif()
+
+# Setup definitions for all targets
+add_definitions(${SRW_DEFINITIONS})
 
 add_subdirectory(ext)
 add_subdirectory(core)

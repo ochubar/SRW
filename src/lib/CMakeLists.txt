@@ -25,11 +25,6 @@ if (UNIX)
     target_link_libraries(srw m)
 endif()
 
-if (USE_OPENMP)
-    target_link_libraries(srw OpenMP::OpenMP_CXX)
-    target_include_directories(srw PUBLIC ${OpenMP_CXX_INCLUDE_DIRS})
-endif()
-
 target_include_directories(srw PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/>
 )
