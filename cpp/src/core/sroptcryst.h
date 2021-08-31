@@ -17,6 +17,7 @@
 
 #include "sroptelm.h"
 #include "srwlib.h"
+#include "gminterp.h" //OC08012021
 
 #undef max //to avoid name conflict of numeric_limits<double>::max() and #define max(a, b) to allow for compilation with VC++2013
 #include <limits>
@@ -486,7 +487,8 @@ public:
 		int nMesh = 1;
 		if(pRad->ne > 1) nMesh = pRad->ne + 1;
 
-		const double tolCrossTerm = 1.e-03; //1.e-04; //to steer
+		//const double tolCrossTerm = 1.e-04; //to steer
+		const double tolCrossTerm = 1.e-03; //1.e-04; //OC20012021 (changed back?) //to steer
 		const double tolFractStepMeshChange = 0.1; //to steer
 
 		srTOptCrystMeshTrf *tMeshTrf = pMeshTrf;
@@ -536,6 +538,15 @@ public:
 			tMeshTrf->zStep = 0; if(pRad->nz > 1) tMeshTrf->zStep = (zEndNew - (tMeshTrf->zStart))/(pRad->nz - 1);
 
 			//OCTEST
+			//double x0 = (pRad->xStart)*a11 + (pRad->zStart)*a12 + k0*a13;
+			//double z0 = (pRad->xStart)*a21 + (pRad->zStart)*a22 + k0*a23;
+			//double x1 = xEndOld*a11 + zEndOld*a12 + k0*a13;
+			//double z1 = xEndOld*a21 + zEndOld*a22 + k0*a23;
+			//double x2 = (pRad->xStart)*a11 + zEndOld*a12 + k0*a13;
+			//double z2 = (pRad->xStart)*a21 + zEndOld*a22 + k0*a23;
+			//double x3 = xEndOld*a11 + (pRad->zStart)*a12 + k0*a13;
+			//double z3 = xEndOld*a21 + (pRad->zStart)*a22 + k0*a23;
+
 			//tMeshTrf->zStart = (pRad->zStart)*a22; //+ k0*a23;
 			//double zEndNew = zEndOld*a22; //+ k0*a23;
 			//END OCTEST
@@ -564,9 +575,217 @@ public:
 
 		if(pRad->ne == 1)
 		{
-			if(pMeshTrf->crossTermsAreLarge)
+			if(pMeshTrf->crossTermsAreLarge) //To test / debug this (OC21012021)!
 			{//do interpolation (flip is not required)
-				//ddddddddddddddddddddddddddddddd
+
+				//OC21122020
+				double &a11 = pMeshTrf->matrKLabRef[0][0], &a12 = pMeshTrf->matrKLabRef[0][1], &a13 =  pMeshTrf->matrKLabRef[0][2];
+				double &a21 = pMeshTrf->matrKLabRef[1][0], &a22 = pMeshTrf->matrKLabRef[1][1], &a23 =  pMeshTrf->matrKLabRef[1][2];
+				double detA = a11*a22 - a12*a21;
+				if(detA == 0) detA = 1e-50; //?
+				double inv_detA = 1./(a11*a22 - a12*a21);
+				double ai11 = inv_detA*a22, ai12 = -inv_detA*a12, ai21 = -inv_detA*a21, ai22 = inv_detA*a11;
+				double phEn = pRad->eStart;
+				double waveLength_m = 1.23984193009e-06/phEn;
+				double k0 = phEn/1.23984193009e-06;
+				double ai13_k0 = (-ai11*a13 - ai12*a23)*k0, ai23_k0 = (-ai21*a13 - ai22*a23)*k0;
+				double a13_k0 = a13*k0, a23_k0 = a23*k0;
+
+				double xStartOld = pRad->xStart, zStartOld = pRad->zStart;
+				double xStepOld = pRad->xStep, zStepOld = pRad->zStep;
+				long Nx = pRad->nx, Nz = pRad->nz;
+				long Nx_mi_1 = Nx - 1, Nz_mi_1 = Nz - 1;
+				double xEndOld = xStartOld + xStepOld*Nx_mi_1;
+				double zEndOld = zStartOld + zStepOld*Nz_mi_1;
+				double x0 = xStartOld*a11 + zStartOld*a12 + k0*a13;
+				double z0 = xStartOld*a21 + zStartOld*a22 + k0*a23;
+				double x1 = xEndOld*a11 + zEndOld*a12 + k0*a13;
+				double z1 = xEndOld*a21 + zEndOld*a22 + k0*a23;
+				double x2 = xStartOld*a11 + zEndOld*a12 + k0*a13;
+				double z2 = xStartOld*a21 + zEndOld*a22 + k0*a23;
+				double x3 = xEndOld*a11 + zStartOld*a12 + k0*a13;
+				double z3 = xEndOld*a21 + zStartOld*a22 + k0*a23;
+
+				double xNewStart = x0;
+				if(xNewStart > x1) xNewStart = x1;
+				if(xNewStart > x2) xNewStart = x2;
+				if(xNewStart > x3) xNewStart = x3;
+				double xNewEnd = x0;
+				if(xNewEnd < x1) xNewEnd = x1;
+				if(xNewEnd < x2) xNewEnd = x2;
+				if(xNewEnd < x3) xNewEnd = x3;
+				double xNewStep = (xNewEnd - xNewStart)/Nx_mi_1;
+
+				double zNewStart = z0;
+				if(zNewStart > z1) zNewStart = z1;
+				if(zNewStart > z2) zNewStart = z2;
+				if(zNewStart > z3) zNewStart = z3;
+				double zNewEnd = z0;
+				if(zNewEnd < z1) zNewEnd = z1;
+				if(zNewEnd < z2) zNewEnd = z2;
+				if(zNewEnd < z3) zNewEnd = z3;
+				double zNewStep = (zNewEnd - zNewStart)/Nz_mi_1;
+
+				TreatStronglyOscillatingTermIrregMeshTrf(*pRad, 'r', pMeshTrf->matrKLabRef); //, PolComp);
+
+				float *pEx = pRad->pBaseRadX;
+				float *pEz = pRad->pBaseRadZ;
+				long perX = 2;
+				long perZ = perX*Nx;
+				char TreatPolCompX = pRad->pBaseRadX != 0;
+				char TreatPolCompZ = pRad->pBaseRadZ != 0;
+
+				float *pExNew=0, *pEzNew=0;
+				long long nTot = (pRad->ne)*Nx*Nz*2;
+				if(TreatPolCompX)
+				{
+					pExNew = new float[nTot];
+					if(pExNew == 0) return MEMORY_ALLOCATION_FAILURE;
+					float *tExNew = pExNew;
+					for(long long j=0; j<nTot; j++) *(tExNew++) = 0.;
+				}
+				if(TreatPolCompZ)
+				{
+					pEzNew = new float[nTot];
+					if(pEzNew == 0) return MEMORY_ALLOCATION_FAILURE;
+					float *tEzNew = pEzNew;
+					for(long long j=0; j<nTot; j++) *(tEzNew++) = 0.;
+				}
+
+				char ordInterp = 1; //1- four-point bi-linear; 2- 5-point bi-quadratic
+
+				double reEx, imEx, reEz, imEz, reAux, imAux, arI[5], Ix, Iz, corRat;
+				double z = zNewStart;
+				for(int iz=0; iz<Nz; iz++)
+				{
+					long long perZ_iz = perZ*iz;
+					double x = xNewStart;
+					for(int ix=0; ix<Nx; ix++)
+					{
+						long long ofstNew0 = perZ_iz + perX*ix;
+						double xOld = ai11*x + ai12*z + ai13_k0;
+						double zOld = ai21*x + ai22*z + ai23_k0;
+
+						if((zStartOld <= zOld) && (zOld <= zEndOld) && (xStartOld <= xOld) && (xOld <= xEndOld))
+						{//Do interpolation here: bi-linear interpolation of Re and Im parts with correction of Amplitude
+
+							if(ordInterp == 1)
+							{
+								int iz0 = (int)((zOld - zStartOld)/zStepOld);
+								if(iz0 < 0) iz0 = 0;
+								if(iz0 > Nz_mi_1) iz0 = Nz_mi_1;
+
+								int ix0 = (int)((xOld - xStartOld)/xStepOld);
+								if(ix0 < 0) ix0 = 0;
+								if(ix0 > Nx_mi_1) ix0 = Nx_mi_1;
+
+								double zOld0 = zStartOld + iz0*zStepOld;
+								double zOld1 = zOld0 + zStepOld;
+								double xOld0 = xStartOld + ix0*xStepOld;
+								double xOld1 = xOld0 + xStepOld;
+
+								double x00 = a11*xOld0 + a12*zOld0 + a13_k0;
+								double z00 = a21*xOld0 + a22*zOld0 + a23_k0;
+								double x10 = a11*xOld1 + a12*zOld0 + a13_k0 - x00; //?
+								double z10 = a21*xOld1 + a22*zOld0 + a23_k0 - z00;
+								double x01 = a11*xOld0 + a12*zOld1 + a13_k0 - x00;
+								double z01 = a21*xOld0 + a22*zOld1 + a23_k0 - z00;
+								double x11 = a11*xOld1 + a12*zOld1 + a13_k0 - x00;
+								double z11 = a21*xOld1 + a22*zOld1 + a23_k0 - z00;
+								double arXZ[] = {x10, z10, x01, z01, x11, z11};
+
+								long long perX_ix0 = perX*ix0;
+								long long perX_ix0p1 = perX*(ix0+1);
+								long long perZ_iz0 = perZ*iz0;
+								long long perZ_iz0p1 = perZ*(iz0+1);
+								
+								if(TreatPolCompX)
+								{
+									float *reEx00 = pEx + perX_ix0 + perZ_iz0;
+									float *reEx10 = pEx + perX_ix0p1 + perZ_iz0;
+									float *reEx01 = pEx + perX_ix0 + perZ_iz0p1;
+									float *reEx11 = pEx + perX_ix0p1 + perZ_iz0p1;
+									double arReEx[] = {*reEx00, *reEx10, *reEx01, *reEx11};
+									reEx = CGenMathInterp::Interp2dBiLinVar(x, z, arXZ, arReEx);
+									//bilinear interpolation on irregular mesh, for relative arguments, first point is x = 0, y = 0
+									//arXY is flat array of coordinates of 3 other points {x10, y10, x01, y01, x11, y11}
+									double arImEx[] = {*(reEx00+1), *(reEx10+1), *(reEx01+1), *(reEx11+1)};
+									imEx = CGenMathInterp::Interp2dBiLinVar(x, z, arXZ, arImEx);
+
+									if((reEx != 0.) || (imEx != 0.))
+									{
+										for(int i=0; i<4; i++) { reAux = arReEx[i]; imAux = arImEx[i]; arI[i] = reAux*reAux + imAux*imAux;}
+										Ix = CGenMathInterp::Interp2dBiLinVar(x, z, arXZ, arI);
+										if(Ix < 0.) Ix = 0.;
+										corRat = sqrt(Ix/(reEx*reEx + imEx*imEx));
+										*(pExNew + ofstNew0) = (float)(reEx*corRat);
+										*(pExNew + ofstNew0 + 1) = (float)(imEx*corRat);
+									}
+									else
+									{
+										*(pExNew + ofstNew0) = 0; *(pExNew + ofstNew0 + 1) = 0;
+									}
+								}
+								if(TreatPolCompZ)
+								{
+									float *reEz00 = pEz + perX_ix0 + perZ_iz0;
+									float *reEz10 = pEz + perX_ix0p1 + perZ_iz0;
+									float *reEz01 = pEz + perX_ix0 + perZ_iz0p1;
+									float *reEz11 = pEz + perX_ix0p1 + perZ_iz0p1;
+									double arReEz[] = {*reEz00, *reEz10, *reEz01, *reEz11};
+									reEz = CGenMathInterp::Interp2dBiLinVar(x, z, arXZ, arReEz);
+									double arImEz[] = {*(reEz00+1), *(reEz10+1), *(reEz01+1), *(reEz11+1)};
+									imEz = CGenMathInterp::Interp2dBiLinVar(x, z, arXZ, arImEz);
+
+									if((reEz != 0.) || (imEz != 0.))
+									{
+										for(int i=0; i<4; i++) { reAux = arReEz[i]; imAux = arImEz[i]; arI[i] = reAux*reAux + imAux*imAux;}
+										Iz = CGenMathInterp::Interp2dBiLinVar(x, z, arXZ, arI);
+										if(Iz < 0.) Iz = 0.;
+										corRat = sqrt(Iz/(reEz*reEz + imEz*imEz));
+										*(pEzNew + ofstNew0) = (float)(reEz*corRat);
+										*(pEzNew + ofstNew0 + 1) = (float)(imEz*corRat);
+									}
+									else
+									{
+										*(pEzNew + ofstNew0) = 0; *(pEzNew + ofstNew0 + 1) = 0;
+									}
+								}
+							}
+							//else if(ordInterp == 2) //To program, eventually
+							//{
+							//}
+						}
+						else
+						{
+							if(TreatPolCompX)
+							{
+								*(pExNew + ofstNew0) = 0; *(pExNew + ofstNew0 + 1) = 0;
+							}
+							if(TreatPolCompZ)
+							{
+								*(pEzNew + ofstNew0) = 0; *(pEzNew + ofstNew0 + 1) = 0;
+							}
+						}
+						x += xNewStep;
+					}
+					z += zNewStep;
+				}
+
+				if(TreatPolCompX)
+				{
+					float *tExNew = pExNew, *tEx = pEx;
+					for(long long j=0; j<nTot; j++) *(tEx++) = *(tExNew++);
+					delete[] pExNew;
+				}
+				if(TreatPolCompZ)
+				{
+					float *tEzNew = pEzNew, *tEz = pEz;
+					for(long long j=0; j<nTot; j++) *(tEz++) = *(tEzNew++);
+					delete[] pEzNew;
+				}
+
+				TreatStronglyOscillatingTermIrregMeshTrf(*pRad, 'a', pMeshTrf->matrKLabRef); //, PolComp);
 			}
 			else
 			{//simply change scale

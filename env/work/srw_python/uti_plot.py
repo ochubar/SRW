@@ -140,14 +140,17 @@ def uti_plot1d_m(ars, labels=('X', 'Y'), units=None, styles=None, legend=None): 
 
     _backend.uti_plot1d_m(ars, labels, styles, legend)
 
-def uti_plot2d(ar2d, x_range=None, y_range=None, labels=('Horizontal Position [m]','Vertical Position [m]'), units=None): #OC30052020
+def uti_plot2d(ar2d, x_range=None, y_range=None, labels=('Horizontal Position [m]','Vertical Position [m]', 'Intensity'), units=None): #OC23082021
+#def uti_plot2d(ar2d, x_range=None, y_range=None, labels=('Horizontal Position [m]','Vertical Position [m]'), units=None): #OC30052020
+#def uti_plot2d(ar2d, x_range=None, y_range=None, labels=('Horizontal Position [m]','Vertical Position [m]', 'Intensity'), units=None, show=False): #OC16082021
 #def uti_plot2d(ar2d, x_range, y_range, labels=('Horizontal Position [m]','Vertical Position [m]'), units=None):
     """Generate quad mesh plot from given "flattened" array
 
     :param array ar2d: flat 2d array or list of data points, non-flat 2d array or list, or PIL image
     :param list x_range: Passed to numpy.linspace(start sequence, stop sequnce, num samples)
     :param list y_range: y axis (same structure as x_range)
-    :param tuple labels: [x-axis, y-axis]
+    :param tuple labels: (x-axis, y-axis, z-axis)
+    :param tuple units: (x-axis, y-axis, z-axis)
     """
     #if '_backend' not in locals(): uti_plot_init() #?
 
@@ -160,8 +163,10 @@ def uti_plot2d(ar2d, x_range=None, y_range=None, labels=('Horizontal Position [m
         labels = (labels[0] + ' [' + units[0]+ ']', labels[1] + ' [' + units[1] + ']', strTitle)
 
     _backend.uti_plot2d(ar2d, x_range, y_range, labels)
+    #if(show): uti_plot_show() #OC16082021 (commented-out back)
 
-def uti_plot2d1d(ar2d, x_range, y_range, x=0, y=0, labels=('Horizontal Position', 'Vertical Position', 'Intensity'), units=None, graphs_joined=True):
+def uti_plot2d1d(ar2d, x_range, y_range, x=0, y=0, labels=('Horizontal Position', 'Vertical Position', 'Intensity'), units=None, graphs_joined=True): #OC23082021
+#def uti_plot2d1d(ar2d, x_range, y_range, x=0, y=0, labels=('Horizontal Position', 'Vertical Position', 'Intensity'), units=None, graphs_joined=True, show=False): #OC16082021
     """Generate 2d quad mesh plot from given "flattened" array, and 1d cuts passing through (x, y)
 
     :param array ar2d: flat 2d array of data points
@@ -169,8 +174,8 @@ def uti_plot2d1d(ar2d, x_range, y_range, x=0, y=0, labels=('Horizontal Position'
     :param list y_range: y axis (same structure as x_range)
     :param x: x value for 1d cut
     :param y: y value for 1d cut
-    :param tuple labels: [x-axis, y-axis, z-axis]
-    :param tuple units: [x-axis, y-axis, z-axis]
+    :param tuple labels: (x-axis, y-axis, z-axis)
+    :param tuple units: (x-axis, y-axis, z-axis)
     :param graphs_joined: switch specifying whether the 2d plot and 1d cuts have to be displayed in one panel or separately
     """
     
@@ -219,6 +224,7 @@ def uti_plot2d1d(ar2d, x_range, y_range, x=0, y=0, labels=('Horizontal Position'
     labels = [label2D, label1X, label1Y]
 
     _backend.uti_plot2d1d(ar2d, x_range, y_range, x, y, labels, graphs_joined)
+    #if(show): uti_plot_show() #OC16082021 (commented-out back)
 
 #def uti_plot_img(_img, _x_range=None, _y_range=None, ): #OC29052020
 #    _backend.uti_plot_img(_img)

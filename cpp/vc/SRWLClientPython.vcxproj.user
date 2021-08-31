@@ -19,9 +19,9 @@
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug_Py3_8|x64'">
-    <LocalDebuggerCommand>..\..\Python38_x64\python.exe</LocalDebuggerCommand>
-    <LocalDebuggerCommandArguments>auto_gen_2d_obj_chx.py</LocalDebuggerCommandArguments>
-    <LocalDebuggerWorkingDirectory>C:\SoftwareDevelopments\SRW_Dev\env\work\srw_python</LocalDebuggerWorkingDirectory>
+    <LocalDebuggerCommand>C:\SoftwareDevelopments\Python38_x64\python.exe</LocalDebuggerCommand>
+    <LocalDebuggerCommandArguments>SRWLIB_Example19.py</LocalDebuggerCommandArguments>
+    <LocalDebuggerWorkingDirectory>..\..\env\work\srw_python</LocalDebuggerWorkingDirectory>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug_Py3_7|x64'">
@@ -74,7 +74,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug_Py3_8|Win32'">
     <LocalDebuggerCommand>python</LocalDebuggerCommand>
-    <LocalDebuggerCommandArguments>smf-preliminary-03-an-2d-test-01.py</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>test_hdf5_convert.py</LocalDebuggerCommandArguments>
     <LocalDebuggerWorkingDirectory>..\..\env\work\srw_python</LocalDebuggerWorkingDirectory>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>

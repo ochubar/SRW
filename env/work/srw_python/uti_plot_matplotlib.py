@@ -361,9 +361,16 @@ class Backend(object):
         #ar2d = ar2d.reshape(y_range[2],x_range[2])
 
         isDataAr = False  #OC30052020
-        if isinstance(ar2d, (list, array)):
+
+        #TEST
+        #print(type(ar2d))
+
+        if isinstance(ar2d, (list, array, np.ndarray)): #OC16072020
+        #if isinstance(ar2d, (list, array)):
+
             isFlat = True
-            if isinstance(ar2d[0], (list, array)): isFlat = False
+            if isinstance(ar2d[0], (list, array, np.ndarray)): isFlat = False #OC16072020
+            #if isinstance(ar2d[0], (list, array)): isFlat = False
 
             if((x_range is None) or (y_range is None)):
                 if isFlat: raise Exception('Mesh / grid description for 2D plot is not provided')
@@ -386,6 +393,7 @@ class Backend(object):
             ar2d = np.array(ar2d)
             ar2d = ar2d.reshape(y_range[2], x_range[2])
             isDataAr = True
+
         else: #Perhaps this is not necessary? Image will be displayed in standard way then (with pixel row number starting from top)
             nx = 0; ny = 0
             if(x_range is None):

@@ -58,6 +58,53 @@ def read_ascii_data_cols(_file_path, _str_sep, _i_col_start=0, _i_col_end=-1, _n
     f.close()
     return resCols #attn: returns lists, not arrays!
 
+#**********************Auxiliary function to read-in data rows from ASCII file (2D table):
+def read_ascii_data_rows(_file_path, _str_sep, _i_col_start=0, _i_col_end=-1, _i_row_start=0, _i_row_end=-1, _try_float=True): #OC28012021
+    """
+    Auxiliary function to read-in data rows from ASCII file (2D table)
+    :param _file_path: full path (including file name) to the file
+    :param _str_sep: column separation symbol(s) (string)
+    :param _i_col_start: initial data column to read
+    :param _i_col_end: final data column to read
+    :param _i_row_start: initial data row to read
+    :param _i_row_end: final data row to read
+    :param _try_float: attempt to convert input characters to float or not
+    :return: 2D list containing data rows read
+    """
+    f = open(_file_path, 'r')
+    lines = f.readlines()
+    f.close()
+
+    i_row_start = 0 if(_i_row_start < 0) else _i_row_start
+    i_row_end_p_1 = len(lines)
+    if((_i_row_end > 0) and (_i_row_end < i_row_end_p_1)): i_row_end_p_1 = _i_row_end + 1
+
+    i_col_start = 0 if(_i_col_start < 0) else _i_col_start
+    i_col_end_p_1 = _i_col_end + 1
+
+    resRows = []    
+    for i in range(i_row_start, i_row_end_p_1):
+        curLine = lines[i]
+        curLineParts = curLine.split(_str_sep)
+        curNumParts = len(curLineParts)
+        #print(curLineParts)
+
+        i_col_end_p_1 = curNumParts if(_i_col_end < 0 or _i_col_end >= curNumParts) else i_col_end_p_1
+
+        curRow = []
+        for iCol in range(i_col_start, i_col_end_p_1):
+            curPart = curLineParts[iCol]
+            #print(curPart)
+            
+            if(_try_float):
+                try: curPart = float(curPart)
+                except: pass
+            curRow.append(curPart)
+
+        resRows.append(curRow)
+    
+    return resRows #attn: returns lists, not arrays!
+
 #**********************Auxiliary function to write (save) data comumns to ASCII file (2D table):
 def write_ascii_data_cols(_file_path, _cols, _str_sep, _str_head=None, _i_col_start=0, _i_col_end=-1):
     """

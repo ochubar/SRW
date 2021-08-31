@@ -8,6 +8,7 @@
 
 import os
 import sys
+import random #OC01082020
 import numpy as np
 
 from skimage.draw import polygon, circle, ellipse
@@ -110,7 +111,8 @@ def get_rnd_2D( px, py, amp, rmin=16, try_max=1000):
     return px,py
 
 
-def uni_rnd_seed(num, rx_pixels, ry_pixels, obj_max_size, min_dist=16): #RAC25032020
+def uni_rnd_seed(num, rx_pixels, ry_pixels, obj_max_size, min_dist=16, _seed=None): #OC01082020
+#def uni_rnd_seed(num, rx_pixels, ry_pixels, obj_max_size, min_dist=16): #RAC25032020
     '''
     Uniform Random Seed Object Locations
     Evenly space "num" points over a (rx, ry) grid.
@@ -187,6 +189,12 @@ def uni_rnd_seed(num, rx_pixels, ry_pixels, obj_max_size, min_dist=16): #RAC2503
               " greater than perfectly uniform object spaceing. To preserve"
               + " minimum_dist_between_obj you will need to reduce object_maximum_size"
               + " or decrease object density.")
+
+    #OC01082020
+    if(_seed is not None):
+        if(isinstance(_seed, int)): #Other seeding options?
+            np.random.seed(_seed)
+        
     noise = np.random.uniform(low=minimum_movement,
                               high=delta,
                               size=(len(px), 2))
@@ -203,7 +211,8 @@ def uni_rnd_seed(num, rx_pixels, ry_pixels, obj_max_size, min_dist=16): #RAC2503
 def on_pxy(px, py, bx=100, by=None,
            _obj_type=1, _obj_size_min = 10, _obj_size_max = 10, _size_dist = 1,
            _ang_min = 0, _ang_max = 0, _ang_dist = 1,
-           _obj_par1 = None, _obj_par2 = None): #RAC25032020
+           _obj_par1 = None, _obj_par2 = None, _seed = None): #OC01082020
+           #_obj_par1 = None, _obj_par2 = None): #RAC25032020
     '''Place shapes on (px,py) points
 
     :param px: mesgrid, coordination of x, shape will be [point number, point number]
@@ -253,7 +262,13 @@ def on_pxy(px, py, bx=100, by=None,
 
     if by is None:
         by = bx
-    dd = np.zeros( [bx,by] , dtype = bool)   
+    dd = np.zeros( [bx,by] , dtype = bool)
+
+    #OC01082020
+    if(_seed is not None):
+        if(isinstance(_seed, int)): #Other seeding options?
+            np.random.seed(_seed)
+            random.seed(_seed)
 
     for i in range(px.size): 
         cx = np.ravel(px)[i]

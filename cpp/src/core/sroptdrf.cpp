@@ -131,9 +131,13 @@ int srTDriftSpace::AuxPropagateRadMoments(srTSRWRadStructAccessData* pRadAccessD
 			
 			//Protection against zero or negative spot sizes 
 			SigXe2 = (*(MomZ.pXX)) - (*(MomZ.pX))*(*(MomZ.pX));
+			MinSigX = DiffractionLimitedPropagatedSpotSize('x', pRadAccessData, ie); //OC26112020 (added)
+			MinSigXe2 = MinSigX*MinSigX; //OC26112020 (added)
 			if(SigXe2 < MinSigXe2) *(MomZ.pXX) = (MinSigXe2 + (*(MomZ.pX))*(*(MomZ.pX)));
 			
 			SigZe2 = (*(MomZ.pZZ)) - (*(MomZ.pZ))*(*(MomZ.pZ));
+			MinSigZ = DiffractionLimitedPropagatedSpotSize('z', pRadAccessData, ie); //OC26112020 (added)
+			MinSigZe2 = MinSigZ*MinSigZ; //OC26112020 (added)
 			if(SigZe2 < MinSigZe2) *(MomZ.pZZ) = (MinSigZe2 + (*(MomZ.pZ))*(*(MomZ.pZ)));
 			
 			if(FillMomRatios)
@@ -472,8 +476,12 @@ int srTDriftSpace::PropagateRadiationSimple_PropToWaistBeyondParax(srTSRWRadStru
 
 	if(pRadAccessData->Pres != 0) if(result = SetRadRepres(pRadAccessData, 0)) return result;
 
-	pRadAccessData->TreatQuadPhaseTerm('r');  //OC17122019
+	pRadAccessData->TreatQuadPhaseTerm('r'); //OC17122019
 	//pRadAccessData->TreatQuadPhaseTermTerm('r');
+
+	//OC18062020
+	//double dxGrid = pRadAccessData->xStart + 0.5*(pRadAccessData->xStep)*((pRadAccessData->nx) - 1);
+	//double dzGrid = pRadAccessData->zStart + 0.5*(pRadAccessData->zStep)*((pRadAccessData->nz) - 1);
 
 	double xcOrig = pRadAccessData->xc, zcOrig = pRadAccessData->zc;
 	double InvLambdaM = (pRadAccessData->eStart)*806546.577258;
@@ -483,6 +491,10 @@ int srTDriftSpace::PropagateRadiationSimple_PropToWaistBeyondParax(srTSRWRadStru
 	pRadAccessData->zStep *= InvLambdaM_d_Rz;
 	pRadAccessData->xStart = (pRadAccessData->xStart - xcOrig)*InvLambdaM_d_Rx;
 	pRadAccessData->zStart = (pRadAccessData->zStart - zcOrig)*InvLambdaM_d_Rz;
+	//OCTEST (removed -xcOrig, -zcOrig)
+	//pRadAccessData->xStart = (pRadAccessData->xStart)*InvLambdaM_d_Rx;
+	//pRadAccessData->zStart = (pRadAccessData->zStart)*InvLambdaM_d_Rz;
+
 	if(result = TraverseRadZXE(pRadAccessData, &BufVars)) return result;
 
 	CGenMathFFT2DInfo FFT2DInfo;
@@ -498,8 +510,9 @@ int srTDriftSpace::PropagateRadiationSimple_PropToWaistBeyondParax(srTSRWRadStru
 	CGenMathFFT2D FFT2D;
 
 	//To remove this?
-	srTDataPtrsForWfrEdgeCorr DataPtrsForWfrEdgeCorr;
-	if(result = SetupWfrEdgeCorrData(pRadAccessData, pRadAccessData->pBaseRadX, pRadAccessData->pBaseRadZ, DataPtrsForWfrEdgeCorr)) return result;
+	//OCTEST (removing)
+	//srTDataPtrsForWfrEdgeCorr DataPtrsForWfrEdgeCorr;
+	//if(result = SetupWfrEdgeCorrData(pRadAccessData, pRadAccessData->pBaseRadX, pRadAccessData->pBaseRadZ, DataPtrsForWfrEdgeCorr)) return result;
 
 #if !defined(_FFTW3) && defined(_WITH_OMP) //OC29082019
 	//OC04062020
@@ -526,28 +539,33 @@ int srTDriftSpace::PropagateRadiationSimple_PropToWaistBeyondParax(srTSRWRadStru
 #endif
 
 	//To remove this?
-	if(DataPtrsForWfrEdgeCorr.WasSetup)
-	{
-		MakeWfrEdgeCorrection(pRadAccessData, pRadAccessData->pBaseRadX, pRadAccessData->pBaseRadZ, DataPtrsForWfrEdgeCorr);
-		DataPtrsForWfrEdgeCorr.DisposeData();
-	}
+	//OCTEST (removing)
+	//if(DataPtrsForWfrEdgeCorr.WasSetup)
+	//{
+	//	MakeWfrEdgeCorrection(pRadAccessData, pRadAccessData->pBaseRadX, pRadAccessData->pBaseRadZ, DataPtrsForWfrEdgeCorr);
+	//	DataPtrsForWfrEdgeCorr.DisposeData();
+	//}
 
 	//Perform Electric Field data mirroring, if necessary
 	int sx=1, sz=1;
 	double xStartNew = FFT2DInfo.xStartTr + xcOrig;
+	//double xStartNew = FFT2DInfo.xStartTr + dxGrid; //OC18062020
 	double xStepNew = FFT2DInfo.xStepTr;
 	double zStartNew = FFT2DInfo.yStartTr + zcOrig;
+	//double zStartNew = FFT2DInfo.yStartTr + dzGrid; //OC18062020
 	double zStepNew = FFT2DInfo.yStepTr;
 	if(FFT2DInfo.xStepTr < 0)
 	{
 		sx = -1;
-		xStartNew = -FFT2DInfo.xStartTr + xcOrig; //?
+		xStartNew = -FFT2DInfo.xStartTr + xcOrig; //????
+		//xStartNew = -FFT2DInfo.xStartTr + dxGrid; //OC18062020
 		xStepNew = -FFT2DInfo.xStepTr;
 	}
 	if(FFT2DInfo.yStepTr < 0)
 	{
 		sz = -1;
-		zStartNew = -FFT2DInfo.yStartTr + zcOrig; //?
+		zStartNew = -FFT2DInfo.yStartTr + zcOrig; //????
+		//zStartNew = -FFT2DInfo.yStartTr + dzGrid; //OC18062020
 		zStepNew = -FFT2DInfo.yStepTr;
 	}
 	if((sx < 0) || (sz < 0)) pRadAccessData->MirrorFieldData(sx, sz);

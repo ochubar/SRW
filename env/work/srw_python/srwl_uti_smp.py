@@ -8,11 +8,13 @@
 
 import math
 import os
-import sys
-import time
+#import sys
+#import time
 from array import array
+from copy import * #OC10082021
 
-import srwlib
+#import srwlib
+from srwlib import * #OC28012021
 import uti_io
 
 
@@ -430,9 +432,10 @@ def srwl_opt_setup_transm_from_file(
                         arTr[offset + 1] = -delta * pathInBody  #optical path difference
                         offset += 2
 
-    opT = srwlib.SRWLOptT(_nx=nx, _ny=ny, _rx=rx, _ry=ry,
-                          _arTr=arTr, _extTr=extTr, _Fx=fx, _Fy=fy,
-                          _x=xc, _y=yc, _ne=ne, _eStart=e_start, _eFin=e_fin)
+    #opT = srwlib.SRWLOptT(_nx=nx, _ny=ny, _rx=rx, _ry=ry,
+    opT = SRWLOptT(_nx=nx, _ny=ny, _rx=rx, _ry=ry, #OC28012021
+                   _arTr=arTr, _extTr=extTr, _Fx=fx, _Fy=fy,
+                   _x=xc, _y=yc, _ne=ne, _eStart=e_start, _eFin=e_fin)
 
     opT.input_parms = input_parms
 
@@ -450,7 +453,8 @@ def srwl_opt_setup_smp_rnd_obj2d( #RAC06052020
         _obj_size_min = 0.1e-06, _obj_size_max = 0.1e-06, _size_dist = 1, 
         _ang_min = 0, _ang_max = 0, _ang_dist = 1, _rand_alg = 1,
         _obj_par1 = None, _obj_par2 = None,
-        _ext_tr = 1, _e_start = 0, _e_fin = 0, _ret = 'srw'): #OC01062020
+        _ext_tr = 1, _e_start = 0, _e_fin = 0, _ret = 'srw', _seed = None): #OC01082020
+        #_ext_tr = 1, _e_start = 0, _e_fin = 0, _ret = 'srw'): #OC01062020
         #_ext_tr = 1, _ne = 1, _e_start = 0, _e_fin = 0, _ret = 'srw'): #OC24052020
         #_extTr=1, _ne=1, _e_start=0, _e_fin=0, _ret='srw', _file_path='data_example_17', _file_name='ex17_res_opt_path_dif-ASCII'):
     """Setup Transmission type Optical Element which simulates Random 2D Disk using "srwl_uti_smp_rand_obj2d.py" 
@@ -601,7 +605,9 @@ def srwl_opt_setup_smp_rnd_obj2d( #RAC06052020
         rmin = (_r_min_bw_obj * num)/_rx #convert minimum_obj_dist from units [m] to [# of cells]
         size_max = int(_obj_size_max * (((rx_pixels/(_rx*2))+(rx_pixels/(_rx*2)))/2))
         #try:
-        px, py = uni_rnd_seed(num, rx_pixels, ry_pixels, obj_max_size=size_max, min_dist=rmin) 
+        px, py = uni_rnd_seed(num, rx_pixels, ry_pixels, obj_max_size=size_max, min_dist=rmin, _seed=_seed) #OC01082020
+        #px, py = uni_rnd_seed(num, rx_pixels, ry_pixels, obj_max_size=size_max, min_dist=rmin)
+        
         #print("srwl_uti_smp_rnd_obj2d returned a numpy meshgrid of " + str(num) + " objects ... ")
         #except:
         #    print("srwl_uti_smp_rnd_obj2d failed to return a numpy meshgrid")
@@ -620,7 +626,8 @@ def srwl_opt_setup_smp_rnd_obj2d( #RAC06052020
     object_plane = on_pxy(px, py, bx = rx_pixels, by = ry_pixels,
                           _obj_type = _obj_type, _obj_size_min = size_min, _obj_size_max = size_max, _size_dist = _size_dist,
                           _ang_min = _ang_min, _ang_max = _ang_max, _ang_dist = _ang_dist,
-                          _obj_par1 = _obj_par1, _obj_par2 = _obj_par2)
+                          _obj_par1 = _obj_par1, _obj_par2 = _obj_par2, _seed = _seed) #OC01082020
+                          #_obj_par1 = _obj_par1, _obj_par2 = _obj_par2)
     #print('completed (lasted', round(time.time() - t0, 6), 's)')
     #except:
     #print("\"srwl_uti_smp_rnd_obj2d.py\" function \"on_pxy\" failed to return a numpy array. " +
@@ -782,10 +789,83 @@ def srwl_opt_setup_smp_rnd_obj2d( #RAC06052020
 
     ### Create transmission (SRWLOptT) type optical element
     #opT = srwlib.SRWLOptT(_nx=_nx, _ny=_ny, _rx=_rx, _ry=_ry, _arTr=arTr, _extTr=_ext_tr, _x=_xc, _y=_yc, _ne=_ne, _eStart=_e_start, _eFin=_e_fin)
-    opT = srwlib.SRWLOptT(_nx=_nx, _ny=_ny, _rx=_rx, _ry=_ry, _arTr=arTr, _extTr=_ext_tr, _x=_xc, _y=_yc, _ne=ne, _eStart=_e_start, _eFin=_e_fin) #OC01062020
+    #opT = srwlib.SRWLOptT(_nx=_nx, _ny=_ny, _rx=_rx, _ry=_ry, _arTr=arTr, _extTr=_ext_tr, _x=_xc, _y=_yc, _ne=ne, _eStart=_e_start, _eFin=_e_fin) #OC01062020
+    opT = SRWLOptT(_nx=_nx, _ny=_ny, _rx=_rx, _ry=_ry, _arTr=arTr, _extTr=_ext_tr, _x=_xc, _y=_yc, _ne=ne, _eStart=_e_start, _eFin=_e_fin) #OC28012021
     opT.input_parms = input_parms # add user input parameters to transmission optical element
 
     #OC28052020
     if(_ret == 'srw'): return opT 
     elif(_ret == 'all'): return opT, img
     else: return None
+
+# ********************** Create transmission element from the data from a list of object definitions:
+def srwl_opt_setup_transm_from_obj3d( #OC28012021
+#def srwl_opt_setup_transm_from_obj2d( #HG28012021
+        shape_defs, delta, atten_len, rx, ry, nx, ny,
+        arTr=None, extTr=0, fx=1e+23, fy=1e+23,
+        xc=0, yc=0, ne=1, e_start=0, e_fin=0):
+    """Setup Sample element from a list of object definitions.
+    :param shape_defs: list of object shape definitions.
+    :param delta: refractive index decrement.
+    :param atten_len: attenuation length [m].
+    :param rx: range of the horizontal coordinate [m] for which the transmission is defined
+    :param ry: range of the vertical coordinate [m] for which the transmission is defined
+    :param nx: number of transmission data points in the horizontal direction
+    :param ny: number of transmission data points in the vertical direction
+    :param arTr: complex C-aligned data array (of 2*ne*nx*ny length) storing amplitude transmission and optical path difference as function of transverse coordinates
+    :param extTr: transmission outside the grid/mesh is zero (0), or it is same as on boundary (1)
+    :param fx: estimated focal length in the horizontal plane [m]
+    :param fy: estimated focal length in the vertical plane [m]
+    :param xc: horizontal coordinate of center [m]
+    :param yc: vertical coordinate of center [m]
+    :param ne: number of transmission data points vs photon energy
+    :param e_start: initial photon energy [eV]
+    :param e_fin: final photon energy [eV].
+    :return: by default, transmission (SRWLOptT) type optical element which simulates the Sample
+    """
+
+    input_parms = {
+        "type": "sample",
+        "refractiveIndex": delta,
+        "attenuationLength": atten_len,
+        "horizontalCenterCoordinate": xc,
+        "verticalCenterCoordinate": yc,
+        "initialPhotonEnergy": e_start,
+        "finalPhotonPnergy": e_fin,
+        "horizontalRange": rx,
+        "verticalRange": ry,
+        "horizontalPoints": nx,
+        "verticalPoints": ny,
+    }
+
+    #OC10112018
+    #specPropAreDef = False #OC13082021 (commented-out)
+    if(ne > 1):
+        if((isinstance(delta, list) or isinstance(delta, array)) and (isinstance(atten_len, list) or isinstance(atten_len, array))):
+            lenDelta = len(delta)
+            if(not ((lenDelta == len(atten_len)) and (lenDelta == ne))): #OC13082021
+                raise Exception("Inconsistent spectral refractive index decrement and/or attenuation length data")
+            #if((lenDelta == len(atten_len)) and (lenDelta == ne)): specPropAreDef = True
+            #else: raise Exception("Inconsistent spectral refractive index decrement and/or attenuation length data")
+
+    if not isinstance(delta, list):
+        delta = [delta]
+    if not isinstance(atten_len, list):
+        atten_len = [atten_len]
+
+    nTot = 2 * ne * nx * ny
+    arTr = array('d', [0]*nTot)
+
+    opT = SRWLOptT(_nx=nx, _ny=ny, _rx=rx, _ry=ry,
+                   _arTr=arTr, _extTr=extTr, _Fx=fx, _Fy=fy,
+                   _x=xc, _y=yc, _ne=ne, _eStart=e_start, _eFin=e_fin)
+    opT.input_parms = input_parms
+    srwl.CalcTransm(opT, delta, atten_len, shape_defs) #OC24082021 (changing order of delta and atten_len, to be in line with other cases of defining Transmission)
+    #srwl.CalcTransm(opT, atten_len, delta, shape_defs) #OC28012021
+    #srwl.CalcTransm(opT, atten_len, delta, shape_defs, None)
+
+    #DEBUG
+    #print(opT.arTr[3031*(2*nx) + 3378*2])
+    #END DEBUG
+
+    return opT

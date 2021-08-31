@@ -309,7 +309,8 @@ public:
 			double MagnH = bufErrH*m_grAuxAnamorphMagnH;
 			pRadAccessData->RobsX = RhOld*MagnH;
 			pRadAccessData->RobsXAbsErr *= (bufErrH*bufErrH);
-			pRadAccessData->xc = (pRadAccessData->xc - TransvCenPoint.x)*MagnH;
+			pRadAccessData->xc = TransvCenPoint.x + (pRadAccessData->xc - TransvCenPoint.x)*MagnH; //OC04082021 (see srTFocusingElem::PropagateWaveFrontRadius)
+			//pRadAccessData->xc = (pRadAccessData->xc - TransvCenPoint.x)*MagnH;
 
 			double anaMagnVe2 = m_grAuxAnamorphMagnV*m_grAuxAnamorphMagnV;
 			double RvOld = pRadAccessData->RobsZ;
@@ -317,10 +318,21 @@ public:
 			double MagnV = bufErrV*m_grAuxAnamorphMagnV;
 			pRadAccessData->RobsZ = RvOld*MagnV;
 			pRadAccessData->RobsZAbsErr *= (bufErrV*bufErrV);
-			pRadAccessData->zc = (pRadAccessData->zc - TransvCenPoint.y)*MagnV;
+			pRadAccessData->zc = TransvCenPoint.y + (pRadAccessData->zc - TransvCenPoint.y)*MagnV; //OC04082021 (see srTFocusingElem::PropagateWaveFrontRadius)
+			//pRadAccessData->zc = (pRadAccessData->zc - TransvCenPoint.y)*MagnV;
+
 			return 0;
 		}
-		else return srTFocusingElem::PropagateWaveFrontRadius(pRadAccessData);
+		else
+		{//OC04082021 (taking into account output frame definition for mirrors - to be checked!)
+			double xcOld = pRadAccessData->xc, zcOld = pRadAccessData->zc;
+			int res = srTFocusingElem::PropagateWaveFrontRadius(pRadAccessData);
+			if(res != 0) return res;
+			if((pRadAccessData->xc)*xcOld <= 0.) pRadAccessData->xc *= -1;
+			if((pRadAccessData->zc)*zcOld <= 0.) pRadAccessData->zc *= -1;
+			return 0;
+		}
+		//else return srTFocusingElem::PropagateWaveFrontRadius(pRadAccessData);
 	}
 };
 
@@ -410,14 +422,17 @@ public:
 		//double z0 = -m_p*sinAlp;
 		double z0 = m_p*sinAlp; //OC170116
 
-		double tgBet = -m_az*x0/sqrt(1. - x0E2/m_axE2);
-		double tgBetE2 = tgBet*tgBet;
-		double aux1 = m_axE2 + m_azE2*tgBetE2;
-		double aux2 = x0 + z0*tgBet;
-		double dd = sqrt((aux1 - aux2*aux2)/aux1);
-		double azt = m_ax*m_az*dd/sqrt(aux1);
-		m_ay = sqrt(m_radSag*azt)/dd;
-		m_ayE2 = m_ay*m_ay;
+		//OC24062020 (commented-out the things below)
+		//double tgBet = -m_az*x0/sqrt(1. - x0E2/m_axE2);
+		//double tgBetE2 = tgBet*tgBet;
+		//double aux1 = m_axE2 + m_azE2*tgBetE2;
+		//double aux2 = x0 + z0*tgBet;
+		//double dd = sqrt((aux1 - aux2*aux2)/aux1);
+		//double azt = m_ax*m_az*dd/sqrt(aux1);
+		//m_ay = sqrt(m_radSag*azt)/dd;
+		//OCTEST
+		//if(::fabs(m_radSag) < 1.e+10) m_ay = m_az;
+		//m_ayE2 = m_ay*m_ay;
 
 		m_xcLocNorm = x0; //coordinates of mirror center in the "Local Normal" frame, where the elipse is described by x^2/m_ax^2 + y^2/m_ay^2 + z^2/m_az^2 = 1
 		m_zcLocNorm = z0;
@@ -428,6 +443,14 @@ public:
 		double invNorm = 1./sqrt(xnLocNorm*xnLocNorm + znLocNorm*znLocNorm);
 		m_cosAngRotNormLoc = znLocNorm*invNorm; //cos and sin of rotation angle between Local and "Local Normal" frames
 		m_sinAngRotNormLoc = xnLocNorm*invNorm;
+
+		//OC24062020
+		TVector3d vExLocNorm(m_cosAngRotNormLoc, m_sinAngRotNormLoc, 0); //Coordinates of "Local Normal" frame vectors in the Local frame
+		TVector3d vEzLocNorm(-m_sinAngRotNormLoc, m_cosAngRotNormLoc, 0);
+		double axx = m_cosAngRotNormLoc, azx = m_sinAngRotNormLoc; //Check signs!?
+		double axz = -m_sinAngRotNormLoc, azz = m_cosAngRotNormLoc;
+		m_ay = m_ax*m_az*sqrt(m_radSag*fabs((axz*azx - axx*azz)/(m_xcLocNorm*axz*m_az*m_az - m_zcLocNorm*axx*m_ax*m_ax)));
+		m_ayE2 = m_ay*m_ay;
 
 		//Coordinates of mirror edges in the Local frame:
 		double x1Loc = m_halfDim1, x2Loc = -m_halfDim1;

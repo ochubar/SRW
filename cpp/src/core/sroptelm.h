@@ -119,8 +119,6 @@ public:
 #endif
 	}
 
-	//virtual int PropagateRadiation(srTSRWRadStructAccessData*, int) { return 0;}
-	//virtual int PropagateRadiation(srTSRWRadStructAccessData*, int, srTRadResizeVect&) { return 0;}
 	virtual int PropagateRadiation(srTSRWRadStructAccessData*, srTParPrecWfrPropag&, srTRadResizeVect&) { return 0;}
 
 	virtual int PropagateRadMoments(srTSRWRadStructAccessData*, srTMomentsRatios*) { return 0;}
@@ -293,6 +291,7 @@ public:
 	//void TreatStronglyOscillatingTermIrregMesh(srTSRWRadStructAccessData&, float*, float, float, float, float, char, char =0, int =-1);
 	void TreatStronglyOscillatingTermIrregMesh(srTSRWRadStructAccessData&, double*, double, double, double, double, char, char =0, int =-1); //OC260114
 	//void TreatStronglyOscillatingTermIrregMesh(srTSRWRadStructAccessData&, double*, double, double, double, double, char, char =0, int =-1, double =1, double =1); //OC220214
+	void TreatStronglyOscillatingTermIrregMeshTrf(srTSRWRadStructAccessData& RadAccessData, char AddOrRem, double CrdTrf[2][3], char PolComp =0, int ieOnly =-1); //OC27122020
 
 	//inline void SetupInterpolAux02(srTInterpolAuxF*, srTInterpolAux01*, srTInterpolAux02*);
 	inline static void SetupInterpolAux02(srTInterpolAuxF*, srTInterpolAux01*, srTInterpolAux02*); //OC02022020

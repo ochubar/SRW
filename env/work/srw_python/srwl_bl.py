@@ -1708,7 +1708,8 @@ class SRWLBeamline(object):
 
     #------------------------------------------------------------------------
     #def calc_wfr_prop(self, _wfr, _pres_ang=0, _pol=6, _int_type=0, _dep_type=3, _fname=''):
-    def calc_wfr_prop(self, _wfr, _pres_ang=0, _pol=6, _int_type=0, _dep_type=3, _fname='', _det=None): #OC06122016
+    #def calc_wfr_prop(self, _wfr, _pres_ang=0, _pol=6, _int_type=0, _dep_type=3, _fname='', _det=None): #OC06122016
+    def calc_wfr_prop(self, _wfr, _pres_ang=0, _pol=6, _int_type=0, _dep_type=3, _fname='', _det=None, _rad_view=None): #OC08022021
         """Calculates single-electron (/ fully coherent) wavefront propagation
         :param _wfr: wavefront (instance of SRWLWfr) to be propagated (and modified in place!)
         :param _pres_ang: switch specifying whether the result of the propagation should be shown in angular presentation (1) or not (0)
@@ -1738,8 +1739,9 @@ class SRWLBeamline(object):
             4- vs e&x (photon energy or time and horizontal position or angle);
             5- vs e&y (photon energy or time and vertical position or angle);
             6- vs e&x&y (photon energy or time, horizontal and vertical positions or angles);
-            
         :param _fname: name of file to save the resulting data to
+        :param _det: detector object defining mesh and possibly other characteristics of radiation to be extracted after the propagation
+        :param _rad_view: list of indexes (1-based) of optical elements in self.optics container after which the intensity distributions or other radiation characteristics shoudl be extracted
         :return: 1D array with (C-aligned) resulting intensity data; it also modified _wfr in place
         """
 
@@ -1756,7 +1758,17 @@ class SRWLBeamline(object):
         #t0 = dt.now(); #OCTEST
         #print(t0) #OCTEST
 
-        srwl.PropagElecField(_wfr, self.optics)
+        radView = None #OC08022021
+        if(_rad_view is not None):
+            nInd = len(_rad_view)
+            if(nInd > 0):
+                radView = []
+                for i in range(nInd):
+                    intType = 0 if(_int_type < 0) else _int_type
+                    radView.append([_rad_view[i], _pol, intType, _dep_type, 0, SRWLRadMesh()])
+            
+        srwl.PropagElecField(_wfr, self.optics, radView) #OC08022021
+        #srwl.PropagElecField(_wfr, self.optics)
 
         #dt = datetime.now() #OCTEST
         #t = dt.now(); #OCTEST
@@ -1769,6 +1781,34 @@ class SRWLBeamline(object):
         #print('_wfr.Rx=',  _wfr.Rx, '   _wfr.Ry=',  _wfr.Ry)
 
         if(_pres_ang != 0): srwl.SetRepresElecField(_wfr, 'a')
+
+        sValUnitName = 'ph/s/.1%bw/mm^2' #OC08022021 (moved up) #consider allowing for other units (for FEL applications)
+
+        if(radView is not None): #OC08022021
+            print('Saving Intermediate Propagation Results ... ', end='')
+            t0 = time.time();
+
+            nInd = len(radView)
+            if(nInd > 0):
+                intNameCore = 'intermed_rad_data'
+                sExt = 'dat'
+                len_fname = len(_fname)
+                if((_fname is not None) and (len_fname > 0)):
+                    indLastDot = _fname.rfind('.')
+                    if((indLastDot >= 0) and (indLastDot < len_fname)):
+                        intNameCore = _fname[:indLastDot]
+                        sExt = _fname[indLastDot+1:len_fname]
+
+                for i in range(nInd):
+                    curRadData = radView[i]
+                    if((len(curRadData) > 6) and (curRadData[6] is not None)):
+                        curIntFileName = intNameCore + '_intermed_' + repr(curRadData[0]) + '.' + sExt
+                        #DEBUG
+                        #print(curIntFileName)
+                        #END DEBUG
+                        srwl_uti_save_intens_ascii(curRadData[6], curRadData[5], curIntFileName, 0, ['Photon Energy', 'Horizontal Position', 'Vertical Position', ''], _arUnits=['eV', 'm', 'm', sValUnitName])
+
+            print('completed (lasted', round(time.time() - t0, 3), 's)')
  
         arI = None
         if(_int_type >= 0): 
@@ -1787,7 +1827,7 @@ class SRWLBeamline(object):
                 resMeshI = resStkDet.mesh
 
             if(len(_fname) > 0):
-                sValUnitName = 'ph/s/.1%bw/mm^2' #consider allowing for other units (for FEL applications)
+                #sValUnitName = 'ph/s/.1%bw/mm^2' #consider allowing for other units (for FEL applications)
 
                 print('Saving Propagation Results ... ', end='')
                 t0 = time.time();
@@ -1796,7 +1836,8 @@ class SRWLBeamline(object):
                 print('completed (lasted', round(time.time() - t0, 3), 's)')
 
         #return arI
-        return arI, resMeshI #OC06122016
+        #return arI, resMeshI #OC06122016
+        return arI, resMeshI, radView #OC08022021
 
     #------------------------------------------------------------------------
     #def calc_wfr_emit_prop_me(self, _mesh, _sr_samp_fact=1, _sr_meth=2, _sr_rel_prec=0.01, _mag_type=1, _n_part_tot=100000, _n_part_avg_proc=10, _n_save_per=50, _pres_ang=0, _char=0, _x0=0, _y0=0, _e_ph_integ=0, _rand_meth=1, _fname=None):
@@ -1805,7 +1846,11 @@ class SRWLBeamline(object):
     #def calc_wfr_emit_prop_me(self, _mesh, _sr_samp_fact=1, _sr_meth=2, _sr_rel_prec=0.01, _in_wr=0., _in_wre=0., _mag_type=1, _n_part_tot=100000, _n_part_avg_proc=10, _n_save_per=50, _pres_ang=0, _char=0, _x0=0, _y0=0, _e_ph_integ=0, _rand_meth=1, _fname=None, _det=None, _me_approx=0): #OC05042017
     #def calc_wfr_emit_prop_me(self, _mesh, _sr_samp_fact=1, _sr_meth=2, _sr_rel_prec=0.01, _in_wr=0., _in_wre=0., _mag_type=1, _n_part_tot=100000, _n_part_avg_proc=10, _n_save_per=50, _pres_ang=0, _char=0, _x0=0, _y0=0, _e_ph_integ=0, _rand_meth=1, _fname=None, _det=None, _me_approx=0, _fbk=False): #OC14082018
     def calc_wfr_emit_prop_me(self, _mesh, _sr_samp_fact=1, _sr_meth=2, _sr_rel_prec=0.01, _in_wr=0., _in_wre=0., _mag_type=1, _n_part_tot=100000, _n_part_avg_proc=10, _n_save_per=50,
-                              _pres_ang=0, _char=0, _x0=0, _y0=0, _e_ph_integ=0, _rand_meth=1, _fname=None, _det=None, _me_approx=0, _fbk=False, _op_rnd=False): #OC24042020
+                              _pres_ang=0, _char=0, _x0=0, _y0=0, _e_ph_integ=0, _rand_meth=1, _fname=None, _det=None, _me_approx=0, _fbk=False, _op_rnd=False, _fform='ascii', _no_opt=False, _nmm=1, _ncm=100, _cm_wfr=None): #OC02072021
+                              #_pres_ang=0, _char=0, _x0=0, _y0=0, _e_ph_integ=0, _rand_meth=1, _fname=None, _det=None, _me_approx=0, _fbk=False, _op_rnd=False, _fform='ascii', _nmm=1, _ncm=1000): #OC27062021
+                              #_pres_ang=0, _char=0, _x0=0, _y0=0, _e_ph_integ=0, _rand_meth=1, _fname=None, _det=None, _me_approx=0, _fbk=False, _op_rnd=False, _fform='ascii', _nmm=1): #OC16042021
+                              #_pres_ang=0, _char=0, _x0=0, _y0=0, _e_ph_integ=0, _rand_meth=1, _fname=None, _det=None, _me_approx=0, _fbk=False, _op_rnd=False, _fform='ascii'): #OC25022021
+                              #_pres_ang=0, _char=0, _x0=0, _y0=0, _e_ph_integ=0, _rand_meth=1, _fname=None, _det=None, _me_approx=0, _fbk=False, _op_rnd=False): #OC24042020
         """Calculates multi-electron (/ partially coherent) SR emission and wavefront propagation
         :param _mesh: mesh (grid) on which the initial wavefront has to be calculated (SRWLRadMesh instance)
         :param _sr_samp_fact: oversampling factor for calculating of initial wavefront for subsequent propagation (effective if >0)
@@ -1836,7 +1881,13 @@ class SRWLBeamline(object):
         :param _fname: name of file to save the resulting data to
         :param _det: detector structure ensuring a given final mesh on which the calculated intensity (or other characteristic) will be interpolated
         :param _me_approx: multi-electron integration approximation method: 0- no approximation (use the standard 5D integration method), 1- integrate numerically only over e-beam energy spread and use convolution to treat transverse emittance
-        :return: 1D array with (C-aligned) resulting intensity data
+        :param _fbk: switch specifying if backup intermadiate intensity files should be produced in the course of calculation or not
+        :param _op_rnd: switch specifying whether some optical element parameters, as specified in elements self.optics, should be randomized in the course of the calculation or not
+        :param _fform: switch specifying file format of some input/output data files (not fully supported yet)
+        :param _nmm: number of MPI "masters" to be used at 4D cross-spectral density (CSD) calculation
+        :param _ncm: number of coherent modes to be produced by coherent mode decomposition (CMD) of 4D CSD
+        :param _cm_wfr: list of wavefronts (objects of SRWLWfr type) describing coherent modes to be used in partially-coherent radiation propagation calculations; if this list is supplied, it is used instead of any other input radiaiton data
+        :return: data structure(s) of resulting intensity
         """
 
         #if((_mesh == None) or (isinstance(_mesh, SRWLRadMesh) == False)):
@@ -1847,9 +1898,9 @@ class SRWLBeamline(object):
         if((not hasattr(self, 'eBeam')) or (not isinstance(self.eBeam, SRWLPartBeam))):
             raise Exception('Incorrect electron beam (SRWLPartBeam) structure')
 
-        #if((hasattr(self, 'optics') == False) or (isinstance(self.optics, SRWLOptC) == False)):
-        if((not hasattr(self, 'optics')) or (not isinstance(self.optics, SRWLOptC))):
-            raise Exception('Incorrect optics container (SRWLOptC) structure')
+        #OC25022021 (commented-out to enable calculaiton of P-C SR without propagation)
+        #if((not hasattr(self, 'optics')) or (not isinstance(self.optics, SRWLOptC))):
+        #    raise Exception('Incorrect optics container (SRWLOptC) structure')
 
         #OC26042020 (commented-out to make Gaussian Schell or Zernike source work)
         #if(_mag_type == 1):
@@ -1869,6 +1920,15 @@ class SRWLBeamline(object):
             if(self.gsnBeam is not None): magToUse = self.gsnBeam #OC15092017 (because _mag is used for SRWLGsnBm when doing partially-coherent simulations in the scope of Gaussian-Schell model)
             elif(self.ptSrc is not None): magToUse = self.ptSrc #OC16102017 (because _mag is used for SRWLPtSrc when doing partially-coherent simulations in the scope of Van-Cittert / Zernike model)
 
+        optBL = self.optics if(not _no_opt) else None #OC03072021
+
+        #DEBUG
+        #print('_no_opt=', _no_opt)
+        #sys.stdout.flush()
+        #END DEBUG
+
+        if(_cm_wfr is not None): magToUse = _cm_wfr #OC02072021 (note it overrides other cases - should it be like this?)
+
         return srwl_wfr_emit_prop_multi_e(
             _e_beam = self.eBeam, _mag = magToUse, _mesh = _mesh, _sr_samp_fact = _sr_samp_fact,
             #_sr_meth = _sr_meth, _sr_rel_prec = _sr_rel_prec,
@@ -1877,14 +1937,18 @@ class SRWLBeamline(object):
             _sr_meth = _sr_meth, _sr_rel_prec = _sr_rel_prec, _wr = _in_wr, _wre = _in_wre, #OC05012017
             _n_part_tot = _n_part_tot, _n_part_avg_proc = _n_part_avg_proc, _n_save_per = _n_save_per,
             _file_path = _fname,
-            _opt_bl = self.optics,
+            _opt_bl = optBL, #OC03072021
+            #_opt_bl = self.optics,
             _pres_ang = _pres_ang, _char = _char, _x0 = _x0, _y0 = _y0,
             #_e_ph_integ = _e_ph_integ, _rand_meth = _rand_meth)
             #_e_ph_integ = _e_ph_integ, _rand_meth = _rand_meth, _det = _det) #OC06122016
             #_e_ph_integ = _e_ph_integ, _rand_meth = _rand_meth, _det = _det, _me_approx = _multi_e_approx) #OC05042017
             _e_ph_integ = _e_ph_integ, _rand_meth = _rand_meth, _det = _det, _me_approx = _me_approx, 
             #_file_bkp = True if(_fbk == True) else False) #OC14082018
-            _file_bkp = _fbk, _rand_opt = _op_rnd) #OC24042020
+            #_file_bkp = _fbk, _rand_opt = _op_rnd) #OC24042020
+            #_file_bkp = _fbk, _rand_opt = _op_rnd, _file_form = _fform) #OC25022021
+            #_file_bkp = _fbk, _rand_opt = _op_rnd, _file_form = _fform, _n_mpi=_nmm) #OC16042021
+            _file_bkp = _fbk, _rand_opt = _op_rnd, _file_form = _fform, _n_mpi=_nmm, _n_cm=_ncm) #OC27062021
 
     #------------------------------------------------------------------------
     def cost_func_aux_int_distr(self, _x, *_aux):
@@ -3018,7 +3082,8 @@ class SRWLBeamline(object):
 
                     #int_ws = self.calc_wfr_prop(
                     #int_ws, mesh_ws = self.calc_wfr_prop( #OC06122016
-                    _v.ws_res, mesh_ws = self.calc_wfr_prop( #OC16102017
+                    #_v.ws_res, mesh_ws = self.calc_wfr_prop( #OC16102017
+                    _v.ws_res, mesh_ws, rad_intermed_ws = self.calc_wfr_prop( #OC08022021
                         #_wfr = wfr,
                         _wfr = _v.w_res, #OC16102017
                         _pres_ang = _v.ws_ap,
@@ -3026,7 +3091,9 @@ class SRWLBeamline(object):
                         _int_type = _v.si_type,
                         _dep_type=3, #consider adding other cases (e.g. for TD FEL calculations)
                         _fname = os.path.join(_v.fdir, _v.ws_fni) if(len(_v.ws_fni) > 0) else '',
-                        _det = detector)
+                        _det = detector,
+                        _rad_view = None if(not hasattr(_v, 'op_rv')) else _v.op_rv) #OC08022021
+                        #_det = detector)
                     #mesh_ws = wfr.mesh #OC06122016 (commented-out)
                     #if(len(_v.ws_fn) > 0): to implement saving single-e (/ fully coherent) wavefront data (wfr) to a file
 
@@ -3047,30 +3114,63 @@ class SRWLBeamline(object):
                 #wmResFileName = os.path.join(_v.fdir, _v.wm_fni) if(len(_v.wm_fni) > 0) else None
                 #print(wmResFileName)
                 #print('_v.wm_fbk=', _v.wm_fbk)
+
+                wmCalcReq = True
+                if((_v.wm_ch == 7) and (_v.wm_fnmi is not None)): #OC02072021 (calculation of CMD based on CSD stored in an input file)
+                    if(len(_v.wm_fnmi) > 0):
+                        fpCSD = os.path.join(_v.fdir, _v.wm_fnmi)
+                        data, mesh, dattr, wfr0 = srwl_uti_read_intens_hdf5(fpCSD)
+                        CSD = SRWLStokes(_arS=data, _typeStokes='f', _mutual=1, _n_comp=1) #OC02072021: to cover different polarizations / Stokes components in the future
+                        CSD.mesh = mesh
+                        cohModes, eigVals = srwl_wfr_cmd(CSD, _n_modes=_v.wm_ncm, _awfr=wfr0, _alg=_v.wm_acm)
+
+                        fp_cm = os.path.join(_v.fdir, srwl_wfr_fn(_v.wm_fni, _type=7, _form='hdf5'))
+                        srwl_uti_save_wfr_cm_hdf5(cohModes, None, _awfr=wfr0, _file_path=fp_cm)
+                        _v.wm_res = cohModes, eigVals, mesh #?
+                        wmCalcReq = False
                 
-                res_ipm = self.calc_wfr_emit_prop_me(
-                    _mesh = mesh_w,
-                    _sr_samp_fact = _v.w_smpf,
-                    _sr_meth = _v.w_meth,
-                    _sr_rel_prec = _v.w_prec,
-                    _in_wr = _v.w_wr,
-                    _in_wre = _v.w_wre, #OC05012017
-                    _mag_type = _v.w_mag,
-                    _n_part_tot = _v.wm_nm,
-                    _n_part_avg_proc = _v.wm_na,
-                    _n_save_per = _v.wm_ns,
-                    _pres_ang = _v.wm_ap,
-                    _char = _v.wm_ch,
-                    _x0 = _v.wm_x0,
-                    _y0 = _v.wm_y0,
-                    _e_ph_integ = _v.wm_ei,
-                    _rand_meth = _v.wm_rm,
-                    _fname = os.path.join(_v.fdir, _v.wm_fni) if(len(_v.wm_fni) > 0) else None,
-                    _det = detector,
-                    #_multi_e_approx = _v.wm_am)
-                    _me_approx = _v.wm_am, #) #OC13042018
-                    _fbk = True if(_v.wm_fbk) else False, #) #OC14082018
-                    _op_rnd = True if(_v.op_rnd) else False) #OC24042020
+                if(wmCalcReq): #OC02072021
+
+                    lstWfrCM = None  #OC02072021
+                    if(_v.wm_fncm is not None):
+                        if(len(_v.wm_fncm) > 0):
+                            fpCM = os.path.join(_v.fdir, _v.wm_fncm)
+                            lstWfrCM = srwl_uti_read_wfr_cm_hdf5(fpCM)
+
+                    #DEBUG
+                    #print('_v.wm_nop=', _v.wm_nop)
+                    #sys.stdout.flush()
+                    #END DEBUG
+
+                    _v.wm_res = self.calc_wfr_emit_prop_me( #OC19012021
+                    #res_ipm = self.calc_wfr_emit_prop_me(
+                        _mesh = mesh_w,
+                        _sr_samp_fact = _v.w_smpf,
+                        _sr_meth = _v.w_meth,
+                        _sr_rel_prec = _v.w_prec,
+                        _in_wr = _v.w_wr,
+                        _in_wre = _v.w_wre, #OC05012017
+                        _mag_type = _v.w_mag,
+                        _n_part_tot = _v.wm_nm,
+                        _n_part_avg_proc = _v.wm_na,
+                        _n_save_per = _v.wm_ns,
+                        _pres_ang = _v.wm_ap,
+                        _char = _v.wm_ch,
+                        _x0 = _v.wm_x0,
+                        _y0 = _v.wm_y0,
+                        _e_ph_integ = _v.wm_ei,
+                        _rand_meth = _v.wm_rm,
+                        _fname = os.path.join(_v.fdir, _v.wm_fni) if(len(_v.wm_fni) > 0) else None,
+                        _det = detector,
+                        #_multi_e_approx = _v.wm_am)
+                        _me_approx = _v.wm_am, #) #OC13042018
+                        _fbk = True if(_v.wm_fbk) else False, #) #OC14082018
+                        _op_rnd = True if(_v.op_rnd) else False, #) #OC24042020
+                        _fform = _v.wm_ff, #) #OC25022021
+                        _no_opt = _v.wm_nop, #OC03072021
+                        _nmm = _v.wm_nmm, #) #OC16042021
+                        _ncm = _v.wm_ncm, #) #OC27062021
+                        _cm_wfr = lstWfrCM) #OC02072021
 
         #---plot results of all calculatiopns here (because the plotting "from the middle of the script" may hang up script execution)
         #uti_plot_init('TkAgg') #make the backend name an input option or move this to uti_plot ?
@@ -3306,6 +3406,49 @@ class SRWLBeamline(object):
                     ['m', 'm', sValUnit],
                     True)
 
+                if(rad_intermed_ws is not None): #OC08022021
+                    for i in range(len(rad_intermed_ws)):
+                        curIntData = rad_intermed_ws[i]
+                        if(len(curIntData) > 6):
+                            curMesh = curIntData[5]
+                            uti_plot2d1d(
+                                curIntData[6],
+                                [curMesh.xStart, curMesh.xFin, curMesh.nx],
+                                [curMesh.yStart, curMesh.yFin, curMesh.ny],
+                                0, #0.5*(curMesh.xStart + curMesh.xFin),
+                                0, #0.5*(curMesh.yStart + curMesh.yFin),
+                                ['Horizontal Position', 'Vertical Position', sValLabel + ' After Elem. #' + repr(curIntData[0])],
+                                ['m', 'm', sValUnit],
+                                True)
+
+        #if _v.wm and (len(_v.wm_pl) > 0): #OC19012021
+        #    if (_v.wm_pl == 'xy') or (_v.wm_pl == 'yx') or (_v.wm_pl == 'XY') or (_v.wm_pl == 'YX'):
+        #        #print('2D plot panel is to be prepared')
+                
+        #        sValLabel = 'Flux per Unit Surface'
+        #        sValUnit = 'ph/s/.1%bw/mm^2'
+        #        if(_v.w_u == 0):
+        #            sValLabel = 'Intensity'
+        #            sValUnit = 'a.u.'
+        #        elif(_v.w_u == 2):
+        #            if(_v.w_ft == 't'):
+        #                sValLabel = 'Power Density'
+        #                sValUnit = 'W/mm^2'
+        #            elif(_v.w_ft == 'f'):
+        #                sValLabel = 'Spectral Fluence'
+        #                sValUnit = 'J/eV/mm^2'
+
+        #        uti_plot2d1d(
+        #            #int_w0,
+        #            _v.wm_res.arS,
+        #            [_v.wm_res.mesh.xStart, _v.wm_res.mesh.xFin, _v.wm_res.mesh.nx],
+        #            [_v.wm_res.mesh.yStart, _v.wm_res.mesh.yFin, _v.wm_res.mesh.ny],
+        #            0, #0.5*(mesh_si.xStart + mesh_si.xFin),
+        #            0, #0.5*(mesh_si.yStart + mesh_si.yFin),
+        #            ['Horizontal Position', 'Vertical Position', sValLabel + ' After Propagation'],
+        #            ['m', 'm', sValUnit],
+        #            True)
+
             #to continue here
                 
             plotOK = True
@@ -3432,7 +3575,8 @@ def srwl_uti_std_options():
         ['und_yp', 'f', 0., 'undulator vertical angular misalignment over the median plane [rad]'],
         ['und2_yp', 'f', 0., 'undulator vertical angular misalignment over the median plane [rad]'],
         
-        ['und_mdir', 's', 'magn_meas', 'name of magnetic measurements sub-folder'],
+        ['und_mdir', 's', '', 'name of magnetic measurements sub-folder'], #OC23072021
+        #['und_mdir', 's', 'magn_meas', 'name of magnetic measurements sub-folder'],
         ['und_mfs', 's', '', 'name of undulator magnetic measurements for different gaps summary file'],
         ['und2_mfs', 's', '', 'name of second undulator magnetic measurements for different gaps summary file'],
         ['und_mfz', 's', '', 'name of zip-file of directory with magnetic measurement files for different gaps + summary file (if it is defined, it overrides the values of und_mdir and und_mfs)'],
@@ -3608,6 +3752,7 @@ def srwl_uti_std_options():
         ['wm_nm', 'i', 100000, 'number of macro-electrons (coherent wavefronts) for calculation of multi-electron wavefront propagation'],
         ['wm_na', 'i', 5, 'number of macro-electrons (coherent wavefronts) to average on each node at parallel (MPI-based) calculation of multi-electron wavefront propagation'],
         ['wm_ns', 'i', 5, 'saving periodicity (in terms of macro-electrons / coherent wavefronts) for intermediate intensity at multi-electron wavefront propagation calculation'],
+ 
         ['wm_ch', 'i', 0, 'type of a characteristic to be extracted after calculation of multi-electron wavefront propagation: #0- intensity (s0); 1- four Stokes components; 2- mutual intensity cut vs x; 3- mutual intensity cut vs y'],
         ['wm_ap', 'i', 0, 'switch specifying representation of the resulting Stokes parameters: coordinate (0) or angular (1)'],
         ['wm_x0', 'f', 0, 'horizontal center position for mutual intensity cut calculation'],
@@ -3616,7 +3761,18 @@ def srwl_uti_std_options():
         ['wm_rm', 'i', 1, 'method for generation of pseudo-random numbers for e-beam phase-space integration: 1- standard pseudo-random number generator, 2- Halton sequences, 3- LPtau sequences (to be implemented)'],
         ['wm_am', 'i', 0, 'multi-electron integration approximation method: 0- no approximation (use the standard 5D integration method), 1- integrate numerically only over e-beam energy spread and use convolution to treat transverse emittance'],
         ['wm_fni', 's', 'res_int_pr_me.dat', 'file name for saving propagated multi-e intensity distribution vs horizontal and vertical position'],
+        ['wm_ff', 's', 'ascii', 'format of file name for saving propagated multi-e intensity distribution vs horizontal and vertical position (ascii and hdf5 supported)'], #OC25022021
+
+        ['wm_nmm', 'i', 1, 'number of MPI Masters to use'], #OC16042021
+        ['wm_ncm', 'i', 100, 'number of coherent modes to calculate'], #OC02072021
+        ['wm_acm', 's', 'SP', 'coherent mode decomposition algorithm to be used (supported algorithms are: "SP" for SciPy, "SPS" for SciPy Sparse, "PM" for Primme, based on names of software packages)'], #OC02072021
+        ['wm_nop', '', '', 'switch forcing to do calculations ignoring any optics defined (by set_optics function)', 'store_true'], #OC03072021
+
+        ['wm_fnmi', 's', '', 'file name of input cross-spectral density / mutual intensity; if this file name is supplied, the initial cross-spectral density (for such operations as coherent mode decomposition) will not be calculated, but rathre it will be taken from that file.'], #OC02072021
+        ['wm_fncm', 's', '', 'file name of input coherent modes; if this file name is supplied, the eventual partially-coherent radiation propagation simulation will be done based on propagation of the coherent modes from that file.'], #OC02072021
+
         ['wm_fbk', '', '', 'create backup file(s) with propagated multi-e intensity distribution vs horizontal and vertical position and other radiation characteristics', 'store_true'],
+        ['wm_pl', 's', 'xy', 'plot the propagated radiaiton intensity distributions in graph(s): ""- dont plot, "x"- vs horizontal position, "y"- vs vertical position, "xy"- vs horizontal and vertical position'],
 
         #['ws_fn', 's', '', 'file name for saving single-e (/ fully coherent) wavefront data'],
         #['wm_fn', 's', '', 'file name for saving multi-e (/ partially coherent) wavefront data'],

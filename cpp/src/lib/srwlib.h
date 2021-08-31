@@ -242,6 +242,7 @@ struct SRWLStructRadMesh {
 	double nvx, nvy, nvz, hvx, hvy, hvz; /* lab-frame coordinate of the inner normal to observation plane (/ surface in its center) and horizontal base vector of the observation plane (/ surface in its center) */
 	double *arSurf; /* array defining the observation surface (as function of 2 variables - x & y - on the mesh given by _xStart, _xFin, _nx, _yStart, _yFin, _ny; to be used in case this surface differs from plane) */
 	char type; /* type of data: 0- standard intensity, 'm'- mutual intensity //OC13112018 */
+	long long itStart, itFin; /* for mutual intensity: first and last indexes of data rows corresponding to conjugated coordinate */
 };
 typedef struct SRWLStructRadMesh SRWLRadMesh;
 
@@ -713,7 +714,7 @@ EXP int CALL srwlCalcPowDenSR(SRWLStokes* pStokes, SRWLPartBeam* pElBeam, SRWLPr
  * @param [in] x horizontal position (to keep fixed)
  * @param [in] y vertical position (to keep fixed)
  * @param [in] arMeth array of (Mutual) Intensity extraction method-related parameters:
- *			   arMeth[0]: method number (0- simple calculation of Intensity (default); 1- calculation of Intensity with instant averaging; 2- add new Intensity value to previous one);
+ *			   arMeth[0]: method number (0- simple calculation of Intensity (default); 1- calculation of Intensity with instant averaging; 2- adding of new Intensity value to previous one);
  *			   arMeth[1]: method-dependent parameter: if(arMeth[0]==1) it is iteration number
  *			   arMeth[2]: horizontal wavefront radius of curvature defining quadratic term of radiation phase to be "subtracted" before calculation of Mutual Intensity (to be taken into account if != 0)
  *			   arMeth[3]: vertical wavefront radius of curvature defining quadratic term of radiation phase to be "subtracted" before calculation of Mutual Intensity (to be taken into account if != 0)
@@ -725,6 +726,8 @@ EXP int CALL srwlCalcPowDenSR(SRWLStokes* pStokes, SRWLPartBeam* pElBeam, SRWLPr
  *			   arMeth[9]: number of points vs electron energy for multi-e mutual intensity (if it is <= 0, then arMeth[7] will be treated as number of combined of transverse e-beam phase-space points)
  *			   arMeth[10]: intergration method over e-beam phase space (0- simple pseudo-random numbers, 1- LPtau sequences)
  *			   arMeth[11]-[17]: precPar for srwlCalcElecFieldSR
+ *			   arMeth[18]: used for mutual intensity calculaiton / update: index of first general conjugated position to start updating the mutual intensity
+ * 			   arMeth[19]: used for mutual intensity calculaiton / update: index of last general conjugated position to finish updating the mutual intensity
  * @param [in] pFldTrj auxiliary pointer to magnetic field or trajectory of central electron
  * @return	integer error (>0) or warnig (<0) code
  * @see ...
@@ -769,6 +772,21 @@ EXP int CALL srwlResizeElecField(SRWLWfr* pWfr, char type, double* par);
 EXP int CALL srwlResizeElecFieldMesh(SRWLWfr* pWfr, SRWLRadMesh* pMesh, double* par);
 
 /** 
+ * Processes Electric Field Wavefront(s), e.g. adds/removies Quad. Phase Terms, adding 2 wavefronts, etc.
+ * @param [in, out] pWfr pointer to pre-calculated Wavefront structure
+ * @param [in] par array of parameters: 
+ *			   [0]- type of processing: 1- Treat Quad. Phase Terms
+ *             meaning of other elements of par array depends on value par[0]: 
+ *             if(par[0] == 1)
+ *                if(par[1] <= 0.) Remove Quad. Phase Terms
+ *                else Remove Quad. Phase Terms
+ * @param [in] pWfr2 pointer to pre-calculated second Wavefront structure (to be used for some operations)
+ * @return	integer error (>0) or warnig (<0) code
+ * @see ...
+ */
+EXP int CALL srwlProcElecField(SRWLWfr* pWfr, double* par, SRWLWfr* pWfr2);
+
+/** 
  * Changes Representation of Electric Field: coordinates<->angles, frequency<->time
  * @param [in, out] pWfr pointer to pre-calculated Wavefront structure
  * @param [in] repr character specifying desired representation ('c' for coordinate, 'a' for angle, 'f' for frequency, 't' for time)
@@ -800,6 +818,20 @@ EXP int CALL srwlPropagElecField(SRWLWfr* pWfr, SRWLOptC* pOpt, int nInt=0, char
  * @see ...
  */
 EXP int CALL srwlPropagRadMultiE(SRWLStokes* pStokes, SRWLWfr* pWfr0, SRWLOptC* pOpt, double* precPar, int (*pExtFunc)(int action, SRWLStokes* pStokesInst));
+
+/**
+ * Sets Up Transmittance for an Optical Element defined from a list of 3D (nano-) objects, e.g. for simulating samples for coherent scattering experiments
+ * @param [in, out] pOpTr pointer to Optical Transmission object to populate
+ * @param [in] pDelta array of (spectral) Refractive Index Decrement data
+ * @param [in] pAttenLen array of (spectral) Attenuation Length data
+ * @param [in] arObjShapeDefs pointer to array of shape definitions
+ * @param [in] nObj3D number of entries in arObjShapeDefs
+ * @param [in] arPar array of precision parameters, currently unused
+ * @return	integer error (>0) or warnig (<0) code
+ * @see ...
+ */
+EXP int CALL srwlCalcTransm(SRWLOptT* pOpTr, const double* pDelta, const double* pAttenLen, double** arObjShapeDefs, int nObj3D, const double* arPar=0); //25082021
+//EXP int CALL srwlCalcTransm(SRWLOptT* pOpTr, const double* pAttenLen, const double* pDelta, double** arObjShapeDefs, int nObj3D, const double* arPar=0);
 
 /** 
  * Performs FFT (1D or 2D, depending on arguments)
@@ -875,7 +907,25 @@ EXP int CALL srwlUtiIntInf(double* arInf, char* pcData, char typeData, SRWLRadMe
  * @param [in] typeI2 character specifying intensity #2 data type ('f' for float, 'd' for double)
  * @param [in] pMesh2 (pointer to SRWLRadMesh) mesh of intensity data #2
  * @param [in] arPar array of parameters defining operation to be performed:
- *			   arPar[0] defines type of the operation and the meaning of other elements dependent on it
+ *			   arPar[0] defines type of the operation and the meaning of other elements dependent on it:
+ *             =1 -add (mutual) intensity distribution _inData to the distribution _data and store result in _data (depending on the meshes of the two distributions, _inMesh and _mesh, it may or may not do interpolation of _inData)
+ *                 in case if mutual intensities are submitted (as defined in pMesh1 and pMesh2), pcI2 may be "partial" mutual intensity, defined on the rows of conjugated coordinates defined in pMesh2
+ *				   in that case, the meaning of the subsequent parameters stored in _inPrec is:
+ *				   _inPrec[1] defines whether simple summation (=-1, default), or averaging should take place, in the latter case it is the iteration number (>=0)
+ *             =2 -find average of intensity distribution _inData and the distribution _data, assuming it to be a given iteration, and store result in _data (depending on the meshes of the two distributions, _inMesh and _mesh, it may or mey not do interpolation of _inData)
+ *                 this case has yet to be implemented
+ *             =3 -perform azimuthal integration or averaging of the 2D intensity distribution _inData and store the resulting 1D distribution in _data and _mesh
+ *                 in that case, the meaning of the subsequent parameters stored in _inPrec is:
+ *                 arPar[1] defines whether integration (=0) or averaging (=1) should take place
+ *                 arPar[2] defines 1D integration method to be used: =1 means simple integration driven by numbers of points stored in _inPrec[3], =2 means integration driven by relative accuracy specified in _inPrec[3]
+ *                 arPar[3] defines number of points (if _inPrec[2] = 1) of relative accuracy (if _inPrec[2] = 2) to be used at the integration
+ *                 arPar[4] defines order of interpolation to be used at calculating the values of the distribution _inData out of mesh points
+ *                 arPar[5] minimal azimuthal angle for the integration [rad]
+ *                 arPar[6] maximal azimuthal angle for the integration [rad]; if _inPrec[6] == _inPrec[5], the integration will be done over 2*Pi 
+ *                 arPar[7] horizontal coordinate of center point around which the azimuthal integration should be done
+ *                 arPar[8] vertical coordinate of center point around which the azimuthal integration should be done
+ *                 arPar[9] list of rectangular areas to be omitted from averaging / integration: [[x0,x_width,y0,y_width],...]
+ *             =4 -fill-in ~half of Hermitian Mutual Intensity matrix / data (assuming "normal" data alignment in the complex Hermitian "matrix" E(x,y)*E*(x',y') and filling-out half of it below the diagonal, using complex conjugation)
  * @param [in] nPar length of array of parameters defining operation to be performed
  * @return	integer error (>0) or warnig (<0) code
  * @see ...

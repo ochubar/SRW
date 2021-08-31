@@ -22,6 +22,7 @@
 #include "srradint.h"
 #include "srradmnp.h"
 #include "sroptcnt.h"
+#include "sroptgtr.h" //HG28012021
 #include "srgsnbm.h"
 #include "srpersto.h"
 #include "srpowden.h"
@@ -77,8 +78,8 @@ EXP int CALL srwlUtiVerNo(char* verNoStr, int code)
 	//OC03062020 (commented-out the above)
 
 	//To modify at each new release!
-	const char strCurrenVersionSRW[] = "4.00"; //"3.964"; //to be used e.g. for Python interface
-	const char strCurrenVersionSRWLIB[] = "0.06"; //"0.055"; //Never used?
+	const char strCurrenVersionSRW[] = "4.10"; //"4.00"; //"3.964"; //to be used e.g. for Python interface
+	const char strCurrenVersionSRWLIB[] = "0.10"; //"0.06"; //"0.055"; //Never used?
 
 	const char *pStr=0;
 	switch(code) {
@@ -905,6 +906,51 @@ EXP int CALL srwlResizeElecFieldMesh(SRWLWfr* pWfr, SRWLRadMesh* pMesh, double* 
 
 //-------------------------------------------------------------------------
 
+EXP int CALL srwlProcElecField(SRWLWfr* pWfr, double* par, SRWLWfr* pWfr2)
+{//OC01112020
+	if((pWfr == 0) || (par == 0)) return SRWL_INCORRECT_PARAM_FOR_WFR_PROC;
+
+	try
+	{
+		srTSRWRadStructAccessData wfr(pWfr);
+
+		if(pWfr2 == 0)
+		{
+			int procID = (int)rint(par[0]);
+			if(procID == 1) //Treat Quadratic Phase Terms
+			{
+				//if(wfr.QuadPhaseTermCanBeTreated())
+				if((wfr.RobsX != 0.) && (wfr.RobsZ != 0.))
+				{
+					wfr.WfrQuadTermCanBeTreatedAtResizeX = true; //unfortunately, this thing is checked in wfr.TreatQuadPhaseTerm
+					wfr.WfrQuadTermCanBeTreatedAtResizeZ = true;
+
+					char AddOrRem = (par[1] < 0.)? 'r' : 'a';
+					wfr.TreatQuadPhaseTerm(AddOrRem);
+				}
+			}
+			//else if(procID == 1) {} //To add functions
+		}
+		else
+		{
+			srTSRWRadStructAccessData wfr2(pWfr2);
+			//Program operations with 2 wavefronts here (e.g. adding with interpolation on different meshes)
+
+			wfr.OutSRWRadPtrs(*pWfr2);
+		}
+
+		wfr.OutSRWRadPtrs(*pWfr);
+		UtiWarnCheck();
+	}
+	catch(int erNo) 
+	{
+		return erNo;
+	}
+	return 0;
+}
+
+//-------------------------------------------------------------------------
+
 EXP int CALL srwlSetRepresElecField(SRWLWfr* pWfr, char repr)
 {
 	//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
@@ -984,6 +1030,18 @@ EXP int CALL srwlPropagElecField(SRWLWfr* pWfr, SRWLOptC* pOpt, int nInt, char**
 	{
 		return erNo;
 	}
+	return 0;
+}
+
+//-------------------------------------------------------------------------
+
+EXP int CALL srwlCalcTransm(SRWLOptT* pOpTr, const double* pDelta, const double* pAttenLen, double** arObjShapeDefs, int nObj3D, const double* arPar) //OC24082021
+//EXP int CALL srwlCalcTransm(SRWLOptT* pOpTr, const double* pAttenLen, const double* pDelta, double** arObjShapeDefs, int nObj3D, const double* arPar) //HG28122020
+{
+	//return srTGenTransmissionSample::CalcTransm(pOpTr, pAttenLen, pDelta, pShapeDefs, ShapeDefCount, arPar);
+	srTGenTransmissionSample TansmSmp(*pOpTr);
+	TansmSmp.SetFromListOfObj3D(pDelta, pAttenLen, arObjShapeDefs, nObj3D, arPar); //OC24082021
+	//TansmSmp.SetFromListOfObj3D(pAttenLen, pDelta, arObjShapeDefs, nObj3D, arPar); //OC28012021
 	return 0;
 }
 
@@ -1381,11 +1439,19 @@ EXP int CALL srwlUtiIntProc(char* pcI1, char typeI1, SRWLRadMesh* pMesh1, char* 
 //EXP int CALL srwlUtiIntProc(char* pcI1, char typeI1, SRWLRadMesh* pMesh1, char* pcI2, char typeI2, SRWLRadMesh* pMesh2, double* arPar)
 {//OC13112018
 	if((pcI1 == 0) || ((typeI1 != 'f') && (typeI1 != 'd')) || (pMesh1 == 0) || 
-	   (pcI2 == 0) || ((typeI2 != 'f') && (typeI2 != 'd')) || (pMesh2 == 0) || (arPar == 0) || (nPar <= 0)) return SRWL_INCORRECT_PARAM_FOR_INT_PROC; //OC09032019
+	   ((pcI2 != 0) && (((typeI2 != 'f') && (typeI2 != 'd')) || (pMesh2 == 0))) || //OC05022021
+		(arPar == 0) || (nPar <= 0)) return SRWL_INCORRECT_PARAM_FOR_INT_PROC; //OC09032019
+	   //(pcI2 == 0) || ((typeI2 != 'f') && (typeI2 != 'd')) || (pMesh2 == 0) || (arPar == 0) || (nPar <= 0)) return SRWL_INCORRECT_PARAM_FOR_INT_PROC; //OC09032019
 	   //(pcI2 == 0) || ((typeI2 != 'f') && (typeI2 != 'd')) || (pMesh2 == 0) || (arPar == 0)) return SRWL_INCORRECT_PARAM_FOR_INT_PROC;
 
 	try 
 	{
+		//if(nPar > 1) //DEBUG
+		//{
+		//	std::cout << "In srwlUtiIntProc: arPar[0]=" << arPar[0] << " arPar[1]=" << arPar[1] << "\n"; //DEBUG
+		//	std::cout.flush(); //DEBUG
+		//}
+
 		srTWaveAccessData wI1(pcI1, typeI1, pMesh1), wI2(pcI2, typeI2, pMesh2);
 		srTRadGenManip::IntProc(&wI1, &wI2, arPar, nPar); //OC09032019
 		//srTRadGenManip::IntProc(&wI1, &wI2, arPar);

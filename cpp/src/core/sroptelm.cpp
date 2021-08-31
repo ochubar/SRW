@@ -4861,6 +4861,164 @@ void srTGenOptElem::TreatStronglyOscillatingTermIrregMesh(srTSRWRadStructAccessD
 
 //*************************************************************************
 
+void srTGenOptElem::TreatStronglyOscillatingTermIrregMeshTrf(srTSRWRadStructAccessData& RadAccessData, char AddOrRem, double CrdTrf[2][3], char PolComp, int ieOnly)
+{//Used for crystals, when mesh of horiz. and vert. angles can be transformed linearly, e.g. rotated
+
+	char TreatPolCompX = ((PolComp == 0) || (PolComp == 'x')) && (RadAccessData.pBaseRadX != 0); //OC13112011
+	char TreatPolCompZ = ((PolComp == 0) || (PolComp == 'z')) && (RadAccessData.pBaseRadZ != 0);
+
+	double Rx = RadAccessData.RobsX;
+	double Rz = RadAccessData.RobsZ;
+
+	const double Pi = 3.14159265358979;
+	//double Const = Pi*1.E+06/1.239854; // Assumes m and eV
+	//double Const = Pi*1.E+06/1.23984186; // Assumes m and eV
+	double Const = Pi*1.E+06/1.23984193009; // Assumes m and eV
+
+	double ConstRx = (RadAccessData.Pres == 0)? Const/Rx : -Const*Rx;
+	double ConstRz = (RadAccessData.Pres == 0)? Const/Rz : -Const*Rz;
+
+	if(AddOrRem == 'r') { ConstRx = -ConstRx; ConstRz = -ConstRz; }
+
+	float *pEX0 = 0, *pEZ0 = 0;
+	if(TreatPolCompX) pEX0 = RadAccessData.pBaseRadX;
+	if(TreatPolCompZ) pEZ0 = RadAccessData.pBaseRadZ;
+
+	long long PerX = RadAccessData.ne << 1;
+	long long PerZ = PerX*RadAccessData.nx;
+
+	int ieStart=0, ieBefEnd=RadAccessData.ne;
+	if((ieOnly >= 0) && (ieOnly < RadAccessData.ne))
+	{
+		ieStart = ieOnly; ieBefEnd = ieOnly + 1;
+	}
+
+	double a11 = CrdTrf[0][0], a12 = CrdTrf[0][1], a13 =  CrdTrf[0][2];
+	double a21 = CrdTrf[1][0], a22 = CrdTrf[1][1], a23 =  CrdTrf[1][2];
+	if(AddOrRem == 'a')
+	{
+		double detA = a11*a22 - a12*a21;
+		if(detA == 0) detA = 1e-50; //?
+		double inv_detA = 1./(a11*a22 - a12*a21);
+		double ai11 = inv_detA*a22, ai12 = -inv_detA*a12, ai21 = -inv_detA*a21, ai22 = inv_detA*a11;
+		//double phEn = pRad->eStart;
+		//double waveLength_m = 1.23984193009e-06/phEn;
+		//double k0 = phEn/1.23984193009e-06;
+		double ai13 = -ai11*a13 - ai12*a23, ai23 = -ai21*a13 - ai22*a23;
+		a11 = ai11; a12 = ai12; a21 = ai21; a22 = ai22; a13 = ai13; a23 = ai23;
+	}
+
+#ifdef _WITH_OMP //OC31102018: added by SY at parallelizing SRW via OpenMP
+#pragma omp parallel for
+#endif
+
+	for(int ie=ieStart; ie<ieBefEnd; ie++) //OC161008
+	{
+		//OC31102018: moved by SY at parallelizing SRW via OpenMP
+		double Phase;
+		float CosPh, SinPh;
+		double ConstRxE, ConstRzE;
+		double xOld, zOld, x, z; //, zE2;
+
+		double ePh = RadAccessData.eStart + RadAccessData.eStep*(ie - ieStart);
+
+		if(RadAccessData.PresT == 1)
+		{
+			ePh = RadAccessData.avgPhotEn; //?? OC041108
+		}
+
+		long long Two_ie = ie << 1;
+
+		ConstRxE = ConstRx*ePh;
+		ConstRzE = ConstRz*ePh;
+
+		double k0 = ePh/1.23984193009e-06;
+		double a13_k0 = a13*k0, a23_k0 = a23*k0;
+
+		if(RadAccessData.Pres == 1)
+		{
+			//double Lambda_m = 1.239854e-06/ePh;
+			//double Lambda_m = 1.239842e-06/ePh;
+			double Lambda_m = 1.23984193009e-06/ePh;
+			if(RadAccessData.PhotEnergyUnit == 1) Lambda_m *= 0.001; // if keV
+
+			double Lambda_me2 = Lambda_m*Lambda_m;
+			ConstRxE *= Lambda_me2;
+			ConstRzE *= Lambda_me2;
+		}
+
+		double xcNew = a11*RadAccessData.xc + a12*RadAccessData.zc + a13_k0;
+		double zcNew = a21*RadAccessData.xc + a22*RadAccessData.zc + a23_k0;
+
+		zOld = RadAccessData.zStart; //To check: this is probably not correct in Angular representation?
+		//z = RadAccessData.zStart - RadAccessData.zc; //To check: this is probably not correct in Angular representation?
+
+		//zE2 = z*z; //OC27122020 (removed all 3 lines)
+		//double PhaseAddZ = 0.;
+		//if(RadAccessData.WfrQuadTermCanBeTreatedAtResizeZ) PhaseAddZ = ConstRzE*zE2;
+
+		for(int iz=0; iz<RadAccessData.nz; iz++)
+		{
+			//long izPerZ = iz*PerZ;
+			long long izPerZ = iz*PerZ;
+			float *pEX_StartForX = pEX0 + izPerZ;
+			float *pEZ_StartForX = pEZ0 + izPerZ;
+
+			xOld = RadAccessData.xStart; //To check: this is probably not correct in Angular representation?
+			//x = RadAccessData.xStart - RadAccessData.xc; //To check: this is probably not correct in Angular representation?
+
+			for(int ix=0; ix<RadAccessData.nx; ix++)
+			{
+				//long ixPerX_p_Two_ie = ix*PerX + Two_ie;
+				long long ixPerX_p_Two_ie = ix*PerX + Two_ie;
+
+				double xNew = a11*xOld + a12*zOld + a13_k0;
+				double zNew = a21*xOld + a22*zOld + a23_k0;
+				x = xNew - xcNew; z = zNew - zcNew;
+
+				Phase = 0;
+				if(RadAccessData.WfrQuadTermCanBeTreatedAtResizeZ) Phase = ConstRzE*z*z;
+				if(RadAccessData.WfrQuadTermCanBeTreatedAtResizeX) Phase += ConstRxE*x*x;
+
+				//Phase = ConstRxE*x*x + ConstRzE*zE2;
+				//Phase = PhaseAddZ;
+				//if(RadAccessData.WfrQuadTermCanBeTreatedAtResizeX) Phase += ConstRxE*x*x;
+
+				CosAndSin(Phase, CosPh, SinPh);
+
+				if(TreatPolCompX)
+				{
+					float *pExRe = pEX_StartForX + ixPerX_p_Two_ie;
+					float *pExIm = pExRe + 1;
+					double ExReNew = (*pExRe)*CosPh - (*pExIm)*SinPh;
+					double ExImNew = (*pExRe)*SinPh + (*pExIm)*CosPh;
+					*pExRe = (float)ExReNew; *pExIm = (float)ExImNew;
+				}
+				if(TreatPolCompZ)
+				{
+					float *pEzRe = pEZ_StartForX + ixPerX_p_Two_ie;
+					float *pEzIm = pEzRe + 1;
+					double EzReNew = (*pEzRe)*CosPh - (*pEzIm)*SinPh;
+					double EzImNew = (*pEzRe)*SinPh + (*pEzIm)*CosPh;
+					*pEzRe = (float)EzReNew; *pEzIm = (float)EzImNew;
+				}
+
+				xOld += RadAccessData.xStep;
+				//x += RadAccessData.xStep;
+			}
+			zOld += RadAccessData.zStep;
+			//z += RadAccessData.zStep;
+			//zE2 = z*z;
+			//PhaseAddZ = 0.;
+			//if(RadAccessData.WfrQuadTermCanBeTreatedAtResizeZ) PhaseAddZ = ConstRzE*zE2;
+		}
+		//OC31102018: removed by SY at parallelizing SRW via OpenMP
+		//ePh += RadAccessData.eStep;
+	}
+}
+
+//*************************************************************************
+
 char srTGenOptElem::WaveFrontTermCanBeTreated1D(srTRadSect1D& RadSect1D)
 {
 	const double CritRatTransvLong = 0.1;

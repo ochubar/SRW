@@ -577,6 +577,7 @@ public:
 		double qx2_p_qz2 = EXZ.x*EXZ.x + EXZ.z*EXZ.z;
 		double c1qx2_p_qz2 = c1*qx2_p_qz2;
 		double PhaseShift = c0*qx2_p_qz2*(1. + c1qx2_p_qz2 + 2.*c1qx2_p_qz2*c1qx2_p_qz2); //OC23062019
+
 		//OC23062019: consider changing to: PhaseShift = k*L*sqrt(1 - lambda^2*(qx^2 + qy^2))
 		//double PhaseShift = c0*qx2_p_qz2*(1. + c1qx2_p_qz2 + c1qx2_p_qz2*c1qx2_p_qz2);
 

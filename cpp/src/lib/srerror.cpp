@@ -250,6 +250,9 @@ CErrWarn::CErrWarn()
 	error.push_back("Incorrect paraboloidal mirror parameters: focal length, grazing angle and sagital radius should be positive, and use case should be \'f\' for focusing and \'c\' for collimating.\0"); //#192
 	
 	error.push_back("Wavefront resizing can not be performed for these parameters (however, it may be possible to perform such resizing sequentially).\0"); //#193
+	error.push_back("Wavefront processing can not be performed with these parameters.\0"); //#194
+
+	error.push_back("Inconsistent parameters were supplied to (mutual) intensity processing function.\0"); //#195
 
 //};
 
@@ -279,6 +282,8 @@ CErrWarn::CErrWarn()
 	warning.push_back("Longitudinal position of the observation point(s) is too close to (or within) the longitudinal integration limits. The resulting precision may be poor.");
 	warning.push_back("Electron beam is not ultra-relativistic. The resulting accuracy may be poor.");
 	warning.push_back("To calculate emission at harmonics (HGHG), this version of GENESIS requires Electron Distribution data."); //#define GENESIS_RAD_HARM_CALC_NEEDS_ELEC_DISTRIB 24 + SRW_WARNINGS_OFFSET
+	warning.push_back("Zero wavefront radius of curvature was submitted; the corresponding quadratic phase term was not treated."); //#define ZERO_WFR_RAD_CURV_PH_TERM_NOT_TREATED 25 + SRW_WARNINGS_OFFSET
+
 //};
 }
 

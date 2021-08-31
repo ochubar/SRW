@@ -332,6 +332,40 @@ public:
 	}
 
 	/************************************************************************//**
+	* Copies elements of Py list or array to a numerical array
+	* ATTENTION: it can allocate T *ar !
+	* arType can be 'i', 'f' or 'd'
+	* obj can be Py list or array or a number
+	* If obj is neither List nor Array - returns without throwing error
+	* If the length of Py list or array is larger than nElem at input, then nElemTooSmall is set to true
+	* Returns 'n', 'l' or 'a', depending on type of obj
+	***************************************************************************/
+	template<class T, class TI> static char CopyNumOrPyListElemsToNumArray(PyObject* obj, char arType, T*& ar, TI& nElem, bool& nElemTooSmall) //OC27012021
+	{
+		if(obj == 0) return 0;
+
+		if(PyNumber_Check(obj))
+		{
+			double num = 0.;
+			if(PyFloat_Check(obj)) num = PyFloat_AsDouble(obj);
+			else if(PyLong_Check(obj)) num = (double)PyLong_AsLong(obj);
+
+			if(ar == 0)
+			{
+				ar = new T[1];
+				nElem = (TI)1;
+			}
+			else
+			{
+				if(nElem > 1) nElem = (TI)1;
+			}
+			*ar = (T)num;
+			return 'n';
+		}
+		else return CopyPyListElemsToNumArray(obj, arType, ar, nElem, nElemTooSmall);
+	}
+
+	/************************************************************************//**
 	 * Copies elements of Py list or array of known length to a numerical array
 	 * The output T *ar is expected to be allocated in calling function
 	 * arType can be 'i', 'f' or 'd'

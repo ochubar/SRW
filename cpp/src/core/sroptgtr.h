@@ -26,6 +26,8 @@ typedef struct SRWLStructOpticsTransmission SRWLOptT;
 
 class srTGenTransmission : public srTFocusingElem {
 
+protected: //OC29012021
+
 	//srTWaveAccessData GenTransNumData;
 	srTDataMD GenTransNumData;
 
@@ -38,6 +40,7 @@ public:
 
 	srTGenTransmission(srTStringVect* pElemInfo, srTDataMD* pExtraData);
 	srTGenTransmission(const SRWLOptT& tr);
+	srTGenTransmission() {} //OC28012021
 	~srTGenTransmission()
 	{
 		if(GenTransNumData.pData != 0)
@@ -138,6 +141,23 @@ public:
 	int RangeShouldBeAdjustedAtPropag() { return 0;} // Or switch it On
 	int ResolutionShouldBeAdjustedAtPropag() { return 1;}
 };
+
+//*************************************************************************
+
+//Represents a transmission sample definition, defined by an optical transmission element
+class srTGenTransmissionSample : public srTGenTransmission { //HG01112020
+	
+	//srTGenTransmissionSample(const SRWLOptT& tr) : srTGenTransmission(tr) {} //OC28012021 (commented-out)
+
+public:
+
+	srTGenTransmissionSample(const SRWLOptT& tr) : srTGenTransmission(tr) {} //OC28012021
+
+	//static int CalcTransm(SRWLOptT *pOptElem, const double* pAttenLen, const double* pDelta, const double* pShapeDefs, int ShapeDefCount);
+	//int SetFromListOfObj3D(const double* pAttenLen, const double* pDelta, double** arObjShapeDefs, int nObj3D, const double* arPar=0); //OC28012021
+	int SetFromListOfObj3D(const double* pDelta, const double* pAttenLen, double** arObjShapeDefs, int nObj3D, const double* arPar=0); //OC24082021
+};
+
 
 //*************************************************************************
 

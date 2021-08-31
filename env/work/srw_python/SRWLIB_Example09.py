@@ -35,7 +35,7 @@ GsnBm.yp = 0
 GsnBm.avgPhotEn = 12400 #Photon Energy [eV]
 GsnBm.pulseEn = 0.001 #Energy per Pulse [J] - to be corrected
 GsnBm.repRate = 1 #Rep. Rate [Hz] - to be corrected
-GsnBm.polar = 1 #1- linear hoirizontal
+GsnBm.polar = 1 #1- linear horizontal
 GsnBm.sigX = 23e-06/2.35 #Horiz. RMS size at Waist [m]
 GsnBm.sigY = GsnBm.sigX #Vert. RMS size at Waist [m]
 

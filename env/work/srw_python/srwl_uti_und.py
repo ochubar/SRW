@@ -5,6 +5,7 @@
 from srwlib import *
 import uti_parse
 import uti_io
+import uti_math
 
 #****************************************************************************
 #****************************************************************************
@@ -929,6 +930,44 @@ def srwl_uti_und_make_sum_file(_lst_fn_par, _odn, _sum_fn_core='und'):
             resText += str(curFileInf[2]) + '\tp1\t0\t' + curFileInf[1] + '\t1\t1\n'
 
     uti_io.write_text(resText, resFilePath)
+
+#****************************************************************************
+def srwl_uti_und_est_perf_qp(_stk, _e1_approx, _w_harm=[1,1,1,1]):
+    """
+    Returns figures of merit for estimating Q-P spectral performance of an undulator
+    :param _stk: SRW Stokes structure with calculated spectrum
+    :param _e1_approx: approximate value of the fundamental harmonic
+    :param _w_harm: array of weights to be applied to multiples of the fundamental harmonic: 2*e1, 3*e1, 4*e1, 5*e1,...
+    """
+
+    eStart = _stk.mesh.eStart
+    eFin = _stk.mesh.eFin
+    ne = _stk.mesh.ne
+    eStep = (eFin - eStart)/(ne - 1)
+    
+    eStart1 = eStart #?
+    eFin1 = 2*_e1_approx - eStart1
+
+    iStart1 = 0 if(eStart1 == eStart) else int(round((eStart1 - eStart)/eStep + 1.e-07))
+    iFin1 = int(round((eFin1 - eStart)/eStep + 1.e-07))
+    if(iStart1 < 0): iStart1 = 0
+    elif(iStart1 >= ne): iStart1 = ne - 1
+    if(iFin1 < 0): iFin1 = 0
+    elif(iFin1 >= ne): iFin1 = ne - 1
+    
+    vMax, iMax = uti_math.find_ar_max(_stk.arS, iStart1, iFin1)
+
+    arVals = [_stk.arS[iMax-1], vMax, _stk.arS[iMax+1]]
+    f1, indEmax1 = uti_math.find_extrem_poly(arVals)
+    e1 = _stk.mesh.eStart + (iMax - 1 + indEmax1)*eStep #peak photon energy value of the first harmonic
+
+    sumHarm = 0.
+    nMult = len(_w_harm)
+    for i in range(nMult):
+        eh = (i + 2)*e1
+        if(eh <= eFin): sumHarm += _w_harm[i]*uti_math.interp_1d(eh, eStart, eStep, ne, _stk.arS, _ord=2)
+
+    return sumHarm/f1, f1
 
 #****************************************************************************
 #def srwl_fld_extrap_grad_off_mid_plane(_mag_mid, _ry, _ny, _grad_mult=1):

@@ -29,6 +29,8 @@ exFileNames = [
     'SRWLIB_Example15.py',
     'SRWLIB_Example16.py',
     'SRWLIB_Example17.py',
+    'SRWLIB_Example18.py',
+    'SRWLIB_Example19.py',
     ]
 
 for i in range(len(exFileNames)):

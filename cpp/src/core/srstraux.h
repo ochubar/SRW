@@ -1320,6 +1320,11 @@ struct srTWaveAccessData {
 	char DimUnits[10][255];
 	char DataUnits[255];
 
+	long long itStart, itFin; //OC21042021 (is it correct place for this?)
+
+	//OC20042021
+	char DataType; //Copies SRWLRadMesh::type, to indicate that Mutual Intensity / CSD data is stored
+
 	waveHndl wHndl;
 	int hState;
 
@@ -1413,7 +1418,16 @@ struct srTWaveAccessData {
 		DimSteps[1] = step2;
 		DimSteps[2] = step3;
 
+		if((AmOfDims == 2) && (pMesh->ne == 1)) //OC22062021 (photon energy is required for some types of processing, e.g. Quad. Phase Terms subtraction from MI/CSD)
+		{
+			DimStartValues[2] = pMesh->eStart;
+		}
+
+		DataType = pMesh->type; //OC20042021
 		//To process Mutual Intensity case: pMesh->type == 'm' !
+
+		itStart = pMesh->itStart; //OC21042021
+		itFin = pMesh->itFin;
 	}
 
 	void Init()
@@ -1430,6 +1444,10 @@ struct srTWaveAccessData {
 		}
 		*NameOfWave = '\0';
 		*DataUnits = '\0';
+
+		DataType = 0; //OC20042021
+		itStart = -1;
+		itFin = -1;
 	}
 
 	void OutRealData(double* ArrToFill, long long MaxLen)

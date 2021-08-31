@@ -1971,8 +1971,12 @@ int srTMirror::PropagateRadiationSimple_LocRayTracing(srTSRWRadStructAccessData*
 	TVector3d planeBeforeLocFr[2]; // vAuxIntersectP, vAuxDif;
 	TVector3d &planeBeforeLocFrP = planeBeforeLocFr[0], &planeBeforeLocFrV = planeBeforeLocFr[1];
 	
-	planeBeforeLocFrP.x = TransvCenPoint.x;
-	planeBeforeLocFrP.y = TransvCenPoint.y;
+	//planeBeforeLocFrP.x = TransvCenPoint.x;
+	//planeBeforeLocFrP.y = TransvCenPoint.y;
+	//OC25092020 (fixing issue of misalignment simulation)
+	planeBeforeLocFrP.x = 0.; //To replace zeros by transverse coordinates of the output frame origin in the frame of input beam (when / if it will be introduced)
+	planeBeforeLocFrP.y = 0.;
+
 	//planeBeforeLocFrP.z = 0.;
 	//if(m_treatInOut == 1) planeBeforeLocFrP.z = -m_extAlongOptAxIn;
 	planeBeforeLocFrP.z = -m_extAlongOptAxIn;

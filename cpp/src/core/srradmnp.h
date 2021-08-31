@@ -45,6 +45,10 @@ class srTRadGenManip {
 // Various manipulations with computed Radiation
 	bool EhOK, EvOK; //OC111111
 
+	//bool m_useIndE; //OC27022021
+	//unsigned long *m_arIndEforCSD; //OC27022021 (look-up table for indexes of Electric Field for calculating 4D CSD)
+	//unsigned long long m_lenArIndEforCSD; //OC27022021
+
 public:
 	//srTSRWRadStructAccessData RadAccessData;
 	CHGenObj hRadAccessData;
@@ -62,11 +66,23 @@ public:
 		srTSRWRadStructAccessData& RadAccessData = *((srTSRWRadStructAccessData*)(hRadAccessData.ptr()));
 		EhOK = (RadAccessData.pBaseRadX != 0);
 		EvOK = (RadAccessData.pBaseRadZ != 0);
+
+		//m_useIndE = true; //OC27022021 (to change as necessary)
+		//m_arIndEforCSD = 0; //OC27022021
+		//m_lenArIndEforCSD = 0; //OC27022021
 	}
 	srTRadGenManip() 
 	{
 		EhOK = EvOK = false; //OC111111
+
+		//m_useIndE = true; //OC27022021 (to change as necessary)
+		//m_arIndEforCSD = 0; //OC27022021
+		//m_lenArIndEforCSD = 0;
 	}
+	//~srTRadGenManip() //OC27022021
+	//{
+	//	if(m_arIndEforCSD != 0) delete[] m_arIndEforCSD;
+	//}
 
 	void ExtractRadiation(int PolarizCompon, int Int_or_Phase, int SectID, int TransvPres, double e, double x, double z, char* pData, double* pMeth=0, srTTrjDat* pTrjDat=0) //OC23022020
 	//void ExtractRadiation(int PolarizCompon, int Int_or_Phase, int SectID, int TransvPres, double e, double x, double z, char* pData, double* pMeth=0) //OC16122019
@@ -175,7 +191,7 @@ public:
 
 	int ExtractSingleElecMutualIntensity(srTRadExtract& RadExtract) 
 	{//OC06092018
-		int PolCom = RadExtract.PolarizCompon;
+		//int PolCom = RadExtract.PolarizCompon; //OC03032021 (commented-out)
 		int Int_or_ReE = RadExtract.Int_or_Phase;
 		//if((PolCom == 6) || (Int_or_ReE != 8)) return CAN_NOT_EXTRACT_MUT_INT;
 		if(Int_or_ReE != 8) return CAN_NOT_EXTRACT_MUT_INT;
@@ -225,7 +241,7 @@ public:
 	int ExtractSingleElecMutualIntensityVsZ(srTRadExtract&);
 	int ExtractSingleElecMutualIntensityVsXZ(srTRadExtract&);
 
-	int ComputeMultiElecMutualIntensityVsXZ(srTRadExtract&, srTTrjDat* pTrjDat=0); //23022020
+	//int ComputeMultiElecMutualIntensityVsXZ(srTRadExtract&, srTTrjDat* pTrjDat=0); //23022020
 
 	int SetupExtractedWaveData(srTRadExtract&, srTWaveAccessData&);
 	void SetupIntCoord(char, double, long long&, long long&, double&); //OC26042019
@@ -437,9 +453,10 @@ public:
 		return 0;
 	}
 
-	int MutualIntensityComponent(float* pEx, float* pExT, float* pEz, float* pEzT, int PolCom, double iter, float* pResMI) //OC16122019
+	inline int MutualIntensityComponent(float* pEx, float* pExT, float* pEz, float* pEzT, int PolCom, double iter, float* pResMI) //OC16122019
 	//int MutualIntensityComponent(float* pEx, float* pExT, float* pEz, float* pEzT, int PolCom, long long iter, float* pResMI) //OC13122019
 	//int MutualIntensityComponent(float* pEx, float* pExT, float* pEz, float* pEzT, int PolCom, float* pResMI)
+	//int MutualIntensityComponent(float* pEx, float* pExT, float* pEz, float* pEzT, int PolCom, double iter, float* pResMI) //OC16122019
 	{//OC09092018
 	 //NOTE: This is based on M.I. definition as: E(x)E*(x'), which differs from existing definition in literature: E*(x)E(x')
 	 //The two definitions are related by complex conjugation: E*(x)E(x') = (E(x)E*(x'))*
@@ -533,6 +550,8 @@ public:
 		{
 			*pResMI = (float)ReMI;
 			*(pResMI+1) = (float)ImMI;
+			//pResMI[0] = (float)ReMI;
+			//pResMI[1] = (float)ImMI;
 		}
 		else if(iter > 0)
 		{
@@ -548,6 +567,116 @@ public:
 		}
 		return 0;
 	}
+
+	//int MutualIntensityComponentOpt(float* pEx, float* pExT, float* pEz, float* pEzT, int PolCom, double iter, float& reMI, float& imMI) //OC24022021
+	//{//OC09092018
+	// //NOTE: This is based on M.I. definition as: E(x)E*(x'), which differs from existing definition in literature: E*(x)E(x')
+	// //The two definitions are related by complex conjugation: E*(x)E(x') = (E(x)E*(x'))*
+	//	double ExRe = 0., ExIm = 0., EzRe = 0., EzIm = 0.;
+	//	double ExReT = 0., ExImT = 0., EzReT = 0., EzImT = 0.;
+	//	if(EhOK) { ExRe = *pEx; ExIm = *(pEx + 1); ExReT = *pExT; ExImT = *(pExT + 1); }
+	//	if(EvOK) { EzRe = *pEz; EzIm = *(pEz + 1); EzReT = *pEzT; EzImT = *(pEzT + 1); }
+	//	double ReMI = 0., ImMI = 0.;
+
+	//	switch(PolCom)
+	//	{
+	//	case 0: // Lin. Hor.
+	//	{
+	//		ReMI = ExRe*ExReT + ExIm*ExImT;
+	//		ImMI = ExIm*ExReT - ExRe*ExImT;
+	//		break;
+	//	}
+	//	case 1: // Lin. Vert.
+	//	{
+	//		ReMI = EzRe*EzReT + EzIm*EzImT;
+	//		ImMI = EzIm*EzReT - EzRe*EzImT;
+	//		break;
+	//	}
+	//	case 2: // Linear 45 deg.
+	//	{
+	//		double ExRe_p_EzRe = ExRe + EzRe, ExIm_p_EzIm = ExIm + EzIm;
+	//		double ExRe_p_EzReT = ExReT + EzReT, ExIm_p_EzImT = ExImT + EzImT;
+	//		ReMI = 0.5*(ExRe_p_EzRe*ExRe_p_EzReT + ExIm_p_EzIm*ExIm_p_EzImT);
+	//		ImMI = 0.5*(ExIm_p_EzIm*ExRe_p_EzReT - ExRe_p_EzRe*ExIm_p_EzImT);
+	//		break;
+	//	}
+	//	case 3: // Linear 135 deg.
+	//	{
+	//		double ExRe_mi_EzRe = ExRe - EzRe, ExIm_mi_EzIm = ExIm - EzIm;
+	//		double ExRe_mi_EzReT = ExReT - EzReT, ExIm_mi_EzImT = ExImT - EzImT;
+	//		ReMI = 0.5*(ExRe_mi_EzRe*ExRe_mi_EzReT + ExIm_mi_EzIm*ExIm_mi_EzImT);
+	//		ImMI = 0.5*(ExIm_mi_EzIm*ExRe_mi_EzReT - ExRe_mi_EzRe*ExIm_mi_EzImT);
+	//		break;
+	//	}
+	//	case 5: // Circ. Left //OC08092019: corrected to be in compliance with definitions for right-hand frame (x,z,s) and with corresponding definition and calculation of Stokes params
+	//	//case 4: // Circ. Right
+	//	{
+	//		double ExRe_mi_EzIm = ExRe - EzIm, ExIm_p_EzRe = ExIm + EzRe;
+	//		double ExRe_mi_EzImT = ExReT - EzImT, ExIm_p_EzReT = ExImT + EzReT;
+	//		ReMI = 0.5*(ExRe_mi_EzIm*ExRe_mi_EzImT + ExIm_p_EzRe*ExIm_p_EzReT);
+	//		ImMI = 0.5*(ExIm_p_EzRe*ExRe_mi_EzImT - ExRe_mi_EzIm*ExIm_p_EzReT);
+	//		break;
+	//	}
+	//	case 4: // Circ. Right //OC08092019: corrected to be in compliance with definitions for right-hand frame (x,z,s) and with corresponding definition and calculation of Stokes params
+	//	//case 5: // Circ. Left
+	//	{
+	//		double ExRe_p_EzIm = ExRe + EzIm, ExIm_mi_EzRe = ExIm - EzRe;
+	//		double ExRe_p_EzImT = ExReT + EzImT, ExIm_mi_EzReT = ExImT - EzReT;
+	//		ReMI = 0.5*(ExRe_p_EzIm*ExRe_p_EzImT + ExIm_mi_EzRe*ExIm_mi_EzReT);
+	//		ImMI = 0.5*(ExIm_mi_EzRe*ExRe_p_EzImT - ExRe_p_EzIm*ExIm_mi_EzReT);
+	//		break;
+	//	}
+	//	case -1: // s0
+	//	{
+	//		ReMI = ExRe*ExReT + ExIm*ExImT + EzRe*EzReT + EzIm*EzImT;
+	//		ImMI = ExIm*ExReT - ExRe*ExImT + EzIm*EzReT - EzRe*EzImT;
+	//		break;
+	//	}
+	//	case -2: // s1
+	//	{
+	//		ReMI = ExRe*ExReT + ExIm*ExImT - (EzRe*EzReT + EzIm*EzImT);
+	//		ImMI = ExIm*ExReT - ExRe*ExImT - (EzIm*EzReT - EzRe*EzImT);
+	//		break;
+	//	}
+	//	case -3: // s2
+	//	{
+	//		ReMI = ExImT*EzIm + ExIm*EzImT + ExReT*EzRe + ExRe*EzReT;
+	//		ImMI = ExReT*EzIm - ExRe*EzImT - ExImT*EzRe + ExIm*EzReT;
+	//		break;
+	//	}
+	//	case -4: // s3
+	//	{
+	//		ReMI = ExReT*EzIm + ExRe*EzImT - ExImT*EzRe - ExIm*EzReT;
+	//		ImMI = ExIm*EzImT - ExImT*EzIm - ExReT*EzRe + ExRe*EzReT;
+	//		break;
+	//	}
+	//	default: // total mutual intensity, same as s0
+	//	{
+	//		ReMI = ExRe*ExReT + ExIm*ExImT + EzRe*EzReT + EzIm*EzImT;
+	//		ImMI = ExIm*ExReT - ExRe*ExImT + EzIm*EzReT - EzRe*EzImT;
+	//		break;
+	//		//return CAN_NOT_EXTRACT_MUT_INT;
+	//	}
+	//	}
+	//	if(iter == 0)
+	//	{
+	//		reMI = (float)ReMI;
+	//		imMI = (float)ImMI;
+	//	}
+	//	else if(iter > 0)
+	//	{
+	//		double iter_p_1 = iter + 1; //OC20012020
+	//		//long long iter_p_1 = iter + 1;
+	//		reMI = (float)((reMI*iter + ReMI)/iter_p_1);
+	//		imMI = (float)((imMI*iter + ImMI)/iter_p_1);
+	//	}
+	//	else
+	//	{
+	//		reMI += (float)ReMI;
+	//		imMI += (float)ImMI;
+	//	}
+	//	return 0;
+	//}
 
 	static double IntCylCrd(double ph, void* par)
 	{//Function to be called by 1D integration routine
@@ -579,10 +708,39 @@ public:
 		return true;
 	}
 
+	static void CosAndSin(double x, float& Cos, float& Sin) //OC23062021
+	{
+		const double TwoPI = 6.2831853071796;
+		const double ThreePIdTwo = 4.7123889803847;
+		const double One_dTwoPI = 0.1591549430919;
+		const double HalfPI = 1.5707963267949;
+		const double PI = 3.141592653590;
+		const double a2c = -0.5, a4c = 0.041666666666667, a6c = -0.0013888888888889, a8c = 0.000024801587301587, a10c = -2.755731922E-07;
+		const double a3s = -0.16666666666667, a5s = 0.0083333333333333, a7s = -0.0001984126984127, a9s = 2.755731922E-06, a11s = -2.505210839E-08;
+
+		x -= TwoPI*int(x*One_dTwoPI);
+		if(x < 0.) x += TwoPI;
+
+		char ChangeSign=0;
+		if(x > ThreePIdTwo) x -= TwoPI;
+		else if(x > HalfPI) { x -= PI; ChangeSign = 1; }
+
+		double xe2 = x*x;
+		Cos = float(1. + xe2*(a2c + xe2*(a4c + xe2*(a6c + xe2*(a8c + xe2*a10c)))));
+		Sin = float(x*(1. + xe2*(a3s + xe2*(a5s + xe2*(a7s + xe2*(a9s + xe2*a11s))))));
+		if(ChangeSign) { Cos = -Cos; Sin = -Sin; }
+	}
+
+
 	static void IntProc(srTWaveAccessData* pwI1, srTWaveAccessData* pwI2, double* arPar, int nPar); //OC09032019
 	//static void IntProc(srTWaveAccessData* pwI1, srTWaveAccessData* pwI2, double* arPar);
 	static void Int2DIntegOverAzim(srTWaveAccessData* pwI1, srTWaveAccessData* pwI2, double* arPar, int nPar); //OC09032019
 	//static void Int2DIntegOverAzim(srTWaveAccessData* pwI1, srTWaveAccessData* pwI2, double* arPar);
+	static void MutualIntFillHalfHermit(srTWaveAccessData* pwI); //OC06022021
+	static void MutualIntSumPart(srTWaveAccessData* pwI1, srTWaveAccessData* pwI2, long iterAvg=-1); //OC25042021
+	//static void MutualIntSumPart(srTWaveAccessData* pwI1, srTWaveAccessData* pwI2); //OC20042021
+	static void MutualIntTreatComQuadPhTerm(srTWaveAccessData* pwI, double* arPar, int nPar); //OC22062021
+	static void CohModesTreatComQuadPhTerm(srTWaveAccessData* pwI, double* arPar, int nPar); //OC26062021
 
 	static void ComponInteg(srTDataMD* pIntensOrigData, srTDataMD* pIntegParData, srTDataMD* pIntegResData);
 	static void ComponIntegVsPhotEn(srTDataMD* pIntensOrigData, double eMin, double eMax, srTDataMD* pIntegResData);
