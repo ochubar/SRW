@@ -10,7 +10,8 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.6", "3.7", "3.8", "3.9"]
+        # python-version: ["3.6", "3.7", "3.8", "3.9"]
+        python-version: ["3.8"]
       fail-fast: false
     steps:
 
@@ -27,6 +28,8 @@ jobs:
         set -vxeuo pipefail
         cd python
         python setup.py install
+        site_dir=$(python -c "import site; print(site.getsitepackages()[0])")
+        ls -laF ${site_dir}
         python -m pip install pytest
 
     - name: Install test requirements
