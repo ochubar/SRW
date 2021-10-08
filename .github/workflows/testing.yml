@@ -26,10 +26,13 @@ jobs:
       shell: bash -l {0}
       run: |
         set -vxeuo pipefail
+        sudo apt-get install -y tree
         cd python
         python setup.py install
         site_dir=$(python -c "import site; print(site.getsitepackages()[0])")
         ls -laF ${site_dir}
+        tree ${site_dir}
+        ls -alF ${site_dir}/srwpy-1.0-py3.8-linux-x86_64.egg/
         python -m pip install pytest
 
     - name: Install test requirements
