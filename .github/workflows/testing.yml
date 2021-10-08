@@ -21,14 +21,23 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
+      - uses: conda-incubator/setup-miniconda@v2
         with:
+          activate-environment: testenv
+          allow-softlinks: true
+          auto-activate-base: false
+          auto-update-conda: true
+          channel-priority: flexible
+          channels: conda-forge
+          miniconda-version: "latest"
           python-version: ${{ matrix.python-version }}
+          show-channel-urls: true
+          use-only-tar-bz2: false
 
       - name: Install
         run: |
           set -vxeuo pipefail
+          python -VV
           cd python
           python setup.py install
 
