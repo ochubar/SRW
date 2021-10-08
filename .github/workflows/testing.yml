@@ -6,39 +6,38 @@ on:
 
 jobs:
   build:
-
-    runs-on: ubuntu-latest
     strategy:
       matrix:
+        host-os: ["ubuntu-latest", "macos-latest", "windows-latest"]
         python-version: ["3.6", "3.7", "3.8", "3.9"]
       fail-fast: false
+
     steps:
+      - uses: actions/checkout@v2
 
-    - uses: actions/checkout@v2
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
 
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
-      with:
-        python-version: ${{ matrix.python-version }}
+      - name: Install
+        shell: bash -l {0}
+        run: |
+          set -vxeuo pipefail
+          cd python
+          python setup.py install
 
-    - name: Install
-      shell: bash -l {0}
-      run: |
-        set -vxeuo pipefail
-        cd python
-        python setup.py install
+      - name: Install test requirements
+        shell: bash -l {0}
+        run: |
+          set -vxeuo pipefail
+          cd python
+          python -m pip install -r requirements-dev.txt
+          python -m pip list
 
-    - name: Install test requirements
-      shell: bash -l {0}
-      run: |
-        set -vxeuo pipefail
-        cd python
-        python -m pip install -r requirements-dev.txt
-        python -m pip list
-
-    - name: Test with pytest
-      shell: bash -l {0}
-      run: |
-        set -vxeuo pipefail
-        cp -rv python/srwpy/tests tests
-        pytest -s -vv tests/
+      - name: Test with pytest
+        shell: bash -l {0}
+        run: |
+          set -vxeuo pipefail
+          cp -rv python/srwpy/tests tests
+          pytest -s -vv tests/
