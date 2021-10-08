@@ -37,7 +37,7 @@ jobs:
       - name: Install build dependencies for Windows
         if: runner.os == 'Windows'
         run: |
-          conda install -y ninja
+          conda install -y cmake ninja
 
       - name: Install build dependencies for Linux/OSX
         if: runner.os != 'Windows'
