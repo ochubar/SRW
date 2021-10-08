@@ -13,7 +13,7 @@ pillow # required by sphinx-gallery
 sphinx-copybutton
 sphinx-gallery
 sphinx_rtd_theme
-doxygen
+# doxygen  # doxygen is a system package for documentation build
 breathe
 # PyPI deployment tools
 setuptools
