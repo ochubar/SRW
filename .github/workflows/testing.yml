@@ -34,12 +34,21 @@ jobs:
           show-channel-urls: true
           use-only-tar-bz2: false
 
+      - name: Install build dependencies for Windows
+        if: runner.os == 'Windows'
+        run: |
+          conda install -y ninja
+
+      - name: Install build dependencies for Linux/OSX
+        if: runner.os != 'Windows'
+        run: |
+          conda install -y cmake
+
       - name: Install
         run: |
           set -vxeuo pipefail
-          python -VV
-          conda install -y cmake
           cd python
+          python -VV
           python setup.py install
 
       - name: Install test requirements
