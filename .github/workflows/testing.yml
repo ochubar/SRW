@@ -38,6 +38,7 @@ jobs:
         run: |
           set -vxeuo pipefail
           python -VV
+          conda install -y cmake
           cd python
           python setup.py install
 
