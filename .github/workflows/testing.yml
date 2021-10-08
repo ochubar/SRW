@@ -40,4 +40,5 @@ jobs:
       shell: bash -l {0}
       run: |
         set -vxeuo pipefail
-        pytest -s -vv python/srwpy/tests/
+        cp -rv python/srwpy/tests tests
+        pytest -s -vv tests/
