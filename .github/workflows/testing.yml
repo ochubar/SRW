@@ -8,10 +8,8 @@ jobs:
   build:
     strategy:
       matrix:
-        # host-os: ["ubuntu-latest", "macos-latest", "windows-latest"]
-        # python-version: ["3.6", "3.7", "3.8", "3.9"]
-        host-os: ["windows-latest"]
-        python-version: ["3.8"]
+        host-os: ["ubuntu-latest", "macos-latest", "windows-latest"]
+        python-version: ["3.6", "3.7", "3.8", "3.9"]
       fail-fast: false
 
     runs-on: ${{ matrix.host-os }}
@@ -42,17 +40,11 @@ jobs:
         with:
           arch: x64
 
-      # - name: Install build dependencies for Windows
-      #   if: runner.os == 'Windows'
-      #   run: |
-      #     conda install -y cmake ninja fftw
-
-      - name: Install build dependencies for Linux/OSX
-        # if: runner.os != 'Windows'
+      - name: Install build requirements
         run: |
           conda install -y cmake
 
-      - name: Install
+      - name: Install the package
         run: |
           set -vxeuo pipefail
           cd python
