@@ -42,6 +42,7 @@ jobs:
 
       - name: Install build requirements
         run: |
+          set -vxeuo pipefail
           conda install -y cmake
 
       - name: Install the package
@@ -63,3 +64,10 @@ jobs:
           set -vxeuo pipefail
           cp -rv python/srwpy/tests tests
           pytest -s -vv tests/
+
+      - name: Build source distribution and wheels
+        run: |
+          set -vxeuo pipefail
+          cd python
+          python setup.py sdist bdist_wheel
+          ls -la dist/*
