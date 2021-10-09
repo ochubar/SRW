@@ -64,5 +64,5 @@ jobs:
       - name: Test with pytest
         run: |
           set -vxeuo pipefail
-          cp -rv python/srwpy/tests tests
-          pytest -s -vv tests/
+          # cp -rv python/srwpy/tests tests
+          pytest -s -vv python/srwpy/tests/
