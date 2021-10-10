@@ -46,10 +46,10 @@ class CMakeBuild(build_ext):
             if env['MODE'] == 'omp':
                 cmake_args += ['-DUSE_OPENMP=ON']
         if os.name == 'nt':
-          # We need makefile generator that does not support multi-configuration builds
-          # otherwise windows will output a Release or Debug folder in which the artifacts
-          # will be located.
-          cmake_args.append('-GNMake Makefiles')
+            # We need makefile generator that does not support multi-configuration builds
+            # otherwise windows will output a Release or Debug folder in which the artifacts
+            # will be located.
+            cmake_args.append('-GNMake Makefiles')
 
         if not os.path.exists(self.build_temp):
             os.makedirs(self.build_temp)
@@ -59,6 +59,7 @@ class CMakeBuild(build_ext):
         subprocess.check_call(['cmake', '--build', '.', '--config', 'Release'],
                               cwd=self.build_temp)
         print()  # Add an empty line for cleaner output
+
 
 base_dir = os.path.dirname(os.path.realpath(__file__))
 original_src_dir = os.path.join(base_dir, '..')
@@ -81,5 +82,5 @@ This is SRW for Python.
       install_requires=requirements,
       zip_safe=False,
       ext_modules=[CMakeExtension('srwlpy', original_src_dir, 'srwpy')],
-      cmdclass=dict(build_ext=CMakeBuild)
-)
+      cmdclass=dict(build_ext=CMakeBuild),
+      )
