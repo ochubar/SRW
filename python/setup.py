@@ -63,6 +63,11 @@ class CMakeBuild(build_ext):
 base_dir = os.path.dirname(os.path.realpath(__file__))
 original_src_dir = os.path.join(base_dir, '..')
 
+with open(os.path.join(base_dir, 'requirements.txt')) as requirements_file:
+    # Parse requirements.txt, ignoring any commented-out lines.
+    requirements = [line for line in requirements_file.read().splitlines()
+                    if not line.startswith('#')]
+
 setup(name='srwpy',
       version='1.0',
       description='This is SRW for Python',
@@ -73,6 +78,7 @@ setup(name='srwpy',
 This is SRW for Python.
 ''',
       packages=find_packages(exclude=['docs', 'tests']),
+      install_requires=requirements,
       zip_safe=False,
       ext_modules=[CMakeExtension('srwlpy', original_src_dir, 'srwpy')],
       cmdclass=dict(build_ext=CMakeBuild)
