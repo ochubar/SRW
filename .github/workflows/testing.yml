@@ -64,6 +64,5 @@ jobs:
       - name: Test with pytest
         run: |
           set -vxeuo pipefail
-          # cp -rv python/srwpy/tests tests
-          # pytest -s -vv --import-mode=importlib python/srwpy/tests/
-          pytest -s -vv --import-mode=importlib python/srwpy/tests/ -k fast
+          cd python
+          pytest -s -vv --import-mode=importlib srwpy/tests/ -k fast

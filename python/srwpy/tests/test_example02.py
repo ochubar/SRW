@@ -78,7 +78,7 @@ def test_example02(examples_dir):
     partTraj = SRWLPrtTrj()
     partTraj.partInitCond = part
     #partTraj.allocate(npTraj)
-    partTraj.allocate(npTraj, True) #True ensures that field along trajectory will also be extracted 
+    partTraj.allocate(npTraj, True) #True ensures that field along trajectory will also be extracted
     partTraj.ctStart = 0 #"Start Time" (c*t) for the calculation (0 corresponds to the time moment for which the initial conditions are defined)
     partTraj.ctEnd = partTraj.ctStart + 5*undLenExt #End Time
 
@@ -90,11 +90,11 @@ def test_example02(examples_dir):
     #**********************Saving results
     #Auxiliary function to write tabulated Magnetic Field data to ASCII file:
     def AuxSaveMagFldData(dispFld3D, xc, yc, zc, filePath):
-        
+
         hx = 0 if(dispFld3D.nx <= 1) else dispFld3D.rx/(dispFld3D.nx - 1)
         hy = 0 if(dispFld3D.ny <= 1) else dispFld3D.ry/(dispFld3D.ny - 1)
         hz = 0 if(dispFld3D.nz <= 1) else dispFld3D.rz/(dispFld3D.nz - 1)
-        
+
         arXdef = False
         if((dispFld3D.arX != None) and (len(dispFld3D.arX) == dispFld3D.nx)):
             arXdef = True
@@ -125,7 +125,7 @@ def test_example02(examples_dir):
         if(arBzDef == True):
             resStr += ', Bz [T]'
         f.write(resStr + '\n')
-            
+
         i = 0
         z = zc - 0.5*dispFld3D.rz
         for iz in range(dispFld3D.nz):
@@ -177,7 +177,7 @@ def test_example02(examples_dir):
                 resStr += '\t' + repr(traj.arBy[i])
             if(hasattr(traj, 'arBz')):
                 resStr += '\t' + repr(traj.arBz[i])
-            f.write(resStr + '\n')        
+            f.write(resStr + '\n')
             ct += ctStep
         f.close()
 

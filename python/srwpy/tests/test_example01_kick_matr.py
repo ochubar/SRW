@@ -192,7 +192,7 @@ def test_example01_kick_matr(examples_dir):
     srwl.CalcPartTrajFromKickMatr(partTraj, kickMatr, arPrecTrajFromKickM)#Calculate Off-Axis Trajectory using Kick-Matrix method
     partTraj.save_ascii(os.path.join(os.getcwd(), strExDataFolderName, strOffKickTrajOutFileName))
 
-    srwl.CalcPartTraj(partTraj, magFldCnt, arPrecTrajFromField) #Calculate same Off-Axis Trajectory by Runge-Kutta integration in 3D Magnetic Field 
+    srwl.CalcPartTraj(partTraj, magFldCnt, arPrecTrajFromField) #Calculate same Off-Axis Trajectory by Runge-Kutta integration in 3D Magnetic Field
     partTraj.save_ascii(os.path.join(os.getcwd(), strExDataFolderName, strOffTrajOutFileName))
 
     print('done')

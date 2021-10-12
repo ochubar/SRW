@@ -88,7 +88,7 @@ def test_example01(examples_dir):
 
     print('   Reading magnetic field data from files ... ', end='')
     #for i in range(3):
-    for i in range(1): 
+    for i in range(1):
         filePath = os.path.join(os.getcwd(), strExDataFolderName, arFldInFileNames[i])
         magFldCnt.arMagFld[i] = AuxReadInMagFld3D(filePath, '#')
         magFldCnt.arMagFld[i].interp = fieldInterpMeth
