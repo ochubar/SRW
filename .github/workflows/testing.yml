@@ -66,4 +66,4 @@ jobs:
           set -vxeuo pipefail
           # cp -rv python/srwpy/tests tests
           # pytest -s -vv --import-mode=importlib python/srwpy/tests/
-          pytest -s -vv --import-mode=importlib python/srwpy/tests/
+          pytest -s -vv --import-mode=importlib python/srwpy/tests/ -k fast
