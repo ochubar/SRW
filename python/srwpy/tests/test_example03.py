@@ -11,7 +11,7 @@ import pytest
 
 
 @pytest.mark.fast
-def test_example02(examples_dir):
+def test_example03(examples_dir):
     current_dir = os.getcwd()
     os.chdir(examples_dir)
 
