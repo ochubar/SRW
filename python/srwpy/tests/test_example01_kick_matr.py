@@ -213,4 +213,9 @@ def test_example01_kick_matr(examples_dir):
     # uti_plot_show()
     print('done')
 
+    # end of example, start testing
+    assert len(partTraj.arX) == 10001
+    assert len(partTraj.arY) == 10001
+    assert ctMesh == [0, 2.5, 10001]
+
     os.chdir(current_dir)
