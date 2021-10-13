@@ -19,3 +19,5 @@ data_example*
 # Compiled libraries
 *.a
 *.so
+
+__srwl_logs__/
