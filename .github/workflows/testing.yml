@@ -68,9 +68,10 @@ jobs:
           pytest -s -vv --import-mode=importlib srwpy/tests/ -k fast
 
       - name: Run tests for slow examples
+        if: runner.os != 'Windows'
         run: |
           set -vxeuo pipefail
-          conda install -y -c conda-forge mpi4py mpi
+          conda install -y -c conda-forge mpi4py openmpi
           cd examples/python
           cat SRWLIB_Example08.py | sed 's/nMacroElec = 50000/nMacroElec = 100/' > SRWLIB_Example08_100_particles.py
           mpirun --oversubscribe -n 4 python SRWLIB_Example08_100_particles.py
