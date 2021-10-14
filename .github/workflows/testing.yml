@@ -79,7 +79,7 @@ jobs:
           set -vxeuo pipefail
           cd examples/python
           cat SRWLIB_Example08.py | sed 's/nMacroElec = 50000/nMacroElec = 10/' > SRWLIB_Example08_10_particles.py
-          mpirun --oversubscribe -n 4 python SRWLIB_Example08_10_particles.py
+          time mpirun --oversubscribe -n 4 python SRWLIB_Example08_10_particles.py
           cat __srwl_logs__/srwl_stat_wfr_emit_prop_multi_e_*.log
           rm -f -r __srwl_logs__
 
@@ -89,7 +89,7 @@ jobs:
           set -vxeuo pipefail
           cd examples/python
           cat SRWLIB_Example10.py | sed 's/nMacroElec = 50000/nMacroElec = 20/' > SRWLIB_Example10_20_particles.py
-          mpirun --oversubscribe -n 4 python SRWLIB_Example10_20_particles.py
+          time mpirun --oversubscribe -n 4 python SRWLIB_Example10_20_particles.py
           cat __srwl_logs__/srwl_stat_wfr_emit_prop_multi_e_*.log
           rm -f -r __srwl_logs__
 
@@ -99,6 +99,15 @@ jobs:
           set -vxeuo pipefail
           cd examples/python
           cat SRWLIB_Example11.py | sed 's/nMacroElec = 50000/nMacroElec = 10/' > SRWLIB_Example11_10_particles.py
-          mpirun --oversubscribe -n 4 python SRWLIB_Example11_10_particles.py
+          time mpirun --oversubscribe -n 4 python SRWLIB_Example11_10_particles.py
           cat __srwl_logs__/srwl_stat_wfr_emit_prop_multi_e_*.log
           rm -f -r __srwl_logs__
+
+      - name: Run test for example 11 (slow example)
+        if: runner.os != 'Windows'
+        run: |
+          set -vxeuo pipefail
+          cd examples/python
+          time mpirun --oversubscribe -n 4 python SRWLIB_Example20.py --wm --wm_nop --wm_ch=6 --wm_nm=10 --wm_nmm=2 --wm_na=5 --wm_ns=5 --wm_ff=h5 --wm_fni=ex20_res
+          # This step takes too long, commenting it out for now:
+          # time python SRWLIB_Example20.py --wm_ch=7 --wm_fnmi=ex20_res_mi.h5 --wm_ncm=10 --wm_fni=ex20_res
