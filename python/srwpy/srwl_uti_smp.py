@@ -794,7 +794,7 @@ def srwl_opt_setup_smp_rnd_obj2d( #RAC06052020
     ### Create transmission (SRWLOptT) type optical element
     #opT = srwlib.SRWLOptT(_nx=_nx, _ny=_ny, _rx=_rx, _ry=_ry, _arTr=arTr, _extTr=_ext_tr, _x=_xc, _y=_yc, _ne=_ne, _eStart=_e_start, _eFin=_e_fin)
     #opT = srwlib.SRWLOptT(_nx=_nx, _ny=_ny, _rx=_rx, _ry=_ry, _arTr=arTr, _extTr=_ext_tr, _x=_xc, _y=_yc, _ne=ne, _eStart=_e_start, _eFin=_e_fin) #OC01062020
-    opT = SRWLOptT(_nx=_nx, _ny=_ny, _rx=_rx, _ry=_ry, _arTr=arTr, _extTr=_ext_tr, _x=_xc, _y=_yc, _ne=ne, _eStart=_e_start, _eFin=_e_fin) #OC28012021
+    opT = srwlib.SRWLOptT(_nx=_nx, _ny=_ny, _rx=_rx, _ry=_ry, _arTr=arTr, _extTr=_ext_tr, _x=_xc, _y=_yc, _ne=ne, _eStart=_e_start, _eFin=_e_fin) #OC28012021
     opT.input_parms = input_parms # add user input parameters to transmission optical element
 
     #OC28052020
@@ -860,11 +860,11 @@ def srwl_opt_setup_transm_from_obj3d( #OC28012021
     nTot = 2 * ne * nx * ny
     arTr = array('d', [0]*nTot)
 
-    opT = SRWLOptT(_nx=nx, _ny=ny, _rx=rx, _ry=ry,
-                   _arTr=arTr, _extTr=extTr, _Fx=fx, _Fy=fy,
-                   _x=xc, _y=yc, _ne=ne, _eStart=e_start, _eFin=e_fin)
+    opT = srwlib.SRWLOptT(_nx=nx, _ny=ny, _rx=rx, _ry=ry,
+                         _arTr=arTr, _extTr=extTr, _Fx=fx, _Fy=fy,
+                         _x=xc, _y=yc, _ne=ne, _eStart=e_start, _eFin=e_fin)
     opT.input_parms = input_parms
-    srwl.CalcTransm(opT, delta, atten_len, shape_defs) #OC24082021 (changing order of delta and atten_len, to be in line with other cases of defining Transmission)
+    srwlib.srwl.CalcTransm(opT, delta, atten_len, shape_defs) #OC24082021 (changing order of delta and atten_len, to be in line with other cases of defining Transmission)
     #srwl.CalcTransm(opT, atten_len, delta, shape_defs) #OC28012021
     #srwl.CalcTransm(opT, atten_len, delta, shape_defs, None)
 
