@@ -224,7 +224,7 @@ for i in range(len(intensitiesToPlot['intensity'])):
                                '{}/intensity_{:.1f}m.dat'.format(example_folder, intensitiesToPlot['distance'][i]),
                                0, ['Photon Energy', 'Horizontal Position', 'Vertical Position', ''],
                                _arUnits=['eV', 'm', 'm', 'ph/s/.1%bw/mm^2'])
-    uti_plot.uti_plot2d1d(intensitiesToPlot['intensity'][i],
+    srwpy.uti_plot.uti_plot2d1d(intensitiesToPlot['intensity'][i],
                           intensitiesToPlot['mesh_x'][i],
                           intensitiesToPlot['mesh_y'][i],
                           x=0, y=0,
