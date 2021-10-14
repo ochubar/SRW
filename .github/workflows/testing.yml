@@ -102,11 +102,3 @@ jobs:
           mpirun --oversubscribe -n 4 python SRWLIB_Example11_100_particles.py
           cat __srwl_logs__/srwl_stat_wfr_emit_prop_multi_e_*.log
           rm -f -r __srwl_logs__
-
-      # - name: Run test for example 12 (fast example, but requires CLI to execute it)
-      #   run: |
-      #     set -vxeuo pipefail
-      #     cd examples/python
-      #     python SRWLIB_Example12.py
-      #     cat __srwl_logs__/srwl_stat_wfr_emit_prop_multi_e_*.log
-      #     rm -f -r __srwl_logs__
