@@ -241,6 +241,7 @@ def test_example18(examples_dir):
 
     # end of example, start testing
     assert len(arI0) == 6084
+    assert len(arI1) == 4194304
     assert len(arLogI1) == 4194304
 
     assert hasattr(wfr, "mesh")
