@@ -103,7 +103,7 @@ jobs:
           cat __srwl_logs__/srwl_stat_wfr_emit_prop_multi_e_*.log
           rm -f -r __srwl_logs__
 
-      - name: Run test for example 11 (slow example)
+      - name: Run test for example 20 (slow example)
         if: runner.os != 'Windows'
         run: |
           set -vxeuo pipefail
