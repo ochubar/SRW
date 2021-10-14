@@ -103,13 +103,12 @@ jobs:
           cat __srwl_logs__/srwl_stat_wfr_emit_prop_multi_e_*.log
           rm -f -r __srwl_logs__
 
-      # This example is too "heavy" to be run in CI.
-      # Commenting it out for now until a lighter version appears.
-      # - name: Run test for example 20 (slow example)
-      #   if: runner.os != 'Windows'
-      #   run: |
-      #     set -vxeuo pipefail
-      #     cd examples/python
-      #     time mpirun --oversubscribe -n 2 python SRWLIB_Example20.py --wm --wm_nop --wm_ch=6 --wm_nm=10 --wm_nmm=2 --wm_na=5 --wm_ns=5 --wm_ff=h5 --wm_fni=ex20_res
-      #     # This step takes too long, commenting it out for now:
-      #     # time python SRWLIB_Example20.py --wm_ch=7 --wm_fnmi=ex20_res_mi.h5 --wm_ncm=10 --wm_fni=ex20_res
+      # This example is too "heavy" to be run in CI for Linux. Running it for MacOS only.
+      - name: Run test for example 20 (slow example)
+        if: runner.os == 'macOS'
+        run: |
+          set -vxeuo pipefail
+          cd examples/python
+          time mpirun --oversubscribe -n 4 python SRWLIB_Example20.py --wm --wm_nop --wm_ch=6 --wm_nm=10 --wm_nmm=2 --wm_na=5 --wm_ns=5 --wm_ff=h5 --wm_fni=ex20_res
+          # This step takes too long, commenting it out for now:
+          # time python SRWLIB_Example20.py --wm_ch=7 --wm_fnmi=ex20_res_mi.h5 --wm_ncm=10 --wm_fni=ex20_res
