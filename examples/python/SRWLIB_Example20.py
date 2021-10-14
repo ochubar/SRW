@@ -17,8 +17,8 @@ try:
 except:
     pass
 
-import srwl_bl
-import srwlib
+from srwpy import srwl_bl
+from srwpy import srwlib
 
 #*********************************Story
 help_str='''SRWLIB Python Example # 20:
