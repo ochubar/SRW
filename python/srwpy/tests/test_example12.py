@@ -5,7 +5,7 @@ import pytest
 
 
 @pytest.mark.fast
-@pytest.mark.skipif(sys.platform == "linux", reason="runs only on Linux")
+@pytest.mark.skipif(sys.platform != "linux", reason="runs only on Linux")
 def test_example12(examples_dir):
     current_dir = os.getcwd()
     os.chdir(examples_dir)
