@@ -3,4 +3,5 @@ matplotlib
 # mpi4py
 numpy
 pillow
+scikit-learn
 scipy
