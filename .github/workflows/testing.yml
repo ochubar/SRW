@@ -88,7 +88,7 @@ jobs:
         run: |
           set -vxeuo pipefail
           cd examples/python
-          cat SRWLIB_Example10.py | sed 's/nMacroElec = 50000/nMacroElec = 100/' > SRWLIB_Example10_100_particles.py
+          cat SRWLIB_Example10.py | sed 's/nMacroElec = 50000/nMacroElec = 20/' > SRWLIB_Example10_100_particles.py
           mpirun --oversubscribe -n 4 python SRWLIB_Example10_100_particles.py
           cat __srwl_logs__/srwl_stat_wfr_emit_prop_multi_e_*.log
           rm -f -r __srwl_logs__
