@@ -431,10 +431,9 @@ def srwl_opt_setup_transm_from_file(
                         arTr[offset + 1] = -delta * pathInBody  #optical path difference
                         offset += 2
 
-    #opT = srwlib.SRWLOptT(_nx=nx, _ny=ny, _rx=rx, _ry=ry,
-    opT = SRWLOptT(_nx=nx, _ny=ny, _rx=rx, _ry=ry, #OC28012021
-                   _arTr=arTr, _extTr=extTr, _Fx=fx, _Fy=fy,
-                   _x=xc, _y=yc, _ne=ne, _eStart=e_start, _eFin=e_fin)
+    opT = srwlib.SRWLOptT(_nx=nx, _ny=ny, _rx=rx, _ry=ry, #OC28012021
+                          _arTr=arTr, _extTr=extTr, _Fx=fx, _Fy=fy,
+                          _x=xc, _y=yc, _ne=ne, _eStart=e_start, _eFin=e_fin)
 
     opT.input_parms = input_parms
 
