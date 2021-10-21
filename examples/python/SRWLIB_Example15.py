@@ -9,7 +9,7 @@ of propagation of a gaussian beam through a drift with an analytical estimation.
 # v. 0.03
 
 from __future__ import print_function
-import srwpy.uti_plot
+import srwpy.uti_plot as uti_plot
 from srwpy.srwlib import *
 from srwpy.uti_math import matr_prod, fwhm
 
@@ -224,7 +224,7 @@ for i in range(len(intensitiesToPlot['intensity'])):
                                '{}/intensity_{:.1f}m.dat'.format(example_folder, intensitiesToPlot['distance'][i]),
                                0, ['Photon Energy', 'Horizontal Position', 'Vertical Position', ''],
                                _arUnits=['eV', 'm', 'm', 'ph/s/.1%bw/mm^2'])
-    srwpy.uti_plot.uti_plot2d1d(intensitiesToPlot['intensity'][i],
+    uti_plot.uti_plot2d1d(intensitiesToPlot['intensity'][i],
                           intensitiesToPlot['mesh_x'][i],
                           intensitiesToPlot['mesh_y'][i],
                           x=0, y=0,
