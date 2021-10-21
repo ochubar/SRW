@@ -21,3 +21,4 @@ data_example*
 *.so
 
 __srwl_logs__/
+uti_plot*.png
