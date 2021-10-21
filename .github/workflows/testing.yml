@@ -71,7 +71,7 @@ jobs:
         run: |
           set -vxeuo pipefail
           cd python
-          pytest -s -vv --import-mode=importlib tests/ -k fast
+          pytest -s -vv --import-mode=append tests/ -k fast
 
       - name: Run test for example 8 (slow example)
         if: runner.os != 'Windows'
