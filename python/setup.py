@@ -16,13 +16,23 @@ class CMakeExtension(Extension):
 
 
 class CMakeBuild(build_ext):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.CMAKE_EXEC = "cmake"
+
     def run(self):
         try:
-            out = subprocess.check_output(['cmake', '--version'])
+            out = subprocess.check_output([self.CMAKE_EXEC, '--version'])
         except OSError:
-            raise RuntimeError(
-                "CMake must be installed to build the following extensions: " +
-                ", ".join(e.name for e in self.extensions))
+            # On some system installs (like CentOS7) the binary "cmake" is an
+            # older version 2. Trying 'cmake3'...
+            try:
+                self.CMAKE_EXEC = "cmake3"
+                out = subprocess.check_output([self.CMAKE_EXEC, '--version'])
+            except OSError:
+                raise RuntimeError(
+                    "CMake must be installed to build the following extensions: " +
+                    ", ".join(e.name for e in self.extensions))
 
         cmake_version = LooseVersion(re.search(r'version\s*([\d.]+)',
                                      out.decode()).group(1))
@@ -54,9 +64,9 @@ class CMakeBuild(build_ext):
         if not os.path.exists(self.build_temp):
             os.makedirs(self.build_temp)
         print('Using cmake args as: ', cmake_args)
-        subprocess.check_call(['cmake', ext.sourcedir] + cmake_args,
+        subprocess.check_call([self.CMAKE_EXEC, ext.sourcedir] + cmake_args,
                               cwd=self.build_temp, env=env)
-        subprocess.check_call(['cmake', '--build', '.', '--config', 'Release'],
+        subprocess.check_call([self.CMAKE_EXEC, '--build', '.', '--config', 'Release'],
                               cwd=self.build_temp)
         print()  # Add an empty line for cleaner output
 
