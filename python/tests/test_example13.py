@@ -14,6 +14,7 @@ from tests.conftest import filter_source, get_example_from_test
 def test_example13(examples_dir):
     current_dir = os.getcwd()
     os.chdir(examples_dir)
+    os.environ["DISPLAY"] = ""
 
     code = filter_source(get_example_from_test())
     exec(code, globals(), globals())
