@@ -18,16 +18,16 @@ class CMakeExtension(Extension):
 class CMakeBuild(build_ext):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.CMAKE_EXEC = "cmake"
+        # On some system installs (like CentOS7) the binary "cmake" is an older
+        # version 2. Trying 'cmake3' first...
+        self.CMAKE_EXEC = "cmake3"
 
     def run(self):
         try:
             out = subprocess.check_output([self.CMAKE_EXEC, '--version'])
         except OSError:
-            # On some system installs (like CentOS7) the binary "cmake" is an
-            # older version 2. Trying 'cmake3'...
             try:
-                self.CMAKE_EXEC = "cmake3"
+                self.CMAKE_EXEC = "cmake"
                 out = subprocess.check_output([self.CMAKE_EXEC, '--version'])
             except OSError:
                 raise RuntimeError(
