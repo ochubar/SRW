@@ -6,13 +6,14 @@ on:
 
 jobs:
   build:
+    name: Python ${{ matrix.python-version }} / OpenMP ${{ matrix.openmp }}
+    runs-on: ${{ matrix.host-os }}
     strategy:
       matrix:
         host-os: ["ubuntu-latest", "macos-latest", "windows-latest"]
         python-version: ["3.7", "3.8", "3.9"]
+        openmp: ["on", "off"]
       fail-fast: false
-
-    runs-on: ${{ matrix.host-os }}
 
     defaults:
       run:
@@ -20,6 +21,12 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
+
+      - name: Set OpenMP mode
+        if: matrix.openmp == 'on'
+        run: |
+          export MODE="omp"
+          echo "MODE=${MODE}" >> $GITHUB_ENV
 
       - uses: conda-incubator/setup-miniconda@v2
         with:
