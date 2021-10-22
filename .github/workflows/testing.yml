@@ -6,7 +6,7 @@ on:
 
 jobs:
   build:
-    name: Python ${{ matrix.python-version }} / OpenMP ${{ matrix.openmp }}
+    name: ${{ matrix.host-os }} / Python ${{ matrix.python-version }} / OpenMP ${{ matrix.openmp }}
     runs-on: ${{ matrix.host-os }}
     strategy:
       matrix:
