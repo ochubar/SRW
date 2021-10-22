@@ -55,6 +55,9 @@ class CMakeBuild(build_ext):
         if 'MODE' in env:
             if env['MODE'] == 'omp':
                 cmake_args += ['-DUSE_OPENMP=ON']
+        env_cmake_args = os.getenv("CMAKE_ARGS", None)
+        if env_cmake_args is not None:
+            cmake_args += env_cmake_args.split(" ")
         if os.name == 'nt':
             # We need makefile generator that does not support multi-configuration builds
             # otherwise windows will output a Release or Debug folder in which the artifacts
