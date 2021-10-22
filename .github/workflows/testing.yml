@@ -47,16 +47,22 @@ jobs:
         with:
           arch: x64
 
-      - name: Install build requirements
+      - name: Install build requirements with conda
         run: |
           set -vxeuo pipefail
           conda install -y cmake
 
-      - name: Install OpenMP for macOS
+      - name: Install OpenMP for macOS with conda
         if: runner.os == 'macOS' && matrix.openmp == 'on'
         run: |
           set -vxeuo pipefail
           conda install -y -c conda-forge llvm-openmp
+
+      - name: Install mpi4py for Unix systems with conda
+        if: runner.os != 'Windows'
+        run: |
+          set -vxeuo pipefail
+          conda install -y -c conda-forge mpi4py openmpi
 
       - name: Build sdist and wheel and install *.whl
         run: |
@@ -67,18 +73,12 @@ jobs:
           ls -la dist/*
           pip install -v dist/*.whl
 
-      - name: Install test requirements
+      - name: Install test requirements with pip
         run: |
           set -vxeuo pipefail
           cd python
           python -m pip install -r requirements-dev.txt
           python -m pip list
-
-      - name: Install mpi4py
-        if: runner.os != 'Windows'
-        run: |
-          set -vxeuo pipefail
-          conda install -y -c conda-forge mpi4py openmpi
 
       - name: Test with pytest
         run: |
