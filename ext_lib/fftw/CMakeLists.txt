@@ -15,7 +15,7 @@ else()
     include(ExternalProject)
 
     if(UNIX)
-
+        # https://cmake.org/cmake/help/latest/module/ExternalProject.html
         ExternalProject_Add(fftw_external
             URL
               http://www.fftw.org/fftw-2.1.5.tar.gz
@@ -29,8 +29,12 @@ else()
             # the make part will generate invalid library...
             COMMAND cp -r ${CMAKE_CURRENT_BINARY_DIR}/src/fftw_external/. .
             # Update config.sub and config.guess so fftw can be compiled with new target osx-arm64
-            COMMAND wget -O config.sub https://git.savannah.gnu.org/gitweb/?p=config.git&a=blob_plain&f=config.sub&hb=HEAD
-            COMMAND wget -O config.guess https://git.savannah.gnu.org/gitweb/?p=config.git&a=blob_plain&f=config.guess&hb=HEAD
+            # Note (2021-10-22): the git.savannah.gnu.org website is not
+            # accessible intermittently, so vendoring those two files:
+            # COMMAND wget -O config.sub https://git.savannah.gnu.org/gitweb/?p=config.git&a=blob_plain&f=config.sub&hb=HEAD
+            # COMMAND wget -O config.guess https://git.savannah.gnu.org/gitweb/?p=config.git&a=blob_plain&f=config.guess&hb=HEAD
+            COMMAND cp -v ${CMAKE_CURRENT_SOURCE_DIR}/config.sub .
+            COMMAND cp -v ${CMAKE_CURRENT_SOURCE_DIR}/config.guess .
             COMMAND ./configure --enable-float --with-pic
             COMMAND sed -i.bak -e "s/^CFLAGS = /CFLAGS = -fPIC /" Makefile
             COMMAND make -j8
