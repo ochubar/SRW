@@ -52,6 +52,12 @@ jobs:
           set -vxeuo pipefail
           conda install -y cmake
 
+      - name: Install OpenMP for macOS
+        if: runner.os == 'macOS' && matrix.openmp == 'on'
+        run: |
+          set -vxeuo pipefail
+          conda install -y -c conda-forge llvm-openmp
+
       - name: Build sdist and wheel and install *.whl
         run: |
           set -vxeuo pipefail
