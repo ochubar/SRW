@@ -6,19 +6,12 @@ import os
 import sys
 
 # Imports for tests:
-import os
 import pytest
-from tests.conftest import filter_source, get_example_from_test
 
 
 @pytest.mark.fast
-def test_example06(examples_dir):
-    current_dir = os.getcwd()
-    os.chdir(examples_dir)
-    os.environ["DISPLAY"] = ""
-
-    code = filter_source(get_example_from_test())
-    exec(code, globals(), globals())
+def test_example06(example_code):
+    exec(example_code, globals(), globals())
 
     # end of example, start testing
     assert len(powDenVsX) == 101
@@ -31,16 +24,10 @@ def test_example06(examples_dir):
                       "yStart", "yFin", "ny"]:
             assert hasattr(obj.mesh, param)
 
-    os.chdir(current_dir)
-
 
 @pytest.mark.fast
-def test_example06_PETRA(examples_dir):
-    current_dir = os.getcwd()
-    os.chdir(examples_dir)
-
-    code = filter_source(get_example_from_test())
-    exec(code, globals(), globals())
+def test_example06_PETRA(example_code):
+    exec(example_code, globals(), globals())
 
     # end of example, start testing
     assert len(arIS) == 20000
@@ -52,5 +39,3 @@ def test_example06_PETRA(examples_dir):
                     "xStart", "xFin", "nx",
                     "yStart", "yFin", "ny"]:
             assert hasattr(obj.mesh, param)
-
-    os.chdir(current_dir)
