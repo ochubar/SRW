@@ -1,5 +1,6 @@
 import os
 import pytest
+import shutil
 
 
 @pytest.fixture(scope="function")
@@ -45,7 +46,10 @@ def filter_source(file, filter=True, as_string=True):
 
 @pytest.fixture(scope="function")
 def example_file():
-    test_name = os.environ.get("PYTEST_CURRENT_TEST").split(":")[-1].split(" ")[0]
+    current_test = os.environ.get("PYTEST_CURRENT_TEST")
+    # This var will look like:
+    #   tests/test_example10.py::test_example10[20] (setup)
+    test_name = current_test.split(":")[-1].split(" ")[0].split("[")[0]
     _example_file = f"{test_name.replace('test_e', 'SRWLIB_E')}.py"
     return _example_file
 
@@ -61,7 +65,36 @@ def example_code(examples_dir, example_file, no_display):
     return code
 
 
-def get_example_from_test():
-    test_name = os.environ.get("PYTEST_CURRENT_TEST").split(":")[-1].split(" ")[0]
-    example_file = f"{test_name.replace('test_e', 'SRWLIB_E')}.py"
-    return example_file
+@pytest.fixture(scope="function")
+def raw_example_lines(examples_dir, example_file, no_display):
+    lines = filter_source(example_file, filter=False, as_string=False)
+    return lines
+
+
+@pytest.fixture(scope="function")
+def temp_example_file(tmp_path, example_file, raw_example_lines, request):
+    output_file = tmp_path / example_file
+    print(f"Output file: {output_file}")
+
+    lines = raw_example_lines
+
+    if hasattr(request, "param"):
+        param_name = "nMacroElec"
+        param_old_value = 50000
+        param_new_value = request.param
+
+
+        search_str = f"{param_name} = {param_old_value}"
+        replace_str = f"{param_name} = {param_new_value}"
+
+        for i, line in enumerate(lines):
+            if search_str in line:
+                print(f"\nReplacing {param_name} from {param_old_value} --> {param_new_value}\n")
+                lines[i] = line.replace(search_str, replace_str)
+
+    code = "\n".join(lines)
+    output_file.write_text(code)
+
+    yield output_file
+
+    shutil.rmtree("__srwl_logs__", ignore_errors=True)

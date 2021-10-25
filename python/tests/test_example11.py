@@ -1,15 +1,22 @@
-import os
+import glob
 import pytest
+import subprocess
+import sys
 
-REASON = "The test is executed via a separate step in CI"
 
-@pytest.mark.skip(reason=REASON)
 @pytest.mark.slow
-def test_example11(examples_dir):
-    current_dir = os.getcwd()
-    os.chdir(examples_dir)
-    os.environ["DISPLAY"] = ""
+@pytest.mark.parametrize("temp_example_file", [10], indirect=True)
+@pytest.mark.skipif(sys.platform not in ["linux", "darwin"], reason="runs only on Unix")
+def test_example11(temp_example_file):
+    subprocess.run(f"time mpirun --oversubscribe -n 4 python {temp_example_file}".split(),
+                   check=True)
 
-    print(REASON)
+    log_files = glob.glob("__srwl_logs__/srwl_stat_wfr_emit_prop_multi_e_*.log",
+                          recursive=True)
 
-    os.chdir(current_dir)
+    last_log = sorted(log_files)[-1]
+    with open(last_log, "r") as f:
+        content = f.read()
+    print(f"Log file:\n{content}")
+
+    assert content

@@ -80,49 +80,16 @@ jobs:
           python -m pip install -r requirements-dev.txt
           python -m pip list
 
-      - name: Test with pytest
+      - name: Fast tests with pytest
         run: |
           set -vxeuo pipefail
           cd python
           # Note: check `pytest.ini` for args and test paths.
           pytest -k fast
 
-      - name: Run test for example 8 (slow example)
-        if: runner.os != 'Windows'
+      - name: Slow tests with pytest
         run: |
           set -vxeuo pipefail
-          cd examples/python
-          cat SRWLIB_Example08.py | sed 's/nMacroElec = 50000/nMacroElec = 10/' > SRWLIB_Example08_10_particles.py
-          time mpirun --oversubscribe -n 4 python SRWLIB_Example08_10_particles.py
-          cat __srwl_logs__/srwl_stat_wfr_emit_prop_multi_e_*.log
-          rm -f -r __srwl_logs__
-
-      - name: Run test for example 10 (slow example)
-        if: runner.os != 'Windows'
-        run: |
-          set -vxeuo pipefail
-          cd examples/python
-          cat SRWLIB_Example10.py | sed 's/nMacroElec = 50000/nMacroElec = 20/' > SRWLIB_Example10_20_particles.py
-          time mpirun --oversubscribe -n 4 python SRWLIB_Example10_20_particles.py
-          cat __srwl_logs__/srwl_stat_wfr_emit_prop_multi_e_*.log
-          rm -f -r __srwl_logs__
-
-      - name: Run test for example 11 (slow example)
-        if: runner.os != 'Windows'
-        run: |
-          set -vxeuo pipefail
-          cd examples/python
-          cat SRWLIB_Example11.py | sed 's/nMacroElec = 50000/nMacroElec = 10/' > SRWLIB_Example11_10_particles.py
-          time mpirun --oversubscribe -n 4 python SRWLIB_Example11_10_particles.py
-          cat __srwl_logs__/srwl_stat_wfr_emit_prop_multi_e_*.log
-          rm -f -r __srwl_logs__
-
-      # This example is too "heavy" to be run in CI for Linux. Running it for MacOS only.
-      - name: Run test for example 20 (slow example)
-        if: runner.os == 'macOS'
-        run: |
-          set -vxeuo pipefail
-          cd examples/python
-          time mpirun --oversubscribe -n 4 python SRWLIB_Example20.py --wm --wm_nop --wm_ch=6 --wm_nm=10 --wm_nmm=2 --wm_na=5 --wm_ns=5 --wm_ff=h5 --wm_fni=ex20_res
-          # This step takes too long, commenting it out for now:
-          # time python SRWLIB_Example20.py --wm_ch=7 --wm_fnmi=ex20_res_mi.h5 --wm_ncm=10 --wm_fni=ex20_res
+          cd python
+          # Note: check `pytest.ini` for args and test paths.
+          pytest -k slow
