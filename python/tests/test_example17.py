@@ -1,8 +1,8 @@
 # Imports from the example:
-from __future__ import print_function #Python 2.7 compatibility
+from __future__ import print_function  # Python 2.7 compatibility
 from srwpy.srwlib import *
 from srwpy.srwl_uti_smp import *
-from srwpy.uti_plot import * #required for plotting
+from srwpy.uti_plot import *  # required for plotting
 import copy
 import os
 import sys
@@ -26,7 +26,7 @@ def test_example17(example_code):
 
     assert hasattr(wfr, "mesh")
     for param in ["zStart",
-                "eStart", "eFin", "ne",
-                "xStart", "xFin", "nx",
-                "yStart", "yFin", "ny"]:
+                  "eStart", "eFin", "ne",
+                  "xStart", "xFin", "nx",
+                  "yStart", "yFin", "ny"]:
         assert hasattr(wfr.mesh, param)

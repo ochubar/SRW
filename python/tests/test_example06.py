@@ -1,5 +1,5 @@
 # Imports from the example:
-from __future__ import print_function #Python 2.7 compatibility
+from __future__ import print_function  # Python 2.7 compatibility
 from srwpy.srwlib import *
 from srwpy.uti_plot import *
 import os
@@ -35,7 +35,7 @@ def test_example06_PETRA(example_code):
     for obj in [stkF, stkP]:
         assert hasattr(obj, "mesh")
         for param in ["zStart",
-                    "eStart", "eFin", "ne",
-                    "xStart", "xFin", "nx",
-                    "yStart", "yFin", "ny"]:
+                      "eStart", "eFin", "ne",
+                      "xStart", "xFin", "nx",
+                      "yStart", "yFin", "ny"]:
             assert hasattr(obj.mesh, param)
