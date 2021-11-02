@@ -1,3 +1,7 @@
+import pytest
+
+
+@pytest.mark.fast
 def test_imports():
     import srwpy
     import srwpy.srwlpy  # shared-object-based Python binding

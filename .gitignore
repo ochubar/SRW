@@ -19,3 +19,6 @@ data_example*
 # Compiled libraries
 *.a
 *.so
+
+__srwl_logs__/
+uti_plot*.png
