@@ -426,6 +426,8 @@ def interpBright(x,y,W,xmin,ymin,xstep,ystep,nx,ny):
     W00 = W[jx0,jy0]
     W01 = W[jx0,jy0+1]
     W10 = W[jx0+1,jy0]
-    #W11 = W[jx0+1,jy0+1]
+    W11 = W[jx0+1,jy0+1]
 
-    return W00 +  djx*(W01-W00) + djy*(W10-W00) #+ djx*djy*W11
+    A = W00 + djy*(W01-W00)
+    B = W10 + djy*(W11-W10)
+    return A + djx*(B - A)
