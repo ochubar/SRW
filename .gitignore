@@ -2,9 +2,9 @@
 build/
 
 # Python build products
-python/build/
-python/dist/
-python/srwpy.egg-info/
+build/
+dist/
+srwpy.egg-info/
 
 # Documentation artifacts
 docs/source/cookbook

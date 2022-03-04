@@ -67,7 +67,7 @@ jobs:
       - name: Build sdist and wheel and install *.whl
         run: |
           set -vxeuo pipefail
-          cd python
+          cd clients/python
           python -VV
           python setup.py sdist bdist_wheel
           ls -la dist/*
