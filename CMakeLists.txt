@@ -8,7 +8,7 @@ project(SRW)
 cmake_policy(SET CMP0074 NEW)
 
 # Folder for helper modules (Find*.cmake)
-set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
+set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cpp/cmake" ${CMAKE_MODULE_PATH})
 
 # Uncomment for VERBOSE Makefiles. Useful for debugging.
 #set(CMAKE_VERBOSE_MAKEFILE ON)
