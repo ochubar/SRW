@@ -26,13 +26,13 @@ set(CMAKE_BUILD_TYPE Release)
 # Option for OpenMP build, OFF by default.
 option(USE_OPENMP "Activate OpenMP build" OFF)
 
-# Option for C client library to be built or not - See src/clients/CMakeLists.txt
+# Option for C client library to be built or not - See cpp/src/clients/CMakeLists.txt
 option(BUILD_CLIENT_C "Activate C Client library build" OFF)
 
-# Option for Python client library to be built or not - See src/clients/CMakeLists.txt
+# Option for Python client library to be built or not - See cpp/src/clients/CMakeLists.txt
 option(BUILD_CLIENT_PYTHON "Activate Python Client library build" OFF)
 
-# Option for Igor Pro client library to be built or not - See src/clients/CMakeLists.txt
+# Option for Igor Pro client library to be built or not - See cpp/src/clients/CMakeLists.txt
 option(BUILD_CLIENT_IGOR "Activate Igor Pro Client library build" OFF)
 
 
@@ -42,7 +42,7 @@ message(STATUS "${PROJECT_NAME} staged install: ${STAGED_INSTALL_PREFIX}")
 
 
 if(UNIX)
-  # Use /lib /bin /include /share folder structure
+  # Use ./lib ./bin ./include ./share folder structure
   include(GNUInstallDirs)
 else()
   if (WIN32)
@@ -63,4 +63,4 @@ set(FFTW_USE_STATIC_LIBS ON)
 add_subdirectory(ext_lib)
 
 # Main library
-add_subdirectory(src)
+add_subdirectory(cpp/src)
