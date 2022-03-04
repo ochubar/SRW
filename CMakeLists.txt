@@ -60,7 +60,7 @@ endif()
 set(FFTW_USE_STATIC_LIBS ON)
 
 # External Libraries
-add_subdirectory(ext_lib)
+add_subdirectory(cpp/src/ext_lib)
 
 # Main library
 add_subdirectory(cpp/src)
