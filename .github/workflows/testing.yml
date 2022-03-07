@@ -10,7 +10,7 @@ jobs:
     runs-on: ${{ matrix.host-os }}
     strategy:
       matrix:
-        host-os: ["ubuntu-latest", "macos-latest", "windows-latest"]
+        host-os: ["ubuntu-latest", "macos-10.15", "windows-latest"]
         python-version: ["3.7", "3.8", "3.9"]
         openmp: ["on", "off"]
       fail-fast: false
@@ -67,7 +67,7 @@ jobs:
       - name: Build sdist and wheel and install *.whl
         run: |
           set -vxeuo pipefail
-          cd python
+          cd clients/python
           python -VV
           python setup.py sdist bdist_wheel
           ls -la dist/*
@@ -76,20 +76,20 @@ jobs:
       - name: Install test requirements with pip
         run: |
           set -vxeuo pipefail
-          cd python
+          cd clients/python
           python -m pip install -r requirements-dev.txt
           python -m pip list
 
       - name: Fast tests with pytest
         run: |
           set -vxeuo pipefail
-          cd python
+          cd clients/python
           # Note: check `pytest.ini` for args and test paths.
           pytest -k fast
 
       - name: Slow tests with pytest
         run: |
           set -vxeuo pipefail
-          cd python
+          cd clients/python
           # Note: check `pytest.ini` for args and test paths.
           pytest -k slow

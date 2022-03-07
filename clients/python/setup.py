@@ -75,7 +75,7 @@ class CMakeBuild(build_ext):
 
 
 base_dir = os.path.dirname(os.path.realpath(__file__))
-original_src_dir = os.path.join(base_dir, '..')
+original_src_dir = os.path.join(base_dir, '../..')
 
 with open(os.path.join(base_dir, 'requirements.txt')) as requirements_file:
     # Parse requirements.txt, ignoring any commented-out lines.

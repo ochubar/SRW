@@ -8,7 +8,7 @@ project(SRW)
 cmake_policy(SET CMP0074 NEW)
 
 # Folder for helper modules (Find*.cmake)
-set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
+set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cpp/cmake" ${CMAKE_MODULE_PATH})
 
 # Uncomment for VERBOSE Makefiles. Useful for debugging.
 #set(CMAKE_VERBOSE_MAKEFILE ON)
@@ -26,13 +26,13 @@ set(CMAKE_BUILD_TYPE Release)
 # Option for OpenMP build, OFF by default.
 option(USE_OPENMP "Activate OpenMP build" OFF)
 
-# Option for C client library to be built or not - See src/clients/CMakeLists.txt
+# Option for C client library to be built or not - See cpp/src/clients/CMakeLists.txt
 option(BUILD_CLIENT_C "Activate C Client library build" OFF)
 
-# Option for Python client library to be built or not - See src/clients/CMakeLists.txt
+# Option for Python client library to be built or not - See cpp/src/clients/CMakeLists.txt
 option(BUILD_CLIENT_PYTHON "Activate Python Client library build" OFF)
 
-# Option for Igor Pro client library to be built or not - See src/clients/CMakeLists.txt
+# Option for Igor Pro client library to be built or not - See cpp/src/clients/CMakeLists.txt
 option(BUILD_CLIENT_IGOR "Activate Igor Pro Client library build" OFF)
 
 
@@ -42,7 +42,7 @@ message(STATUS "${PROJECT_NAME} staged install: ${STAGED_INSTALL_PREFIX}")
 
 
 if(UNIX)
-  # Use /lib /bin /include /share folder structure
+  # Use ./lib ./bin ./include ./share folder structure
   include(GNUInstallDirs)
 else()
   if (WIN32)
@@ -60,7 +60,7 @@ endif()
 set(FFTW_USE_STATIC_LIBS ON)
 
 # External Libraries
-add_subdirectory(ext_lib)
+add_subdirectory(cpp/src/ext_lib)
 
 # Main library
-add_subdirectory(src)
+add_subdirectory(cpp/src)
