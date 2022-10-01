@@ -716,9 +716,13 @@ void srTTrjDat::CompTotalTrjData(srTFieldBasedArrayKeys& Keys, srTFieldBasedArra
 			}
 			else
 			{
-                *(pIntX01++) = *pIntX01 + HalfStp*(BtxPrev*X1pPrev + BtxCur*X1pCur);
-                *(pIntX11++) = *pIntX11 + HalfStp*(X1pPrev*X1pPrev + X1pCur*X1pCur);
-                *(pIntX12++) = *pIntX12 + HalfStp*(X1pPrev*X2pPrev + X1pCur*X2pCur);
+				//OC01122021 (following warnings discovered by P. Fuoss at compilation with Clang in 2020)
+                *pIntX01 = *(pIntX01-1) + HalfStp*(BtxPrev*X1pPrev + BtxCur*X1pCur); pIntX01++; //? to re-check(!)
+				*pIntX11 = *(pIntX11-1) + HalfStp*(X1pPrev*X1pPrev + X1pCur*X1pCur); pIntX11++;
+				*pIntX12 = *(pIntX12-1) + HalfStp*(X1pPrev*X2pPrev + X1pCur*X2pCur); pIntX12++;
+                //*(pIntX01++) = *pIntX01 + HalfStp*(BtxPrev*X1pPrev + BtxCur*X1pCur);
+                //*(pIntX11++) = *pIntX11 + HalfStp*(X1pPrev*X1pPrev + X1pCur*X1pCur);
+                //*(pIntX12++) = *pIntX12 + HalfStp*(X1pPrev*X2pPrev + X1pCur*X2pCur);
 			}
 			if(Keys.X2p_) 
 			{
@@ -734,8 +738,11 @@ void srTTrjDat::CompTotalTrjData(srTFieldBasedArrayKeys& Keys, srTFieldBasedArra
 				}
 				else
 				{
-                    *(pIntX22++) = *pIntX22 + HalfStp*(X2pPrev*X2pPrev + X2pCur*X2pCur);
-                    *(pIntX02++) = *pIntX02 + HalfStp*(BtxPrev*X2pPrev + BtxCur*X2pCur);
+					//OC01122021 (following warnings discovered by P. Fuoss at compilation with Clang in 2020)
+					*pIntX22 = *(pIntX22-1) + HalfStp*(X2pPrev*X2pPrev + X2pCur*X2pCur); pIntX22++;
+					*pIntX02 = *(pIntX02-1) + HalfStp*(BtxPrev*X2pPrev + BtxCur*X2pCur); pIntX02++;
+                    //*(pIntX22++) = *pIntX22 + HalfStp*(X2pPrev*X2pPrev + X2pCur*X2pCur);
+                    //*(pIntX02++) = *pIntX02 + HalfStp*(BtxPrev*X2pPrev + BtxCur*X2pCur);
 				}
 			}
 
@@ -747,9 +754,13 @@ void srTTrjDat::CompTotalTrjData(srTFieldBasedArrayKeys& Keys, srTFieldBasedArra
 			}
 			else
 			{
-                *(pIntZ01++) = *pIntZ01 + HalfStp*(BtzPrev*Z1pPrev + BtzCur*Z1pCur);
-                *(pIntZ11++) = *pIntZ11 + HalfStp*(Z1pPrev*Z1pPrev + Z1pCur*Z1pCur);
-                *(pIntZ12++) = *pIntZ12 + HalfStp*(Z1pPrev*Z2pPrev + Z1pCur*Z2pCur);
+				//OC01122021 (following warnings discovered by P. Fuoss at compilation with Clang in 2020)
+				*pIntZ01 = *(pIntZ01-1) + HalfStp*(BtzPrev*Z1pPrev + BtzCur*Z1pCur); pIntZ01++;
+				*pIntZ11 = *(pIntZ11-1) + HalfStp*(Z1pPrev*Z1pPrev + Z1pCur*Z1pCur); pIntZ11++;
+				*pIntZ12 = *(pIntZ12-1) + HalfStp*(Z1pPrev*Z2pPrev + Z1pCur*Z2pCur); pIntZ12++;
+                //*(pIntZ01++) = *pIntZ01 + HalfStp*(BtzPrev*Z1pPrev + BtzCur*Z1pCur);
+                //*(pIntZ11++) = *pIntZ11 + HalfStp*(Z1pPrev*Z1pPrev + Z1pCur*Z1pCur);
+                //*(pIntZ12++) = *pIntZ12 + HalfStp*(Z1pPrev*Z2pPrev + Z1pCur*Z2pCur);
 			}
 			if(Keys.Z2p_) 
 			{
@@ -765,8 +776,11 @@ void srTTrjDat::CompTotalTrjData(srTFieldBasedArrayKeys& Keys, srTFieldBasedArra
 				}
 				else
 				{
-                    *(pIntZ22++) = *pIntZ22 + HalfStp*(Z2pPrev*Z2pPrev + Z2pCur*Z2pCur);
-                    *(pIntZ02++) = *pIntZ02 + HalfStp*(BtzPrev*Z2pPrev + BtzCur*Z2pCur);
+					//OC01122021 (following warnings discovered by P. Fuoss at compilation with Clang in 2020)
+					*pIntZ22 = *(pIntZ22-1) + HalfStp*(Z2pPrev*Z2pPrev + Z2pCur*Z2pCur); pIntZ22++;
+					*pIntZ02 = *(pIntZ02-1) + HalfStp*(BtzPrev*Z2pPrev + BtzCur*Z2pCur); pIntZ02++;
+                    //*(pIntZ22++) = *pIntZ22 + HalfStp*(Z2pPrev*Z2pPrev + Z2pCur*Z2pCur);
+                    //*(pIntZ02++) = *pIntZ02 + HalfStp*(BtzPrev*Z2pPrev + BtzCur*Z2pCur);
 				}
 			}
 		}
@@ -778,7 +792,9 @@ void srTTrjDat::CompTotalTrjData(srTFieldBasedArrayKeys& Keys, srTFieldBasedArra
 				else 
 				{
                     double X1pPrev = *(pX1p-2), X1pCur = *(pX1p-1);
-					*(pIntX01++) = ((i == 0)? 0 : (*pIntX01 + HalfStp*(BtxPrev*X1pPrev + BtxCur*X1pCur)));
+					//OC01122021 (following warnings discovered by P. Fuoss at compilation with Clang in 2020)
+					*pIntX01 = ((i == 0)? 0 : (*(pIntX01-1) + HalfStp*(BtxPrev*X1pPrev + BtxCur*X1pCur))); pIntX01++; //?
+					//*(pIntX01++) = ((i == 0)? 0 : (*pIntX01 + HalfStp*(BtxPrev*X1pPrev + BtxCur*X1pCur)));
 				}
 			}
 			if(Keys.IntX11_) 
@@ -787,7 +803,9 @@ void srTTrjDat::CompTotalTrjData(srTFieldBasedArrayKeys& Keys, srTFieldBasedArra
 				else 
 				{
                     double X1pPrev = *(pX1p-2), X1pCur = *(pX1p-1);
-                    *(pIntX11++) = ((i == 0)? 0 : (*pIntX11 + HalfStp*(X1pPrev*X1pPrev + X1pCur*X1pCur)));
+					//OC01122021 (following warnings discovered by P. Fuoss at compilation with Clang in 2020)
+					*pIntX11 = ((i == 0)? 0 : (*(pIntX11-1) + HalfStp*(X1pPrev*X1pPrev + X1pCur*X1pCur))); pIntX11++; //?
+                    //*(pIntX11++) = ((i == 0)? 0 : (*pIntX11 + HalfStp*(X1pPrev*X1pPrev + X1pCur*X1pCur)));
 				}
 			}
 			if(Keys.IntX12_) 
@@ -797,7 +815,9 @@ void srTTrjDat::CompTotalTrjData(srTFieldBasedArrayKeys& Keys, srTFieldBasedArra
 				{
                     double X1pPrev = *(pX1p-2), X1pCur = *(pX1p-1);
                     double X2pPrev = *(pX2p-2), X2pCur = *(pX2p-1);
-                    *(pIntX12++) = ((i == 0)? 0 : (*pIntX12 + HalfStp*(X1pPrev*X2pPrev + X1pCur*X2pCur)));
+					//OC01122021 (following warnings discovered by P. Fuoss at compilation with Clang in 2020)
+					*pIntX12 = ((i == 0)? 0 : (*(pIntX12-1) + HalfStp*(X1pPrev*X2pPrev + X1pCur*X2pCur))); pIntX12++; //?
+                    //*(pIntX12++) = ((i == 0)? 0 : (*pIntX12 + HalfStp*(X1pPrev*X2pPrev + X1pCur*X2pCur)));
 				}
 			}
 			if(Keys.IntX22_) 
@@ -806,7 +826,9 @@ void srTTrjDat::CompTotalTrjData(srTFieldBasedArrayKeys& Keys, srTFieldBasedArra
 				else 
 				{
                     double X2pPrev = *(pX2p-2), X2pCur = *(pX2p-1);
-					*(pIntX22++) = ((i == 0)? 0 : (*pIntX22 + HalfStp*(X2pPrev*X2pPrev + X2pCur*X2pCur)));
+					//OC01122021 (following warnings discovered by P. Fuoss at compilation with Clang in 2020)
+					*pIntX22 = ((i == 0)? 0 : (*(pIntX22-1) + HalfStp*(X2pPrev*X2pPrev + X2pCur*X2pCur))); pIntX22++; //?
+					//*(pIntX22++) = ((i == 0)? 0 : (*pIntX22 + HalfStp*(X2pPrev*X2pPrev + X2pCur*X2pCur)));
 				}
 			}
 			if(Keys.IntX02_) 
@@ -815,7 +837,9 @@ void srTTrjDat::CompTotalTrjData(srTFieldBasedArrayKeys& Keys, srTFieldBasedArra
 				else 
 				{
                     double X2pPrev = *(pX2p-2), X2pCur = *(pX2p-1);
-					*(pIntX02++) = ((i == 0)? 0 : (*pIntX02 + HalfStp*(BtxPrev*X2pPrev + BtxCur*X2pCur)));
+					//OC01122021 (following warnings discovered by P. Fuoss at compilation with Clang in 2020)
+					*pIntX02 = ((i == 0)? 0 : (*(pIntX02-1) + HalfStp*(BtxPrev*X2pPrev + BtxCur*X2pCur))); pIntX02++; //?
+					//*(pIntX02++) = ((i == 0)? 0 : (*pIntX02 + HalfStp*(BtxPrev*X2pPrev + BtxCur*X2pCur)));
 				}
 			}
 
@@ -825,7 +849,9 @@ void srTTrjDat::CompTotalTrjData(srTFieldBasedArrayKeys& Keys, srTFieldBasedArra
 				else 
 				{
                     double Z1pPrev = *(pZ1p-2), Z1pCur = *(pZ1p-1);
-					*(pIntZ01++) = ((i == 0)? 0 : (*pIntZ01 + HalfStp*(BtzPrev*Z1pPrev + BtzCur*Z1pCur)));
+					//OC01122021 (following warnings discovered by P. Fuoss at compilation with Clang in 2020)
+					*pIntZ01 = ((i == 0)? 0 : (*(pIntZ01-1) + HalfStp*(BtzPrev*Z1pPrev + BtzCur*Z1pCur))); pIntZ01++; //?
+					//*(pIntZ01++) = ((i == 0)? 0 : (*pIntZ01 + HalfStp*(BtzPrev*Z1pPrev + BtzCur*Z1pCur)));
 				}
 			}
 			if(Keys.IntZ11_) 
@@ -834,7 +860,9 @@ void srTTrjDat::CompTotalTrjData(srTFieldBasedArrayKeys& Keys, srTFieldBasedArra
 				else 
 				{
                     double Z1pPrev = *(pZ1p-2), Z1pCur = *(pZ1p-1);
-                    *(pIntZ11++) = ((i == 0)? 0 : (*pIntZ11 + HalfStp*(Z1pPrev*Z1pPrev + Z1pCur*Z1pCur)));
+					//OC01122021 (following warnings discovered by P. Fuoss at compilation with Clang in 2020)
+                    *pIntZ11 = ((i == 0)? 0 : (*(pIntZ11-1) + HalfStp*(Z1pPrev*Z1pPrev + Z1pCur*Z1pCur))); pIntZ11++; //?
+                    //*(pIntZ11++) = ((i == 0)? 0 : (*pIntZ11 + HalfStp*(Z1pPrev*Z1pPrev + Z1pCur*Z1pCur)));
 				}
 			}
 			if(Keys.IntZ12_) 
@@ -844,7 +872,9 @@ void srTTrjDat::CompTotalTrjData(srTFieldBasedArrayKeys& Keys, srTFieldBasedArra
 				{
                     double Z1pPrev = *(pZ1p-2), Z1pCur = *(pZ1p-1);
                     double Z2pPrev = *(pZ2p-2), Z2pCur = *(pZ2p-1);
-                    *(pIntZ12++) = ((i == 0)? 0 : (*pIntZ12 + HalfStp*(Z1pPrev*Z2pPrev + Z1pCur*Z2pCur)));
+					//OC01122021 (following warnings discovered by P. Fuoss at compilation with Clang in 2020)
+                    *pIntZ12 = ((i == 0)? 0 : (*(pIntZ12-1) + HalfStp*(Z1pPrev*Z2pPrev + Z1pCur*Z2pCur))); pIntZ12++; //?
+                    //*(pIntZ12++) = ((i == 0)? 0 : (*pIntZ12 + HalfStp*(Z1pPrev*Z2pPrev + Z1pCur*Z2pCur)));
 				}
 			}
 			if(Keys.IntZ22_) 
@@ -853,7 +883,9 @@ void srTTrjDat::CompTotalTrjData(srTFieldBasedArrayKeys& Keys, srTFieldBasedArra
 				else 
 				{
                     double Z2pPrev = *(pZ2p-2), Z2pCur = *(pZ2p-1);
-					*(pIntZ22++) = ((i == 0)? 0 : (*pIntZ22 + HalfStp*(Z2pPrev*Z2pPrev + Z2pCur*Z2pCur)));
+					//OC01122021 (following warnings discovered by P. Fuoss at compilation with Clang in 2020)
+					*pIntZ22 = ((i == 0)? 0 : (*(pIntZ22-1) + HalfStp*(Z2pPrev*Z2pPrev + Z2pCur*Z2pCur))); pIntZ22++; //?
+					//*(pIntZ22++) = ((i == 0)? 0 : (*pIntZ22 + HalfStp*(Z2pPrev*Z2pPrev + Z2pCur*Z2pCur)));
 				}
 			}
 			if(Keys.IntZ02_) 
@@ -862,7 +894,9 @@ void srTTrjDat::CompTotalTrjData(srTFieldBasedArrayKeys& Keys, srTFieldBasedArra
 				else 
 				{
                     double Z2pPrev = *(pZ2p-2), Z2pCur = *(pZ2p-1);
-					*(pIntZ02++) = ((i == 0)? 0 : (*pIntZ02 + HalfStp*(BtzPrev*Z2pPrev + BtzCur*Z2pCur)));
+					//OC01122021 (following warnings discovered by P. Fuoss at compilation with Clang in 2020)
+					*pIntZ02 = ((i == 0)? 0 : (*(pIntZ02-1) + HalfStp*(BtzPrev*Z2pPrev + BtzCur*Z2pCur))); pIntZ02++; //?
+					//*(pIntZ02++) = ((i == 0)? 0 : (*pIntZ02 + HalfStp*(BtzPrev*Z2pPrev + BtzCur*Z2pCur)));
 				}
 			}
 		}

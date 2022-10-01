@@ -8,8 +8,8 @@
  * Copyright (C) Diamond Light Source, UK
  * All Rights Reserved
  *
- * @author J.Sutter, A.Suvorov, O.Chubar
- * @version 1.0
+ * @author J.Sutter, A.Suvorov, O.Chubar, A. Rodriguez-Fernandez, I. Petrov
+ * @version 1.5
  ***************************************************************************/
 
 #ifndef __SROPTCRYST_H
@@ -127,7 +127,8 @@ public:
 		{//Laue
 			//IP14062019 change recipr. lat. vector for Laue
 			m_HXAi[0] = 0.;
-			m_HXAi[1] = -sin(alphrd)/m_dA;
+			m_HXAi[1] = sin(alphrd)/m_dA; //OC28112021 (changed sign following GitHub req.)
+			//m_HXAi[1] = -sin(alphrd)/m_dA;
 			m_HXAi[2] = -cos(alphrd)/m_dA;
 		}
 
@@ -185,19 +186,20 @@ public:
 		//printf("Bragg angle = %f\n",thBrd*180./pi); 
 		m_cos2t = cos(2.*thBrd);
 
-		//ARF03062019
-		if((m_uc == 1) || (m_uc == 2))
-		{//Bragg
-			m_HXAi_bee[0] = 0; //ARF03062019 Change definition for the calculation of bee
-			m_HXAi_bee[1] = cos(thBrd) / m_dA; //ARF03062019 Change definition for the calculation of bee
-			m_HXAi_bee[2] = -sin(thBrd) / m_dA; //ARF03062019 Change definition for the calculation of bee
-		}
-		else if((m_uc == 3) || (m_uc == 4))
-		{//Laue
-			m_HXAi_bee[0] = 0; //ARF03062019 Change definition for the calculation of bee
-			m_HXAi_bee[1] = -sin(thBrd) / m_dA; //IP14062019 for Laue pi/2 rotation of rec. vector from Bragg
-			m_HXAi_bee[2] = -cos(thBrd) / m_dA; //IP14062019 
-		}
+		//OC28112021 (commented-out the lines below, following the suggestion on GitHub)
+		////ARF03062019
+		//if((m_uc == 1) || (m_uc == 2))
+		//{//Bragg
+		//	m_HXAi_bee[0] = 0; //ARF03062019 Change definition for the calculation of bee
+		//	m_HXAi_bee[1] = cos(thBrd) / m_dA; //ARF03062019 Change definition for the calculation of bee
+		//	m_HXAi_bee[2] = -sin(thBrd) / m_dA; //ARF03062019 Change definition for the calculation of bee
+		//}
+		//else if((m_uc == 3) || (m_uc == 4))
+		//{//Laue
+		//	m_HXAi_bee[0] = 0; //ARF03062019 Change definition for the calculation of bee
+		//	m_HXAi_bee[1] = -sin(thBrd) / m_dA; //IP14062019 for Laue pi/2 rotation of rec. vector from Bragg
+		//	m_HXAi_bee[2] = -cos(thBrd) / m_dA; //IP14062019 
+		//}
 
 		// Conversion of polarization vector components to crystal frame: 
 		//e1X[0] = RLabXt[0][0];
@@ -1150,8 +1152,9 @@ public:
 		double bee = 1. / (1. + m_HXAi[1] / k0wXAi[1]);
 		
 		//OC02102019 stopped updating here.
+		//OC28112019 resumed the update below.
 		
-		//ARF03062019 suggestion:
+		//ARF03062019 suggestion: (//OC28112019: seems to be recalled later)
 		//double bee = 1./(1. + (m_HXAi_bee[1]*m_RXtLab[1][1] + m_HXAi_bee[2]*m_RXtLab[2][1])/k0wXAi[1]); //ARF03062019 change from: double bee = 1. / (1. + m_HXAi[1] / k0wXAi[1]);
 
 		double dotkH = k0wXAi[0] * m_HXAi[0] + k0wXAi[1] * m_HXAi[1] + k0wXAi[2] * m_HXAi[2];
@@ -1172,53 +1175,70 @@ public:
 		complex<double> ph2C = aux_phC*del2C;
 
 		complex<double> DHsgC, Cph1C, Cph2C, D0trsC;
-		if(real(ph1C) > logDBMax) DHsgC = x2C;
-		else if(real(ph2C) > logDBMax) DHsgC = x1C;
-		else
+
+		if((m_uc == 1) || (m_uc == 2)) //OC28112021 (following the suggestion of //ARF, //IP on GitHUb, but without introducing the "m_ug" member variable)
 		{
-			Cph1C = exp(ph1C);
-			Cph2C = exp(ph2C);
-			DHsgC = x1C*x2C*(Cph2C - Cph1C)/(Cph2C*x2C - Cph1C*x1C);
-		}
-
-		//double re_ph1C = real(ph1C), re_ph2C = real(ph2C);
-		//if(re_ph1C > logDBMax) DHsgC = x2C;
-		//else if(re_ph2C > logDBMax) DHsgC = x1C;
-		//else
-		//{
-		//	if(re_ph1C < -logDBMax) 
-		//	{
-		//		Cph1C = complex<double>(0, 0);
-		//	}
-		//	else Cph1C = exp(ph1C);
-
-		//	if(re_ph2C < -logDBMax) 
-		//	{
-		//		Cph2C = complex<double>(0, 0);
-		//	}
-		//	else Cph2C = exp(ph2C);
-
-		//	if((re_ph1C < -logDBMax) && (re_ph2C < -logDBMax)) 
-		//	{
-		//		DHsgC = complex<double>(0, 0); //?
-		//	}
-		//	else DHsgC = x1C*x2C*(Cph2C - Cph1C)/(Cph2C*x2C - Cph1C*x1C);
-		//}
-
-		if(m_itrans == 1)
-		{
-			// calculate the complex reflectivity D0trsC of the transmitted beam. 
-			if(real(ph1C) > logDBMax)
-			{
-				Cph2C = exp(ph2C);
-				D0trsC = -Cph2C*(x2C - x1C)/x1C;
-			}
-			else if(real(ph2C) > logDBMax)
+			if(real(ph1C) > logDBMax) DHsgC = x2C;
+			else if(real(ph2C) > logDBMax) DHsgC = x1C;
+			else
 			{
 				Cph1C = exp(ph1C);
-				D0trsC = +Cph1C*(x2C - x1C)/x2C;
+				Cph2C = exp(ph2C);
+				DHsgC = x1C * x2C * (Cph2C - Cph1C) / (Cph2C * x2C - Cph1C * x1C);
 			}
-			else D0trsC = Cph1C*Cph2C*(x2C - x1C)/(Cph2C*x2C - Cph1C*x1C);
+
+			//double re_ph1C = real(ph1C), re_ph2C = real(ph2C);
+			//if(re_ph1C > logDBMax) DHsgC = x2C;
+			//else if(re_ph2C > logDBMax) DHsgC = x1C;
+			//else
+			//{
+			//	if(re_ph1C < -logDBMax) 
+			//	{
+			//		Cph1C = complex<double>(0, 0);
+			//	}
+			//	else Cph1C = exp(ph1C);
+
+			//	if(re_ph2C < -logDBMax) 
+			//	{
+			//		Cph2C = complex<double>(0, 0);
+			//	}
+			//	else Cph2C = exp(ph2C);
+
+			//	if((re_ph1C < -logDBMax) && (re_ph2C < -logDBMax)) 
+			//	{
+			//		DHsgC = complex<double>(0, 0); //?
+			//	}
+			//	else DHsgC = x1C*x2C*(Cph2C - Cph1C)/(Cph2C*x2C - Cph1C*x1C);
+			//}
+
+			if(m_itrans == 1)
+			{
+				// calculate the complex reflectivity D0trsC of the transmitted beam. 
+				if(real(ph1C) > logDBMax)
+				{
+					Cph2C = exp(ph2C);
+					D0trsC = -Cph2C * (x2C - x1C) / x1C;
+				}
+				else if(real(ph2C) > logDBMax)
+				{
+					Cph1C = exp(ph1C);
+					D0trsC = +Cph1C * (x2C - x1C) / x2C;
+				}
+				else D0trsC = Cph1C * Cph2C * (x2C - x1C) / (Cph2C * x2C - Cph1C * x1C);
+			}
+		}
+		else if((m_uc == 3) || (m_uc == 4)) //OC28112021 (following the suggestion of //ARF, //IP on GitHUb, but without introducing the "m_ug" member variable)
+		{// Laue cases ARF080519
+
+			Cph1C = exp(ph1C); //OC28112021 (following the suggestion of //ARF, //IP on GitHUb, adapted to the previous code for "if((m_uc == 1) || (m_uc == 2))")
+			Cph2C = exp(ph2C);
+			DHsgC = x1C * x2C * (Cph1C - Cph2C) / (x2C - x1C); // Laue Reflection
+
+			// Transmission
+			if(m_itrans == 1)
+			{
+				D0trsC = (Cph1C * x2C - Cph2C * x1C) / (x2C - x1C); // Laue Transmission
+			}
 		}
 
 		// Calculate the complex reflectivity DHpiC for pi polarization: 
@@ -1229,33 +1249,49 @@ public:
 		del2C = 0.5*(m_psi0c - zeeC - sqrqzC);
 		x1C = (-zeeC + sqrqzC) / (m_psimhc*m_cos2t);
 		x2C = (-zeeC - sqrqzC) / (m_psimhc*m_cos2t);
-		ph1C = 2.*pi*iC*k0Ai*del1C*(m_thicum*1.E+04) / gamma0;
-		ph2C = 2.*pi*iC*k0Ai*del2C*(m_thicum*1.E+04) / gamma0;
+		ph1C = 2.*pi*iC*k0Ai*del1C*(m_thicum*1.E+04)/gamma0;
+		ph2C = 2.*pi*iC*k0Ai*del2C*(m_thicum*1.E+04)/gamma0;
 
 		complex<double> DHpiC, D0trpC;
-		if(real(ph1C) > logDBMax) DHpiC = x2C;
-		else if(real(ph2C) > logDBMax) DHpiC = x1C;
-		else
-		{
-			Cph1C = exp(ph1C);
-			Cph2C = exp(ph2C);
-			DHpiC = x1C*x2C*(Cph2C - Cph1C)/(Cph2C*x2C - Cph1C*x1C);
-		}
 
-		if(m_itrans == 1)
+		if((m_uc == 1) || (m_uc == 2)) //OC28112021 (following the suggestion of //ARF, //IP on GitHUb, but without introducing the "m_ug" member variable)
 		{
-			// calculate the complex reflectivity D0trpC of the transmitted beam. 
-			if (real(ph1C) > logDBMax)
-			{
-				Cph2C = exp(ph2C);
-				D0trpC = -Cph2C*(x2C - x1C)/x1C;
-			}
-			else if (real(ph2C) > logDBMax)
+			if(real(ph1C) > logDBMax) DHpiC = x2C;
+			else if (real(ph2C) > logDBMax) DHpiC = x1C;
+			else
 			{
 				Cph1C = exp(ph1C);
-				D0trpC = +Cph1C*(x2C - x1C)/x2C;
+				Cph2C = exp(ph2C);
+				DHpiC = x1C * x2C * (Cph2C - Cph1C) / (Cph2C * x2C - Cph1C * x1C);
 			}
-			else D0trpC = Cph1C*Cph2C*(x2C - x1C)/(Cph2C*x2C - Cph1C*x1C);
+
+			if(m_itrans == 1)
+			{
+				// calculate the complex reflectivity D0trpC of the transmitted beam. 
+				if (real(ph1C) > logDBMax)
+				{
+					Cph2C = exp(ph2C);
+					D0trpC = -Cph2C * (x2C - x1C) / x1C;
+				}
+				else if (real(ph2C) > logDBMax)
+				{
+					Cph1C = exp(ph1C);
+					D0trpC = +Cph1C * (x2C - x1C) / x2C;
+				}
+				else D0trpC = Cph1C * Cph2C * (x2C - x1C) / (Cph2C * x2C - Cph1C * x1C);
+			}
+		}
+		else if((m_uc == 3) || (m_uc == 4)) //OC28112021 (following the suggestion of //ARF, //IP on GitHUb, but without introducing the "m_ug" member variable)
+		{// Laue cases ARF080519
+			Cph1C = exp(ph1C);
+			Cph2C = exp(ph2C);
+			DHpiC = x1C * x2C * (Cph1C - Cph2C) / (x2C - x1C); // Laue Reflection
+
+			// Transmission
+			if(m_itrans == 1)
+			{
+				D0trpC = (Cph1C * x2C - Cph2C * x1C) / (x2C - x1C); // Laue Transmission
+			}
 		}
 
 		// Calculate the diffracted amplitudes: 
@@ -1318,7 +1354,9 @@ public:
 		//*(EPtrs.pEzIm) = (float)(asymFact*Ehy.imag());
 
 		//OC05092016
-		if(m_uc == 1) //Bragg Reflection
+		//if(m_uc == 1) //Bragg Reflection
+		//OC28112021 (following the suggestion of //ARF, //IP on GitHUb)
+		if((m_uc == 1) || (m_uc == 3)) //Bragg or Laue Reflection 
 		{
 			complex<double> Ehx = sgH[0]*EHSPCs + piH[0]*EHSPCp;
 			complex<double> Ehy = sgH[1]*EHSPCs + piH[1]*EHSPCp;
@@ -1330,7 +1368,9 @@ public:
 			*(EPtrs.pEzRe) = (float)(asymFact*Ehy.real());
 			*(EPtrs.pEzIm) = (float)(asymFact*Ehy.imag());
 		}
-		else if(m_uc == 2) //Bragg Transmission (i.e. Forward Bragg Diffraction (FBD))
+		//else if(m_uc == 2) //Bragg Transmission (i.e. Forward Bragg Diffraction (FBD))
+		//OC28112021 (following the suggestion of //ARF, //IP on GitHUb)
+		else if((m_uc == 2) || (m_uc == 4)) //Bragg Transmission (i.e. Forward Bragg Diffraction (FBD)) or Laue Transmission
 		{
 			//DEBUG
 			//complex<double> DHsgC_p_D0trsC = DHsgC + D0trsC;

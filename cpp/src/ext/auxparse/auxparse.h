@@ -462,6 +462,43 @@ public:
 		StringSplitSimple(c_strTot, (int)strlen(c_strTot), cSep, vsSepRes);
 	}
 
+	static void StringSplitNested(const char* c_strTot, const char* c_strSep, vector<string>& vsSepRes) //OC30072018
+	{
+		//if((c_strTot == NULL) || (c_strSep == NULL)) return;
+		if((c_strTot == NULL) || (strlen(c_strTot) == 0) || (c_strSep == NULL) || (strlen(c_strSep) == 0)) return; //OC22092018
+
+		bool simpleSplitMade = false;
+		int sizeVect = (int)vsSepRes.size();
+		if(sizeVect <= 0)
+		{
+			char cSep = c_strSep[0];
+			StringSplitSimple(c_strTot, cSep, vsSepRes);
+			simpleSplitMade = true;
+		}
+
+		int nSep = (int)strlen(c_strSep);
+		if(nSep > 1)
+		{
+			const char* c_strSepNew = c_strSep + 1;
+			int sizeVect = (int)vsSepRes.size();
+
+			vector<string> vsSepResExt = vsSepRes;
+			vsSepRes.erase(vsSepRes.begin(), vsSepRes.end());
+			for(int i=0; i<sizeVect; i++)
+			{
+				const char *c_strCur = vsSepResExt[i].c_str();
+				StringSplitNested(c_strCur, c_strSepNew, vsSepRes);
+			}
+		}
+		else //nSep == 1
+		{
+			if(!simpleSplitMade)
+			{
+				StringSplitSimple(c_strTot, c_strSep[0], vsSepRes);
+			}
+		}
+	}
+
 	static void StringArr2Vect(char** as, int numStr, vector<string>& vs)
 	{
 		if((as == 0) || (numStr <= 0)) return;
@@ -537,14 +574,30 @@ private:
 	string::iterator itOut;
 
 public:
+	
+	CAuxBinStr(const unsigned char *bStr, int len_bStr)
+	{
+		if((bStr != 0) && (len_bStr > 0))
+		{
+			for(int i=0; i<len_bStr; i++) push_back(*(bStr++));
+			setItOut();
+		}
+	}
+	CAuxBinStr() {}
 
 	void setItOut(long ofst=0)
 	{//To call before using ">>" first time!
 		itOut = begin() + ofst;
 	}
 
+	long getCurOfst()
+	{//Get current offset of input
+		return (long)(end() - begin());
+	}
+
 	template<class T> void setFromPos(long ofst, T a)
 	{//Assumes that memory has been allocated previously
+	 //ofst is offset in bytes!
 		int sz = (int)sizeof(T);
 		//char *p = reinterpret_cast<char*>(&a);
 		unsigned char *p = reinterpret_cast<unsigned char*>(&a);

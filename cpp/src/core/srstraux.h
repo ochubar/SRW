@@ -901,7 +901,8 @@ struct srTRadSect1D {
 			{
 				if(Ix > Imax) { Imax = Ix; cOut = 'x';}
 			}
-			else if(Iz > Ix)
+			else //OC01122021
+			//else if(Iz > Ix)
 			{
 				if(Iz > Imax) { Imax = Iz; cOut = 'z';}
 			}

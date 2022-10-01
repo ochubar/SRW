@@ -174,8 +174,9 @@ public:
 
 	int PropagateWaveFrontRadius(srTSRWRadStructAccessData* pRadAccessData)
 	{// Shift modifies xc, zc !?
-		//pRadAccessData->xc += ShiftX;
-		//pRadAccessData->zc += ShiftY;
+		//OC09072022 (uncommented the following)
+		pRadAccessData->xc += ShiftX;
+		pRadAccessData->zc += ShiftY;
 		return 0;
 	}
 };

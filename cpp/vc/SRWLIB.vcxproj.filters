@@ -393,6 +393,9 @@
     <ClCompile Include="..\src\ext\f2c_min\Z_EXP.C">
       <Filter>f2c</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\ext\utils\utidev.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\ext\auxparse\auxparse.h">
@@ -610,6 +613,9 @@
     </ClInclude>
     <ClInclude Include="..\src\lib\srwlib.h">
       <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\ext\utils\utidev.h">
+      <Filter>core</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

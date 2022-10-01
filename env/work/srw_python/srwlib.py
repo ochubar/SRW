@@ -902,7 +902,7 @@ class SRWLStokes(object):
         :param _yStart: initial value of vertical position
         :param _yFin: final value of vertical position
         :param _ny: numbers of points vs vertical position
-        :param _mutual: mutual Stokes components (4*(2*_ne*_nx*_ny_)^2 values)
+        :param _mutual: switch specifying that mutual Stokes components should be or are defined (2*_n_comp*(_ne*_nx*_ny_)^2 values)
         :param _n_comp: number of Stoke components (1 to 4)
         :param _itStFin: pair of start and end index values of general conjugated coordinate (for partial allocation of Mutual Intensity)
         """
@@ -1763,10 +1763,14 @@ class SRWLStokes(object):
                             ofstI1 = ix1_0_origPerXp_p_ix1_0_origPerX + iy1_0_origPerYp_p_iy1_0_origPerY
                             ofstI2 = ix2_0_origPerXp_p_ix2_0_origPerX + iy2_0_origPerYp_p_iy2_0_origPerY
 
-                            reMI = self.arS[ofstMI]; imMI = self.arS[ofstMI + 1]
+                            reMI = float(self.arS[ofstMI]); imMI = float(self.arS[ofstMI + 1]) #OC01122021
+                            #reMI = self.arS[ofstMI]; imMI = self.arS[ofstMI + 1]
+
                             absMI = sqrt(reMI*reMI + imMI*imMI)
-                            reI1 = self.arS[ofstI1]#; imI1 = self.arS[ofstI1 + 1]
-                            reI2 = self.arS[ofstI2]#; imI2 = self.arS[ofstI2 + 1]
+                            reI1 = float(self.arS[ofstI1]) #OC01122021
+                            reI2 = float(self.arS[ofstI2]) #OC01122021
+                            #reI1 = self.arS[ofstI1]#; imI1 = self.arS[ofstI1 + 1]
+                            #reI2 = self.arS[ofstI2]#; imI2 = self.arS[ofstI2 + 1]
 
                             denom = sqrt(reI1*reI2) + absZerTolI #OC31072018
                             if(denom == 0): resDegCohNonRot[resOfst] = 0
@@ -2696,6 +2700,62 @@ class SRWLWfr(object):
             del auxArEx
             del auxArEy
         
+    def sim_src_offset(self, _dx, _dxp, _dy, _dyp, _move_mesh=False, _copy=False): #OC07062022
+        '''Simulate offset of the wavefront source in horizontal / vertical position and/or angle (version using opt. elem. (kick and shift))'''
+
+        opAng = SRWLOptAng(_ang_x=_dxp, _ang_y=_dyp)
+        pp = [0, 0, 1., 0, 0, 1., 1., 1., 1., 0, 0, 0]
+
+        wfr = deepcopy(self) if _copy else self
+
+        R = 0.5*(wfr.Rx + wfr.Ry)
+
+        #DEBUG
+        #print('sim_src_offset: R = ', R, 'm')
+        #END DEBUG
+
+        dx = _dx + _dxp*R
+        dy = _dy + _dyp*R
+
+        if _move_mesh:
+
+            opCnt = SRWLOptC([opAng], [pp])
+            srwl.PropagElecField(wfr, opCnt)
+
+            wfr.mesh.xStart += dx
+            wfr.mesh.xFin += dx
+            wfr.mesh.yStart += dy
+            wfr.mesh.yFin += dy
+            wfr.xc += _dx
+            wfr.yc += _dy
+
+        else:
+       
+            opShift = SRWLOptShift(_shift_x=dx, _shift_y=dy)
+            opCnt = SRWLOptC([opShift, opAng], [pp, pp])
+            srwl.PropagElecField(wfr, opCnt)
+
+            wfr.xc -= _dxp*R
+            wfr.yc -= _dyp*R
+
+        #Updating stat. moments of radiation beam:
+        wfr.arMomX[0] += dx
+        wfr.arMomX[1] += _dxp
+        wfr.arMomX[2] += dy
+        wfr.arMomX[3] += _dyp
+        wfr.arMomY[0] += dx
+        wfr.arMomY[1] += _dxp
+        wfr.arMomY[2] += dy
+        wfr.arMomY[3] += _dyp
+
+        #Updating stat. momemnts of source:
+        wfr.partBeam.partStatMom1.x += _dx 
+        wfr.partBeam.partStatMom1.xp += _dxp
+        wfr.partBeam.partStatMom1.y += _dy
+        wfr.partBeam.partStatMom1.yp += _dyp
+
+        return wfr
+
 #****************************************************************************
 class SRWLOpt(object):
     """Optical Element (base class)"""
@@ -4390,7 +4450,8 @@ def srwl_opt_setup_CRL(_foc_plane, _delta, _atten_len, _shape, _apert_h, _apert_
 
     #foc_len = 0.5*_r_min/(_n*arDelta[int(0.5*ne)])
     foc_len = 0.5*_r_min/(_n*arDelta[int(0.5*ne)]*fact_opt_path) #OC19042018
-    print('Optical Element Setup: CRL Focal Length:', foc_len, 'm')
+    if srwl_uti_proc_is_master(): print('Optical Element Setup: CRL Focal Length:', foc_len, 'm') #OC27102021
+    #print('Optical Element Setup: CRL Focal Length:', foc_len, 'm')
 
     fx = 1e+23
     fy = 1e+23
@@ -4996,7 +5057,204 @@ def srwl_opt_setup_mask(_delta, _atten_len, _thick,
     return trans_opt
 
 #****************************************************************************
-def srwl_opt_setup_Hartmann_sensor(_per_x, _per_y, _hole_nx, _hole_ny, _hole_sh, _hole_dx, _hole_dy=0, _hole_ang=0, _ang=0, 
+#Version from L. Huang (moved to srwlib on March 11, 2022)
+def srwl_opt_setup_Hartmann_sensor(_delta: float,
+#def srwl_opt_setup_mask(_delta: float,
+                        _atten_len: float,
+                        _thick: float,
+                        _hx: float,
+                        _hy: float,
+                        _pitch_x: float,
+                        _pitch_y: float,
+                        _mask_nx: int,
+                        _mask_ny: int,
+                        _grid_nx: int,
+                        _grid_ny: int,
+                        _grid_sh: int,
+                        _grid_dx: float,
+                        _grid_dy: float = 0,
+                        _grid_angle: float = 0,
+                        _mask_x0: float = 0,
+                        _mask_y0: float = 0,
+                        ):
+    """
+    Setup Transmission type Optical Element which simulates a mask array for at-wavelength metrology.
+
+    Parameters
+    ----------
+        _delta: `float`
+            The refractive index decrement (can be one number of array vs photon energy)
+        _atten_len: `float`
+            The attenuation length [m] (can be one number of array vs photon energy)
+        _thick: `float`
+            The thickness of mask [m]
+        _hx: `float`
+            The sampling interval in x-direction [m]
+        _hy: `float`
+            The sampling interval in y-direction [m]
+        _pitch_x: `float`
+            The grid pitch in x-direction [m]
+        _pitch_y: `float`
+            The grid pitch in y-direction [m]
+        _mask_nx: `int`
+            The number of pixels in x-direction [1]
+        _mask_ny: `int`
+            The number of pixels in y-direction [1]
+        _grid_nx: `int`
+            The number of grids in x-direction
+        _grid_ny: `int`
+            The number of grids in y-direction
+        _grid_sh: `int`
+            The grid shape. 0: Circular grids case. 1: Rectangular grids case. 2: 2-D phase grating
+        _grid_dx: `float`
+            The grid dimension in x-direction, width for rectangular or elliptical grids [m]
+        _grid_dy: `float`
+            The grid dimension in y-direction, height for rectangular or elliptical grids [m]
+        _grid_angle: `float`
+            The tilt angle of the grid [rad]
+        _mask_x0: `float`
+            The center of mask in x
+        _mask_y0: `float`
+            The center of mask in y
+    Returns
+    -------
+        `SRWLOptT`
+            transmission (SRWLOptT) type optical element which simulates the PMA
+    """
+
+    try: #OC13032022
+        import numpy as np
+    except:
+        raise Exception('NumPy can not be loaded. You may need to install numpy. If you are using pip, you can use the following command to install it: \npip install numpy')
+
+    # Check if _grid_dy is set by user.
+    if _grid_dy == 0:
+        _grid_dy = _grid_dx  # An ellipse becomes a circle and a rectangle becomes a square.
+    if _grid_sh == 2:
+        _grid_dx = _pitch_x  #Change grid_size for 2D grating, grid_size eauql to pitch
+        _grid_dy = _pitch_y
+    # Calculate the range of mask.
+    mask_Rx = _hx * (_mask_nx-1)  # mask range in x-direction [m].
+    mask_Ry = _hy * (_mask_ny-1)  # mask range in y-direction [m].
+
+    # Calculate the range of grid.
+    grid_Rx = _pitch_x * _grid_nx  # grid range in x-direction [m].
+    grid_Ry = _pitch_y * _grid_ny  # grid range in y-direction [m].
+
+    if _grid_sh == 1:
+        # Calculate the equations for edges of rectangle.
+        xTpLt0 = -_grid_dx/2
+        yTpLt0 = _grid_dy/2
+        xTpLt = xTpLt0 * cos(_grid_angle) - yTpLt0*sin(_grid_angle)
+        yTpLt = xTpLt0 * sin(_grid_angle) + yTpLt0*cos(_grid_angle)
+
+        xBmRt0 = _grid_dx/2
+        yBmRt0 = -_grid_dy/2
+        xBmRt = xBmRt0 * cos(_grid_angle) - yBmRt0*sin(_grid_angle)
+        yBmRt = xBmRt0 * sin(_grid_angle) + yBmRt0*cos(_grid_angle)
+
+        kTB = tan(_grid_angle)
+        if _grid_angle==0:
+            kLR = -1e32
+        elif _grid_angle==pi/2:
+            kLR = 0.0
+        else:
+            kLR = -1/kTB
+
+    # Use numpy array
+    x, y = np.meshgrid(np.linspace(-mask_Rx/2, mask_Rx/2, num=_mask_nx),
+                       np.linspace(-mask_Ry/2, mask_Ry/2, num=_mask_ny))
+
+    # Calculate the relative position in y.
+    # NOTE: Use round to solve the precision issue!
+    pitch_num_y = np.floor(np.round(y / _pitch_y, 9))
+    y_rel = np.round(y - (pitch_num_y * _pitch_y) - _mask_y0, 12)
+    y_rel[y_rel>=_pitch_y/2] = np.round(y_rel[y_rel>=_pitch_y/2] - _pitch_y, 12)
+
+    # Calculate the relative position in x.
+    # NOTE: Use round to solve the precision issue!
+    pitch_num_x = np.floor(np.round(x / _pitch_x, 9))
+    x_rel = np.round(x - (pitch_num_x * _pitch_x) - _mask_x0, 12)
+    x_rel[x_rel>=_pitch_x/2] = np.round(x_rel[x_rel>=_pitch_x/2] - _pitch_x, 12)
+
+    # Initialize the bool parameter.
+    inside_hole = np.zeros(x.shape, dtype=bool)
+
+    # Hartmann subaperture in an elliptical shape.
+    if _grid_sh == 0:
+
+        inside_hole[np.logical_and.reduce(
+            ((x_rel/(_grid_dx/2))**2 + (y_rel/(_grid_dy/2))**2 <= 1,
+             np.logical_not(np.logical_and(
+                 np.round(x_rel-(x-_mask_x0), 9) == 0,
+                 np.round(y_rel-(y-_mask_y0), 9) == 0)),
+                np.abs(x) < grid_Rx / 2,
+                np.abs(y) < grid_Ry / 2
+             )
+        )
+        ] = True
+
+    # Hartmann subaperture in a rectangular shape.
+    elif _grid_sh == 1:
+
+        inside_hole[np.logical_and.reduce(
+            (y_rel < kTB * (x_rel - xTpLt) + yTpLt,
+             y_rel > kTB * (x_rel - xBmRt) + yBmRt,
+             y_rel < kLR * (x_rel - xBmRt) + yBmRt,
+             y_rel > kLR * (x_rel - xTpLt) + yTpLt,
+             np.logical_not(np.logical_and(
+                 np.abs(x-_mask_x0) < _pitch_x/2,
+                 np.abs(y-_mask_y0) < _pitch_y/2)),
+             np.abs(x) < grid_Rx / 2,
+             np.abs(y) < grid_Ry / 2
+             )
+        )
+        ] = True
+
+    # Grating shearing interferometry in a 2D phase grating.
+    elif _grid_sh == 2:
+
+        phase_shift = np.zeros(x.shape, dtype=bool)
+        phase_shift[np.logical_or(
+            np.logical_and(x_rel >= 0, y_rel < 0),
+            np.logical_and(x_rel < 0, y_rel >= 0))] = True
+
+    else:
+        print('''Unknown shape code.''')  # (!)
+
+    # Give values to trans_opt.arTr.
+    if _grid_sh!=2:
+        amp = np.zeros(x.shape) # amplitude transmission.
+        amp[inside_hole] = 1 # amplitude transmission.
+        opd = np.zeros(x.shape) # optical path difference. (!) not in physics yet
+
+    else:
+        amp = np.ones(x.shape) # amplitude transmission.
+        amp[phase_shift] = exp(-0.5*_thick/_atten_len) # amplitude transmission.
+
+        opd = np.zeros(x.shape) # optical path difference.
+        opd[phase_shift] = -_delta*_thick # optical path difference.
+
+        # If it is outside grid area, ...
+        amp[np.logical_not(np.logical_and(np.abs(x) < grid_Rx / 2, np.abs(y) < grid_Ry / 2))] = 0  # optical path difference.
+        opd[np.logical_not(np.logical_and(np.abs(x) < grid_Rx / 2, np.abs(y) < grid_Ry / 2))] = 0 # optical path difference.
+
+    arTr_ndarray = np.array([amp.reshape(amp.size), opd.reshape(opd.size)]).transpose()
+    #OC13032022
+    auxSize = arTr_ndarray.size
+    arTr_array = arTr_ndarray.reshape(auxSize)
+    #arTr_list = arTr_ndarray.reshape(arTr_ndarray.size).tolist()
+    #arTr_array = array('d', arTr_list)
+
+    # Generate Transmission Optical Element.
+    trans_opt = SRWLOptT(_nx=_mask_nx, _ny=_mask_ny, _rx=mask_Rx, _ry=mask_Ry, _arTr=arTr_array, _extTr=0, _x=0, _y=0)
+
+    return trans_opt
+
+#****************************************************************************
+#The following version is under development 
+def srwl_opt_setup_Hartmann_sensor_dev(_per_x, _per_y, _hole_nx, _hole_ny, _hole_sh, _hole_dx, _hole_dy=0, _hole_ang=0, _ang=0, 
+#def srwl_opt_setup_Hartmann_sensor(_per_x, _per_y, _hole_nx, _hole_ny, _hole_sh, _hole_dx, _hole_dy=0, _hole_ang=0, _ang=0, 
                                    _delta=0, _atten_len=1e-12, _thick=None, 
                                    _nx=1001, _ny=1001, _rx=0, _ry=0, _e_start=0, _e_fin=0, _xc=0, _yc=0):
     """Setup Transmission type Optical Element which simulates a Harmann sensor, i.e. mask array/matrix for at-wavelength metrology.
@@ -5721,7 +5979,7 @@ def srwl_opt_setup_bumps(_ampl, _sx, _sy, _n, _delta, _atten_len, _rx, _ry, _xc=
     :param _ny: number of points vs vertical position to represent the transmission element
     :param _n_sig: number of sigmas of each Gaussian to take into acount on each side of center position (i.e. only these x, y values will be used:  -_n_sig*sigX < x < _n_sig*sigX, -_n_sig*sigY < y < _n_sig*sigY)
     :param _ampl_min: minimal amplitude of bumps [m]; if it defined, _ampl is treated as maximal amplitude, and the bump amplitude is evenly and randomly distributed between the two values
-    :param _sx_min: minimal horizontal FWHM size of bumps [m]; if it defined, _sx is treated as maximal horizonatl size, and the bump horizontal size is evenly and randomly distributed between the two values
+    :param _sx_min: minimal horizontal FWHM size of bumps [m]; if it defined, _sx is treated as maximal horizontal size, and the bump horizontal size is evenly and randomly distributed between the two values
     :param _sy_min: minimal vertical FWHM size of bumps [m]; if it defined, _sy is treated as maximal vertical size, and the bump vertical size is evenly and randomly distributed between the two values
     :param _seed: integer number to be used to seed random placing of bumps (in None, the seeding will be made from current time)
     :return: transmission (SRWLOptT) type optical element which simulates a set of Gaussian-shape "Bumps" randomly placed in transverse plane
@@ -6180,7 +6438,8 @@ class SRWLDet(object):
             effMult = 1 #To treat Spectral Efficiency
             if(self.specEff is not None):
                 if(isinstance(self.specEff, list) or isinstance(self.specEff, array)):
-                    effMult = interp_1d(ePh, self.eStartEff, self.eStepEff, self.neEff, self.specEff, _ord=2)
+                    effMult = uti_math.interp_1d(ePh, self.eStartEff, self.eStepEff, self.neEff, self.specEff, _ord=2) #OC04102021
+                    #effMult = interp_1d(ePh, self.eStartEff, self.eStepEff, self.neEff, self.specEff, _ord=2)
                 else: effMult = self.specEff
 
             if((self.dx <= 0) or (self.dy <= 0)):
@@ -6511,7 +6770,8 @@ def srwl_uti_save_intens_hdf5(_ar_intens, _mesh, _file_path, _n_stokes=1,
     nVal = nRadPt*nComp #_mesh.ne*_mesh.nx*_mesh.ny*nComp
     if(_cmplx != 0): nVal *= 2
 
-    if(not (isinstance(_ar_intens, array) or isinstance(_ar_intens, np.array))):
+    if(not isinstance(_ar_intens, (array, np.ndarray))): #OC04102021
+    #if(not (isinstance(_ar_intens, array) or isinstance(_ar_intens, np.array))):
         intensity_data = np.array([0]*nVal, 'f')
         intensity_data[:] = _ar_intens
         #intensity_data = np.array([_ar_intens[ii] for ii in range(nVal)])
@@ -6662,6 +6922,10 @@ def srwl_uti_read_intens_hdf5(_file_path, _num_type='f'): #RAC30032020
     #Get intensity data from hdf5 data set
     arInt = np.array(hf.get('intensity'), dtype=_num_type) #OC15022021
     #arInt = np.array(hf.get('intensity_data'), dtype=_num_type)
+
+    #DEBUG
+    np.asarray_chkfinite(arInt, dtype=_num_type)
+    #END DEBUG
 
     return arInt, mesh, {'n_stokes': n_stokes, 'mutual': mutual, 'cmplx': cmplx, 'arLabels': arLabels, 'arUnits': arUnits}, wfr #OC06052021
     #return arInt, mesh, {'n_stokes': n_stokes, 'mutual': mutual, 'cmplx': cmplx, 'arLabels': arLabels, 'arUnits': arUnits} #OC15022021
@@ -6973,6 +7237,11 @@ def srwl_uti_read_wfr_cm_hdf5(_file_path, _gen0s=True): #OC11042020
     mesh.ny = int(ats.get('ny'))
     mesh.zStart = float(ats.get('zStart'))
 
+    #OC02082022
+    nMom = 11*mesh.ne
+    wfr.arMomX = array('d', [0] * nMom)
+    wfr.arMomY = array('d', [0] * nMom)
+
     try: #OC09052021 (to walk around cases when this input is absent)
         wfr.numTypeElFld = ats.get('numTypeElFld')
         wfr.Rx = float(ats.get('Rx'))
@@ -7184,10 +7453,13 @@ def srwl_uti_save_stat_wfr_emit_prop_multi_e(  #MR20160908
     mode = 'a'
     if particle_number == 0:
         mode = 'w'
-        text_to_save = '[{}]: Calculation on {} cores with averaging of {} particles/iteration.'.format(
+        #text_to_save = '[{}]: Calculation on {} cores with averaging of {} particles/iteration.'.format(
+        text_to_save = '[{}]: Calculation on {} core{} with averaging of {} particle{}/iteration.'.format( #OC26042022
             timestamp,
             cores,
+            's' if(cores > 1) else '', #OC26042022
             particles_per_iteration,
+            's' if(particles_per_iteration > 1) else '', #OC26042022
         )
     else:
         text_to_save = '[{}]: {:8s} {:{offset}d} out of {:{offset}d} ({:6.2f}% complete)'.format(
@@ -7223,7 +7495,8 @@ def srwl_uti_save_stat_wfr_emit_prop_multi_e(  #MR20160908
     shutil.move(tmp_file.name, status_json_file)
 
 #**********************Auxiliary function to initialize parameters for the SRW status files and generate the files
-def srwl_uti_save_stat_wfr_emit_prop_multi_e_init(rank, num_of_proc, num_part_per_proc, num_sent_per_proc, num_part_avg_proc, _tot_num_part=None, _i_gr=None): #OC02032021  
+def srwl_uti_save_stat_wfr_emit_prop_multi_e_init(num_of_proc, num_part_avg_proc, _tot_num_part, _i_gr=None): #OC31102021 (to be called only by rankMaster!)
+#def srwl_uti_save_stat_wfr_emit_prop_multi_e_init(rank, num_of_proc, num_part_per_proc, num_sent_per_proc, num_part_avg_proc, _tot_num_part=None, _i_gr=None): #OC02032021  
 #def srwl_uti_save_stat_wfr_emit_prop_multi_e_init(rank, num_of_proc, num_part_per_proc, num_sent_per_proc, num_part_avg_proc, _tot_num_part=None): #OC21012021  
 #def srwl_uti_save_stat_wfr_emit_prop_multi_e_init(rank, num_of_proc, num_part_per_proc, num_sent_per_proc, num_part_avg_proc): #MR20012017  
     """Initialize parameters for the SRW status files and generate the files.  
@@ -7236,14 +7509,15 @@ def srwl_uti_save_stat_wfr_emit_prop_multi_e_init(rank, num_of_proc, num_part_pe
     :param _i_gr: index of Group of MPI processes.  
     """  
     log_dir = os.path.abspath('__srwl_logs__')  
-    if rank == 0:  
-        try:  
-            os.mkdir(log_dir)  
-        except OSError as exc:  
-            if exc.errno == errno.EEXIST and os.path.isdir(log_dir):
-                pass  
-            else:
-                raise  
+    #if rank == 0:  
+    #OC31102021 (removed the condition above)
+    try:  
+        os.mkdir(log_dir)  
+    except OSError as exc:  
+        if exc.errno == errno.EEXIST and os.path.isdir(log_dir):
+            pass  
+        else:
+            raise  
     timestamp = '{:%Y-%m-%d_%H-%M-%S}'.format(datetime.datetime.now()) 
     #log_file = 'srwl_stat_wfr_emit_prop_multi_e_{}'.format(timestamp)
     log_file = 'srwl_stat_wfr_emit_prop_multi_e_' #OC02032021
@@ -7253,16 +7527,19 @@ def srwl_uti_save_stat_wfr_emit_prop_multi_e_init(rank, num_of_proc, num_part_pe
 
     log_path = os.path.join(log_dir, log_file)
 
-    total_num_of_particles = _tot_num_part #OC21012021
-    if total_num_of_particles is None: #OC21012021
-        if num_of_proc <= 1:  
-            total_num_of_particles = num_part_per_proc  
-        else:  
-            total_num_of_particles = num_sent_per_proc * (num_of_proc - 1) * num_part_avg_proc
+    total_num_of_particles = _tot_num_part #OC31102021 #OC21012021
+    #if total_num_of_particles is None: #OC21012021
+    #    if num_of_proc <= 1:  
+    #        total_num_of_particles = num_part_per_proc  
+    #    else:  
+    #        total_num_of_particles = num_sent_per_proc * (num_of_proc - 1) * num_part_avg_proc
         
-    if rank == 0:  
-        srwl_uti_save_stat_wfr_emit_prop_multi_e(0, total_num_of_particles, filename=log_path, cores=num_of_proc, particles_per_iteration=num_part_avg_proc)  
-    return log_path, total_num_of_particles
+    #if rank == 0:
+    #OC31102021 (removed the condition above)
+    srwl_uti_save_stat_wfr_emit_prop_multi_e(0, total_num_of_particles, filename=log_path, cores=num_of_proc, particles_per_iteration=num_part_avg_proc)  
+
+    return log_path #OC31102021
+    #return log_path, total_num_of_particles
 
 #**********************Auxiliary function to read tabulated 3D Magnetic Field data from ASCII file:
 def srwl_uti_read_mag_fld_3d(_fpath, _scom='#'):
@@ -7692,7 +7969,9 @@ def srwl_wfr_fn_ext(_fp, _form, _char=0): #OC19072021
     else: return fnCore + reqExt
 
 #**********************Auxiliary function to post-process (average) CSD data from files generated e.g. by different groups of MPI processes
-def srwl_wfr_csd_avg(_fp_core, _fp_ext, _fi_st, _fi_en, _csd0=None, _awfr=None, _form='hdf5', _do_fin_save=True, _do_del_aux_files=False, _do_sym=True): #OC21062021
+def srwl_wfr_csd_avg(_fp_core, _fp_ext, _fi_st, _fi_en, _csd0=None, _awfr=None, _form='hdf5', _do_fin_save=True, _do_del_aux_files=False, _do_sym=True, _fin_fp_core=None, _do_sum=False): #OC27102021
+#def srwl_wfr_csd_avg(_fp_core, _fp_ext, _fi_st, _fi_en, _csd0=None, _awfr=None, _form='hdf5', _do_fin_save=True, _do_del_aux_files=False, _do_sym=True, _fin_fp_core=None): #OC11102021
+#def srwl_wfr_csd_avg(_fp_core, _fp_ext, _fi_st, _fi_en, _csd0=None, _awfr=None, _form='hdf5', _do_fin_save=True, _do_del_aux_files=False, _do_sym=True): #OC21062021
 #def srwl_wfr_csd_avg(_fp_core, _fp_ext, _fi_st, _fi_en, _csd0=None, _awfr=None, _form='hdf5', _do_fin_save=True, _do_del_aux_files=False): #OC20062021
 #def srwl_wfr_csd_avg(_fp_core, _fp_ext, _fi_st, _fi_en, _csd0=None, _awfr=None, _form='hdf5', _do_fin_save=True): #OC19062021
 
@@ -7704,6 +7983,7 @@ def srwl_wfr_csd_avg(_fp_core, _fp_ext, _fi_st, _fi_en, _csd0=None, _awfr=None, 
         meshCSD = _csd0.mesh
         fi_st = _fi_st + 1
 
+    awfr = _awfr #OC10102021
     for j in range(fi_st, _fi_en+1):
 
         curFP = _fp_core + '_' + repr(j) + _fp_ext
@@ -7718,6 +7998,8 @@ def srwl_wfr_csd_avg(_fp_core, _fp_ext, _fi_st, _fi_en, _csd0=None, _awfr=None, 
         arPartMI = resPartMI[0]
         meshPartMI = resPartMI[1] #The mesh is supposed to be the same for all partial CSDs
         extPar = resPartMI[2]
+        if(awfr is None): #OC10102021
+            if(j == fi_st): awfr = resPartMI[3]
 
         #DEBUG
         t1 = round(time.time() - t0)
@@ -7728,35 +8010,51 @@ def srwl_wfr_csd_avg(_fp_core, _fp_ext, _fi_st, _fi_en, _csd0=None, _awfr=None, 
         if(j == _fi_st):
             arCSD = arPartMI
             meshCSD = meshPartMI
+        
+        else: #OC04102021
 
-        #DEBUG
-        #print('Adding CSD data from Group:', j, 'is about to start')
-        t0 = time.time()
-        #sys.stdout.flush()
-        #END DEBUG
+            #DEBUG
+            #print('Adding CSD data from Group:', j, 'is about to start')
+            t0 = time.time()
+            #sys.stdout.flush()
+            #END DEBUG
 
-        srwl.UtiIntProc(arCSD, meshCSD, arPartMI, meshPartMI, [1, (j - fi_st + 1)]) #Averaging CSDs
-        #srwl.UtiIntProc(arCSD, meshCSD, arPartMI, meshPartMI, [1, j]) #Averaging CSDs
+            itNum = j - fi_st + 1
+            if _do_sum: itNum = -1 #OC27102021
+            
+            srwl.UtiIntProc(arCSD, meshCSD, arPartMI, meshPartMI, [1, itNum]) #Averaging or Summing-up CSDs
+            #srwl.UtiIntProc(arCSD, meshCSD, arPartMI, meshPartMI, [1, (j - fi_st + 1)]) #Averaging CSDs
+            #srwl.UtiIntProc(arCSD, meshCSD, arPartMI, meshPartMI, [1, j]) #Averaging CSDs
 
-        #DEBUG
-        print('Partial CSD data from MPI Group #', j, 'was added in:', round(time.time() - t0), 's')
-        sys.stdout.flush()
-        #END DEBUG
+            #DEBUG
+            print('Partial CSD data from MPI Group #', j, 'was added in:', round(time.time() - t0), 's')
+            sys.stdout.flush()
+            #END DEBUG
 
-        if(_do_del_aux_files): os.remove(curFP)
+            if(_do_del_aux_files): os.remove(curFP)
 
         if(j > _fi_st): del resPartMI
 
-    if(_do_sym): srwl.UtiIntProc(arCSD, meshCSD, None, None, [4]) #Fill-in "symmetrical" part of the Hermitian MI distribution
+    if(_do_sym): 
 
-    #DEBUG
-    #print('Symmetrical parts of the CSD data (Hermitian matrix) were filled-out')
-    #sys.stdout.flush()
-    #END DEBUG
+        #DEBUG
+        t0 = time.time()
+        #END DEBUG
+
+        srwl.UtiIntProc(arCSD, meshCSD, None, None, [4]) #Fill-in "symmetrical" part of the Hermitian MI distribution
+
+        #DEBUG
+        print('Symmetrical parts of the CSD data (Hermitian matrix) were filled-out in:', round(time.time() - t0), 's')
+        sys.stdout.flush()
+        #END DEBUG
 
     if(_do_fin_save): #Final saving is done here
+
         fpResMI = srwl_wfr_fn(_fp_core + _fp_ext, 3) #adds suffix "_mi" before extension
         #fpResMI = _fp_core + _fp_ext
+        if(_fin_fp_core is not None): #OC11102021
+            if(len(_fin_fp_core) > 0):
+                fpResMI = srwl_wfr_fn(_fin_fp_core + _fp_ext, 3) #adds suffix "_mi" before extension
 
         numComp = 1
         arLabels = ['Photon Energy', 'Horizontal Position', 'Vertical Position', 'Intensity']
@@ -7770,18 +8068,25 @@ def srwl_wfr_csd_avg(_fp_core, _fp_ext, _fi_st, _fi_en, _csd0=None, _awfr=None, 
             mutual = extPar['mutual']
             cmplx = extPar['cmplx']
 
-        srwl_uti_save_intens(arCSD, meshCSD, fpResMI, numComp, _arLabels = arLabels, _arUnits = arUnits, _mutual = mutual, _cmplx = cmplx, _form = _form, _wfr = _awfr)
+        #DEBUG
+        t0 = time.time()
+        #END DEBUG
+
+        srwl_uti_save_intens(arCSD, meshCSD, fpResMI, numComp, _arLabels = arLabels, _arUnits = arUnits, _mutual = mutual, _cmplx = cmplx, _form = _form, _wfr = awfr) #OC10102021
+        #srwl_uti_save_intens(arCSD, meshCSD, fpResMI, numComp, _arLabels = arLabels, _arUnits = arUnits, _mutual = mutual, _cmplx = cmplx, _form = _form, _wfr = _awfr)
 
         #DEBUG
-        print('Total CSD data saved')
+        print('Total CSD data saved in:', round(time.time() - t0), 's')
         sys.stdout.flush()
         #END DEBUG
 
-    if(_csd0 is not None): return _csd0
+    if(_csd0 is not None): return _csd0, awfr #OC10102021
+    #if(_csd0 is not None): return _csd0
     else: 
         csd = SRWLStokes(_arS=arCSD, _typeStokes='f', _mutual=1, _n_comp=1)
         csd.mesh = meshCSD
-        return csd
+        return csd, awfr #OC10102021
+        #return csd
 
 #**********************Auxiliary function to perform CMD on 4D CSD data
 def srwl_wfr_cmd(_csd, _n_modes, _awfr=None, _alg=None): #OC21062021
@@ -7823,7 +8128,8 @@ def srwl_wfr_cmd(_csd, _n_modes, _awfr=None, _alg=None): #OC21062021
 
     treatComQuadPhTerms = False
     if(_awfr is not None):
-        if((abs(_awfr.Rx) > _awfr.dRx) and (abs(_awfr.Ry) > _awfr.dRy)): treatComQuadPhTerms = True
+        if((abs(_awfr.Rx) > 5*_awfr.dRx) and (abs(_awfr.Ry) > 5*_awfr.dRy)): treatComQuadPhTerms = True
+        #if((abs(_awfr.Rx) > _awfr.dRx) and (abs(_awfr.Ry) > _awfr.dRy)): treatComQuadPhTerms = True
 
     if(treatComQuadPhTerms): 
         #DEBUG
@@ -7889,7 +8195,7 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
     """
     Calculate Stokes Parameters of Emitted (and Propagated, if beamline is defined) Partially-Coherent SR.
     :param _e_beam: Finite-Emittance e-beam (SRWLPartBeam type)
-    :param _mag: Magnetic Field container (magFldCnt type) or Coherent Gaussian beam (SRWLGsnBm type) or Point Source (SRWLPtSrc type)
+    :param _mag: Magnetic Field container (magFldCnt type) or Coherent Gaussian beam (SRWLGsnBm type) or Point Source (SRWLPtSrc type) or list of Coherent Modes (of SRWLWfr type each)
     :param _mesh: mesh vs photon energy, horizontal and vertical positions (SRWLRadMesh type) on which initial SR should be calculated
     :param _sr_meth: SR Electric Field calculation method to be used: 0- "manual", 1- "auto-undulator", 2- "auto-wiggler"
     :param _sr_rel_prec: relative precision for SR Electric Field calculation (usually 0.01 is OK, the smaller the more accurate)
@@ -7958,7 +8264,8 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
     #print('srwl_wfr_emit_prop_multi_e: _e_ph_integ=', _e_ph_integ)
 
     nProc = 1
-    rank = 1
+    rank = 0 #OC30122021
+    #rank = 1
     MPI = None
     comMPI = None
 
@@ -7988,9 +8295,14 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
         except:
             print('Calculation will be sequential (non-parallel), because "mpi4py" module can not be loaded or used') #OC01032021
             #print('Calculation will be sequential (non-parallel), because "mpi4py" module can not be loaded')
-            
+    
+    nProcTot = nProc #OC30102021
+    if(nProcTot > 1): #OC30122021
+        if(nProcTot < _n_mpi*2): raise Exception("Number of independent \"groups\" of MPI processes is too large for the requested total number of MPI processes.")
+    #if(nProcTot < _n_mpi*2): raise Exception("Number of independent \"groups\" of MPI processes is too large for the requested total number of MPI processes.")
+
     #DEBUG (use this to mimic MPI-execution)
-    #nProc = 41
+    #nProc = 11 #41
     #rank = 0 #3 #5 #0 #3 #2 #4 #0 #5
     #END DEBUG
     #print('DEBUG: rank, nProc:', rank, nProc)
@@ -7998,7 +8310,8 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
     #OC02032021: nProc, rankMaster, itStartEnd, _file_path are modified below; rank is not modified
     rankMaster = 0 #OC02032021: rank of Master
     itStartEnd = None #OC02032021: #start and end indexes for aligned conjugated coordinate
-    iGr = None #index of Group (out of _n_mpi), used only at _char = 6
+    iGr = 0 #OC26042022 #index of Group (out of _n_mpi), used only at _char = 6
+    #iGr = None #index of Group (out of _n_mpi), used only at _char = 6
     fpCore = None
     fpExt = None
     fp_cm = None #OC28062021
@@ -8006,8 +8319,15 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
     #OC19072021: check/correct/change file extension, depending on requested file format and type of calculation
     _file_path = srwl_wfr_fn_ext(_file_path, _file_form, _char)
 
+    nPartTotOrig = _n_part_tot #OC30102021
+    arRankMasters = [0] #OC27042022 (?)
+    #arRankMasters = None #OC30102021
+
     if((_char == 6) or (_char == 61) or (_char == 7)): #OC20062021
     #if(_char == 6): 
+
+        fp_cm = srwl_wfr_fn(_file_path, _type=7, _form='hdf5') #OC02102021
+
         _n_part_avg_proc = 1 #OC18022021
 
         if((_n_mpi > 1) and (nProc <= 1)): _n_mpi = 1 #OC18062021
@@ -8021,29 +8341,46 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
                 else:
                     nxny = _mesh.nx*_mesh.ny
 
-                fpCore = 'part_mi'
-                fpExt = '.dat'
-                if(_file_path is not None):
-                    iDot = _file_path.rfind('.')
-                    lenFP = len(_file_path)
-                    if((iDot >= 0) and (iDot >= lenFP - 5)):
-                        fpCore = _file_path[0:iDot]
-                        fpExt = _file_path[iDot:lenFP]
+                itStart = 0; itEnd = nxny - 1 #? #OC03102021
+                itStartEnd = [itStart, itEnd] #OC03102021 #Start and End indexes for aligned conjugated coordinate
 
-                nProcPerCalc = int(nProc/_n_mpi)
-                nProcExtra = nProc - nProcPerCalc*_n_mpi
+            #OC03102021 (moved the lines below to be executed for _n_mpi > 1)
+            fpCore = 'part_mi'
+            fpExt = '.dat'
+            if(_file_path is not None):
+                iDot = _file_path.rfind('.')
+                lenFP = len(_file_path)
+                if((iDot >= 0) and (iDot >= lenFP - 5)):
+                    fpCore = _file_path[0:iDot]
+                    fpExt = _file_path[iDot:lenFP]
 
-                arProcInGroup = [nProcPerCalc]*_n_mpi
-                for i in range(nProcExtra): arProcInGroup[i] += 1
+            nProcPerCalc = int(nProc/_n_mpi)
+            nProcExtra = nProc - nProcPerCalc*_n_mpi
+
+            arProcInGroup = [nProcPerCalc]*_n_mpi
+            for i in range(nProcExtra): arProcInGroup[i] += 1
                 
-                rankStart = 0 #Start and end rank numbers in current Group
-                rankEnd = -1 #0 #OC22042021
-                for iGr in range(_n_mpi):
-                    rankEnd += arProcInGroup[iGr] #- 1 #OC22042021
-                    if(rank <= rankEnd): break
-                    rankStart = rankEnd + 1
+            arRankMasters = [0]*_n_mpi #OC30102021
+            rankMaster = -1
 
-                rankMaster = rankStart #Master rank in current Group
+            rankStart = 0 #Start and end rank numbers in current Group
+            rankEnd = -1 #0 #OC22042021
+            iiGr = -1 #OC30102021
+            for iGr in range(_n_mpi):
+                arRankMasters[iGr] = rankStart #OC30102021
+                rankEnd += arProcInGroup[iGr] #- 1 #OC22042021
+
+                if((rank <= rankEnd) and (rankMaster < 0)): #OC30102021
+                    rankMaster = rankStart #Master rank in current Group
+                    iiGr = iGr #OC30102021
+
+                #if(rank <= rankEnd): break
+                rankStart = rankEnd + 1
+
+            if(iiGr >= 0): iGr = iiGr
+
+            #rankMaster = rankStart #OC30102021 (moved up, into the loop) #Master rank in current Group
+            if(rankMaster < 0): rankMaster = 0 #OC30102021
 
                 #OC25042021: The lines below were programmed for CSD calculaiton by parts (in attempt to save memory).
                 # nfHalfCSD = 0.5*nxny*(nxny + 1)
@@ -8064,17 +8401,103 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
                 #     if(ip < iGr): itStart = itEnd + 1
 
                 #OC25042021: The method we currently use does full CSD calculation by each "MPI group":
-                itStart = 0; itEnd = nxny - 1 #?
+                #itStart = 0; itEnd = nxny - 1 #? #OC03102021 (moved up)
 
-                #OC25042021: Taking into account averaging
-                _n_part_tot = (int)(_n_part_tot/_n_mpi)
+            nProc = arProcInGroup[iGr] #OC28102021 (moved from below)
+
+            #OC25042021: Taking into account averaging
+            #nPartTotOrig = _n_part_tot #OC28102021
+            _n_part_tot = (int)(_n_part_tot/_n_mpi) #OC02112021: this is important here if not doPropCM
+
+            # arNumModesForGroups = [_n_part_tot]*_n_mpi
+
+            # nPartTotExtra = nPartTotOrig - _n_part_tot*_n_mpi #OC28102021
+            # for iii in range(nPartTotExtra):
+            #     arNumModesForGroups[iii] += 1
+            #     arNumModesForGroups[nPartTotExtra - iii - 1] -= 1
+
+            # for jjj in range(_n_mpi):
+            #     jGrToDecrModes = _n_mpi - jjj - 1
+            #     nModesForCurGroup = arNumModesForGroups[jGrToDecrModes]
+            #     nModePerProcForCurGroup = int(float(nModesForCurGroup)/(arProcInGroup[jGrToDecrModes] - 1))
+            #     nModeInExcessForCurGroup = nModesForCurGroup - nModePerProcForCurGroup*(arProcInGroup[jGrToDecrModes] - 1)
+
+            #     if(nModeInExcessForCurGroup > 0):
+            #         cntModeInExcessForCurGroup = 0
+            #         for iGrToAddModes in range(jGrToDecrModes):
+            #             nTotInGrToAddModes = arNumModesForGroups[iGrToAddModes]
+            #             nProcInGrToAddModes = arProcInGroup[iGrToAddModes]
+            #             nModePerProcForGrToAddModes = int(float(nTotInGrToAddModes)/(nProcInGrToAddModes - 1))
+            #             nModeCanBeAdded = nTotInGrToAddModes - (nProcInGrToAddModes - 1)*nModePerProcForGrToAddModes
+
+            #             if(nModeCanBeAdded <= 0): nModeCanBeAdded = nProcInGrToAddModes - 1
+            #             allModesAdded = False
+            #             for iModesAdded in range(nModeCanBeAdded):
+            #                 arNumModesForGroups[iGrToAddModes] += 1
+            #                 arNumModesForGroups[jGrToDecrModes] -= 1
+
+            #                 cntModeInExcessForCurGroup += 1
+            #                 if(cntModeInExcessForCurGroup == nModeInExcessForCurGroup): 
+            #                     allModesAdded = True
+            #                     break
+            #             if(allModesAdded): break
+
+            # _n_part_tot = arNumModesForGroups[iGr] #Number of Modes to be calculated by this MPI group
+
+            # nModesPerWorkProc = int(_n_part_tot/(nProc - 1))
+            # nExtraModesToRedist = _n_part_tot - nModesPerWorkProc*(nProc - 1)
+            # if(nExtraModesToRedist > 0):
+            #     nPossibleExtraModesInGr = nProc - 1 - nExtraModesToRedist
+
+            # if(nPartTotExtra > 0): #OC28102021
+
+            #     nMPItoAddModes = int(float(nPartTotExtra)/(nProc - 1) + 1.e-10)
+            #     iMPI = int(float(rankMaster)/nProc + 1.e-10)
+            #     if(iMPI < nMPItoAddModes): 
+            #         _n_part_tot += nProc - 1
+            #         #if(rank == rankMaster): _n_part_tot += nProc - 1
+            #         #elif((rankMaster < rank) and (rank < (rankMaster + nProc))): _n_part_tot += 1
+            #         #if(rank == nMPItoAddModes): 
+            #         #_n_part_tot += nMPItoAddModes
+            #     elif(iMPI == nMPItoAddModes):
+            #         nRemainPartTotExtra = nPartTotExtra - nMPItoAddModes*(nProc - 1)
+            #         if(nRemainPartTotExtra > 0): #_n_part_tot += 1
+            #             _n_part_tot += nRemainPartTotExtra
+            #             #if(rank == rankMaster): _n_part_tot += nRemainPartTotExtra
+            #             #elif(rank - rankMaster <= nRemainPartTotExtra): _n_part_tot += 1
+            # else:
+            #     nTestPartPerProc = int(float(_n_part_tot)/(nProc - 1))
+            #     nPartToRedistrFromOneMPI = _n_part_tot - nTestPartPerProc*(nProc - 1)
+
+            #     if((nPartToRedistrFromOneMPI > 0) and (_n_mpi > 1)):
+            #         #arExtraPartInMPI = [0]*_n_mpi
+            #         #maxExtraPartCanBeAdded = nProc - 1 - 
+            #         #for iMPI in range(nPartToRedistrFromOneMPI):
+
+            #         if(float(rankMaster)/nProc < nPartToRedistrFromOneMPI): _n_part_tot += 1
+            #         else: _n_part_tot -= 1
+
+                #if(iMPI < nPartTotExtra): _n_part_tot += 1
                 
-                itStartEnd = [itStart, itEnd] #Start and End indexes for aligned conjugated coordinate
-                nProc = arProcInGroup[iGr]
+                #for iMPI in range(_n_mpi): #OC28102021
+                #    if(iMPI < nPartTotExtra): 
+                #        if(rank - rankMaster < nProc): _n_part_tot += 1
+                
+                #itStartEnd = [itStart, itEnd] #OC03102021 (moved up) #Start and End indexes for aligned conjugated coordinate
 
-                fp_cm = srwl_wfr_fn(_file_path, _type=7, _form='hdf5') #OC28062021
+            #nProc = arProcInGroup[iGr] #OC28102021 (moved up)
+            
+            #DEBUG
+            #if(rank == rankMaster):
+            #    print('Rank #', rank,' is Master; there are', nProc, 'processes in its group')
+            #    sys.stdout.flush()
+            #END DEBUG
 
-                _file_path = fpCore + '_' + repr(iGr) + fpExt #OC28062021: to change this (the input file name should not be changed!)
+            fp_cm = srwl_wfr_fn(_file_path, _type=7, _form='hdf5') #OC28062021
+            _file_path = fpCore + '_' + repr(iGr) + fpExt #OC28062021: to change this (the input file name should not be changed!)
+
+    else: #if not ((_char == 6) or (_char == 61) or (_char == 7)): #OC28042022
+        if(_n_mpi > 1): raise Exception("Calculation with more than one \"group\" of MPI processes is is not supported for this radiation characteristic.")
 
     #if(nProc <= 1): #OC050214
     #    _n_part_avg_proc = _n_part_tot
@@ -8085,7 +8508,19 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
         if(len(_mag) > 0):
             if isinstance(_mag[0], SRWLWfr):
                 doPropCM = True
-                _mesh = copy(_mag[0].mesh) #07112020
+                _mesh = copy(_mag[0].mesh) #OC07112020
+
+                #OC22092022
+                if(_e_beam is not None):
+                    m1 = _e_beam.partStatMom1
+                    m1w = _mag[0].partBeam.partStatMom1
+                    dz = m1.z - m1w.z
+                    if(dz != 0.):
+                        ebmNew = deepcopy(_e_beam)
+                        ebmNew.drift(-dz) #propagating e-beam to the longitudinal position specified in the list of CMs 
+                        _e_beam = ebmNew
+
+                #z0w = _mag[0].
                 #_mesh = _mag[0].mesh
                 #DEBUG
                 #print('doPropCM=', doPropCM)
@@ -8177,7 +8612,17 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
             wfr2.mesh.set_from_other(meshRes2)    
             wfr2.partBeam = deepcopy(_e_beam)
 
-    if(_det is not None): meshRes = _det.get_mesh() #OC06122016
+    if(_det is not None): #OC06122016
+        eStartOld = meshRes.eStart
+        eFinOld = meshRes.eFin
+        neOld = meshRes.ne
+
+        meshRes = _det.get_mesh() 
+
+        #OC17102021 (added)
+        if(meshRes.eStart <= 0.): meshRes.eStart = eStartOld
+        if(meshRes.eFin <= 0.): meshRes.eFin = eFinOld
+        if(meshRes.ne < 1): meshRes.ne = neOld
 
     ePhIntegMult = 1
     if(_e_ph_integ == 1): #Integrate over Photon Energy
@@ -8255,10 +8700,20 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
 
     nPartPerProc = _n_part_tot
     nSentPerProc = 0
-    actNumPartTot = None #OC21012021
+    actNumPartTot = _n_part_tot #OC31102021
+    #actNumPartTot = None #OC21012021
     
     if(nProc <= 1):
-        _n_part_avg_proc = _n_part_tot
+        if doPropCM: #OC26042022
+            nModes = len(_mag)
+            if(_n_part_tot > nModes): _n_part_tot = nModes
+            nPartPerProc = _n_part_tot
+            actNumPartTot = _n_part_tot
+            #_n_part_avg_proc = 1
+
+        _n_part_avg_proc = 1 #OC26042022 (??)
+        #_n_part_avg_proc = _n_part_tot
+
     else: #OC050214: adjustment of all numbers of points, to make sure that sending and receiving are consistent
 
         if(not doPropCM):
@@ -8271,35 +8726,79 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
 
             nPartPerProc = _n_part_avg_proc*nSentPerProc #Number of electrons treated by each worker process
 
+            #DEBUG
+            #print('Rank #', rank,': nProc=', nProc, 'nPartPerProc=', nPartPerProc, 'nSentPerProc=', nSentPerProc, '_n_part_avg_proc=', _n_part_avg_proc, 'iGr=', iGr)
+            #sys.stdout.flush()
+            #END DEBUG
+
         else: #OC19112020
 
-            nModes = len(_mag) #OC08082021
-            nPartTot = _n_part_tot if(_n_part_tot < nModes) else nModes #OC08082021
-            
-            nPartPerProc = int(nPartTot/(nProc - 1)) #OC08082021
-            nRemain = nPartTot - nPartPerProc*(nProc - 1) #OC08082021
+            #OC30102021
+            nModesTotToCalc = len(_mag)
+            if(nModesTotToCalc > nPartTotOrig): nModesTotToCalc = nPartTotOrig
 
-            #nPartPerProc = int(_n_part_tot/(nProc - 1))
-            #nRemain = _n_part_tot - nPartPerProc*(nProc - 1)
+            arModesToCalcByThisWorker = []
+            arModesToCalcByGroups = [0]*_n_mpi
+
+            rankCnt = 0
+            iCurGr = 0
+            for im in range(nModesTotToCalc):
+                if(arRankMasters is not None):
+                    if(rankCnt in arRankMasters): 
+                        iCurGr = arRankMasters.index(rankCnt)
+                        rankCnt += 1
+                        
+                if(rankCnt == rank): 
+                    arModesToCalcByThisWorker.append(im)
+                
+                arModesToCalcByGroups[iCurGr] += 1
+                rankCnt += 1
+                if(rankCnt >= nProcTot): rankCnt = 0
+
+            _n_part_tot = arModesToCalcByGroups[iGr]
+
+            nPartPerProc = len(arModesToCalcByThisWorker)
+            nPartTot = _n_part_tot if(_n_part_tot < nModesTotToCalc) else nModesTotToCalc #OC30102021
+
+            # nModes = len(_mag) #OC08082021
+            # nPartTot = _n_part_tot if(_n_part_tot < nModes) else nModes #OC08082021
             
-            if(nRemain > 0):
-                if(rank - rankMaster <= nRemain): nPartPerProc += 1 #OC02032021
-                #if(rank <= nRemain): nPartPerProc += 1
+            # nPartPerProc = int(nPartTot/(nProc - 1)) #OC08082021
+            # nRemain = nPartTot - nPartPerProc*(nProc - 1) #OC08082021
+
+            # #nPartPerProc = int(_n_part_tot/(nProc - 1))
+            # #nRemain = _n_part_tot - nPartPerProc*(nProc - 1)
+            
+            # if(nRemain > 0):
+            #     if(rank - rankMaster <= nRemain): nPartPerProc += 1 #OC02032021
+            #     #if(rank <= nRemain): nPartPerProc += 1
 
             nSentPerProc = int(nPartPerProc/_n_part_avg_proc)
             actNumPartTot = nPartTot #OC02032021
             #actNumPartTot = _n_part_tot
             
             if(nSentPerProc <= 0): #OC160116
-                nSentPerProc = 1
-                _n_part_avg_proc = nPartPerProc
+                if(rank != rankMaster): #OC31102021
+                    nSentPerProc = 1
+                    _n_part_avg_proc = nPartPerProc
+                else:
+                    nPartPerProcEst = int(round(_n_part_tot/(nProc - 1)))
+                    nSentPerProc = int(round(nPartPerProcEst/_n_part_avg_proc)) #Number of sending acts made by each worker process
+
+            #DEBUG
+            #print('Rank #', rank,': arModesToCalcByThisWorker=', arModesToCalcByThisWorker)
+            #sys.stdout.flush()
+            #END DEBUG
          
     #DEBUG
-    #print('Rank #', rank,': _n_part_tot=', _n_part_tot, 'nPartPerProc=', nPartPerProc, 'nSentPerProc=', nSentPerProc, '_n_part_avg_proc=', _n_part_avg_proc)
+    #print('Rank #', rank,': nProc=', nProc, 'nPartPerProc=', nPartPerProc, 'nSentPerProc=', nSentPerProc, '_n_part_avg_proc=', _n_part_avg_proc, 'actNumPartTot=', actNumPartTot, 'iGr=', iGr)
     #sys.stdout.flush()
     #END DEBUG
 
-    log_path, total_num_of_particles = srwl_uti_save_stat_wfr_emit_prop_multi_e_init(rank, nProc, nPartPerProc, nSentPerProc, _n_part_avg_proc, actNumPartTot, iGr) #OC02032021
+    if(rank == rankMaster):
+        log_path = srwl_uti_save_stat_wfr_emit_prop_multi_e_init(nProc, _n_part_avg_proc, actNumPartTot, iGr) #OC31102021
+
+    #log_path, total_num_of_particles = srwl_uti_save_stat_wfr_emit_prop_multi_e_init(rank, nProc, nPartPerProc, nSentPerProc, _n_part_avg_proc, actNumPartTot, iGr) #OC02032021
     #log_path, total_num_of_particles = srwl_uti_save_stat_wfr_emit_prop_multi_e_init(rank, nProc, nPartPerProc, nSentPerProc, _n_part_avg_proc, actNumPartTot) #OC21012021
     #log_path, total_num_of_particles = srwl_uti_save_stat_wfr_emit_prop_multi_e_init(rank, nProc, nPartPerProc, nSentPerProc, _n_part_avg_proc) #MR20012017
 
@@ -8451,9 +8950,21 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
             wfr = _mag[0] #OC13112020
             #wfr = deepcopy(_mag[0]) #OC12112020
 
+            #OC10092022
+            if(_e_beam is not None):
+                m1 = _e_beam.partStatMom1; m1w = wfr.partBeam.partStatMom1
+                dx = m1.x - m1w.x; dxp = m1.xp - m1w.xp; dy = m1.y - m1w.y; dyp = m1.yp - m1w.yp
+                if((dx != 0.) or (dxp != 0.) or (dy != 0.) or (dyp != 0.)): 
+                    wfr.sim_src_offset(_dx = dx, _dxp = dxp, _dy = dy, _dyp = dyp, _move_mesh=False, _copy=False)
+            #OC01082022
+            #if((wfr.partBeam.partStatMom1.x != _e_beam.partStatMom1.x) or (wfr.partBeam.partStatMom1.xp != _e_beam.partStatMom1.xp) or 
+            #   (wfr.partBeam.partStatMom1.y != _e_beam.partStatMom1.y) or (wfr.partBeam.partStatMom1.yp != _e_beam.partStatMom1.yp)):
+            #    wfr.sim_src_offset(_dx = (_e_beam.partStatMom1.x - wfr.partBeam.partStatMom1.x), _dxp = (_e_beam.partStatMom1.xp - wfr.partBeam.partStatMom1.xp), 
+            #                       _dy = (_e_beam.partStatMom1.y - wfr.partBeam.partStatMom1.y), _dyp = (_e_beam.partStatMom1.yp - wfr.partBeam.partStatMom1.yp), _move_mesh=False, _copy=False)
+                #wfr = wfr.sim_src_offset(_dx = (_e_beam.partStatMom1.x - wfr.partBeam.partStatMom1.x), _dxp = (_e_beam.partStatMom1.xp - wfr.partBeam.partStatMom1.xp), 
+                #                         _dy = (_e_beam.partStatMom1.y - wfr.partBeam.partStatMom1.y), _dyp = (_e_beam.partStatMom1.yp - wfr.partBeam.partStatMom1.yp), _move_mesh=False, _copy=True)
             #DEBUG
             #wfr = _mag[4]
-            #wfr = _mag[9]
             #END DEBUG
             
         else:
@@ -8624,6 +9135,7 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
                 dst = iRank + 1 + rankMaster #OC02032021
                 #dst = iRank + 1
                 #print("msg %d: sending data from %d to %d" % (iRank, rank, dst)) #an he
+
                 comMPI.Send([arMesh, MPI.FLOAT], dest=dst)
 
                 #DEBUG
@@ -8635,7 +9147,8 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
                 #    comMPI.Send([arMesh2, MPI.FLOAT], dest=dst)
 
             #DEBUG
-            #print('Mesh of Propagated central wavefront broadcasted')
+            #print('Mesh of propagated central wavefront broadcasted')
+            #sys.stdout.flush()
             #END DEBUG
 
         #DEBUG
@@ -8849,8 +9362,14 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
         #random.seed(4*123) #Deterministic seeding
         #print('Artificial test seed (as for rank #4)')
         #END OCTEST
-        
+
         random.seed(rank*123) #Deterministic seeding
+
+        #DEBUG OC16102021
+        #random.seed((rank + 1230)*123) #Deterministic seeding for debug
+        #random.seed((rank + 336)*123) #Deterministic seeding for debug
+        #END DEBUG
+
         #random.seed() #Pseudo-random seeding based on instant time
 
         #OC24042021 (commented-out the lines below)
@@ -8921,7 +9440,7 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
 
                 #DEBUG
                 #if(i == 0):
-                #    randAr = array('d', [0,0,0,2,0])
+                #    randAr = array('d', [0,0,0,0,0])
                 #if(i == 1):
                 #    randAr = array('d', [0,0,0,-2,0])
                 #END DEBUG
@@ -9070,6 +9589,20 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
                 
                 if(_e_ph_integ == 1): print('Eph=', wfr.mesh.eStart)
 
+            #DEBUG OC16102021
+            #print('Rank:', rank, 'i=', i, 'Electron Coord.: x=', wfr.partBeam.partStatMom1.x, 'x\'=', wfr.partBeam.partStatMom1.xp, 'y=', wfr.partBeam.partStatMom1.y, 'y\'=', wfr.partBeam.partStatMom1.yp, 'E=',  wfr.partBeam.partStatMom1.gamma*0.51099890221e-03)
+            #print('DEBUG: re-defining macro-electron initial conditions: OLD values:')
+            #print('i=', i, 'Electron Coord.: x=', wfr.partBeam.partStatMom1.x, 'x\'=', wfr.partBeam.partStatMom1.xp, 'y=', wfr.partBeam.partStatMom1.y, 'y\'=', wfr.partBeam.partStatMom1.yp, 'E=',  wfr.partBeam.partStatMom1.gamma*0.51099890221e-03)
+            #wfr.partBeam.partStatMom1.x = -3.662765020071964e-05 #OC: these initial conditions lead to wfr propagation off the final mesh in Example20 - to check the propagation issues(!)
+            #wfr.partBeam.partStatMom1.xp = 4.2604539754324834e-05
+            #wfr.partBeam.partStatMom1.y = -5.014957889048704e-06
+            #wfr.partBeam.partStatMom1.yp = 2.4359620246785347e-06
+            #wfr.partBeam.partStatMom1.gamma = 3.004478203792218/0.51099890221e-03
+            #print('DEBUG: re-defining macro-electron initial conditions: NEW values:')
+            #print('i=', i, 'Electron Coord.: x=', wfr.partBeam.partStatMom1.x, 'x\'=', wfr.partBeam.partStatMom1.xp, 'y=', wfr.partBeam.partStatMom1.y, 'y\'=', wfr.partBeam.partStatMom1.yp, 'E=',  wfr.partBeam.partStatMom1.gamma*0.51099890221e-03)
+            #sys.stdout.flush()
+            #END DEBUG
+
             if(calcSpecFluxSrc): #consider taking into account _rand_meth != 1 here
                 xObs = random.uniform(_mesh.xStart, _mesh.xFin)
                 wfr.mesh.xStart = xObs
@@ -9103,12 +9636,35 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
                 elif(doPropCM): #OC04112020
 
                     #wfr = _mag[i]
-                    if(nProc > 1): iMode = (nProc - 1)*i + rank - 1 #OC19112020
+
+                    if(nProc > 1): iMode = arModesToCalcByThisWorker[i] #OC26042022
+                    #iMode = arModesToCalcByThisWorker[i] #OC30102021
+                    #if(nProc > 1): iMode = (nProc - 1)*(_n_mpi*i + int(float(rankMaster)/float(nProc) + 1.e-10)) + rank - rankMaster - 1 #OC27102021
+                    #if(nProc > 1): iMode = (nProc - 1)*i + rank - 1 #OC19112020
                     #if(nProc > 1): iMode = (rank - 1)*nPartPerProc + i #OC19112020
-                    wfr = _mag[iMode] #OC19112020
-                    
+
                     #DEBUG
-                    #print('Rank #', rank, ': mode #', iMode, 'assigned')
+                    #print('rank:', rank, ' iMode=', iMode, 'assigned')
+                    #sys.stdout.flush()
+                    #END DEBUG
+                    
+                    wfr = _mag[iMode] #OC19112020
+
+                    #OC10092022
+                    if(_e_beam is not None):
+                        m1 = _e_beam.partStatMom1; m1w = wfr.partBeam.partStatMom1
+                        dx = m1.x - m1w.x; dxp = m1.xp - m1w.xp; dy = m1.y - m1w.y; dyp = m1.yp - m1w.yp
+                        if((dx != 0.) or (dxp != 0.) or (dy != 0.) or (dyp != 0.)): 
+                            wfr.sim_src_offset(_dx = dx, _dxp = dxp, _dy = dy, _dyp = dyp, _move_mesh=False, _copy=False)
+                    #OC01082022
+                    #if((wfr.partBeam.partStatMom1.x != _e_beam.partStatMom1.x) or (wfr.partBeam.partStatMom1.xp != _e_beam.partStatMom1.xp) or 
+                    #   (wfr.partBeam.partStatMom1.y != _e_beam.partStatMom1.y) or (wfr.partBeam.partStatMom1.yp != _e_beam.partStatMom1.yp)):
+                    #    wfr.sim_src_offset(_dx = (_e_beam.partStatMom1.x - wfr.partBeam.partStatMom1.x), _dxp = (_e_beam.partStatMom1.xp - wfr.partBeam.partStatMom1.xp), 
+                    #                       _dy = (_e_beam.partStatMom1.y - wfr.partBeam.partStatMom1.y), _dyp = (_e_beam.partStatMom1.yp - wfr.partBeam.partStatMom1.yp), _move_mesh=False, _copy=False)
+                        #wfr = wfr.sim_src_offset(_dx = (_e_beam.partStatMom1.x - wfr.partBeam.partStatMom1.x), _dxp = (_e_beam.partStatMom1.xp - wfr.partBeam.partStatMom1.xp), 
+                        #                         _dy = (_e_beam.partStatMom1.y - wfr.partBeam.partStatMom1.y), _dyp = (_e_beam.partStatMom1.yp - wfr.partBeam.partStatMom1.yp), _move_mesh=False, _copy=True)
+                    #DEBUG
+                    #print('Rank #', rank, ': Mode #', iMode, 'assigned')
                     #sys.stdout.flush()
                     #END DEBUG
                     
@@ -9125,9 +9681,15 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
                     #print('ny=', wfr.mesh.ny, 'yStart=', wfr.mesh.yStart, 'yFin=', wfr.mesh.yFin)
                     #print('zStart=', wfr.mesh.zStart)
                     #END DEBUG
-
+                    
                     srwl.CalcElecFieldSR(wfr, 0, _mag, arPrecParSR) #calculate Electric Field emitted by current electron
                     if(wfr2 is not None): srwl.CalcElecFieldSR(wfr2, 0, _mag, arPrecParSR) #OC30052017
+
+                    #DEBUG OC10102021
+                    #if(rank == 203): 
+                    #    print('    rank=', rank, 'iMode=', iMode, ': E-field calculated')
+                    #    sys.stdout.flush()
+                    #END DEBUG
 
                     #print('completed (lasted', round(time.time() - t0, 6), 's)') #DEBUG
                     #print('DEBUG: Commented-out: CalcElecFieldSR')
@@ -9163,7 +9725,22 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
                     #if(not (doPropCM and (iMode == 0) and (_det == 0))): #OC03022021
                     #if(not (doPropCM and (iMode == 0))): #OC19112020
                     #if(not (doPropCM and (i == 0))): #OC13112020
+
+                        #DEBUG OC10102021
+                        #if(rank == 203): 
+                        #    print('    rank=', rank, 'iMode=', iMode, ': starting propag. E-field')
+                        #    sys.stdout.flush()
+                        #END DEBUG
+
                         srwl.PropagElecField(wfr, _opt_bl) #propagate Electric Field emitted by the electron
+
+                        if(_det is not None): srwl.ResizeElecFieldMesh(wfr, meshRes, [0, 1]) #OC01082022
+
+                        #DEBUG OC10102021
+                        #if(rank == 203): 
+                        #    print('    rank=', rank, 'iMode=', iMode, ': E-field calculated')
+                        #    sys.stdout.flush()
+                        #END DEBUG
 
                         #DEBUG
                         #print('Rank #', rank, ': mode #', iMode, 'propagated')
@@ -9207,22 +9784,30 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
 
                 traceback.print_exc()
 
-            if((_char == 6) or (_char == 61) or (_char == 7)): #OC20062021
-            #if(_char == 6): #OC18062021
-                if(wfrA is None): wfrA = SRWLWfr()
-                wfrA.numTypeElFld = wfr.numTypeElFld
-                wfrA.Rx = wfr.Rx
-                wfrA.Ry = wfr.Ry
-                wfrA.dRx = wfr.dRx
-                wfrA.dRy = wfr.dRy
-                wfrA.xc = elecX0
-                wfrA.yc = elecY0
-                wfrA.avgPhotEn = wfr.avgPhotEn
-                wfrA.presCA = wfr.presCA
-                wfrA.presFT = wfr.presFT
-                wfrA.unitElFld = wfr.unitElFld
-                wfrA.unitElFldAng = wfr.unitElFldAng
-                wfrA.mesh = wfr.mesh #OC28062021
+            #if((_char == 6) or (_char == 61) or (_char == 7)): #OC20062021 (moved down)
+            ##if(_char == 6): #OC18062021
+            #    if(i == 0): #OC26102021
+            #        if(wfrA is None): wfrA = SRWLWfr()
+
+            #        wfrA.numTypeElFld = wfr.numTypeElFld
+            #        wfrA.Rx = wfr.Rx
+            #        wfrA.Ry = wfr.Ry
+            #        wfrA.dRx = wfr.dRx
+            #        wfrA.dRy = wfr.dRy
+
+            #        if doPropCM: #OC25102021
+            #            wfrA.xc = wfr.xc
+            #            wfrA.yc = wfr.yc
+            #        else: #OC25102021: make sure if this is correct (probably the "if doPropCM" treatment should be done for all cases?)
+            #            wfrA.xc = elecX0
+            #            wfrA.yc = elecY0
+
+            #        wfrA.avgPhotEn = wfr.avgPhotEn
+            #        wfrA.presCA = wfr.presCA
+            #        wfrA.presFT = wfr.presFT
+            #        wfrA.unitElFld = wfr.unitElFld
+            #        wfrA.unitElFldAng = wfr.unitElFldAng
+            #        wfrA.mesh = wfr.mesh #OC28062021
 
             meshWork = deepcopy(wfr.mesh)
             meshWork2 = None #OC30052017
@@ -9269,11 +9854,58 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
                 workStokes3 = SRWLStokes(1, 'f', meshWork.eStart, meshWork.eFin, meshWork.ne, _x0, _x0, 1, meshWork.yStart, meshWork.yFin, meshWork.ny, _mutual=1, _n_comp = numComp) #OC18072021
                 #workStokes3 = SRWLStokes(1, 'f', meshWork.eStart, meshWork.eFin, meshWork.ne, _x0, _x0, 1, meshWork.yStart, meshWork.yFin, meshWork.ny, _mutual=1)
 
-            if((_det is not None) and ((_char == 6) or (_char == 61) or (_char == 7))): #OC20062021 (consider doing this for other cases!)
+            if((_char == 6) or (_char == 61) or (_char == 7)): #OC03102021
+            #if((_det is not None) and ((_char == 6) or (_char == 61) or (_char == 7))): #OC20062021 (consider doing this for other cases!)
             #if((_det is not None) and (_char == 6)): #OC03022021 (consider doing this for other cases!)
+
+                #DEBUG OC10102021
+                #if(rank == 203): 
+                #    print('    rank=', rank, 'iMode=', iMode, ': staring resizing E-field to required final mesh')
+                #    sys.stdout.flush()
+                #END DEBUG
+
+                #OC: if wfr.mesh and meshRes have the same basic params, perhaps calling the following function is not required(?)
                 srwl.ResizeElecFieldMesh(wfr, meshRes, [0, 1])
+
+                #if(i == 0): #OC26102021 (moved from top)
+                if(wfrA is None): wfrA = SRWLWfr()
+
+                if(wfrA.avgPhotEn <= 0): #I.e. if Average Wavefront was not filled-out
+
+                    wfrA.numTypeElFld = wfr.numTypeElFld
+                    wfrA.Rx = wfr.Rx
+                    wfrA.Ry = wfr.Ry
+                    wfrA.dRx = wfr.dRx
+                    wfrA.dRy = wfr.dRy
+
+                    if doPropCM: #OC25102021
+                        wfrA.xc = wfr.xc
+                        wfrA.yc = wfr.yc
+                    else: #OC25102021: make sure if this is correct (probably the "if doPropCM" treatment should be done for all cases?)
+                        wfrA.xc = elecX0
+                        wfrA.yc = elecY0
+
+                    wfrA.avgPhotEn = wfr.avgPhotEn
+                    wfrA.presCA = wfr.presCA
+                    wfrA.presFT = wfr.presFT
+                    wfrA.unitElFld = wfr.unitElFld
+                    wfrA.unitElFldAng = wfr.unitElFldAng
+                    wfrA.mesh = copy(wfr.mesh) #OC27102021
+                    #wfrA.mesh = wfr.mesh #OC28062021
+
+                #DEBUG OC17102021
+                #import numpy as np
+                #print('rank=', rank, ': Trying to test E-field after Resizing at iMode=', iMode)
+                #np.asarray_chkfinite(wfr.arEx, dtype=float)
+                #np.asarray_chkfinite(wfr.arEy, dtype=float)
+                #print('rank=', rank, 'iMode=', iMode, ': No NaN or Inf found in E-field')
+                #sys.stdout.flush()
+                #    print('    rank=', rank, 'iMode=', iMode, ': E-field resized to the final mesh')
+                #    sys.stdout.flush()
+                #END DEBUG
+
                 #DEBUG
-                #print('rank=', rank, ': resizing to Detector Mesh done')
+                #print('rank=', rank, 'iMode=', iMode, ': resizing to Detector Mesh done')
                 #print('wfr.mesh.xStart=', wfr.mesh.xStart, 'wfr.mesh.xFin=', wfr.mesh.xFin, 'wfr.mesh.nx=', wfr.mesh.nx)
                 #print('wfr.mesh.yStart=', wfr.mesh.yStart, 'wfr.mesh.yFin=', wfr.mesh.yFin, 'wfr.mesh.ny=', wfr.mesh.ny)
                 #sys.stdout.flush()
@@ -9301,7 +9933,8 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
                     #DEBUG
                     #print('About to define workStokes')
                     #END DEBUG
-                    if(not (doPropCM and (iMode == 0))): #OC19112020
+                    if(not (doPropCM and (iMode == 0) and (_det is None))): #OC01082022
+                    #if(not (doPropCM and (iMode == 0))): #OC19112020
                     #if(not (doPropCM and (i == 0))): #OC13112020
                         srwl.CalcIntFromElecField(workStokes.arS, wfr, 6, 0, depTypeInt, phEnInt, 0., 0.)
                     
@@ -9335,9 +9968,16 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
                         if((_n_mpi > 1) and (itStartEnd is not None)):
                             arMethPar[18] = itStartEnd[0]
                             arMethPar[19] = itStartEnd[1]
+
+                        #if(_opt_bl is not None): srwl.ResizeElecFieldMesh(wfr, resStokes.mesh, [0, 1]) #OC03102021 (changed lines before) #OC01102021 (added)
+
                         srwl.CalcIntFromElecField(resStokes.arS, wfr, -1, 8, depTypeInt, phEnInt, 0., 0., arMethPar) #OC03032021: this call is supposed to update / extract one main Stokes component
                         #srwl.CalcIntFromElecField(resStokes.arS, wfr, -1, 8, depTypeInt, phEnInt, 0., 0., [intSumType, i]) #OC03032021: this call is supposed to update / extract one main Stokes component
                         #srwl.CalcIntFromElecField(resStokes.arS, wfr, 6, 8, depTypeInt, phEnInt, 0., 0., [intSumType, i]) #One main Stokes component
+
+                        #DEBUG
+                        #print(resStokes.arS[0], resStokes.arS[resStokes.mesh.nx*resStokes.mesh.ny*2 + 2], resStokes.arS[(resStokes.mesh.nx*resStokes.mesh.ny*2)*2 + 2*2])
+                        #END DEBUG
 
                         #DEBUG/TEST of a function:
                         #srwl.UtiIntProc(resStokes.arS, resStokes.mesh, None, None, [5, -1, wfrA.Rx, wfrA.Ry, wfrA.xc, wfrA.yc]) #Subtract common quadratic phase terms from CSD
@@ -9560,7 +10200,17 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
 
                         if(not (doPropCM and (iMode == 0))): #OC19112020
                         #if(not (doPropCM and (i == 0))): #OC13112020
-                            resStokes.avg_update_interp(workStokes, iAvgProc, 1, numComp, ePhIntegMult, _sum=doPropCM) #OC04112020
+
+                            if resStokes.mesh.is_equal(workStokes.mesh): #OC01082022
+                                resStokes.avg_update_same_mesh(workStokes, iAvgProc, numComp, ePhIntegMult, _sum=doPropCM)
+                            else:
+                                resStokes.avg_update_interp(workStokes, iAvgProc, 1, numComp, ePhIntegMult, _sum=doPropCM)
+
+                            #resStokes.avg_update_interp(workStokes, iAvgProc, 1, numComp, ePhIntegMult, _sum=doPropCM) #OC04112020
+                        
+                        elif resStokes.mesh.is_equal(workStokes.mesh): #OC01082022
+                            resStokes.avg_update_same_mesh(workStokes, iAvgProc, numComp, ePhIntegMult, _sum=doPropCM)
+
                         #resStokes.avg_update_interp(workStokes, iAvgProc, 1, numComp, ePhIntegMult) #OC16012017 #to treat all Stokes components / Polarization in the future
                         
                     else:
@@ -9869,7 +10519,8 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
                     #END DEBUG
 
                     #MR01112016: write the status of the simulation:  
-                    srwl_uti_save_stat_wfr_emit_prop_multi_e(i + 1, total_num_of_particles, filename=log_path)
+                    #srwl_uti_save_stat_wfr_emit_prop_multi_e(i + 1, total_num_of_particles, filename=log_path)
+                    srwl_uti_save_stat_wfr_emit_prop_multi_e(i + 1, actNumPartTot, filename=log_path) #OC31102021
                     
                     #print('completed (lasted', round(time.time() - t0, 6), 's)') #DEBUG
                     
@@ -9882,10 +10533,15 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
         #nRecv = int(nPartPerProc*nProc/_n_part_avg_proc + 1e-09)
         nRecv = nSentPerProc*(nProc - 1) #Total number of sending acts to be made by all worker processes, and to be received by master
 
+        if(doPropCM and ((_char == 6) or (_char == 61) or (_char == 7))): nRecv = _n_part_tot #OC28102021
+
         #print('DEBUG MESSAGE: Actual number of macro-electrons:', nRecv*_n_part_avg_proc)
         
         #DEBUG
         #srwl_uti_save_text("nRecv: " + str(nRecv) + " nPartPerProc: " + str(nPartPerProc) + " nProc: " + str(nProc) + " _n_part_avg_proc: " + str(_n_part_avg_proc), _file_path + ".00.dbg")
+
+        #print('Master: nRecv=', nRecv)
+        #sys.stdout.flush()
         #END DEBUG
 
         if(resStokes is None):
@@ -9913,26 +10569,57 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
                 workStokes = SRWLStokes(1, 'f', meshRes.eStart, meshRes.eFin, meshRes.ne, meshRes.xStart, meshRes.xFin, meshRes.nx, meshRes.yStart, meshRes.yFin, meshRes.ny, doMutual, _n_comp = numComp) #OC18072021
                 #workStokes = SRWLStokes(1, 'f', meshRes.eStart, meshRes.eFin, meshRes.ne, meshRes.xStart, meshRes.xFin, meshRes.nx, meshRes.yStart, meshRes.yFin, meshRes.ny, doMutual)
 
-        if(((_char == 6) or (_char == 61) or (_char == 7)) and (_opt_bl is None)): #OC20062021
+        if((_char == 6) or (_char == 61) or (_char == 7)): #OC03102021
+        #if(((_char == 6) or (_char == 61) or (_char == 7)) and (_opt_bl is None)): #OC20062021
         #if((_char == 6) and (_opt_bl is None)): #OC18062021
 
             if(wfrA is None): wfrA = SRWLWfr()
 
             if(wfrA.avgPhotEn <= 0): #I.e. if Average Wavefront was not filled-out
-                srwl.CalcElecFieldSR(wfr, 0, _mag, arPrecParSR) #It's unfortunate to calculate this here, but we need to know Rx, Ry, etc.
+
+                if doPropCM: #OC26102021
+                    wfr = _mag[0]
+
+                    #OC10092022
+                    if(_e_beam is not None):
+                        m1 = _e_beam.partStatMom1; m1w = wfr.partBeam.partStatMom1
+                        dx = m1.x - m1w.x; dxp = m1.xp - m1w.xp; dy = m1.y - m1w.y; dyp = m1.yp - m1w.yp
+                        if((dx != 0.) or (dxp != 0.) or (dy != 0.) or (dyp != 0.)): 
+                            wfr.sim_src_offset(_dx = dx, _dxp = dxp, _dy = dy, _dyp = dyp, _move_mesh=False, _copy=False)
+                    #OC01082022
+                    #if((wfr.partBeam.partStatMom1.x != _e_beam.partStatMom1.x) or (wfr.partBeam.partStatMom1.xp != _e_beam.partStatMom1.xp) or 
+                    #   (wfr.partBeam.partStatMom1.y != _e_beam.partStatMom1.y) or (wfr.partBeam.partStatMom1.yp != _e_beam.partStatMom1.yp)):
+                    #    wfr.sim_src_offset(_dx = (_e_beam.partStatMom1.x - wfr.partBeam.partStatMom1.x), _dxp = (_e_beam.partStatMom1.xp - wfr.partBeam.partStatMom1.xp), 
+                    #                       _dy = (_e_beam.partStatMom1.y - wfr.partBeam.partStatMom1.y), _dyp = (_e_beam.partStatMom1.yp - wfr.partBeam.partStatMom1.yp), _move_mesh=False, _copy=False)
+                        #wfr = wfr.sim_src_offset(_dx = (_e_beam.partStatMom1.x - wfr.partBeam.partStatMom1.x), _dxp = (_e_beam.partStatMom1.xp - wfr.partBeam.partStatMom1.xp), 
+                        #                         _dy = (_e_beam.partStatMom1.y - wfr.partBeam.partStatMom1.y), _dyp = (_e_beam.partStatMom1.yp - wfr.partBeam.partStatMom1.yp), _move_mesh=False, _copy=True)
+                else:
+                    srwl.CalcElecFieldSR(wfr, 0, _mag, arPrecParSR) #It's unfortunate to calculate this here, but we need to know Rx, Ry, etc.
+
+                if(_opt_bl is not None): srwl.PropagElecField(wfr, _opt_bl) #OC05102021 (for cases when CMD has to be done after propagation)
+                #OC05102021: furthemore, wfr.arEx, wfr.arEy are necessary for receiving E-field data from workers and accumulating CSD from it
+
+                if(_det is not None): srwl.ResizeElecFieldMesh(wfr, meshRes, [0, 1]) #OC05102021
 
                 wfrA.Rx = wfr.Rx
                 wfrA.Ry = wfr.Ry
                 wfrA.dRx = wfr.dRx
                 wfrA.dRy = wfr.dRy
-                wfrA.xc = elecX0
-                wfrA.yc = elecY0
+
+                if doPropCM: #OC26102021
+                    wfrA.xc = wfr.xc
+                    wfrA.yc = wfr.yc
+                else:
+                    wfrA.xc = elecX0
+                    wfrA.yc = elecY0
+
                 wfrA.avgPhotEn = wfr.avgPhotEn
                 wfrA.presCA = wfr.presCA
                 wfrA.presFT = wfr.presFT
                 wfrA.unitElFld = wfr.unitElFld
                 wfrA.unitElFldAng = wfr.unitElFldAng
-                wfrA.mesh = wfr.mesh #OC28062021
+                wfrA.mesh = copy(wfr.mesh) #OC27102021
+                #wfrA.mesh = wfr.mesh #OC28062021
 
         lenArResSt0 = len(resStokes.arS) #OC24122018
         lenArResSt = lenArResSt0
@@ -10052,6 +10739,11 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
 
             if((_char != 6) and (_char != 61) and (_char != 7)): #OC20062021
             #if(_char != 6): #OC18022021
+
+                #DEBUG
+                #print('About to start receiving by Master at i=', i)
+                #sys.stdout.flush()
+                #END DEBUG
                 #OC24122018
                 comMPI.Recv([workStkToRcv, MPI.FLOAT], source=MPI.ANY_SOURCE) #receive 
 
@@ -10085,7 +10777,7 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
                     lenArSt += lenArStA
 
                 #DEBUG
-                #print('Propagated mode data received by Master. Number of packages received so far:', i)
+                #print('Propagated mode data received by Master. Number of modes received so far:', i+1)
                 #sys.stdout.flush()
                 #END DEBUG
 
@@ -10138,6 +10830,12 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
             else: #OC20062021 if((_char == 6) or (_char == 61) or (_char == 7))
             #else: #OC18022021 if(_char == 6)
 
+                #DEBUG
+                #import numpy as np
+                #print('rank=', rank, 'iRecv=', i, ': Trying to receive E-field')
+                #sys.stdout.flush()
+                #END DEBUG
+
                 #DEBUG_OC16042021: commented-out the line: comMPI.Recv([arElFldToRecv, MPI.FLOAT], source=MPI.ANY_SOURCE) for testing
                 comMPI.Recv([arElFldToRecv, MPI.FLOAT], source=MPI.ANY_SOURCE) #receive Electric Field
 
@@ -10150,6 +10848,15 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
                 wfr.arEx[:] = arElFldToRecv[0:lenHalfArToRecv]
                 wfr.arEy[:] = arElFldToRecv[lenHalfArToRecv:lenArToRecv]
                 #Any other params need to be set in wfr?
+
+                #DEBUG OC16102021
+                #import numpy as np
+                #print('Trying to test recieve E-field iRecv=', i)
+                #np.asarray_chkfinite(wfr.arEx, dtype=float)
+                #np.asarray_chkfinite(wfr.arEy, dtype=float)
+                #print('rank=', rank, 'iRecv=', i, ': No NaN or Inf received in E-field')
+                #sys.stdout.flush()
+                #END DEBUG
 
                 #Update 4D CSD from the received Electric Field data
                 intSumType = 1 #calculation of Intensity with instant averaging
@@ -10167,6 +10874,23 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
 
                 srwl.CalcIntFromElecField(resStokes.arS, wfr, -1, 8, depTypeInt, phEnInt, 0., 0., arMethPar) #OC03032021
                 #srwl.CalcIntFromElecField(resStokes.arS, wfr, 6, 8, depTypeInt, phEnInt, 0., 0., [intSumType, i]) #One main Stokes component
+
+                #DEBUG OC16102021
+                #import numpy as np
+                #try:
+                #    np.asarray_chkfinite(resStokes.arS, dtype=float)
+                #except:
+                #    traceback.print_exc()
+                #    for iii in range(len(resStokes.arS)):
+                #        if(isnan(resStokes.arS[iii])): 
+                #            print('NaN found in resStokes.arS at iii=', iii)
+                #            break
+                #        elif(isinf(resStokes.arS[iii])): 
+                #            print('Inf found in resStokes.arS at iii=', iii)
+                #            break
+                #print('rank=', rank, 'iRecv=', i, ': No NaN or Inf found in resStokes.arS (instant CSD)')
+                #sys.stdout.flush()
+                #END DEBUG
 
                 #DEBUG
                 #print('rank=', rank, ': Propagated mode data received by Master and CSD updated. Number of Electric Fields received so far:', i, 'Update lasted:', round(time.time() - t0, 6), 's')
@@ -10187,8 +10911,15 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
                 #OC15102018 (moved this log-writing to the place where other files are saved):
                 #MR20160907 #Save .log and .json files:
                 particle_number = (i + 1) * _n_part_avg_proc
-                if i == (nRecv - 1): particle_number = total_num_of_particles #OC21012021 (previous particle_numbers may be inaccurate)
-                srwl_uti_save_stat_wfr_emit_prop_multi_e(particle_number, total_num_of_particles, filename=log_path)
+                if i == (nRecv - 1): particle_number = actNumPartTot #OC31102021
+                #if i == (nRecv - 1): particle_number = total_num_of_particles #OC21012021 (previous particle_numbers may be inaccurate)
+                srwl_uti_save_stat_wfr_emit_prop_multi_e(particle_number, actNumPartTot, filename=log_path) #OC31102021
+                #srwl_uti_save_stat_wfr_emit_prop_multi_e(particle_number, total_num_of_particles, filename=log_path)
+
+                #DEBUG
+                #print('Updated log-file: particle_number=', particle_number, ' actNumPartTot=', actNumPartTot)
+                #sys.stdout.flush()
+                #END DEBUG
 
                 fp = _file_path; fp1 = file_path1; fp2 = file_path2; fpdc1 = file_path_deg_coh1; fpdc2 = file_path_deg_coh2 #OC14082018
                 fpA = file_pathA #OC24122018
@@ -10316,6 +11047,10 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
         if((nProc == 1) or ((rank == rankMaster) and (iSave > 0))): #OC22042021 (save only if necessary)
         #if((nProc == 1) or ((rank == rankMaster) and (iSave > 0)) or ((rank == 0) and (_char == 6) and (_n_mpi > 1))): #OC21042021 (save only if necessary)
 
+            if(nProc > 1): #OC31102021
+                particle_number = (i + 1)*_n_part_avg_proc
+                srwl_uti_save_stat_wfr_emit_prop_multi_e(particle_number, actNumPartTot, filename=log_path) #OC31102021
+
             #if(_char == 40): #OC03052018
             if((_char == 40) or (_char == 41)): #OC13072019
                 srwl_uti_save_intens(resStokes.arS, meshRes, _file_path, numComp, _arLabels = resLabelsToSave, _arUnits = resUnitsToSave, _mutual = 0, _form = _file_form) #OC17072021
@@ -10374,6 +11109,9 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
 
                     if((_char == 61) or (_char == 7)): #OC27062021
                         cohModes, eigVals = srwl_wfr_cmd(resStokes, _n_modes=_n_cm, _awfr=wfrA)
+                        #DEBUG OC30042022
+                        #cohModes, eigVals = srwl_wfr_cmd(resStokes, _n_modes=_n_cm, _awfr=None)
+                        #END DEBUG
 
                         #DEBUG
                         t0 = time.time()
@@ -10415,7 +11153,8 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
             comMPI.Barrier() #Attempt to prevent crashes because some processes quit too early
 
             #OC18062021 (do this only if nProc > 1)
-            if(((_char == 6) or (_char == 61) or (_char == 7)) and (rank == 0) and (_n_mpi > 1)): #OC20062021
+            if(((_char == 6) or (_char == 61) or (_char == 7)) and (rank == 0)): #OC28102021
+            #if(((_char == 6) or (_char == 61) or (_char == 7)) and (rank == 0) and (_n_mpi > 1)): #OC20062021
             #if((_char == 6) and (rank == 0) and (_n_mpi > 1)): #OC22042021 moved here from top (assemble the final total CSD from different parts stored in files, by the Master of the first group (rank = 0))
                 #Summing-up/averaging partial CSDs
 
@@ -10424,8 +11163,14 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
                 #resStokes = SRWLStokes(1, 'f', meshRes.eStart, meshRes.eFin, meshRes.ne, meshRes.xStart, meshRes.xFin, meshRes.nx, meshRes.yStart, meshRes.yFin, meshRes.ny, doMutual, _n_comp = 1) #OC04032021 (to store final MI)
                 #OC25042021: Commented the above out for the version/case when total CSD is calculated by each CSD group, and the final CSD is averaged
 
-                doFinSave = False if(_char == 7) else True
-                CSD = srwl_wfr_csd_avg(fpCore, fpExt, 0, _n_mpi-1, _csd0=resStokes, _awfr=wfrA, _form=_file_form, _do_fin_save=doFinSave, _do_del_aux_files=_del_aux_files) #OC27062021
+                if(_n_mpi > 1): #OC28102021
+                    doFinSave = False if(_char == 7) else True
+                    CSD, wfrA_dummy = srwl_wfr_csd_avg(fpCore, fpExt, 0, _n_mpi-1, _csd0=resStokes, _awfr=wfrA, _form=_file_form, _do_fin_save=doFinSave, _do_del_aux_files=_del_aux_files, _do_sum=doPropCM) #OC31102021
+                    #CSD, wfrA_dummy = srwl_wfr_csd_avg(fpCore, fpExt, 0, _n_mpi-1, _csd0=resStokes, _awfr=wfrA, _form=_file_form, _do_fin_save=doFinSave, _do_del_aux_files=_del_aux_files) #OC10102021
+                else:
+                    CSD = resStokes #OC28102021
+
+                #CSD = srwl_wfr_csd_avg(fpCore, fpExt, 0, _n_mpi-1, _csd0=resStokes, _awfr=wfrA, _form=_file_form, _do_fin_save=doFinSave, _do_del_aux_files=_del_aux_files) #OC27062021
 
                 # #DEBUG
                 # print('Rank=', rank, ' About to start collecting CSD data from different MPI Groups')

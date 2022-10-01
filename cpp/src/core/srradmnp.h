@@ -471,13 +471,15 @@ public:
 			case 0: // Lin. Hor.
 			{
 				ReMI = ExRe*ExReT + ExIm*ExImT;
-				ImMI = ExIm*ExReT - ExRe*ExImT;
+				ImMI = -(ExIm*ExReT - ExRe*ExImT); //OC01052022: Testing the standard definition: E*(x,y)*E(x',y'); previously it assumed the CSD definition E(x,y)*E*(x',y'), whereas the standard one is E*(x,y)*E(x',y') - the two are related by complex conjugation
+				//ImMI = ExIm*ExReT - ExRe*ExImT;
 				break;
 			}
 			case 1: // Lin. Vert.
 			{
 				ReMI = EzRe*EzReT + EzIm*EzImT;
-				ImMI = EzIm*EzReT - EzRe*EzImT;
+				ImMI = -(EzIm*EzReT - EzRe*EzImT); //OC01052022: Testing the standard definition: E*(x,y)*E(x',y'); previously it assumed the CSD definition E(x,y)*E*(x',y'), whereas the standard one is E*(x,y)*E(x',y') - the two are related by complex conjugation
+				//ImMI = EzIm*EzReT - EzRe*EzImT;
 				break;
 			}
 			case 2: // Linear 45 deg.
@@ -485,7 +487,8 @@ public:
 				double ExRe_p_EzRe = ExRe + EzRe, ExIm_p_EzIm = ExIm + EzIm;
 				double ExRe_p_EzReT = ExReT + EzReT, ExIm_p_EzImT = ExImT + EzImT;
 				ReMI = 0.5*(ExRe_p_EzRe*ExRe_p_EzReT + ExIm_p_EzIm*ExIm_p_EzImT);
-				ImMI = 0.5*(ExIm_p_EzIm*ExRe_p_EzReT - ExRe_p_EzRe*ExIm_p_EzImT);
+				ImMI = -0.5*(ExIm_p_EzIm*ExRe_p_EzReT - ExRe_p_EzRe*ExIm_p_EzImT); //OC01052022: Testing the standard definition: E*(x,y)*E(x',y'); previously it assumed the CSD definition E(x,y)*E*(x',y'), whereas the standard one is E*(x,y)*E(x',y') - the two are related by complex conjugation
+				//ImMI = 0.5*(ExIm_p_EzIm*ExRe_p_EzReT - ExRe_p_EzRe*ExIm_p_EzImT);
 				break;
 			}
 			case 3: // Linear 135 deg.
@@ -493,7 +496,8 @@ public:
 				double ExRe_mi_EzRe = ExRe - EzRe, ExIm_mi_EzIm = ExIm - EzIm;
 				double ExRe_mi_EzReT = ExReT - EzReT, ExIm_mi_EzImT = ExImT - EzImT;
 				ReMI = 0.5*(ExRe_mi_EzRe*ExRe_mi_EzReT + ExIm_mi_EzIm*ExIm_mi_EzImT);
-				ImMI = 0.5*(ExIm_mi_EzIm*ExRe_mi_EzReT - ExRe_mi_EzRe*ExIm_mi_EzImT);
+				ImMI = -0.5*(ExIm_mi_EzIm*ExRe_mi_EzReT - ExRe_mi_EzRe*ExIm_mi_EzImT); //OC01052022: Testing the standard definition: E*(x,y)*E(x',y'); previously it assumed the CSD definition E(x,y)*E*(x',y'), whereas the standard one is E*(x,y)*E(x',y') - the two are related by complex conjugation
+				//ImMI = 0.5*(ExIm_mi_EzIm*ExRe_mi_EzReT - ExRe_mi_EzRe*ExIm_mi_EzImT);
 				break;
 			}
 			case 5: // Circ. Left //OC08092019: corrected to be in compliance with definitions for right-hand frame (x,z,s) and with corresponding definition and calculation of Stokes params
@@ -502,7 +506,8 @@ public:
 				double ExRe_mi_EzIm = ExRe - EzIm, ExIm_p_EzRe = ExIm + EzRe;
 				double ExRe_mi_EzImT = ExReT - EzImT, ExIm_p_EzReT = ExImT + EzReT;
 				ReMI = 0.5*(ExRe_mi_EzIm*ExRe_mi_EzImT + ExIm_p_EzRe*ExIm_p_EzReT);
-				ImMI = 0.5*(ExIm_p_EzRe*ExRe_mi_EzImT - ExRe_mi_EzIm*ExIm_p_EzReT);
+				ImMI = -0.5*(ExIm_p_EzRe*ExRe_mi_EzImT - ExRe_mi_EzIm*ExIm_p_EzReT); //OC01052022: Testing the standard definition: E*(x,y)*E(x',y'); previously it assumed the CSD definition E(x,y)*E*(x',y'), whereas the standard one is E*(x,y)*E(x',y') - the two are related by complex conjugation
+				//ImMI = 0.5*(ExIm_p_EzRe*ExRe_mi_EzImT - ExRe_mi_EzIm*ExIm_p_EzReT);
 				break;
 			}
 			case 4: // Circ. Right //OC08092019: corrected to be in compliance with definitions for right-hand frame (x,z,s) and with corresponding definition and calculation of Stokes params
@@ -511,37 +516,43 @@ public:
 				double ExRe_p_EzIm = ExRe + EzIm, ExIm_mi_EzRe = ExIm - EzRe;
 				double ExRe_p_EzImT = ExReT + EzImT, ExIm_mi_EzReT = ExImT - EzReT;
 				ReMI = 0.5*(ExRe_p_EzIm*ExRe_p_EzImT + ExIm_mi_EzRe*ExIm_mi_EzReT);
-				ImMI = 0.5*(ExIm_mi_EzRe*ExRe_p_EzImT - ExRe_p_EzIm*ExIm_mi_EzReT);
+				ImMI = -0.5*(ExIm_mi_EzRe*ExRe_p_EzImT - ExRe_p_EzIm*ExIm_mi_EzReT); //OC01052022: Testing the standard definition: E*(x,y)*E(x',y'); previously it assumed the CSD definition E(x,y)*E*(x',y'), whereas the standard one is E*(x,y)*E(x',y') - the two are related by complex conjugation
+				//ImMI = 0.5*(ExIm_mi_EzRe*ExRe_p_EzImT - ExRe_p_EzIm*ExIm_mi_EzReT);
 				break;
 			}
 			case -1: // s0
 			{
 				ReMI = ExRe*ExReT + ExIm*ExImT + EzRe*EzReT + EzIm*EzImT;
-				ImMI = ExIm*ExReT - ExRe*ExImT + EzIm*EzReT - EzRe*EzImT;
+				ImMI = -(ExIm*ExReT - ExRe*ExImT + EzIm*EzReT - EzRe*EzImT); //OC01052022: Testing the standard definition: E*(x,y)*E(x',y'); previously it assumed the CSD definition E(x,y)*E*(x',y'), whereas the standard one is E*(x,y)*E(x',y') - the two are related by complex conjugation
+				//ImMI = ExIm*ExReT - ExRe*ExImT + EzIm*EzReT - EzRe*EzImT;
 				break;
 			}
 			case -2: // s1
 			{
 				ReMI = ExRe*ExReT + ExIm*ExImT - (EzRe*EzReT + EzIm*EzImT);
-				ImMI = ExIm*ExReT - ExRe*ExImT - (EzIm*EzReT - EzRe*EzImT);
+				ImMI = -(ExIm*ExReT - ExRe*ExImT - (EzIm*EzReT - EzRe*EzImT)); //OC01052022: Testing the standard definition: E*(x,y)*E(x',y'); previously it assumed the CSD definition E(x,y)*E*(x',y'), whereas the standard one is E*(x,y)*E(x',y') - the two are related by complex conjugation
+				//ImMI = ExIm*ExReT - ExRe*ExImT - (EzIm*EzReT - EzRe*EzImT);
 				break;
 			}
 			case -3: // s2
 			{
 				ReMI = ExImT*EzIm + ExIm*EzImT + ExReT*EzRe + ExRe*EzReT;
-				ImMI = ExReT*EzIm - ExRe*EzImT - ExImT*EzRe + ExIm*EzReT;
+				ImMI = -(ExReT*EzIm - ExRe*EzImT - ExImT*EzRe + ExIm*EzReT); //OC01052022: Testing the standard definition: E*(x,y)*E(x',y'); previously it assumed the CSD definition E(x,y)*E*(x',y'), whereas the standard one is E*(x,y)*E(x',y') - the two are related by complex conjugation
+				//ImMI = ExReT*EzIm - ExRe*EzImT - ExImT*EzRe + ExIm*EzReT;
 				break;
 			}
 			case -4: // s3
 			{
 				ReMI = ExReT*EzIm + ExRe*EzImT - ExImT*EzRe - ExIm*EzReT;
-				ImMI = ExIm*EzImT - ExImT*EzIm - ExReT*EzRe + ExRe*EzReT;
+				ImMI = -(ExIm*EzImT - ExImT*EzIm - ExReT*EzRe + ExRe*EzReT); //OC01052022: Testing the standard definition: E*(x,y)*E(x',y'); previously it assumed the CSD definition E(x,y)*E*(x',y'), whereas the standard one is E*(x,y)*E(x',y') - the two are related by complex conjugation
+				//ImMI = ExIm*EzImT - ExImT*EzIm - ExReT*EzRe + ExRe*EzReT;
 				break;
 			}
 			default: // total mutual intensity, same as s0
 			{
 				ReMI = ExRe*ExReT + ExIm*ExImT + EzRe*EzReT + EzIm*EzImT;
-				ImMI = ExIm*ExReT - ExRe*ExImT + EzIm*EzReT - EzRe*EzImT;
+				ImMI = -(ExIm*ExReT - ExRe*ExImT + EzIm*EzReT - EzRe*EzImT); //OC01052022: Testing the standard definition: E*(x,y)*E(x',y'); previously it assumed the CSD definition E(x,y)*E*(x',y'), whereas the standard one is E*(x,y)*E(x',y') - the two are related by complex conjugation
+				//ImMI = ExIm*ExReT - ExRe*ExImT + EzIm*EzReT - EzRe*EzImT;
 				break;
 				//return CAN_NOT_EXTRACT_MUT_INT;
 			}

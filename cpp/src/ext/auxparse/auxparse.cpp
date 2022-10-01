@@ -71,7 +71,7 @@ void CAuxParse::StringSplitSimple(const char* c_strTot, int maxNumSymb, char cSe
 //-------------------------------------------------------------------------
 
 void CAuxParse::StringSplit(char* TotStr, char** SepStrArr, int AmOfSepStr, char* SymbToCut, vector<string>& ResStrings)
-{
+{//OC30072018: this function does not seem to work as expected; use StringSplitNested instead
 	if(TotStr == 0) return;
 	long LenTotStr = (long)strlen(TotStr);
 	if(LenTotStr <= 0) return;
@@ -134,11 +134,15 @@ void CAuxParse::StringSplit(char* TotStr, char** SepStrArr, int AmOfSepStr, char
 //-------------------------------------------------------------------------
 void CAuxParse::StringSymbolsRemove(const char* OrigStr, char* SymbToCut, char* FinStr)
 {
+	if(FinStr == 0) return;
+
 	if(OrigStr == 0) return;
 	long LenOrigStr = (long)strlen(OrigStr);
-	if(LenOrigStr == 0) return;
-
-	if(FinStr == 0) return;
+	if(LenOrigStr == 0)
+	{//OC22092018
+		*FinStr = '\0';
+		return;
+	}
 
 	if(SymbToCut == 0) { strcpy(FinStr, OrigStr); return;}
 	long LenSymbToCut = (long)strlen(SymbToCut);

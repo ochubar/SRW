@@ -2128,13 +2128,15 @@ int srTRadGenManip::ExtractSingleElecMutualIntensityVsXZ(srTRadExtract& RadExtra
 				case 0: // Lin. Hor.
 				{
 					ReMI = ExRe*ExReT + ExIm*ExImT;
-					ImMI = ExIm*ExReT - ExRe*ExImT;
+					ImMI = -(ExIm*ExReT - ExRe*ExImT); //OC01052022: Testing the standard definition: E*(x,y)*E(x',y'); previously it assumed the CSD definition E(x,y)*E*(x',y'), whereas the standard one is E*(x,y)*E(x',y') - the two are related by complex conjugation
+					//ImMI = ExIm*ExReT - ExRe*ExImT;
 					break;
 				}
 				case 1: // Lin. Vert.
 				{
 					ReMI = EzRe*EzReT + EzIm*EzImT;
-					ImMI = EzIm*EzReT - EzRe*EzImT;
+					ImMI = -(EzIm*EzReT - EzRe*EzImT); //OC01052022: Testing the standard definition: E*(x,y)*E(x',y'); previously it assumed the CSD definition E(x,y)*E*(x',y'), whereas the standard one is E*(x,y)*E(x',y') - the two are related by complex conjugation
+					//ImMI = EzIm*EzReT - EzRe*EzImT;
 					break;
 				}
 				case 2: // Linear 45 deg.
@@ -2142,7 +2144,8 @@ int srTRadGenManip::ExtractSingleElecMutualIntensityVsXZ(srTRadExtract& RadExtra
 					double ExRe_p_EzRe = ExRe + EzRe, ExIm_p_EzIm = ExIm + EzIm;
 					double ExRe_p_EzReT = ExReT + EzReT, ExIm_p_EzImT = ExImT + EzImT;
 					ReMI = 0.5*(ExRe_p_EzRe*ExRe_p_EzReT + ExIm_p_EzIm*ExIm_p_EzImT);
-					ImMI = 0.5*(ExIm_p_EzIm*ExRe_p_EzReT - ExRe_p_EzRe*ExIm_p_EzImT);
+					ImMI = -0.5*(ExIm_p_EzIm*ExRe_p_EzReT - ExRe_p_EzRe*ExIm_p_EzImT); //OC01052022: Testing the standard definition: E*(x,y)*E(x',y'); previously it assumed the CSD definition E(x,y)*E*(x',y'), whereas the standard one is E*(x,y)*E(x',y') - the two are related by complex conjugation
+					//ImMI = 0.5*(ExIm_p_EzIm*ExRe_p_EzReT - ExRe_p_EzRe*ExIm_p_EzImT);
 					break;
 				}
 				case 3: // Linear 135 deg.
@@ -2150,7 +2153,8 @@ int srTRadGenManip::ExtractSingleElecMutualIntensityVsXZ(srTRadExtract& RadExtra
 					double ExRe_mi_EzRe = ExRe - EzRe, ExIm_mi_EzIm = ExIm - EzIm;
 					double ExRe_mi_EzReT = ExReT - EzReT, ExIm_mi_EzImT = ExImT - EzImT;
 					ReMI = 0.5*(ExRe_mi_EzRe*ExRe_mi_EzReT + ExIm_mi_EzIm*ExIm_mi_EzImT);
-					ImMI = 0.5*(ExIm_mi_EzIm*ExRe_mi_EzReT - ExRe_mi_EzRe*ExIm_mi_EzImT);
+					ImMI = -0.5*(ExIm_mi_EzIm*ExRe_mi_EzReT - ExRe_mi_EzRe*ExIm_mi_EzImT); //OC01052022: Testing the standard definition: E*(x,y)*E(x',y'); previously it assumed the CSD definition E(x,y)*E*(x',y'), whereas the standard one is E*(x,y)*E(x',y') - the two are related by complex conjugation
+					//ImMI = 0.5*(ExIm_mi_EzIm*ExRe_mi_EzReT - ExRe_mi_EzRe*ExIm_mi_EzImT);
 					break;
 				}
 				case 5: // Circ. Left //OC08092019: corrected to be in compliance with definitions for right-hand frame (x,z,s) and with corresponding definition and calculation of Stokes params
@@ -2159,7 +2163,8 @@ int srTRadGenManip::ExtractSingleElecMutualIntensityVsXZ(srTRadExtract& RadExtra
 					double ExRe_mi_EzIm = ExRe - EzIm, ExIm_p_EzRe = ExIm + EzRe;
 					double ExRe_mi_EzImT = ExReT - EzImT, ExIm_p_EzReT = ExImT + EzReT;
 					ReMI = 0.5*(ExRe_mi_EzIm*ExRe_mi_EzImT + ExIm_p_EzRe*ExIm_p_EzReT);
-					ImMI = 0.5*(ExIm_p_EzRe*ExRe_mi_EzImT - ExRe_mi_EzIm*ExIm_p_EzReT);
+					ImMI = -0.5*(ExIm_p_EzRe*ExRe_mi_EzImT - ExRe_mi_EzIm*ExIm_p_EzReT); //OC01052022: Testing the standard definition: E*(x,y)*E(x',y'); previously it assumed the CSD definition E(x,y)*E*(x',y'), whereas the standard one is E*(x,y)*E(x',y') - the two are related by complex conjugation
+					//ImMI = 0.5*(ExIm_p_EzRe*ExRe_mi_EzImT - ExRe_mi_EzIm*ExIm_p_EzReT);
 					break;
 				}
 				case 4: // Circ. Right //OC08092019: corrected to be in compliance with definitions for right-hand frame (x,z,s) and with corresponding definition and calculation of Stokes params
@@ -2168,37 +2173,43 @@ int srTRadGenManip::ExtractSingleElecMutualIntensityVsXZ(srTRadExtract& RadExtra
 					double ExRe_p_EzIm = ExRe + EzIm, ExIm_mi_EzRe = ExIm - EzRe;
 					double ExRe_p_EzImT = ExReT + EzImT, ExIm_mi_EzReT = ExImT - EzReT;
 					ReMI = 0.5*(ExRe_p_EzIm*ExRe_p_EzImT + ExIm_mi_EzRe*ExIm_mi_EzReT);
-					ImMI = 0.5*(ExIm_mi_EzRe*ExRe_p_EzImT - ExRe_p_EzIm*ExIm_mi_EzReT);
+					ImMI = -0.5*(ExIm_mi_EzRe*ExRe_p_EzImT - ExRe_p_EzIm*ExIm_mi_EzReT); //OC01052022: Testing the standard definition: E*(x,y)*E(x',y'); previously it assumed the CSD definition E(x,y)*E*(x',y'), whereas the standard one is E*(x,y)*E(x',y') - the two are related by complex conjugation
+					//ImMI = 0.5*(ExIm_mi_EzRe*ExRe_p_EzImT - ExRe_p_EzIm*ExIm_mi_EzReT);
 					break;
 				}
 				case -1: // s0
 				{
-					ReMI = ExRe*ExReT + ExIm*ExImT + EzRe*EzReT + EzIm*EzImT;
-					ImMI = ExIm*ExReT - ExRe*ExImT + EzIm*EzReT - EzRe*EzImT;
+					ReMI = ExRe*ExReT + ExIm*ExImT + EzRe*EzReT + EzIm*EzImT; //NOTE: This assumes the CSD definition E(x,y)*E*(x',y'), whereas the standard one is E*(x,y)*E(x',y') - the two are related by complex conjugation
+					ImMI = -(ExIm*ExReT - ExRe*ExImT + EzIm*EzReT - EzRe*EzImT); //OC01052022: Testing the standard definition: E*(x,y)*E(x',y'); previously it assumed the CSD definition E(x,y)*E*(x',y'), whereas the standard one is E*(x,y)*E(x',y') - the two are related by complex conjugation
+					//ImMI = ExIm*ExReT - ExRe*ExImT + EzIm*EzReT - EzRe*EzImT;
 					break;
 				}
 				case -2: // s1
 				{
 					ReMI = ExRe*ExReT + ExIm*ExImT - (EzRe*EzReT + EzIm*EzImT);
-					ImMI = ExIm*ExReT - ExRe*ExImT - (EzIm*EzReT - EzRe*EzImT);
+					ImMI = -(ExIm*ExReT - ExRe*ExImT - (EzIm*EzReT - EzRe*EzImT)); //OC01052022: Testing the standard definition: E*(x,y)*E(x',y'); previously it assumed the CSD definition E(x,y)*E*(x',y'), whereas the standard one is E*(x,y)*E(x',y') - the two are related by complex conjugation
+					//ImMI = ExIm*ExReT - ExRe*ExImT - (EzIm*EzReT - EzRe*EzImT);
 					break;
 				}
 				case -3: // s2
 				{
 					ReMI = ExImT*EzIm + ExIm*EzImT + ExReT*EzRe + ExRe*EzReT;
-					ImMI = ExReT*EzIm - ExRe*EzImT - ExImT*EzRe + ExIm*EzReT;
+					ImMI = -(ExReT*EzIm - ExRe*EzImT - ExImT*EzRe + ExIm*EzReT); //OC01052022: Testing the standard definition: E*(x,y)*E(x',y'); previously it assumed the CSD definition E(x,y)*E*(x',y'), whereas the standard one is E*(x,y)*E(x',y') - the two are related by complex conjugation
+					//ImMI = ExReT*EzIm - ExRe*EzImT - ExImT*EzRe + ExIm*EzReT;
 					break;
 				}
 				case -4: // s3
 				{
 					ReMI = ExReT*EzIm + ExRe*EzImT - ExImT*EzRe - ExIm*EzReT;
-					ImMI = ExIm*EzImT - ExImT*EzIm - ExReT*EzRe + ExRe*EzReT;
+					ImMI = -(ExIm*EzImT - ExImT*EzIm - ExReT*EzRe + ExRe*EzReT); //OC01052022: Testing the standard definition: E*(x,y)*E(x',y'); previously it assumed the CSD definition E(x,y)*E*(x',y'), whereas the standard one is E*(x,y)*E(x',y') - the two are related by complex conjugation
+					//ImMI = ExIm*EzImT - ExImT*EzIm - ExReT*EzRe + ExRe*EzReT;
 					break;
 				}
 				default: // total mutual intensity, same as s0
 				{
 					ReMI = ExRe*ExReT + ExIm*ExImT + EzRe*EzReT + EzIm*EzImT;
-					ImMI = ExIm*ExReT - ExRe*ExImT + EzIm*EzReT - EzRe*EzImT;
+					ImMI = -(ExIm*ExReT - ExRe*ExImT + EzIm*EzReT - EzRe*EzImT); //OC01052022: Testing the standard definition: E*(x,y)*E(x',y'); previously it assumed the CSD definition E(x,y)*E*(x',y'), whereas the standard one is E*(x,y)*E(x',y') - the two are related by complex conjugation
+					//ImMI = ExIm*ExReT - ExRe*ExImT + EzIm*EzReT - EzRe*EzImT;
 					break;
 					//return CAN_NOT_EXTRACT_MUT_INT;
 				}
@@ -2230,6 +2241,21 @@ int srTRadGenManip::ExtractSingleElecMutualIntensityVsXZ(srTRadExtract& RadExtra
 			pEx = pExInit0;
 			pEz = pEzInit0;
 			pExT += PerX; pEzT += PerX;
+		}
+		if(iter == 0) //OC16102021
+		{//Setting to 0 symmetrical part of MI data (to avoid having garbage there)
+
+			for(long long it=itStart; it<=itEnd; it++) //OC16042021 (to enable partial update of MI/CSD)
+			{
+				float *pMI = pMI0 + (it - itStart)*(PerArg + 2) + 2; //OC29042022 (?)
+				//float *pMI = pMI0 + (it - itStart)*PerArg;
+				for(long long i=it+1; i<=itEnd; i++)
+				//for(long long i=0; i<=it; i++)
+				{
+					*(pMI++) = 0.;
+					*(pMI++) = 0.;
+				}
+			}
 		}
 	}
 	else
@@ -3510,7 +3536,8 @@ void srTRadGenManip::MutualIntSumPart(srTWaveAccessData* pwI1, srTWaveAccessData
 	long long itStart = pwI2->itStart;
 	if(itStart < 0) itStart = 0;
 	long long itFin = pwI2->itFin;
-	if(itFin < 0) itFin = nxnz;
+	if(itFin < 0) itFin = nxnz - 1; //OC04102021
+	//if(itFin < 0) itFin = nxnz;
 
 	double aux; //OC27042021
 
@@ -3697,6 +3724,7 @@ void srTRadGenManip::MutualIntFillHalfHermit(srTWaveAccessData* pwI)
 				*pMIt = -imMI; //Hermitian matrix property
 			}
 		}
+		//int aha = 1;
 	}
 	else if(pDataD != 0)
 	{
@@ -3765,18 +3793,22 @@ void srTRadGenManip::MutualIntTreatComQuadPhTerm(srTWaveAccessData* pwI, double*
 		for(long long izt=0; izt<nz; izt++)
 		{
 			double xt = xStart - xc;
-			phTermZt = -ConstRzE*zt*zt;
+			phTermZt = ConstRzE*zt*zt; //OC01052022: due to transition to correct definition of CSD: E*(x,y)*E(x',y')
+			//phTermZt = -ConstRzE*zt*zt;
 			for(long long ixt=0; ixt<nx; ixt++)
 			{
 				double z = zStart - zc;
-				phTermT = phTermZt - ConstRxE*xt*xt;
+				phTermT = phTermZt + ConstRxE*xt*xt; //OC01052022: due to transition to correct definition of CSD: E*(x,y)*E(x',y')
+				//phTermT = phTermZt - ConstRxE*xt*xt;
 				for(long long iz=0; iz<nz; iz++)
 				{
 					double x = xStart - xc;
-					phTermZ = ConstRzE*z*z;
+					phTermZ = -ConstRzE*z*z; //OC01052022: due to transition to correct definition of CSD: E*(x,y)*E(x',y')
+					//phTermZ = ConstRzE*z*z;
 					for(long long ix=0; ix<nx; ix++)
 					{
-						phTerm = phTermZ + ConstRxE*x*x + phTermT;
+						phTerm = phTermZ - ConstRxE*x*x + phTermT; //OC01052022: due to transition to correct definition of CSD: E*(x,y)*E(x',y')
+						//phTerm = phTermZ + ConstRxE*x*x + phTermT;
 						CosAndSin(phTerm, cosPh, sinPh);
 
 						reMI = *pMI;
@@ -3802,18 +3834,22 @@ void srTRadGenManip::MutualIntTreatComQuadPhTerm(srTWaveAccessData* pwI, double*
 		for(long long izt=0; izt<nz; izt++)
 		{
 			double xt = xStart - xc;
-			phTermZt = -ConstRzE*zt*zt;
+			phTermZt = ConstRzE*zt*zt; //OC01052022: due to transition to correct definition of CSD: E*(x,y)*E(x',y')
+			//phTermZt = -ConstRzE*zt*zt;
 			for(long long ixt=0; ixt<nx; ixt++)
 			{
 				double z = zStart - zc;
-				phTermT = phTermZt - ConstRxE*xt*xt;
+				phTermT = phTermZt + ConstRxE*xt*xt; //OC01052022: due to transition to correct definition of CSD: E*(x,y)*E(x',y')
+				//phTermT = phTermZt - ConstRxE*xt*xt;
 				for(long long iz=0; iz<nz; iz++)
 				{
 					double x = xStart - xc;
-					phTermZ = ConstRzE*z*z;
+					phTermZ = -ConstRzE*z*z; //OC01052022: due to transition to correct definition of CSD: E*(x,y)*E(x',y')
+					//phTermZ = ConstRzE*z*z;
 					for(long long ix=0; ix<nx; ix++)
 					{
-						phTerm = phTermZ + ConstRxE*x*x + phTermT;
+						phTerm = phTermZ - ConstRxE*x*x + phTermT; //OC01052022: due to transition to correct definition of CSD: E*(x,y)*E(x',y')
+						//phTerm = phTermZ + ConstRxE*x*x + phTermT;
 						cosPh = cos(phTerm);
 						sinPh = sin(phTerm);
 						//CosAndSin(phTerm, cosPh, sinPh);

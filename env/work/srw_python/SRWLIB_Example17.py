@@ -16,7 +16,7 @@ import sys
 import time
 
 print('SRWLIB Python Example # 17:')
-print('Simulating Coherent X-ray (Gaussian beam) Scattering on Experimental Samples')
+print('Simulating Coherent X-ray (Gaussian beam) Scattering on Experimental Sample modelled by 2D (nano-)objects')
 
 #**********************Input Parameters and Structures
 #***********Folder and Data File Names

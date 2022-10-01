@@ -13,8 +13,9 @@ import copy
 import os
 import time
 
-print('SRWLIB Python Example # 18 (Randomly distributed spheres):')
-print('Simulating Coherent X-ray (Gaussian beam) Scattering on Modelled 3d Samples')
+print('SRWLIB Python Example # 18:')
+print('Simulating Coherent X-ray (Gaussian beam) Scattering on randomly-distibuted 3D spheres modeling an experimental sample (e.g. a colloidal solution with nano-objects).')
+print('The propagation of X-ray beam through the sample is simulated in several steps (allowing to take into account multiple scattering).')
 
 #***********Folder and Data File Names
 strDataFolderName = 'data_example_18' #Data sub-folder name

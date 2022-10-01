@@ -3313,7 +3313,7 @@ void srTSRWRadStructAccessData::MakeWfrEdgeCorrection(float* pDataEx, float* pDa
 
 int srTSRWRadStructAccessData::ShiftWfrByInterpolVsXZ(double shiftX, double shiftZ)
 {//Shift the wavefront E-field data by interpolation, in whatever representation (coord. of ang.), keeping same mesh
- //Note: it also modifies xc, zc (requires for best treatment of quadratic phase term) !
+ //Note: it also modifies xc, zc (requires for best treatment of quadratic phase term) ! - not really?
 
 	//long nTot = (ne << 1)*nx*nz;
 	long long nTot = (ne << 1)*((long long)nx)*((long long)nz);
@@ -4343,12 +4343,20 @@ void srTSRWRadStructAccessData::Resize(SRWLRadMesh& mesh, double* arPar) //OC260
 		{
 			pNewRadX = new float[TotAmOfNewData];
 			if(pNewRadX == 0) throw MEMORY_ALLOCATION_FAILURE;
+
+			float *tNewRadX = pNewRadX; //OC02102021 (added)
+			for(long long i=0; i<TotAmOfNewData; i++) *(tNewRadX++) = 0.;
+
 			pOldRadX = pBaseRadX;
 		}
 		if(EzIsReq)
 		{
 			pNewRadZ = new float[TotAmOfNewData];
 			if(pNewRadZ == 0) throw MEMORY_ALLOCATION_FAILURE;
+
+			float *tNewRadZ = pNewRadZ; //OC02102021 (added)
+			for(long long i=0; i<TotAmOfNewData; i++) *(tNewRadZ++) = 0.;
+
 			pOldRadZ = pBaseRadZ;
 		}
 		ModifNeNxNzIsReq = true;
@@ -4357,21 +4365,69 @@ void srTSRWRadStructAccessData::Resize(SRWLRadMesh& mesh, double* arPar) //OC260
 	//{
 	//}
 
-	SRWLRadMesh oldMesh;
-	oldMesh.eStart = eStart;
-	oldMesh.eFin = eStart + eStep*(neOld - 1);
-	oldMesh.ne = neOld;
-	oldMesh.xStart = xStart;
-	oldMesh.xFin = xStart + xStep*(nxOld - 1);
-	oldMesh.nx = nxOld;
-	oldMesh.yStart = zStart;
-	oldMesh.yFin = zStart + zStep*(nzOld - 1);
-	oldMesh.ny = nzOld;
-	oldMesh.zStart = yStart;
+	//OC17102021: added treatment of OldNewMeshesDontIntersect case
+	bool OldNewMeshesDontIntersect = false;
+	double eFin = eStart + eStep*(neOld - 1);
+	if((eStart > 0.) && (eFin > 0.) && (mesh.eStart > 0.) && (mesh.eFin > 0.)) //OC17102021: added since input with mesh.eStart = 0 occured
+	{
+		if((mesh.eStart < eStart) && (mesh.eFin < eStart) && (mesh.eStart < eFin) && (mesh.eFin < eFin)) OldNewMeshesDontIntersect = true;
+		if(!OldNewMeshesDontIntersect)
+		{
+			if((mesh.eStart > eStart) && (mesh.eFin > eStart) && (mesh.eStart > eFin) && (mesh.eFin > eFin)) OldNewMeshesDontIntersect = true;
+		}
+	}
+	double xFin = xStart + xStep*(nxOld - 1);
+	if(!OldNewMeshesDontIntersect)
+	{
+		if((mesh.xStart < xStart) && (mesh.xFin < xStart) && (mesh.xStart < xFin) && (mesh.xFin < xFin)) OldNewMeshesDontIntersect = true;
+	}
+	if(!OldNewMeshesDontIntersect)
+	{
+		if((mesh.xStart > xStart) && (mesh.xFin > xStart) && (mesh.xStart > xFin) && (mesh.xFin > xFin)) OldNewMeshesDontIntersect = true;
+	}
+	double zFin = zStart + zStep*(nzOld - 1);
+	if(!OldNewMeshesDontIntersect)
+	{
+		if((mesh.yStart < zStart) && (mesh.yFin < zStart) && (mesh.yStart < zFin) && (mesh.yFin < zFin)) OldNewMeshesDontIntersect = true;
+	}
+	if(!OldNewMeshesDontIntersect)
+	{
+		if((mesh.yStart > zStart) && (mesh.yFin > zStart) && (mesh.yStart > zFin) && (mesh.yFin > zFin)) OldNewMeshesDontIntersect = true;
+	}
+	if(OldNewMeshesDontIntersect)
+	{
+		float *tNewRadX = pNewRadX, *tNewRadZ = pNewRadZ;
+		if(ExIsReq && EzIsReq)
+		{
+			for(long long i=0; i<TotAmOfNewData; i++) { *(tNewRadX++) = 0.; *(tNewRadZ++) = 0.;}
+		}
+		else if(ExIsReq)
+		{
+			for(long long i=0; i<TotAmOfNewData; i++) *(tNewRadX++) = 0.;
+		}
+		else
+		{
+			for(long long i=0; i<TotAmOfNewData; i++) *(tNewRadZ++) = 0.;
+		}
+	}
+	else
+	{
+		SRWLRadMesh oldMesh;
+		oldMesh.eStart = eStart;
+		oldMesh.eFin = eStart + eStep*(neOld - 1);
+		oldMesh.ne = neOld;
+		oldMesh.xStart = xStart;
+		oldMesh.xFin = xStart + xStep*(nxOld - 1);
+		oldMesh.nx = nxOld;
+		oldMesh.yStart = zStart;
+		oldMesh.yFin = zStart + zStep*(nzOld - 1);
+		oldMesh.ny = nzOld;
+		oldMesh.zStart = yStart;
 
-	//perform interpolation of pOldRadX, pOldRadZ and place results to pNewRadX, pNewRadZ
-	if(resizeIsOnlyVsXZ) ResizeCoreXZ(oldMesh, pOldRadX, pOldRadZ, mesh, pNewRadX, pNewRadZ, arPar);
-	else if(resizeIsOnlyVsE) ResizeCoreE(oldMesh, pOldRadX, pOldRadZ, mesh, pNewRadX, pNewRadZ, arPar);
+		//perform interpolation of pOldRadX, pOldRadZ and place results to pNewRadX, pNewRadZ
+		if(resizeIsOnlyVsXZ) ResizeCoreXZ(oldMesh, pOldRadX, pOldRadZ, mesh, pNewRadX, pNewRadZ, arPar);
+		else if(resizeIsOnlyVsE) ResizeCoreE(oldMesh, pOldRadX, pOldRadZ, mesh, pNewRadX, pNewRadZ, arPar);
+	}
 	
 	if(ModifNeNxNzIsReq)
 	{
@@ -4532,8 +4588,33 @@ void srTSRWRadStructAccessData::ResizeCoreXZ(SRWLRadMesh& oldMesh, float* pOldRa
 		if(izFin >= newMesh.ny) izFin = nzNew_mi_1;
 	}
 
+	//OC17102021
+	bool OldNewMeshesDontIntersect = false;
+	if((ixStart == 0) && (ixFin == 0))
+	{
+		if((newMesh.xStart < oldMesh.xStart) && (newMesh.xFin < oldMesh.xStart) && (newMesh.xStart < oldMesh.xFin) && (newMesh.xFin < oldMesh.xFin)) OldNewMeshesDontIntersect = true;
+		if(!OldNewMeshesDontIntersect)
+		{
+			if((newMesh.xStart > oldMesh.xStart) && (newMesh.xFin > oldMesh.xStart) && (newMesh.xStart > oldMesh.xFin) && (newMesh.xFin > oldMesh.xFin)) OldNewMeshesDontIntersect = true;
+		}
+	}
+	if((izStart == 0) && (izFin == 0))
+	{
+		if(!OldNewMeshesDontIntersect)
+		{
+			if((newMesh.yStart < oldMesh.yStart) && (newMesh.yFin < oldMesh.yStart) && (newMesh.yStart < oldMesh.yFin) && (newMesh.yFin < oldMesh.yFin)) OldNewMeshesDontIntersect = true;
+		}
+		if(!OldNewMeshesDontIntersect)
+		{
+			if((newMesh.yStart > oldMesh.yStart) && (newMesh.yFin > oldMesh.yStart) && (newMesh.yStart > oldMesh.yFin) && (newMesh.yFin > oldMesh.yFin)) OldNewMeshesDontIntersect = true;
+		}
+		//if((newMesh.xFin < oldMesh.xStart) || (newMesh.xStart > oldMesh.xFin) || 
+		//   (newMesh.yFin < oldMesh.yStart) || (newMesh.yStart > oldMesh.yFin)) OldNewMeshesDontIntersect = true;
+	}
+
 	//if((ieStart > 0) || (ieFin < neNew_mi_1) || (ixStart > 0) || (ixFin < nxNew_mi_1) || (izStart > 0) || (izFin < nzNew_mi_1))
-	if((ixStart > 0) || (ixFin < nxNew_mi_1) || (izStart > 0) || (izFin < nzNew_mi_1))
+	//if((ixStart > 0) || (ixFin < nxNew_mi_1) || (izStart > 0) || (izFin < nzNew_mi_1))
+	if(OldNewMeshesDontIntersect || (ixStart > 0) || (ixFin < nxNew_mi_1) || (izStart > 0) || (izFin < nzNew_mi_1)) //OC17102021
 	{
 		//long long TotAmOfNewData = ((long long)neNew)*((long long)nxNew)*((long long)nzNew) << 1;
 		long long TotAmOfNewData = ((long long)newMesh.ne)*((long long)nxNew)*((long long)nzNew) << 1;
@@ -4548,6 +4629,7 @@ void srTSRWRadStructAccessData::ResizeCoreXZ(SRWLRadMesh& oldMesh, float* pOldRa
 			for(long long i=0; i<TotAmOfNewData; i++) *(tNewRadZ++) = 0.;
 		}
 	}
+	if(OldNewMeshesDontIntersect) return; //OC17102021
 
 	bool WaveFrontTermWasTreated = 0;
 	bool allowTreatQuadPhaseTerm = true;
@@ -4585,7 +4667,7 @@ void srTSRWRadStructAccessData::ResizeCoreXZ(SRWLRadMesh& oldMesh, float* pOldRa
 	long long PerZ_Old = PerX*oldMesh.nx;
 
 	bool UseLowOrderInterp_PolCompX, UseLowOrderInterp_PolCompZ;
-	bool FieldShouldBeZeroedDueToX, FieldShouldBeZeroedDueToZ, FieldShouldBeZeroed;
+	bool FieldShouldBeZeroedDueToX, FieldShouldBeZeroedDueToZ; //, FieldShouldBeZeroed;
 
 	float *pEX0_New = 0, *pEZ0_New = 0;
 	if(TreatPolCompX) pEX0_New = pNewRadX;
@@ -4616,10 +4698,11 @@ void srTSRWRadStructAccessData::ResizeCoreXZ(SRWLRadMesh& oldMesh, float* pOldRa
 			zAbs = zStartNew + iz*zStepNew;
 
 			FieldShouldBeZeroedDueToZ = false;
-			if(WfrEdgeCorrShouldBeDone)
-			{
-				if((zAbs < zWfrMin - zTol) || (zAbs > zWfrMax + zTol)) FieldShouldBeZeroedDueToZ = true;
-			}
+			//OC17102021: removed if(WfrEdgeCorrShouldBeDone) because interpolation shoudl not be performed outside of the old function definition range
+			//if(WfrEdgeCorrShouldBeDone)
+			//{
+			if((zAbs < zWfrMin - zTol) || (zAbs > zWfrMax + zTol)) FieldShouldBeZeroedDueToZ = true;
+			//}
 
 			izcOld = (long)((zAbs - zStartOld)*zStepInvOld + 1.E-06);
 			zRel = zAbs - (zStartOld + izcOld*zStepOld);
@@ -4649,11 +4732,25 @@ void srTSRWRadStructAccessData::ResizeCoreXZ(SRWLRadMesh& oldMesh, float* pOldRa
 				xAbs = xStartNew + ix*xStepNew;
 
 				FieldShouldBeZeroedDueToX = false;
-				if(WfrEdgeCorrShouldBeDone)
+				//OC17102021: removed if(WfrEdgeCorrShouldBeDone) because interpolation shoudl not be performed outside of the old function definition range
+				//if(WfrEdgeCorrShouldBeDone)
+				//{
+				if((xAbs < xWfrMin - xTol) || (xAbs > xWfrMax + xTol)) FieldShouldBeZeroedDueToX = true;
+				//}
+				//FieldShouldBeZeroed = (FieldShouldBeZeroedDueToX || FieldShouldBeZeroedDueToZ);
+
+				if(FieldShouldBeZeroedDueToX || FieldShouldBeZeroedDueToZ) //OC17102021
 				{
-					if((xAbs < xWfrMin - xTol) || (xAbs > xWfrMax + xTol)) FieldShouldBeZeroedDueToX = true;
+					if(TreatPolCompX)
+					{
+						*pEX_New = 0.; *(pEX_New+1) = 0.;
+					}
+					if(TreatPolCompZ)
+					{
+						*pEZ_New = 0.; *(pEZ_New+1) = 0.;
+					}
+					continue;
 				}
-				FieldShouldBeZeroed = (FieldShouldBeZeroedDueToX || FieldShouldBeZeroedDueToZ);
 
 				ixcOld = (long)((xAbs - xStartOld)*xStepInvOld + 1.E-06);
 				xRel = xAbs - (xStartOld + ixcOld*xStepOld);
@@ -4723,7 +4820,7 @@ void srTSRWRadStructAccessData::ResizeCoreXZ(SRWLRadMesh& oldMesh, float* pOldRa
 					}
 					(*BufFI) *= AuxFI->fNorm;
 					srTGenOptElem::ImproveReAndIm(BufF, BufFI);
-					if(FieldShouldBeZeroed) { *BufF = 0.; *(BufF+1) = 0.; }
+					//if(FieldShouldBeZeroed) { *BufF = 0.; *(BufF+1) = 0.; } //OC17102021 (commented-out, since this case is treated before these interpolations)
 					*pEX_New = *BufF;
 					*(pEX_New+1) = *(BufF+1);
 				}
@@ -4741,7 +4838,7 @@ void srTSRWRadStructAccessData::ResizeCoreXZ(SRWLRadMesh& oldMesh, float* pOldRa
 					}
 					(*(BufFI+1)) *= (AuxFI+1)->fNorm;
 					srTGenOptElem::ImproveReAndIm(BufF+2, BufFI+1);
-					if(FieldShouldBeZeroed) { *(BufF+2) = 0.; *(BufF+3) = 0.; }
+					//if(FieldShouldBeZeroed) { *(BufF+2) = 0.; *(BufF+3) = 0.; } //OC17102021 (commented-out, since this case is treated before these interpolations)
 					*pEZ_New = *(BufF+2);
 					*(pEZ_New+1) = *(BufF+3);
 				}

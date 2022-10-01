@@ -1304,31 +1304,40 @@ void ParseSructSRWLRadMesh(SRWLRadMesh* pRadMesh, PyObject* oRadMesh, vector<Py_
 	}
 
 	pRadMesh->itStart = -1; //OC04032021
-	o_tmp = PyObject_GetAttrString(oRadMesh, "itStart");
-	if(o_tmp != 0)
+	if(PyObject_HasAttrString(oRadMesh, "itStart")) //OC03102021
 	{
-		if(!PyNumber_Check(o_tmp)) throw strEr_BadRadMesh;
-		pRadMesh->itStart = PyLong_AsLong(o_tmp);
-		Py_DECREF(o_tmp);
+		o_tmp = PyObject_GetAttrString(oRadMesh, "itStart");
+		if(o_tmp != 0)
+		{
+			if(!PyNumber_Check(o_tmp)) throw strEr_BadRadMesh;
+			pRadMesh->itStart = PyLong_AsLong(o_tmp);
+			Py_DECREF(o_tmp);
+		}
 	}
 
 	pRadMesh->itFin = -1; //OC04032021
-	o_tmp = PyObject_GetAttrString(oRadMesh, "itFin");
-	if(o_tmp != 0)
+	if(PyObject_HasAttrString(oRadMesh, "itFin")) //OC03102021
 	{
-		if(!PyNumber_Check(o_tmp)) throw strEr_BadRadMesh;
-		pRadMesh->itFin = PyLong_AsLong(o_tmp);
-		Py_DECREF(o_tmp);
+		o_tmp = PyObject_GetAttrString(oRadMesh, "itFin");
+		if(o_tmp != 0)
+		{
+			if(!PyNumber_Check(o_tmp)) throw strEr_BadRadMesh;
+			pRadMesh->itFin = PyLong_AsLong(o_tmp);
+			Py_DECREF(o_tmp);
+		}
 	}
 
 	pRadMesh->type = 0; //OC04032021
-	o_tmp = PyObject_GetAttrString(oRadMesh, "type");
-	if(o_tmp != 0)
+	if(PyObject_HasAttrString(oRadMesh, "type")) //OC03102021
 	{
-		if(!PyNumber_Check(o_tmp)) throw strEr_BadRadMesh;
-		char nType = (char)PyLong_AsLong(o_tmp);
-		if(nType == 2) pRadMesh->type = 'm';
-		Py_DECREF(o_tmp);
+		o_tmp = PyObject_GetAttrString(oRadMesh, "type");
+		if(o_tmp != 0)
+		{
+			if(!PyNumber_Check(o_tmp)) throw strEr_BadRadMesh;
+			char nType = (char)PyLong_AsLong(o_tmp);
+			if(nType == 2) pRadMesh->type = 'm';
+			Py_DECREF(o_tmp);
+		}
 	}
 	//else //OC20042021
 	//{
@@ -4767,7 +4776,16 @@ static PyObject* srwlpy_ResizeElecFieldMesh(PyObject *self, PyObject *args)
 		if((oWfr == 0) || (oMesh == 0) || (oPar == 0)) throw strEr_BadArg_ResizeElecFieldMesh;
 
 		ParseSructSRWLWfr(&wfr, oWfr, &vBuf, gmWfrPyPtr);
+
+		//OCTEST 03102021
+		//PyObject *oFunc = PyObject_GetAttrString(oWfr, "allocate");
+		//END OCTEST
+
 		ParseSructSRWLRadMesh(&newMesh, oMesh);
+
+		//OCTEST 03102021
+		//oFunc = PyObject_GetAttrString(oWfr, "allocate");
+		//END OCTEST
 
 		double arPar[] = {0.,1.}; int nPar = 2; double *pPar = arPar; //[0] with or without FFT, [1]==1 means treatment of quadratic term is allowed
 		CopyPyListElemsToNumArray(oPar, 'd', pPar, nPar);
@@ -5318,7 +5336,15 @@ static PyObject* srwlpy_UtiIntProc(PyObject *self, PyObject *args)
 		
 		char typeInt1=0;
 		long long nTot = ((long long)mesh1.ne)*((long long)mesh1.nx)*((long long)mesh1.ny); //OC05022021
-		if((typeProc == 4) || (typeProc == 5) || ((typeProc == 1) && ((mesh2.itStart >= 0) || (mesh2.itFin >= 0)))) nTot *= (nTot << 1); //OC22062021
+
+		//OC04102021
+		long long mesh2_itStart = mesh2.itStart;
+		if(mesh2_itStart < 0) mesh2_itStart = 0;
+		long long mesh2_itFin = mesh2.itFin;
+		if(mesh2_itFin < 0) mesh2_itFin = nTot - 1;
+
+		if((typeProc == 4) || (typeProc == 5) || ((typeProc == 1) && ((mesh2_itStart >= 0) || (mesh2_itFin >= 0)))) nTot *= (nTot << 1); //OC04102021
+		//if((typeProc == 4) || (typeProc == 5) || ((typeProc == 1) && ((mesh2.itStart >= 0) || (mesh2.itFin >= 0)))) nTot *= (nTot << 1); //OC22062021
 		else if(typeProc == 6) //OC26062021
 		{
 			int nModes = (int)arPar[1];
@@ -5339,7 +5365,8 @@ static PyObject* srwlpy_UtiIntProc(PyObject *self, PyObject *args)
 			if(!(pcInt2 = GetPyArrayBuf(oInt2, &vBuf, &sizeBuf))) throw strEr_BadArg_UtiIntProc;
 
 			long long nTot2 = ((long long)mesh2.ne)*((long long)mesh2.nx)*((long long)mesh2.ny); //OC20042021
-			if((typeProc == 4) || ((typeProc == 1) && ((mesh2.itStart >= 0) || (mesh2.itFin >= 0)))) nTot2 *= ((mesh2.itFin - mesh2.itStart + 1) << 1); //Assuming processing of 4D (/6D) Mutual Intensity (complex)
+			if((typeProc == 4) || ((typeProc == 1) && ((mesh2_itStart >= 0) || (mesh2_itFin >= 0)))) nTot2 *= ((mesh2_itFin - mesh2_itStart + 1) << 1); //OC04102021
+			//if((typeProc == 4) || ((typeProc == 1) && ((mesh2.itStart >= 0) || (mesh2.itFin >= 0)))) nTot2 *= ((mesh2.itFin - mesh2.itStart + 1) << 1); //Assuming processing of 4D (/6D) Mutual Intensity (complex)
 
 			intItemSize = (Py_ssize_t)round((sizeBuf/nTot2));
 			//intItemSize = (Py_ssize_t)round((sizeBuf/(mesh2.ne*mesh2.nx*mesh2.ny)));

@@ -418,7 +418,7 @@ def integ_ar_2d(_ar, _ar_align, _x_grid, _y_grid, _x_lim=None, _y_lim=None):
     """
     Integrates 2d array (or list) within given limits
     :param _ar: input array to integrate
-    :param _ar_align: input array alignment (1- _ar is C-type alignment, 2- _ar is 2d array)
+    :param _ar_align: input array alignment (1- _ar is 1d array with C-type data alignment, 2- _ar is 2d array)
     :param _x_grid: list/array specifying grid vs one dimensions (_x_grid[0] is start, _x_grid[1] is end, _x_grid[2] is number of points)
     :param _y_grid: list/array specifying grid vs another dimensions (_y_grid[0] is start, _y_grid[1] is end, _y_grid[2] is number of points)
     :param _x_lim: list/array specifying inegration limits vs one dimensions (_x_lim[0] is start, _x_lim[1] is end)
@@ -455,7 +455,7 @@ def integ_ar_2d(_ar, _ar_align, _x_grid, _y_grid, _x_lim=None, _y_lim=None):
         y_max = _y_lim[1]
         if(len(_y_lim) > 2): nyInteg = int(round(_y_lim[2]))
 
-    if((nxInteg > 2) and (nyInteg > 2) and (_ar_align == 1)): #perform inregration using 2D interpolation
+    if((nxInteg > 2) and (nyInteg > 2) and (_ar_align == 1)): #perform integration using 2D interpolation
         
         arAuxIntegWave2Dx = array('d', [0]*nxInteg)
         if(x_min < xStart): x_min = xStart
@@ -482,13 +482,13 @@ def integ_ar_2d(_ar, _ar_align, _x_grid, _y_grid, _x_lim=None, _y_lim=None):
         resInteg = arAux[nyInteg - 1]
         return resInteg
 
-    ixStart = int((x_min - xStart)/xStep + 0.e-12)
+    ixStart = int((x_min - xStart)/xStep + 1.e-12) #0.e-12)
     if(ixStart < 0): ixStart = 0
     else:
         if(ixStart >= nx): ixStart = nx - 1
     #print('ixStart=', ixStart)
     
-    iyStart = int((y_min - yStart)/yStep + 0.e-12)
+    iyStart = int((y_min - yStart)/yStep + 1.e-12) #0.e-12)
     if(iyStart < 0): iyStart = 0
     else:
         if(iyStart >= ny): iyStart = ny - 1

@@ -458,6 +458,20 @@ int srTDriftSpace::PropagateRadiationSimple_PropToWaist(srTSRWRadStructAccessDat
 	if(result = TraverseRadZXE(pRadAccessData, &BufVars)) return result; //OC30082019
 	//if(result = TraverseRadZXE(pRadAccessData)) return result;
 
+	//OC19032022
+	if(LambdaM_Length < 0)
+	{
+		pRadAccessData->MirrorFieldData(-1, -1); 
+
+		double xEnd = pRadAccessData->xStart + (pRadAccessData->xStep)*(pRadAccessData->nx - 1);
+		pRadAccessData->xStart = xEnd;
+		pRadAccessData->xStep *= -1.;
+
+		double zEnd = pRadAccessData->zStart + (pRadAccessData->zStep)*(pRadAccessData->nz - 1);
+		pRadAccessData->zStart = zEnd;
+		pRadAccessData->zStep *= -1.;
+	}
+
 	pRadAccessData->UnderSamplingX = 1; // Assuming successful propagation to waist
 	pRadAccessData->UnderSamplingZ = 1;
 

@@ -595,8 +595,8 @@ class SRWLBeamline(object):
         if((nIndReq <= 0) or (nIndReq > nRows)):
             raise Exception('Inconsistent magnetic field data summary file')
 
-        arResMagFld3D = [];
-        arResGaps = []; arResPhases = [];
+        arResMagFld3D = []
+        arResGaps = []; arResPhases = []
         arResXc = []; arResYc = []; arResZc = []
         arResCoefBx = []; arResCoefBy = []
         for j in range(nIndReq):
@@ -767,7 +767,8 @@ class SRWLBeamline(object):
         if(_op is None): #OC16122018
             if(_v is not None):
                 if(hasattr(_v, 'op_func')): #OC28032020
-                    if(_v.op_func is None):
+                    if(_v.op_func is not None): #OC28092022
+                    #if(_v.op_func is None):
                         _op = _v.op_func(_v) #assuming _v.op_func is reference to set_optics function of virtual beamline script
                 #if(_v.op_func is None):
                 #    raise Exception('Optics container structure (SRWLOptC) or function for setting it up is not defined')
@@ -2012,6 +2013,29 @@ class SRWLBeamline(object):
     def cost_func(self, _x, *_aux):
         """Standard Cost Function used for optimization of optical elements and possibly sources"""
 
+        #OC28092022
+        procIsMaster = True
+        sizeMPI = 0
+        rank = 0
+        if(self.comMPI is not None):
+            rank = self.comMPI.Get_rank()
+            if(rank > 0): procIsMaster = False
+            sizeMPI = self.comMPI.Get_size()
+
+        if(sizeMPI > 1): #Master has to send / broadcast _x to all workers to make sure that they will be doing calculations for the same source and optics params
+            self.comMPI.Barrier() #synchronizing all processes in case if MPI is used (e.g. for partially-coherent calculations)
+            arX = array('d', _x)
+            if procIsMaster:
+                for iRank in range(sizeMPI - 1):
+                    #dst = iRank + 1 + rankMaster
+                    dst = iRank + 1
+                    self.comMPI.Send([arX, self.MPI.DOUBLE], dest=dst)
+
+                #self.comMPI.Bcast([arX, self.MPI.DOUBLE], root=self.MPI.ROOT)
+            else:
+                self.comMPI.Recv([arX, self.MPI.DOUBLE], source=self.MPI.ANY_SOURCE)
+                for i in range(len(arX)): _x[i] = arX[i]
+
         x_lim = _aux[0]
         #print(x_lim)
         
@@ -2041,7 +2065,19 @@ class SRWLBeamline(object):
             #print(curNameVar, '= ', curVar)
             setattr(v, nmVars[i], _x[i]) #setting instant values of optimization variables
 
+        #DEBUG
+        #print('     rank=', rank, 'starting calc_all()')
+        #sys.stdout.flush()
+        #END DEBUG
+
         self.calc_all(v) #run forward-simulation
+
+        infIsReq = v.om_pr or v.om_fl #OC28092022
+        s2pr = '  ' #OC28092022
+        frm = '{:04.6g}' #OC28092022
+        def critInf(_parDescr, _parName, _subCost): #OC28092022
+            return (' '+_parDescr+'='+frm).format(_parName) + (' (sub-cost:'+frm+')').format(_subCost)
+
         cost = 0
         
         #Calculate cost based of weights, target and nominal values of radiation characteristics
@@ -2050,13 +2086,13 @@ class SRWLBeamline(object):
             #To uncomment when / if MPI will be used for fully-coherent (e.g. time-dependent) calculations:
             #if(self.comMPI is not None): self.comMPI.Barrier() #synchronizing all processes in case if MPI is used (e.g. for partially-coherent calculations)
 
-            s2pr = '  '
-            frm = '{:04.6g}'
-            def critInf(_parDescr, _parName, _subCost):
-                return (' '+_parDescr+'='+frm).format(_parName) + (' (sub-cost:'+frm+')').format(_subCost)
+            #s2pr = '  ' #OC28092022 (moved up)
+            #frm = '{:04.6g}'
+            #def critInf(_parDescr, _parName, _subCost):
+            #    return (' '+_parDescr+'='+frm).format(_parName) + (' (sub-cost:'+frm+')').format(_subCost)
                 
             wfr = v.w_res            
-            infIsReq = v.om_pr or v.om_fl
+            #infIsReq = v.om_pr or v.om_fl #OC28092022 (moved up)
 
             if((cw['xFWHM'] > 0) or (cw['yFWHM'] > 0) or (cw['iM'] > 0) or (cw['xFWFM'] > 0) or (cw['yFWFM'] > 0)): #horizontal, vertical sizes, and peak intensity
                 
@@ -2358,10 +2394,13 @@ class SRWLBeamline(object):
 
             #if(cw['iD'] > 0): #arbitrary intensity distribution, to implement!
 
-        if(v.om_pr or v.om_pr):
-            statStr = self.uti_math_opt.status_str(v.om_pn, _x, cost, frm, v.om_res)
-            if(v.om_pr): print(statStr)
-            if(v.om_fl): self.uti_math_opt.log_update(v.om_fnl, statStr)
+        if procIsMaster:
+            if(v.om_pr or v.om_fl):
+                statStr = self.uti_math_opt.status_str(v.om_pn, _x, cost, frm, v.om_res)
+                if(v.om_pr): 
+                    print(statStr)
+                    sys.stdout.flush()
+                if(v.om_fl): self.uti_math_opt.log_update(v.om_fnl, statStr)
             
         v.om_res = self.uti_math_opt.status_update(v.om_res, _x, cost)
         return cost
@@ -2408,6 +2447,7 @@ class SRWLBeamline(object):
 
             try: #OC23052020
                 from mpi4py import MPI
+                self.MPI = MPI #OC28092022
                 self.comMPI = MPI.COMM_WORLD
             except:
                 self.comMPI = None
@@ -2423,7 +2463,9 @@ class SRWLBeamline(object):
                 ik += 1
             #print(_v.om_cw)
 
-            if(_v.om_pr): print('Optimization started ...')
+            if(_v.om_pr): 
+                print('Optimization started ...')
+                sys.stdout.flush()
 
             if(_v.om_fl): _v.om_fnl = self.uti_math_opt.log_init('__srwl_logs__')
 
@@ -2448,9 +2490,9 @@ class SRWLBeamline(object):
             #_v.rs_tp == 'c' means combined SR source that may include several magnetic fields
             
             if((_v.rs_type != 'u') and (_v.rs_type != 'c')): #not idealized undulator / multi-pole wiggler (and e-beam)
-                if hasattr(_v, 'und_b'): _v.und_b = 0;
-                if hasattr(_v, 'und_by'): _v.und_by = 0; 
-                if hasattr(_v, 'und_bx'): _v.und_bx = 0;
+                if hasattr(_v, 'und_b'): _v.und_b = 0
+                if hasattr(_v, 'und_by'): _v.und_by = 0
+                if hasattr(_v, 'und_bx'): _v.und_bx = 0
 
             if((_v.rs_type != 't') and (_v.rs_type != 'c')): #not ID with tabulated magnetic field, including dependence on gap / phase (and e-beam)
                 if hasattr(_v, 'und_g'): del _v.und_g
@@ -2960,6 +3002,9 @@ class SRWLBeamline(object):
                 needSetOptics = False #OC23032020
                 if not hasattr(self, 'optics'): needSetOptics = True
                 elif self.optics is None: needSetOptics = True
+                elif hasattr(_v, 'op_func'): #OC28092022 (to make sure that Optics is updated when optimization is running)
+                    if(_v.op_func is not None): needSetOptics = True 
+
                 if needSetOptics: self.set_optics(_op, _v)
                 
             ef = _v.w_e
@@ -2986,7 +3031,7 @@ class SRWLBeamline(object):
                 wfrWasNotLoaded = True
                 if(len(_v.ws_fnei) > 0):
                     print('Loading initial wavefront data from file ... ', end='')
-                    t0 = time.time();
+                    t0 = time.time()
                     fnWfr = os.path.join(_v.fdir, _v.ws_fnei)
                     in_s = open(fnWfr, 'rb')
                     _v.w_res = pickle.load(in_s)
@@ -3100,7 +3145,7 @@ class SRWLBeamline(object):
                     if((len(_v.ws_fnep) > 0) and (_v.w_res is not None)): #OC05042018
                         #Dumping propagated wavefront
                         print('Saving propagated wavefront data to a file ... ', end='')
-                        t0 = time.time();
+                        t0 = time.time()
                         fnWfr = os.path.join(_v.fdir, _v.ws_fnep)
                         out_s = open(fnWfr, 'wb')
                         pickle.dump(_v.w_res, out_s)
@@ -3116,16 +3161,52 @@ class SRWLBeamline(object):
                 #print('_v.wm_fbk=', _v.wm_fbk)
 
                 wmCalcReq = True
-                if((_v.wm_ch == 7) and (_v.wm_fnmi is not None)): #OC02072021 (calculation of CMD based on CSD stored in an input file)
+                if(((_v.wm_ch == 7) or (_v.wm_ch == 71)) and (_v.wm_fnmi is not None)): #OC11102021 (calculation of CMD, or averaging CSD, based on (partial) CSD stored in an input file(s))
+                #if((_v.wm_ch == 7) and (_v.wm_fnmi is not None)): #OC02072021 (calculation of CMD based on CSD stored in an input file)
                     if(len(_v.wm_fnmi) > 0):
-                        fpCSD = os.path.join(_v.fdir, _v.wm_fnmi)
-                        data, mesh, dattr, wfr0 = srwl_uti_read_intens_hdf5(fpCSD)
-                        CSD = SRWLStokes(_arS=data, _typeStokes='f', _mutual=1, _n_comp=1) #OC02072021: to cover different polarizations / Stokes components in the future
-                        CSD.mesh = mesh
-                        cohModes, eigVals = srwl_wfr_cmd(CSD, _n_modes=_v.wm_ncm, _awfr=wfr0, _alg=_v.wm_acm)
 
-                        fp_cm = os.path.join(_v.fdir, srwl_wfr_fn(_v.wm_fni, _type=7, _form='hdf5'))
-                        srwl_uti_save_wfr_cm_hdf5(cohModes, None, _awfr=wfr0, _file_path=fp_cm)
+                        fpCSD = os.path.join(_v.fdir, _v.wm_fnmi)
+
+                        if(_v.wm_nmm > 1): #OC10102021 (CSD averaging is required)
+
+                            fi_st = 0
+                            fi_en = _v.wm_nmm - 1
+                            if(_v.wm_fmis >= 0): 
+                                fi_st = _v.wm_fmis
+                                fi_en += fi_st
+
+                            fpCore = fpCSD
+                            fpExt = ''
+                            iDot = fpCSD.rfind('.')
+                            lenFP = len(fpCSD)
+                            if((iDot >= 0) and (iDot >= lenFP - 5)):
+                                fpCore = fpCSD[0:iDot]
+                                fpExt = fpCSD[iDot:lenFP]
+
+                            sTestMI = ''
+                            lenCore = len(fpCore)
+                            if(lenCore > 3):
+                                sTestMI = fpCSD[lenCore-3:lenCore]
+                                if(sTestMI == '_mi'): fpCore = fpCSD[0:lenCore-3]
+
+                            fin_fpCore = None #OC11102021: processing the case _v.wm_ch == 71, when CSD just has to be averaged and saved to a new file
+                            if(_v.wm_ch == 71): fin_fpCore = os.path.join(_v.fdir, _v.wm_fni) 
+
+                            CSD, wfr0 = srwl_wfr_csd_avg(fpCore, fpExt, fi_st, fi_en, _fin_fp_core=fin_fpCore)
+                            mesh = CSD.mesh
+
+                        elif(_v.wm_ch == 7): #OC11102021
+                        #else: #OC10102021 (made it after else)
+                            data, mesh, dattr, wfr0 = srwl_uti_read_intens_hdf5(fpCSD)
+                            CSD = SRWLStokes(_arS=data, _typeStokes='f', _mutual=1, _n_comp=1) #OC02072021: to cover different polarizations / Stokes components in the future
+                            CSD.mesh = mesh
+
+                        cohModes = None; eigVals = None #OC11102021
+                        if(_v.wm_ch == 7): #OC11102021
+                            cohModes, eigVals = srwl_wfr_cmd(CSD, _n_modes=_v.wm_ncm, _awfr=wfr0, _alg=_v.wm_acm)
+                            fp_cm = os.path.join(_v.fdir, srwl_wfr_fn(_v.wm_fni, _type=7, _form='hdf5'))
+                            srwl_uti_save_wfr_cm_hdf5(cohModes, None, _awfr=wfr0, _file_path=fp_cm)
+
                         _v.wm_res = cohModes, eigVals, mesh #?
                         wmCalcReq = False
                 
@@ -3304,7 +3385,7 @@ class SRWLBeamline(object):
         #print(_v.sm)
         #print(_v.sm_pl)
         
-        if (_v.sm) and (len(_v.sm_pl) > 0): #OC05082019
+        if _v.sm and (len(_v.sm_pl) > 0): #OC05082019
         #if (_v.sm == True) and (len(_v.sm_pl) > 0):
 
             #print('printing multi-e flux')
@@ -3316,7 +3397,8 @@ class SRWLBeamline(object):
 
             plotOK = True
 
-        if (_v.pw == True) and (len(_v.pw_pl) > 0):
+        if _v.pw and (len(_v.pw_pl) > 0): #OC01102022
+        #if (_v.pw == True) and (len(_v.pw_pl) > 0):
             if ((_v.pw_pl == 'xy') or (_v.pw_pl == 'yx') or (_v.pw_pl == 'XY') or (_v.pw_pl == 'YX')) and (_v.pw_nx > 1) and (_v.pw_ny > 1):
                 uti_plot2d1d(
                     _v.pw_res, #int_pw, #OC16102017
@@ -3768,7 +3850,10 @@ def srwl_uti_std_options():
         ['wm_acm', 's', 'SP', 'coherent mode decomposition algorithm to be used (supported algorithms are: "SP" for SciPy, "SPS" for SciPy Sparse, "PM" for Primme, based on names of software packages)'], #OC02072021
         ['wm_nop', '', '', 'switch forcing to do calculations ignoring any optics defined (by set_optics function)', 'store_true'], #OC03072021
 
-        ['wm_fnmi', 's', '', 'file name of input cross-spectral density / mutual intensity; if this file name is supplied, the initial cross-spectral density (for such operations as coherent mode decomposition) will not be calculated, but rathre it will be taken from that file.'], #OC02072021
+        ['wm_fnmi', 's', '', 'file name of input cross-spectral density / mutual intensity; if this file name is supplied, the initial cross-spectral density (for such operations as coherent mode decomposition) will not be calculated, instead, it will be taken from that file (or a set of files).'], #OC02072021
+        ['wm_fmis', 'i', -1, 'initial intex of partial cross-spectral density / mutual intensity file (is taken into account if >=0)'], #OC10102021
+        #['wm_fmin', 'i', 1, 'number of partial cross-spectral density / mutual intensity files (is taken into account if >1)'], #OC10102021
+
         ['wm_fncm', 's', '', 'file name of input coherent modes; if this file name is supplied, the eventual partially-coherent radiation propagation simulation will be done based on propagation of the coherent modes from that file.'], #OC02072021
 
         ['wm_fbk', '', '', 'create backup file(s) with propagated multi-e intensity distribution vs horizontal and vertical position and other radiation characteristics', 'store_true'],
@@ -3801,17 +3886,20 @@ def srwl_uti_std_options():
         ['om_pn', '', ['op_VFM_r', 'op_HFM_r', 'op_S0_Dy', 'op_S0H_Dx'], 'names of parameters to be optimized'],
         ['om_iv', 'f', [20000., 20000., 1e-05, 1e-05], 'initial values of parameters to be optimized'],
         ['om_lm', 'f', [[10000.,30000.], [10000.,30000.], [1.e-06,0.001], [1.e-06,0.001]], 'limiting (i.e. min. amd max. possible) values of parameters to be optimized'],
+        #['om_ls', 'f', [[10000.,10000.,1.e-06,0.001], [20000.,10000.,1.e-06,0.001]], 'explicit list of parameter values to try / use (for basic parameter scan method)'],
 
-        ['om_cw', 'f', {'xFWHM':1, 'yFWHM':1, 'xpFWHM':0, 'ypFWHM':0, 'xCL':0, 'yCL':0, 'iM':0, 'iD':0, 'xFWFM':1.5, 'yFWFM':3., 'xpFWFM':0, 'ypFWFM':0}, 'weights of different criterions the optimization should be performed for: [0]- horizontal spot size, [1]- vertical spot size, [2]- horizontal angular divergence, [3]- vertical angular divergence, [4]- horizontal coherence length, [5]- vertical coherence length, [6]- peak intensity, [7]- given intensity distribution'],
+        ['om_cw', 'f', {'xFWHM':1, 'yFWHM':1, 'xpFWHM':0, 'ypFWHM':0, 'xCL':0, 'yCL':0, 'iM':0, 'iD':0, 'xFWFM':1.5, 'yFWFM':3., 'xpFWFM':0, 'ypFWFM':0}, 'weights of different criterions the optimization should be performed for: "xFWHM"- horizontal FWHM spot size, "yFWHM"- vertical FWHM spot size, "xpFWHM"- horizontal FWHM angular divergence, "ypFWHM"- vertical FWHM angular divergence, "xCL"- horizontal coherence length, "yCL"- vertical coherence length, "iM"- peak intensity, "iD"- given intensity distribution, "xFWFM"- full horizontal width at fraction of maximum, "yFWFM"- full vertical width at fraction of maximum, "xpFWFM"- full horizontal angular divergence at fraction of maximum, , "vpFWFM"- full vertical angular divergence at fraction of maximum'],
         ['om_ct', 'f', {'xFWHM':0.7e-06, 'yFWHM':0.7e-06, 'xpFWHM':0, 'ypFWHM':0, 'xCL':0, 'yCL':0, 'iM':1.e+17, 'iD':0, 'xFWFM':(0.7e-06*1.52379), 'yFWFM':(0.7e-06*1.52379), 'xpFWFM':0, 'ypFWFM':0}, 'target values of different criterions / figures of merit for the optimization, in the same order as defined by om_cw'],
         ['om_cn', 'f', {'xFWHM':0.7e-06, 'yFWHM':0.7e-06, 'xpFWHM':0, 'ypFWHM':0, 'xCL':0, 'yCL':0, 'iM':1.e+17, 'iD':0, 'xFWFM':(0.7e-06*1.52379), 'yFWFM':(0.7e-06*1.52379), 'xpFWFM':0, 'ypFWFM':0}, 'nominal values of different criterions / figures of merit for the optimization, in the same order as defined by om_cw'],
         ['om_ce', 'f', {'xFWFM':0.2, 'yFWFM':0.2, 'xpFWFM':0.2, 'ypFWFM':0.2}, 'extra data related to some optimization criterions, e.g. for *FWFM this is the fraction of maximum at which full width of intensity distribution should be considered'],
 
-        ['om_fn', 's', '', 'input intensity distribution file name'],
+        ['om_fn', 's', '', 'input intensity distribution file name'], #?
         ['om_ft', 'i', 2, 'type of input intensity distribution: 1- flux per unit surface area, 2- azimuthally-averaged flux per unit surface area'],
 
-        ['om_mt', 'i', 1, 'optimization method to use: 1- ..., 2- ...'],
-        ['om_mp', 'i', {'xtol': 1e-3, 'ftol': 1e-3, 'maxiter': 1000}, 'method-dependent optimization parameters (dictionary)'],
+        ['om_mt', 'i', 1, 'optimization method to use: 0- basic scan on parameter values, 1- ..., 2- ...'],
+
+        ['om_mp', 'f', {'xtol': 1e-3, 'ftol': 1e-3, 'maxiter': 1000}, 'method-dependent optimization parameters (dictionary)'],
+        #['om_mp', 'i', {'xtol': 1e-3, 'ftol': 1e-3, 'maxiter': 1000}, 'method-dependent optimization parameters (dictionary)'],
 
         ['om_pr', '', '1', 'print-out auxiliary information in the course of the optimization procedure', 'store_true'],
         ['om_fl', '', '1', 'save auxiliary information during the optimization procedure to a listing file', 'store_true'],
