@@ -63,4 +63,4 @@ set(FFTW_USE_STATIC_LIBS ON)
 add_subdirectory(cpp/src/ext_lib)
 
 # Main library
-add_subdirectory(cpp/src)
+add_subdirectory(cpp/cmake)
