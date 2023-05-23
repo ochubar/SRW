@@ -165,8 +165,6 @@ target_include_directories(core PUBLIC
 set(srw_lib_source_files
     ../src/lib/srwlib.cpp
     ../src/lib/srwlib.h
-#    ../src/lib/auxgpu.h
-#    ../src/lib/auxgpu.cpp
     ../src/lib/srerror.cpp
     ../src/lib/srerror.h
 )
@@ -227,10 +225,8 @@ install(TARGETS srwlclient RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
 # python
 # for testing we will need the python interpreter
-find_package(PythonInterp REQUIRED)
-
 # we require python development headers
-find_package(PythonLibs ${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR} EXACT REQUIRED)
+find_package(Python COMPONENTS Interpreter Development.Module REQUIRED)
 
 
 set(srw_clients_python_source_files
@@ -239,7 +235,7 @@ set(srw_clients_python_source_files
 
 add_library(srwlpy SHARED ${srw_clients_python_source_files})
 
-target_include_directories(srwlpy PUBLIC ${PYTHON_INCLUDE_DIRS})
+target_include_directories(srwlpy PUBLIC ${Python_INCLUDE_DIRS})
 
 target_include_directories(srwlpy PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../src/clients/python>)
 
@@ -263,7 +259,7 @@ if(APPLE)
 endif()
 
 if(WIN32)
-  target_link_libraries(srwlpy srw ${PYTHON_LIBRARIES})
+  target_link_libraries(srwlpy srw ${Python_LIBRARIES})
   set_target_properties(srwlpy PROPERTIES SUFFIX ".pyd")
 endif()
 
