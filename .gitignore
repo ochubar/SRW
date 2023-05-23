@@ -1,2 +1,24 @@
-*.pyc
+# Build directory
+build/
 
+# Python build products
+build/
+dist/
+srwpy.egg-info/
+
+# Documentation artifacts
+docs/source/cookbook
+docs/build/
+
+# Python and C compiled files
+*.pyc
+*.o
+#data_example*
+.idea
+
+# Compiled libraries
+*.a
+*.so
+
+__srwl_logs__/
+uti_plot*.png

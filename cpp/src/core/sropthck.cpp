@@ -253,6 +253,15 @@ void srTMirror::SetupNativeTransFromLocToBeamFrame(TVector3d& vCenNorm, TVector3
 	gmTrans *pTrans = new gmTrans(M, vCen);
 	TransHndl = srTransHndl(pTrans);
 
+	//OCTEST29122022
+	if((vCenP2d.x != 0.) || (vCenP2d.y != 0.))
+	{//Defining "nominal" transformation for the optical element without shift / misalignment
+		TVector3d vZero(0,0,0);
+		gmTrans *pTransNom = new gmTrans(M, vZero);
+		TransNomHndl = srTransHndl(pTransNom);
+	}
+	//END OCTEST
+
 /**
 	TVector3d vUz(0, 0, 1), vUx(1, 0, 0), vUy(0, 1, 0);
 	m_vInLoc = pTrans->TrBiPoint_inv(vUz); //direction of input optical axis in the local frame of opt. elem.
@@ -1962,6 +1971,8 @@ int srTMirror::PropagateRadiationSimple_LocRayTracing(srTSRWRadStructAccessData*
 	double ampFact, ampFactE2, RxInCor, RzInCor, RxOutCor, RzOutCor;
 
 	gmTrans *pTrans = TransHndl.rep;
+	
+	gmTrans *pTransNom = TransNomHndl.rep; //OCTEST29122022
 
 	TVector3d rayLocFr[2]; //ray[2], , RayOut[2], arIntersectP[3];
 	TVector3d &rayLocFrP = rayLocFr[0], &rayLocFrV = rayLocFr[1];
@@ -1973,6 +1984,7 @@ int srTMirror::PropagateRadiationSimple_LocRayTracing(srTSRWRadStructAccessData*
 	
 	//planeBeforeLocFrP.x = TransvCenPoint.x;
 	//planeBeforeLocFrP.y = TransvCenPoint.y;
+	
 	//OC25092020 (fixing issue of misalignment simulation)
 	planeBeforeLocFrP.x = 0.; //To replace zeros by transverse coordinates of the output frame origin in the frame of input beam (when / if it will be introduced)
 	planeBeforeLocFrP.y = 0.;
@@ -1983,6 +1995,15 @@ int srTMirror::PropagateRadiationSimple_LocRayTracing(srTSRWRadStructAccessData*
 
 	planeBeforeLocFrV.x = planeBeforeLocFrV.y = 0.; 
 	planeBeforeLocFrV.z = 1.;
+
+	//OCTEST29122022
+	TVector3d planeBeforeNomLocFrP = planeBeforeLocFrP;
+	planeBeforeNomLocFrP.x = 0.; //TransvCenPoint.x;
+	planeBeforeNomLocFrP.y = 0.; //TransvCenPoint.y;
+	//TVector3d planeBeforeNomLocFrV = planeBeforeLocFrV;
+	TVector3d planeAfterNomLocFrP;
+	//END OCTEST
+
 	if(pTrans != 0)
 	{
 		planeBeforeLocFrP = pTrans->TrPoint_inv(planeBeforeLocFrP);
@@ -1998,6 +2019,28 @@ int srTMirror::PropagateRadiationSimple_LocRayTracing(srTSRWRadStructAccessData*
 	//Determine Exit (output) plane coordinates in the Local frame
 	if(!FindRayIntersectWithSurfInLocFrame(planeBeforeLocFrP, m_vInLoc, planeAfterLocFrP)) return FAILED_DETERMINE_OPTICAL_AXIS;
 	planeAfterLocFrV = m_vOutLoc;
+
+	//OCTEST29122022
+	double horShiftOut = 0., verShiftOut = 0.; //Transverse shift of output beam due to transverse shift of mirror
+	if(pTransNom != 0)
+	{
+		planeBeforeNomLocFrP = pTransNom->TrPoint_inv(planeBeforeNomLocFrP);
+		//planeBeforeNomLocFrV = pTransNom->TrBiPoint_inv(planeBeforeNomLocFrV);
+
+		if(!FindRayIntersectWithSurfInLocFrame(planeBeforeNomLocFrP, m_vInLoc, planeAfterNomLocFrP)) return FAILED_DETERMINE_OPTICAL_AXIS;
+
+		//TVector3d vShiftLoc = planeAfterNomLocFrP - planeAfterLocFrP;
+		//TVector3d vShiftIn = pTransNom->TrBiPoint(vShiftLoc);
+		TVector3d planeAfterNomInFrP = pTransNom->TrPoint(planeAfterNomLocFrP);
+		TVector3d planeAfterInFrP = pTrans->TrPoint(planeAfterLocFrP);
+
+		//TVector3d vShiftIn = pTransNom->TrBiPoint(vShiftLoc);
+		TVector3d vShiftIn = planeAfterInFrP - planeAfterNomInFrP;
+
+		horShiftOut = vShiftIn*m_vHorOutIn;
+		verShiftOut = vShiftIn*m_vVerOutIn;
+	}
+	//END OCTEST
 
 			//OCTEST
 			//TVector3d vpTestFoc1Loc = -0.2*m_vInLoc;
@@ -2300,8 +2343,14 @@ int srTMirror::PropagateRadiationSimple_LocRayTracing(srTSRWRadStructAccessData*
 							}
 							//float xRelOut = (float)(vTrAux*m_vHorOutIn);
 							//float yRelOut = (float)(vTrAux*m_vVerOutIn);
-							double xRelOut = vTrAux*m_vHorOutIn; //OC18032016
-							double yRelOut = vTrAux*m_vVerOutIn;
+
+							//double xRelOut = vTrAux*m_vHorOutIn; //OC18032016
+							//double yRelOut = vTrAux*m_vVerOutIn;
+							//OCTEST29122022
+							double xRelOut = vTrAux*m_vHorOutIn + horShiftOut;
+							double yRelOut = vTrAux*m_vVerOutIn + verShiftOut;
+							//END OCTEST
+							
 							//test!!!!!!!!!!!!!!!!!!!!!
 							//float yRelOut = -(float)(vTrAux*m_vVerOutIn);
 							//end test!!!!!!!!!!!!!!!!!!!!!

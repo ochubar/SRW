@@ -1,6 +1,0 @@
-Microsoft (R) Help Compiler
-HCRTF 4.01.0951
-Copyright (c) Microsoft Corp 1990 - 1995. All rights reserved.
-setup.hpj
-    HC5011: Error: setup.hpj : 
-	Cannot open the file "D:\DevStudio\VC\MFC\include\afxhelp.hm."

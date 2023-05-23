@@ -26,7 +26,13 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug_Py3_9|x64'">
     <LocalDebuggerCommand>C:\SoftwareDevelopments\Python39_x64\python.exe</LocalDebuggerCommand>
-    <LocalDebuggerCommandArguments>HXN_Exp_Sept2021_v03_proc_01_cm.py</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>ELETTRA-CDI-Source-Test-Tandem-350-eV.py</LocalDebuggerCommandArguments>
+    <LocalDebuggerWorkingDirectory>..\..\env\work\srw_python</LocalDebuggerWorkingDirectory>
+    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug_Py3_11|x64'">
+    <LocalDebuggerCommand>C:\SoftwareDevelopments\Python39_x64\python.exe</LocalDebuggerCommand>
+    <LocalDebuggerCommandArguments>ELETTRA-CDI-Source-Test-Tandem-350-eV.py</LocalDebuggerCommandArguments>
     <LocalDebuggerWorkingDirectory>..\..\env\work\srw_python</LocalDebuggerWorkingDirectory>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
@@ -72,6 +78,12 @@
     <LocalDebuggerCommandArguments>split-delay-test-vcc.py</LocalDebuggerCommandArguments>
     <LocalDebuggerWorkingDirectory>..\..\env\work\srw_python</LocalDebuggerWorkingDirectory>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release_Py3_11|x64'">
+    <LocalDebuggerCommand>C:\SoftwareDevelopments\Python38_x64\python.exe</LocalDebuggerCommand>
+    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+    <LocalDebuggerCommandArguments>split-delay-test-vcc.py</LocalDebuggerCommandArguments>
+    <LocalDebuggerWorkingDirectory>..\..\env\work\srw_python</LocalDebuggerWorkingDirectory>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug_Py2x|x64'">
     <LocalDebuggerCommand>C:\SoftwareDevelopments\Python27_x64\python.exe</LocalDebuggerCommand>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
@@ -91,6 +103,12 @@
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug_Py3_9|Win32'">
+    <LocalDebuggerCommand>python</LocalDebuggerCommand>
+    <LocalDebuggerCommandArguments>test_hdf5_convert.py</LocalDebuggerCommandArguments>
+    <LocalDebuggerWorkingDirectory>..\..\env\work\srw_python</LocalDebuggerWorkingDirectory>
+    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug_Py3_11|Win32'">
     <LocalDebuggerCommand>python</LocalDebuggerCommand>
     <LocalDebuggerCommandArguments>test_hdf5_convert.py</LocalDebuggerCommandArguments>
     <LocalDebuggerWorkingDirectory>..\..\env\work\srw_python</LocalDebuggerWorkingDirectory>

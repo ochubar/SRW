@@ -1,0 +1,21 @@
+# These are required for developing the package (running the tests, building
+# the documentation) but not necessarily required for _using_ it.
+codecov
+coverage
+flake8
+pytest
+sphinx
+# These are dependencies of various sphinx extensions for documentation.
+ipython
+matplotlib
+numpydoc
+pillow # required by sphinx-gallery
+sphinx-copybutton
+sphinx-gallery
+sphinx_rtd_theme
+# doxygen  # doxygen is a system package for documentation build
+breathe
+# PyPI deployment tools
+setuptools
+twine
+wheel

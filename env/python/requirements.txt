@@ -1,0 +1,8 @@
+# List required packages in this file, one per line.
+h5py
+matplotlib
+# mpi4py
+numpy
+pillow
+scikit-learn
+scipy

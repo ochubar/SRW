@@ -31,6 +31,8 @@ protected:
 
 	srTransHndl TransHndl; //(auxiliary) space transformation of optical element in the frame of (or with respect to) the incident wavefront
 	//TVector3d m_arOutFrame[3]; //center point, "horizontal" and "vertical" vectors of the output wavefront in the frame of the incident wavefront
+
+	srTransHndl TransNomHndl; //OCTEST29122022
 	
 	TVector3d m_eHorOut, m_eVertOut;
 	double m_extAlongOptAxIn, m_extAlongOptAxOut; //positive "extents" of real input and output planes with respect to the virtual planes passing through element center

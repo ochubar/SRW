@@ -897,7 +897,8 @@
       </AdditionalOptions>
     </Lib>
     <PostBuildEvent>
-      <Command>copy $(SolutionDir)$(TargetName)$(TargetExt) "$(SolutionDir)..\..\env\work\srw_python\lib\"</Command>
+      <Command>
+      </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release_omp|x64'">
