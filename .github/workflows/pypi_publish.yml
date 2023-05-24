@@ -92,7 +92,7 @@ jobs:
           python -m cibuildwheel --output-dir dist env/python
           ls -la dist/*
 
-      - name: Build sdist and wheel on Windows/Mac
+      - name: Build wheel on Windows/Mac
         if: runner.os != 'Linux'
         run: |
           set -vxeuo pipefail
