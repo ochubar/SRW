@@ -77,6 +77,9 @@ class CMakeBuild(build_ext):
 base_dir = os.path.dirname(os.path.realpath(__file__))
 original_src_dir = os.path.join(base_dir, '../..')
 
+#Read README.md for long_description
+long_description = open(os.path.join(original_src_dir, 'README.md')).read()
+
 with open(os.path.join(base_dir, 'requirements.txt')) as requirements_file:
     # Parse requirements.txt, ignoring any commented-out lines.
     requirements = [line for line in requirements_file.read().splitlines()
@@ -88,9 +91,8 @@ setup(name='srwpy',
       author='O. Chubar et al.',
       author_email='chubar@bnl.gov',
       url='http://github.com/ochubar/SRW',
-      long_description='''
-This is SRW for Python.
-''',
+      long_description=long_description,
+      long_description_content_type='text/markdown',
       packages=find_packages(exclude=['docs', 'tests']),
       install_requires=requirements,
       zip_safe=False,
