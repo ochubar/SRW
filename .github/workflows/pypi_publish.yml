@@ -84,7 +84,7 @@ jobs:
           PYTH_VER=${PYTH_VER//.}
           echo "CIBW_BUILD="cp$PYTH_VER-manylinux*"" >> $GITHUB_ENV
 
-      - name: Build sdist and wheel and install *.whl on Linux
+      - name: Build wheel on Linux
         if: runner.os == 'Linux'
         run: |
           set -vxeuo pipefail
@@ -92,22 +92,33 @@ jobs:
           python -m cibuildwheel --output-dir dist env/python
           ls -la dist/*
 
-      - name: Build sdist and wheel and install *.whl on Windows/Mac
+      - name: Build sdist and wheel on Windows/Mac
         if: runner.os != 'Linux'
         run: |
           set -vxeuo pipefail
           cd env/python
           python -VV
-          python setup.py sdist bdist_wheel
+          python setup.py bdist_wheel
           ls -la dist/*
           mkdir -p ../../dist
           cp dist/*.whl ../../dist/
+      
+      - name: Build sdist on Windows (for Python 3.11)
+        if: runner.os == 'Windows' && matrix.python-version == '3.11'
+        run: |
+          set -vxeuo pipefail
+          cd env/python
+          python -VV
+          python setup.py sdist
+          ls -la dist/*
+          mkdir -p ../../dist
+          cp dist/*.tar.gz ../../dist/
 
       - name: Publish wheels to GitHub artifacts
         uses: actions/upload-artifact@v3
         with:
           name: wheels
-          path: dist/*.whl
+          path: dist/*
 
   publish-to-pypi:
     name: Publish to PyPI
