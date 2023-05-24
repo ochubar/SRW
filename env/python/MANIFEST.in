@@ -8,3 +8,6 @@ include srwpy/*.so
 
 # If including data files in the package, add them like:
 # include path/to/data_file
+
+README.md
+requirements.txt

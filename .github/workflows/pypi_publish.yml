@@ -72,6 +72,12 @@ jobs:
         run: |
           set -vxeuo pipefail
           conda install -y -c conda-forge mpi4py openmpi
+      
+      - name: Copy over README.md
+        run: |
+          set -vxeuo pipefail
+          cp README.md env/python
+
 
       - name: Install cibuildwheel on Linux
         if: runner.os == 'Linux'
@@ -103,16 +109,16 @@ jobs:
           mkdir -p ../../dist
           cp dist/*.whl ../../dist/
       
-      - name: Build sdist on Windows (for Python 3.11)
-        if: runner.os == 'Windows' && matrix.python-version == '3.11'
-        run: |
-          set -vxeuo pipefail
-          cd env/python
-          python -VV
-          python setup.py sdist
-          ls -la dist/*
-          mkdir -p ../../dist
-          cp dist/*.tar.gz ../../dist/
+      #- name: Build sdist on Windows (for Python 3.11)
+      #  if: runner.os == 'Windows' && matrix.python-version == '3.11'
+      #  run: |
+      #    set -vxeuo pipefail
+      #    cd env/python
+      #    python -VV
+      #    python setup.py sdist
+      #    ls -la dist/*
+      #    mkdir -p ../../dist
+      #    cp dist/*.tar.gz ../../dist/
 
       - name: Publish wheels to GitHub artifacts
         uses: actions/upload-artifact@v3
