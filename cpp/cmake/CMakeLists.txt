@@ -165,6 +165,8 @@ target_include_directories(core PUBLIC
 set(srw_lib_source_files
     ../src/lib/srwlib.cpp
     ../src/lib/srwlib.h
+#    ../src/lib/auxgpu.h
+#    ../src/lib/auxgpu.cpp
     ../src/lib/srerror.cpp
     ../src/lib/srerror.h
 )
