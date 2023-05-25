@@ -3,14 +3,15 @@ name: PyPI Publish
 on:
   release:
     types: [published]
-    branches:
-      - master
   push:
   pull_request:
   workflow_dispatch:
 
 jobs:
   build-n-publish:
+    # pull requests are a duplicate of a branch push if within the same repo.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
+
     name: ${{ matrix.host-os }} / Python ${{ matrix.python-version }} / OpenMP ${{ matrix.openmp }}
     runs-on: ${{ matrix.host-os }}
     strategy:
@@ -147,7 +148,10 @@ jobs:
           pytest -k fast
 
   publish-to-pypi:
-    # TODO: add if: condition to trigger this step only on release.
+    # Hints from:
+    #   - https://github.com/pypa/gh-action-pypi-publish/discussions/28
+    #   - https://github.com/Lightning-AI/lightning/blob/master/.github/workflows/release-pypi.yml
+    if: github.event_name == 'release'
     name: Publish to PyPI
     needs: build-n-publish
     runs-on: ubuntu-latest
