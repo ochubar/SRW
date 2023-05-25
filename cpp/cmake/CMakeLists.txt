@@ -215,7 +215,7 @@ set(srw_clients_c_source_files
     ../src/clients/c/srwlclient.cpp
 )
 
-add_executable(srwlclient ${srw_clients_c_source_files})
+add_library(srwlclient STATIC ${srw_clients_c_source_files})
 
 target_link_libraries(srwlclient srw)
 
