@@ -11,5 +11,5 @@ include srwpy/*.so
 
 graft srwpy/examples/data_example_*
 
-README.md
-requirements.txt
+include README.md
+include requirements.txt
