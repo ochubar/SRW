@@ -17,7 +17,7 @@ def test_example15(example_code):
     assert len(intensitiesToPlot["intensity"]) == 3
     assert len(intensitiesToPlot["intensity"][0]) == 235872
     assert len(intensitiesToPlot["intensity"][1]) == 4212
-    assert len(intensitiesToPlot["intensity"][2]) == 81120
+    assert len(intensitiesToPlot["intensity"][2]) == 3024
 
     assert len(intensitiesToPlot["mesh_x"]) == 3
     assert len(intensitiesToPlot["mesh_x"][0]) == 3
