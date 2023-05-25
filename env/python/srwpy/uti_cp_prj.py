@@ -9,7 +9,12 @@ import argparse
 import os
 import shutil
 #import copy
-import uti_io
+
+try: #HG24052023
+    from . import uti_io
+except:
+    import uti_io
+#import uti_io
 
 #****************************************************************************
 #Usage example.

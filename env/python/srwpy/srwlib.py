@@ -3,7 +3,19 @@
 #############################################################################
 
 from __future__ import absolute_import, division, print_function #Py 2.*/3.* compatibility
-import srwlpy as srwl
+
+try: #OC15112022
+    from . import srwlpy as srwl
+    from . import uti_math
+    from .srwl_uti_cryst import *
+    from .uti_math_eigen import UtiMathEigen
+except: #OC15112022
+    import srwlpy as srwl
+    import uti_math
+    from srwl_uti_cryst import *
+    from uti_math_eigen import UtiMathEigen
+
+#import srwlpy as srwl
 from array import *
 from math import *
 from copy import *
@@ -14,14 +26,14 @@ import random
 import sys
 import os
 import traceback
-import uti_math
+#import uti_math
 import errno
 import tempfile
 import shutil
 import time
 
-from srwl_uti_cryst import *
-from uti_math_eigen import UtiMathEigen #OC21062021
+#from srwl_uti_cryst import *
+#from uti_math_eigen import UtiMathEigen #OC21062021
 
 #try:
 #    from uti_plot import * #universal simple plotting module distributed together with SRWLib

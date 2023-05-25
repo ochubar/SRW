@@ -4,7 +4,12 @@
 # v 0.02
 #############################################################################
 
-from srwlib import *
+try: #OC15112022
+    from .srwlib import *
+except:
+    from srwlib import *
+    
+#from srwlib import *
 
 #****************************************************************************
 #def srwl_uti_src_e_beams_predef():

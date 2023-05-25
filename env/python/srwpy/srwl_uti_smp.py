@@ -13,9 +13,17 @@ import os
 from array import array
 from copy import * #OC10082021
 
+
+try: #OC16112022
+    from . import srwlib
+    from . import uti_io
+except:
+    import srwlib
+    import uti_io
+
 #import srwlib
-from srwlib import * #OC28012021
-import uti_io
+#from srwlib import * #OC28012021
+#import uti_io
 
 
 # ********************** The class for Samples:
