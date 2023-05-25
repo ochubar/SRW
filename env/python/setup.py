@@ -50,7 +50,7 @@ class CMakeBuild(build_ext):
             '-DBUILD_CLIENT_PYTHON=ON',
             '-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=' + extdir,
             '-DCMAKE_RUNTIME_OUTPUT_DIRECTORY=' + extdir,
-            '-DPYTHON_EXECUTABLE=' + sys.executable]
+            '-DPython_EXECUTABLE=' + sys.executable]
         env = os.environ.copy()
         if 'MODE' in env:
             if env['MODE'] == 'omp':
