@@ -50,7 +50,7 @@ class CMakeBuild(build_ext):
             '-DBUILD_CLIENT_PYTHON=ON',
             '-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=' + extdir,
             '-DCMAKE_RUNTIME_OUTPUT_DIRECTORY=' + extdir,
-            '-DPYTHON_EXECUTABLE=' + sys.executable]
+            '-DPython_EXECUTABLE=' + sys.executable]
         env = os.environ.copy()
         if 'MODE' in env:
             if env['MODE'] == 'omp':
@@ -77,6 +77,9 @@ class CMakeBuild(build_ext):
 base_dir = os.path.dirname(os.path.realpath(__file__))
 original_src_dir = os.path.join(base_dir, '../..')
 
+#Read README.md for long_description
+long_description = open(os.path.join(base_dir, 'README.md')).read()
+
 with open(os.path.join(base_dir, 'requirements.txt')) as requirements_file:
     # Parse requirements.txt, ignoring any commented-out lines.
     requirements = [line for line in requirements_file.read().splitlines()
@@ -88,10 +91,10 @@ setup(name='srwpy',
       author='O. Chubar et al.',
       author_email='chubar@bnl.gov',
       url='http://github.com/ochubar/SRW',
-      long_description='''
-This is SRW for Python.
-''',
+      long_description=long_description,
+      long_description_content_type='text/markdown',
       packages=find_packages(exclude=['docs', 'tests']),
+      package_data={'srwpy': ['examples/data_example_**/*']},
       install_requires=requirements,
       zip_safe=False,
       ext_modules=[CMakeExtension('srwlpy', original_src_dir, 'srwpy')],

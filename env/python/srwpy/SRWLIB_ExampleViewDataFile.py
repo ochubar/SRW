@@ -6,7 +6,12 @@
 #############################################################################
 
 from __future__ import print_function #Python 2.7 compatibility
-from uti_plot import *
+try: #OC16112022
+    from .uti_plot import *
+except:
+    from uti_plot import *
+
+#from uti_plot import *
 import optparse
 import os
 

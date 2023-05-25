@@ -10,7 +10,7 @@ from array import *
 from scipy.interpolate import interp2d
 
 try:
-    from srwlib import *
+    from .srwlib import *
 except:
     from oasys_srw.srwlib import *          # get oasys_srw: https://github.com/oasys-kit/OASYS1-srwpy
 

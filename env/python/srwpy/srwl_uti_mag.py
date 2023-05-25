@@ -2,7 +2,12 @@
 # SRWLib for Python: Magnet Utilities v 0.02
 #############################################################################
 
-from srwlib import *
+try: #OC16112022
+    from .srwlib import *
+except:
+    from srwlib import *
+    
+#from .srwlib import *
 #from copy import *
 
 #****************************************************************************
