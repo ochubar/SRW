@@ -126,6 +126,15 @@ jobs:
           name: wheels
           path: dist/*
 
+      - name: Install test requirements with pip
+        run: |
+          set -vxeuo pipefail
+          cd env/python
+          pip install -v dist/*.whl
+          python -m pip install -r requirements-dev.txt
+          python -m pip list
+          pytest -k fast
+
   publish-to-pypi:
     name: Publish to PyPI
     needs: build-n-publish
