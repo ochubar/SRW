@@ -3,11 +3,15 @@ name: PyPI Publish
 on:
   release:
     types: [published]
-    branches:
-      - master
+  push:
+  pull_request:
+  workflow_dispatch:
 
 jobs:
   build-n-publish:
+    # pull requests are a duplicate of a branch push if within the same repo.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
+
     name: ${{ matrix.host-os }} / Python ${{ matrix.python-version }} / OpenMP ${{ matrix.openmp }}
     runs-on: ${{ matrix.host-os }}
     strategy:
@@ -67,17 +71,17 @@ jobs:
           set -vxeuo pipefail
           conda install -y -c conda-forge llvm-openmp
 
-      - name: Install mpi4py for macOS with conda
-        if: runner.os == 'macOS'
-        run: |
-          set -vxeuo pipefail
-          conda install -y -c conda-forge mpi4py openmpi
-      
+      # NOTE: This step is not needed for fast tests.
+      # - name: Install mpi4py for Unix with conda
+      #   if: runner.os != 'Windows'
+      #   run: |
+      #     set -vxeuo pipefail
+      #     conda install -y -c conda-forge mpi4py openmpi
+
       - name: Copy over README.md
         run: |
           set -vxeuo pipefail
           cp README.md env/python
-
 
       - name: Install cibuildwheel on Linux
         if: runner.os == 'Linux'
@@ -108,17 +112,17 @@ jobs:
           ls -la dist/*
           mkdir -p ../../dist
           cp dist/*.whl ../../dist/
-      
-      #- name: Build sdist on Windows (for Python 3.11)
-      #  if: runner.os == 'Windows' && matrix.python-version == '3.11'
-      #  run: |
-      #    set -vxeuo pipefail
-      #    cd env/python
-      #    python -VV
-      #    python setup.py sdist
-      #    ls -la dist/*
-      #    mkdir -p ../../dist
-      #    cp dist/*.tar.gz ../../dist/
+
+      # - name: Build sdist on Windows (for Python 3.11)
+      #   if: runner.os == 'Windows' && matrix.python-version == '3.11'
+      #   run: |
+      #     set -vxeuo pipefail
+      #     cd env/python
+      #     python -VV
+      #     python setup.py sdist
+      #     ls -la dist/*
+      #     mkdir -p ../../dist
+      #     cp dist/*.tar.gz ../../dist/
 
       - name: Publish wheels to GitHub artifacts
         uses: actions/upload-artifact@v3
@@ -126,7 +130,28 @@ jobs:
           name: wheels
           path: dist/*
 
+      - name: Install the package and test requirements
+        run: |
+          set -vxeuo pipefail
+          pip install -v dist/*64.whl
+
+          # Smoke import test:
+          python -c "import srwpy; import srwpy.srwlpy"
+
+          python -m pip install -r env/python/requirements-dev.txt
+          python -m pip list
+
+      - name: Run fast tests
+        run: |
+          set -vxeuo pipefail
+          cd env/python
+          pytest -k fast
+
   publish-to-pypi:
+    # Hints from:
+    #   - https://github.com/pypa/gh-action-pypi-publish/discussions/28
+    #   - https://github.com/Lightning-AI/lightning/blob/master/.github/workflows/release-pypi.yml
+    if: github.event_name == 'release'
     name: Publish to PyPI
     needs: build-n-publish
     runs-on: ubuntu-latest

@@ -19,6 +19,7 @@ docs/build/
 # Compiled libraries
 *.a
 *.so
+*.pyd
 
 __srwl_logs__/
 uti_plot*.png
