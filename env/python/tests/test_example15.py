@@ -1,8 +1,8 @@
 # Imports from the example:
 from __future__ import print_function
-import srwpy.uti_plot as uti_plot
 from srwpy.srwlib import *
 from srwpy.uti_math import matr_prod, fwhm
+from srwpy.uti_plot import *
 
 # Imports for tests:
 import pytest

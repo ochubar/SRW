@@ -1,8 +1,8 @@
 # Imports from the example:
 from __future__ import print_function  # Python 2.7 compatibility
-import srwpy.uti_plot as uti_plot
 from srwpy.srwlib import *
 from srwpy.uti_math import fwhm
+from srwpy.uti_plot import *
 from scipy.special import jv
 
 # Imports for tests:

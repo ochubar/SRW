@@ -70,8 +70,8 @@ jobs:
           set -vxeuo pipefail
           conda install -y -c conda-forge llvm-openmp
 
-      - name: Install mpi4py for macOS with conda
-        if: runner.os == 'macOS'
+      - name: Install mpi4py for Unix with conda
+        if: runner.os != 'Windows'
         run: |
           set -vxeuo pipefail
           conda install -y -c conda-forge mpi4py openmpi
@@ -80,7 +80,6 @@ jobs:
         run: |
           set -vxeuo pipefail
           cp README.md env/python
-
 
       - name: Install cibuildwheel on Linux
         if: runner.os == 'Linux'

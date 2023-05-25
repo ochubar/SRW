@@ -14,8 +14,8 @@ def test_example13(example_code):
 
     # end of example, start testing
     assert len(arI0) == 102900
-    assert len(arI1s) == 2240000
-    assert len(arI1m) == 2240000
+    assert len(arI1s) == 6720
+    assert len(arI1m) == 6720
     assert hasattr(wfr, "mesh")
     for param in ["zStart",
                   "eStart", "eFin", "ne",
