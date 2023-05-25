@@ -5,6 +5,9 @@ on:
     types: [published]
     branches:
       - master
+  push:
+  pull_request:
+  workflow_dispatch:
 
 jobs:
   build-n-publish:
