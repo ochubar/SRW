@@ -21,5 +21,6 @@ docs/build/
 *.so
 *.pyd
 
+.vscode/
 __srwl_logs__/
 uti_plot*.png
