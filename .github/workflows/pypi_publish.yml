@@ -70,11 +70,12 @@ jobs:
           set -vxeuo pipefail
           conda install -y -c conda-forge llvm-openmp
 
-      - name: Install mpi4py for Unix with conda
-        if: runner.os != 'Windows'
-        run: |
-          set -vxeuo pipefail
-          conda install -y -c conda-forge mpi4py openmpi
+      # NOTE: This step is not needed for fast tests.
+      # - name: Install mpi4py for Unix with conda
+      #   if: runner.os != 'Windows'
+      #   run: |
+      #     set -vxeuo pipefail
+      #     conda install -y -c conda-forge mpi4py openmpi
 
       - name: Copy over README.md
         run: |
@@ -110,17 +111,17 @@ jobs:
           ls -la dist/*
           mkdir -p ../../dist
           cp dist/*.whl ../../dist/
-      
-      #- name: Build sdist on Windows (for Python 3.11)
-      #  if: runner.os == 'Windows' && matrix.python-version == '3.11'
-      #  run: |
-      #    set -vxeuo pipefail
-      #    cd env/python
-      #    python -VV
-      #    python setup.py sdist
-      #    ls -la dist/*
-      #    mkdir -p ../../dist
-      #    cp dist/*.tar.gz ../../dist/
+
+      # - name: Build sdist on Windows (for Python 3.11)
+      #   if: runner.os == 'Windows' && matrix.python-version == '3.11'
+      #   run: |
+      #     set -vxeuo pipefail
+      #     cd env/python
+      #     python -VV
+      #     python setup.py sdist
+      #     ls -la dist/*
+      #     mkdir -p ../../dist
+      #     cp dist/*.tar.gz ../../dist/
 
       - name: Publish wheels to GitHub artifacts
         uses: actions/upload-artifact@v3
@@ -128,19 +129,25 @@ jobs:
           name: wheels
           path: dist/*
 
-      - name: Install test requirements and run fast tests
+      - name: Install the package and test requirements
         run: |
           set -vxeuo pipefail
           pip install -v dist/*64.whl
 
+          # Smoke import test:
           python -c "import srwpy; import srwpy.srwlpy"
 
-          cd env/python
-          python -m pip install -r requirements-dev.txt
+          python -m pip install -r env/python/requirements-dev.txt
           python -m pip list
+
+      - name: Run fast tests
+        run: |
+          set -vxeuo pipefail
+          cd env/python
           pytest -k fast
 
   publish-to-pypi:
+    # TODO: add if: condition to trigger this step only on release.
     name: Publish to PyPI
     needs: build-n-publish
     runs-on: ubuntu-latest
