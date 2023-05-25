@@ -75,7 +75,7 @@ jobs:
         run: |
           set -vxeuo pipefail
           conda install -y -c conda-forge mpi4py openmpi
-      
+
       - name: Copy over README.md
         run: |
           set -vxeuo pipefail
@@ -132,8 +132,11 @@ jobs:
       - name: Install test requirements with pip
         run: |
           set -vxeuo pipefail
+          pip install -v dist/*64.whl
+
+          python -c "import srwpy; import srwpy.srwlpy"
+
           cd env/python
-          pip install -v dist/*.whl
           python -m pip install -r requirements-dev.txt
           python -m pip list
           pytest -k fast
