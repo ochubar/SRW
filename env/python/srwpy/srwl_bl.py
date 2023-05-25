@@ -2544,7 +2544,10 @@ class SRWLBeamline(object):
         #---perform optimization of beamline and possibly source parameters (this should be processed before any other things)
         if(_v.om): #since the optimization modifies params in _v and calls calc_all, it goes first
             try: #16122018
-                from . import uti_math_opt
+                try:
+                    from . import uti_math_opt
+                except:
+                    import uti_math_opt
                 self.uti_math_opt = uti_math_opt
                 
             except:
