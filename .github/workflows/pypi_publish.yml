@@ -129,7 +129,7 @@ jobs:
           name: wheels
           path: dist/*
 
-      - name: Install test requirements with pip
+      - name: Install test requirements and run fast tests
         run: |
           set -vxeuo pipefail
           pip install -v dist/*64.whl
