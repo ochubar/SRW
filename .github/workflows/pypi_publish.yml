@@ -138,6 +138,9 @@ jobs:
           # Smoke import test:
           python -c "import srwpy; import srwpy.srwlpy"
 
+          # Check CLI tools:
+          srw-viewer --help
+
           python -m pip install -r env/python/requirements-dev.txt
           python -m pip list
 
