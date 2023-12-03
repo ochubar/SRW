@@ -32,6 +32,10 @@
 #include "srigorre.h"
 #endif
 
+#ifdef _OFFLOAD_GPU //OC28072023
+#include "auxgpu.h" //HG
+#endif
+
 #include "srobject.h"
 
 //*************************************************************************
@@ -72,8 +76,8 @@ public:
 	waveHndl wRad, wRadX, wRadZ;
 	int hStateRadX, hStateRadZ;
 	double eStep, eStart, xStep, xStart, zStep, zStart;
-	long ne, nx, nz;
-	//long long ne, nx, nz; //OC26042019
+	long ne, nx, nz; //OC03082023 (rolled back)
+	//long long ne, nx, nz; //HG //OC26042019
 
 	double xStartTr, zStartTr;
 	bool UseStartTrToShiftAtChangingRepresToCoord;
@@ -242,7 +246,16 @@ public:
 	void CheckAndSubtractPhaseTermsLin(double newXc, double newZc);
 	void CheckAndResetPhaseTermsLin();
 	void EstimateOversamplingFactors(double& estimOverSampX, double& estimOverSampZ);
-	void MirrorFieldData(int sx, int sz);
+
+	void MirrorFieldData(int sx, int sz, void* pvGPU=0); //OC28072023
+	//void MirrorFieldData(int sx, int sz);
+
+#ifdef _OFFLOAD_GPU
+	void MirrorFieldData_GPU(int sx, int sz, TGPUUsageArg* pGPU); //OC03082023
+	//void MirrorFieldData_GPU(int sx, int sz, void* pGpuUsage); //HG28072023
+	void MultiplyElFieldByPhaseLin_GPU(double xMult, double zMult, TGPUUsageArg* pGPU); //OC03082023
+	//void MultiplyElFieldByPhaseLin_GPU(double xMult, double zMult, void* pGpuUsage); //HG28072023
+#endif
 
 	int SetupWfrEdgeCorrData(float* pDataEx, float* pDataEz, srTDataPtrsForWfrEdgeCorr& DataPtrsForWfrEdgeCorr);
 	void MakeWfrEdgeCorrection(float* pDataEx, float* pDataEz, srTDataPtrsForWfrEdgeCorr& DataPtrs);
@@ -491,11 +504,31 @@ public:
 		}
 	}
 
-	void MultiplyElFieldByPhaseLin(double xMult, double zMult)
+	void MultiplyElFieldByPhaseLin(double xMult, double zMult, void* pvGPU=0) //OC28072023
+	//void MultiplyElFieldByPhaseLin(double xMult, double zMult)
 	{
 		bool RadXisDefined = (pBaseRadX != 0);
 		bool RadZisDefined = (pBaseRadZ != 0);
 		if((!RadXisDefined) && (!RadZisDefined)) return;
+
+#ifdef _OFFLOAD_GPU //OC28072023
+		//TGPUUsageArg *pGPU = (TGPUUsageArg*)pvGPU;
+		//GPU_COND(pvGPU,
+		//{
+		//	MultiplyElFieldByPhaseLin_GPU(xMult, zMult, pGPU);
+		//	//MultiplyElFieldByPhaseLin_GPU(xMult, zMult, pGPU);
+		//	return;
+		//}
+
+		if(pvGPU != 0)
+		{
+			TGPUUsageArg *pGPU = (TGPUUsageArg*)pvGPU;
+			if(CAuxGPU::GPUEnabled(pGPU))
+			{
+				MultiplyElFieldByPhaseLin_GPU(xMult, zMult, pGPU);
+			}
+		}
+#endif
 
 		float *tEx = pBaseRadX;
 		float *tEz = pBaseRadZ;

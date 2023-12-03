@@ -732,7 +732,8 @@ EXP int CALL srwlCalcPowDenSR(SRWLStokes* pStokes, SRWLPartBeam* pElBeam, SRWLPr
  * @return	integer error (>0) or warnig (<0) code
  * @see ...
  */
-EXP int CALL srwlCalcIntFromElecField(char* pInt, SRWLWfr* pWfr, char pol, char intType, char depType, double e, double x, double y, double* arMeth=0, void* pFldTrj=0);
+EXP int CALL srwlCalcIntFromElecField(char* pInt, SRWLWfr* pWfr, char pol, char intType, char depType, double e, double x, double y, double* arMeth=0, void* pFldTrj=0, void* pGPU=0); //OC26072023 (from HG)
+//EXP int CALL srwlCalcIntFromElecField(char* pInt, SRWLWfr* pWfr, char pol, char intType, char depType, double e, double x, double y, double* arMeth=0, void* pFldTrj=0);
 //EXP int CALL srwlCalcIntFromElecField(char* pInt, SRWLWfr* pWfr, char pol, char intType, char depType, double e, double x, double y, double* arMeth=0);
 //EXP int CALL srwlCalcIntFromElecField(char* pInt, SRWLWfr* pWfr, char pol, char intType, char depType, double e, double x, double y);
 
@@ -802,7 +803,8 @@ EXP int CALL srwlSetRepresElecField(SRWLWfr* pWfr, char repr);
  * @return	integer error (>0) or warnig (<0) code
  * @see ...
  */
-EXP int CALL srwlPropagElecField(SRWLWfr* pWfr, SRWLOptC* pOpt, int nInt=0, char** arID=0, SRWLRadMesh* arIM=0, char** arI=0); //OC15082018
+EXP int CALL srwlPropagElecField(SRWLWfr* pWfr, SRWLOptC* pOpt, int nInt=0, char** arID=0, SRWLRadMesh* arIM=0, char** arI=0, void* pGPU=0); //OC26072023 (from HG)
+//EXP int CALL srwlPropagElecField(SRWLWfr* pWfr, SRWLOptC* pOpt, int nInt=0, char** arID=0, SRWLRadMesh* arIM=0, char** arI=0); //OC15082018
 //EXP int CALL srwlPropagElecField(SRWLWfr* pWfr, SRWLOptC* pOpt);
 
 /** TEST
@@ -849,7 +851,8 @@ EXP int CALL srwlCalcTransm(SRWLOptT* pOpTr, const double* pDelta, const double*
  * @return	integer error (>0) or warnig (<0) code
  * @see ...
  */
-EXP int CALL srwlUtiFFT(char* pcData, char typeData, double* arMesh, int nMesh, int dir);
+EXP int CALL srwlUtiFFT(char* pcData, char typeData, double* arMesh, int nMesh, int dir, void* pGPU=0); //OC26072023 (from HG)
+//EXP int CALL srwlUtiFFT(char* pcData, char typeData, double* arMesh, int nMesh, int dir);
 
 /** 
  * Convolves real data with 1D or 2D Gaussian (depending on arguments)
@@ -963,6 +966,43 @@ EXP int CALL srwlUtiUndFromMagFldTab(SRWLMagFldC* pUndCnt, SRWLMagFldC* pMagCnt,
  * @see ...
  */
 EXP int CALL srwlUtiUndFindMagFldInterpInds(int* arResInds, int* pnResInds, double* arGaps, double* arPhases, int nVals, double arPrecPar[5]);
+
+/**
+ * Checks if GPU offloading is available
+ * @return	true if available
+ * @see ...
+ */
+EXP bool CALL srwlUtiGPUAvailable(); //OC26072023
+//EXP bool CALL srwlAuxGpuAvailable(); //HG
+
+/**
+ * Checks if GPU offloading is enabled
+ * @return	true if enabled
+ * @see ...
+ */
+EXP bool CALL srwlUtiGPUEnabled(); //OC26072023
+//EXP bool CALL srwlAuxGpuEnabled(); //HG
+
+/**
+ * Enable/Disable GPU offloading
+ * @see ...
+ */
+EXP void CALL srwlUtiGPUSetStatus(bool enable);
+//EXP void CALL srwlAuxGpuSetStatus(bool enable); //HG
+
+/**
+ * Initialize device offloading
+ * @see ...
+ */
+EXP void CALL srwlUtiGPUInit(); //OC26072023
+//EXP void CALL srwlAuxGpuInit(); //HG
+
+/**
+ * Finalize device offloading
+ * @see ...
+ */
+EXP void CALL srwlUtiGPUFini(); //OC26072023
+//EXP void CALL srwlAuxGpuFini(); //HG
 
 /**
  * These functions were added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP

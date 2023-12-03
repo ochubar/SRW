@@ -677,6 +677,7 @@ int srTRadGenManip::ExtractSingleElecIntensity1DvsZ(srTRadExtract& RadExtract)
 //*************************************************************************
 
 int srTRadGenManip::ExtractSingleElecIntensity2DvsXZ(srTRadExtract& RadExtract)
+//int srTRadGenManip::ExtractSingleElecIntensity2DvsXZ(srTRadExtract& RadExtract, gpuUsageArg *pGpuUsage) //Himanshu?
 {
 	int PolCom = RadExtract.PolarizCompon;
 	int Int_or_ReE = RadExtract.Int_or_Phase;
@@ -690,6 +691,7 @@ int srTRadGenManip::ExtractSingleElecIntensity2DvsXZ(srTRadExtract& RadExtract)
 	float *pI = 0, *pI1 = 0, *pI2 = 0, *pI3 = 0; //OC17042020
 	double *pId = 0, *pI1d = 0, *pI2d = 0, *pI3d = 0;
 	long ne = RadAccessData.ne, nx = RadAccessData.nx, nz = RadAccessData.nz;
+	//long ne = RadAccessData.ne, nx = RadAccessData.nx, nz = RadAccessData.nz, nwfr = RadAccessData.nwfr; //Himanshu?
 	//float *pI = 0;
 	//DOUBLE *pId = 0;
 	//double *pId = 0; //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
@@ -720,6 +722,7 @@ int srTRadGenManip::ExtractSingleElecIntensity2DvsXZ(srTRadExtract& RadExtract)
 	//long long PerZ = PerX*RadAccessData.nx;
 	long long PerX = ((long long)ne) << 1; //OC18042020
 	long long PerZ = PerX*nx;
+	long long PerWfr = PerZ*nz;
 
 	//long ie0=0, ie1=0;
 	long long ie0=0, ie1=0; //OC26042019
@@ -754,174 +757,187 @@ int srTRadGenManip::ExtractSingleElecIntensity2DvsXZ(srTRadExtract& RadExtract)
 	//long Two_ie0 = ie0 << 1, Two_ie1 = ie1 << 1;
 	long long Two_ie0 = ie0 << 1, Two_ie1 = ie1 << 1; //OC26042019
 	//long izPerZ = 0;
-	long long izPerZ = 0;
 	long ix, ie;
 
-	for(long long iz=0; iz<nz; iz++) //OC18042020
-	//for(long long iz=0; iz<RadAccessData.nz; iz++) //OC26042019
-	//for(long iz=0; iz<RadAccessData.nz; iz++)
-	{
-		float *pEx_StartForX = pEx0 + izPerZ;
-		float *pEz_StartForX = pEz0 + izPerZ;
-		//long ixPerX = 0;
-
-		float *pEx_St = pEx_StartForX + Two_ie0;
-		float *pEz_St = pEz_StartForX + Two_ie0;
-		float *pEx_Fi = pEx_StartForX + Two_ie1;
-		float *pEz_Fi = pEz_StartForX + Two_ie1;
-
-		for(ix=0; ix<nx; ix++) //OC18042020
-		//for(long ix=0; ix<RadAccessData.nx; ix++)
-		{
-			//float *pEx_StartForE = pEx_StartForX + ixPerX;
-			//float *pEz_StartForE = pEz_StartForX + ixPerX;
-			//float *pEx_St = pEx_StartForE + Two_ie0, *pEx_Fi = pEx_StartForE + Two_ie1;
-			//float *pEz_St = pEz_StartForE + Two_ie0, *pEz_Fi = pEz_StartForE + Two_ie1;
-
-			//OC140813
-			//if(pI != 0) *(pI++) = IntensityComponentSimpleInterpol(pEx_St, pEx_Fi, pEz_St, pEz_Fi, InvStepRelArg, PolCom, Int_or_ReE);
-			//if(pId != 0) *(pId++) = IntensityComponentSimpleInterpol(pEx_St, pEx_Fi, pEz_St, pEz_Fi, InvStepRelArg, PolCom, Int_or_ReE);
-
-			if(intOverEnIsRequired) //OC140813
-			{//integrate over photon energy / time
-				double *tInt = arAuxInt; 
-				float *pEx_StAux = pEx_St;
-				float *pEz_StAux = pEz_St;
-
-				if(!allStokesReq) //OC17042020
-				{
-					for(ie=0; ie<ne; ie++) //OC18042020
-					//for(int ie=0; ie<RadAccessData.ne; ie++)
-					{
-						*(tInt++) = IntensityComponent(pEx_StAux, pEz_StAux, PolCom, Int_or_ReE);
-						pEx_StAux += 2;
-						pEz_StAux += 2;
-					}
-					resInt = ConstPhotEnInteg*CGenMathMeth::Integ1D_FuncDefByArray(arAuxInt, ne, RadAccessData.eStep); //OC18042020
-					//resInt = ConstPhotEnInteg*CGenMathMeth::Integ1D_FuncDefByArray(arAuxInt, RadAccessData.ne, RadAccessData.eStep);
-				}
-				else
-				{
-					for(ie=0; ie<ne; ie++)
-					{
-						*(tInt++) = IntensityComponent(pEx_StAux, pEz_StAux, -1, Int_or_ReE);
-						pEx_StAux += 2; pEz_StAux += 2;
-					}
-					resInt = ConstPhotEnInteg*CGenMathMeth::Integ1D_FuncDefByArray(arAuxInt, ne, RadAccessData.eStep);
-
-					tInt = arAuxInt; pEx_StAux = pEx_St; pEz_StAux = pEz_St;
-					for(ie=0; ie<ne; ie++)
-					{
-						*(tInt++) = IntensityComponent(pEx_StAux, pEz_StAux, -2, Int_or_ReE);
-						pEx_StAux += 2; pEz_StAux += 2;
-					}
-					resInt1 = ConstPhotEnInteg*CGenMathMeth::Integ1D_FuncDefByArray(arAuxInt, ne, RadAccessData.eStep);
-
-					tInt = arAuxInt; pEx_StAux = pEx_St; pEz_StAux = pEz_St;
-					for(ie=0; ie<ne; ie++)
-					{
-						*(tInt++) = IntensityComponent(pEx_StAux, pEz_StAux, -3, Int_or_ReE);
-						pEx_StAux += 2; pEz_StAux += 2;
-					}
-					resInt2 = ConstPhotEnInteg*CGenMathMeth::Integ1D_FuncDefByArray(arAuxInt, ne, RadAccessData.eStep);
-
-					tInt = arAuxInt; pEx_StAux = pEx_St; pEz_StAux = pEz_St;
-					for(ie=0; ie<ne; ie++)
-					{
-						*(tInt++) = IntensityComponent(pEx_StAux, pEz_StAux, -4, Int_or_ReE);
-						pEx_StAux += 2; pEz_StAux += 2;
-					}
-					resInt3 = ConstPhotEnInteg*CGenMathMeth::Integ1D_FuncDefByArray(arAuxInt, ne, RadAccessData.eStep);
-				}
-			}
-			else
+	//Himanshu?
+	//GPU_COND(pGpuUsage,
+	//{
+	//	ExtractSingleElecIntensity2DvsXZ_GPU(RadExtract, arAuxInt, ie0, ie1, InvStepRelArg, pGpuUsage);
+	//})
+	//else
+	//{
+		//long long iwfrPerWfr = 0;
+		//for(long long iwfr=0; iwfr<nwfr; iwfr++)
+		//{
+			long long izPerZ = 0;
+			for(long long iz=0; iz<nz; iz++) //OC18042020
+			//for(long long iz=0; iz<RadAccessData.nz; iz++) //OC26042019
+			//for(long iz=0; iz<RadAccessData.nz; iz++)
 			{
-				if(!allStokesReq) //OC18042020
-				{
-					resInt = IntensityComponentSimpleInterpol(pEx_St, pEx_Fi, pEz_St, pEz_Fi, InvStepRelArg, PolCom, Int_or_ReE);
-				}
-				else //OC18042020
-				{
-					resInt = IntensityComponentSimpleInterpol(pEx_St, pEx_Fi, pEz_St, pEz_Fi, InvStepRelArg, -1, Int_or_ReE);
-					resInt1 = IntensityComponentSimpleInterpol(pEx_St, pEx_Fi, pEz_St, pEz_Fi, InvStepRelArg, -2, Int_or_ReE);
-					resInt2 = IntensityComponentSimpleInterpol(pEx_St, pEx_Fi, pEz_St, pEz_Fi, InvStepRelArg, -3, Int_or_ReE);
-					resInt3 = IntensityComponentSimpleInterpol(pEx_St, pEx_Fi, pEz_St, pEz_Fi, InvStepRelArg, -4, Int_or_ReE);
-				}
-			}
+				float *pEx_StartForX = pEx0 + izPerZ;
+				float *pEz_StartForX = pEz0 + izPerZ;
+				//long ixPerX = 0;
 
-			if(iter == 0) //OC08052021
-			{
-				//OC140813
-				if(pI != 0) *(pI++) = (float)resInt;
-				if(pId != 0) *(pId++) = resInt; //OC18042020
-				//if(pId != 0) *(pId++) = (double)resInt;
-				if(allStokesReq) //OC18042020
+				float *pEx_St = pEx_StartForX + Two_ie0;
+				float *pEz_St = pEz_StartForX + Two_ie0;
+				float *pEx_Fi = pEx_StartForX + Two_ie1;
+				float *pEz_Fi = pEz_StartForX + Two_ie1;
+
+				for(ix=0; ix<nx; ix++) //OC18042020
+				//for(long ix=0; ix<RadAccessData.nx; ix++)
 				{
-					if(RadExtract.pExtractedData != 0)
-					{
-						*(pI1++) = (float)resInt1; *(pI2++) = (float)resInt2; *(pI3++) = (float)resInt3;
+					//float *pEx_StartForE = pEx_StartForX + ixPerX;
+					//float *pEz_StartForE = pEz_StartForX + ixPerX;
+					//float *pEx_St = pEx_StartForE + Two_ie0, *pEx_Fi = pEx_StartForE + Two_ie1;
+					//float *pEz_St = pEz_StartForE + Two_ie0, *pEz_Fi = pEz_StartForE + Two_ie1;
+
+					//OC140813
+					//if(pI != 0) *(pI++) = IntensityComponentSimpleInterpol(pEx_St, pEx_Fi, pEz_St, pEz_Fi, InvStepRelArg, PolCom, Int_or_ReE);
+					//if(pId != 0) *(pId++) = IntensityComponentSimpleInterpol(pEx_St, pEx_Fi, pEz_St, pEz_Fi, InvStepRelArg, PolCom, Int_or_ReE);
+
+					if(intOverEnIsRequired) //OC140813
+					{//integrate over photon energy / time
+						double *tInt = arAuxInt; 
+						float *pEx_StAux = pEx_St;
+						float *pEz_StAux = pEz_St;
+
+						if(!allStokesReq) //OC17042020
+						{
+							for(ie=0; ie<ne; ie++) //OC18042020
+							//for(int ie=0; ie<RadAccessData.ne; ie++)
+							{
+								*(tInt++) = IntensityComponent(pEx_StAux, pEz_StAux, PolCom, Int_or_ReE);
+								pEx_StAux += 2;
+								pEz_StAux += 2;
+							}
+							resInt = ConstPhotEnInteg*CGenMathMeth::Integ1D_FuncDefByArray(arAuxInt, ne, RadAccessData.eStep); //OC18042020
+							//resInt = ConstPhotEnInteg*CGenMathMeth::Integ1D_FuncDefByArray(arAuxInt, RadAccessData.ne, RadAccessData.eStep);
+						}
+						else
+						{
+							for(ie=0; ie<ne; ie++)
+							{
+								*(tInt++) = IntensityComponent(pEx_StAux, pEz_StAux, -1, Int_or_ReE);
+								pEx_StAux += 2; pEz_StAux += 2;
+							}
+							resInt = ConstPhotEnInteg*CGenMathMeth::Integ1D_FuncDefByArray(arAuxInt, ne, RadAccessData.eStep);
+
+							tInt = arAuxInt; pEx_StAux = pEx_St; pEz_StAux = pEz_St;
+							for(ie=0; ie<ne; ie++)
+							{
+								*(tInt++) = IntensityComponent(pEx_StAux, pEz_StAux, -2, Int_or_ReE);
+								pEx_StAux += 2; pEz_StAux += 2;
+							}
+							resInt1 = ConstPhotEnInteg*CGenMathMeth::Integ1D_FuncDefByArray(arAuxInt, ne, RadAccessData.eStep);
+
+							tInt = arAuxInt; pEx_StAux = pEx_St; pEz_StAux = pEz_St;
+							for(ie=0; ie<ne; ie++)
+							{
+								*(tInt++) = IntensityComponent(pEx_StAux, pEz_StAux, -3, Int_or_ReE);
+								pEx_StAux += 2; pEz_StAux += 2;
+							}
+							resInt2 = ConstPhotEnInteg*CGenMathMeth::Integ1D_FuncDefByArray(arAuxInt, ne, RadAccessData.eStep);
+
+							tInt = arAuxInt; pEx_StAux = pEx_St; pEz_StAux = pEz_St;
+							for(ie=0; ie<ne; ie++)
+							{
+								*(tInt++) = IntensityComponent(pEx_StAux, pEz_StAux, -4, Int_or_ReE);
+								pEx_StAux += 2; pEz_StAux += 2;
+							}
+							resInt3 = ConstPhotEnInteg*CGenMathMeth::Integ1D_FuncDefByArray(arAuxInt, ne, RadAccessData.eStep);
+						}
 					}
 					else
 					{
-						*(pI1d++) = resInt1; *(pI2d++) = resInt2; *(pI3d++) = resInt3;
+						if(!allStokesReq) //OC18042020
+						{
+							resInt = IntensityComponentSimpleInterpol(pEx_St, pEx_Fi, pEz_St, pEz_Fi, InvStepRelArg, PolCom, Int_or_ReE);
+						}
+						else //OC18042020
+						{
+							resInt = IntensityComponentSimpleInterpol(pEx_St, pEx_Fi, pEz_St, pEz_Fi, InvStepRelArg, -1, Int_or_ReE);
+							resInt1 = IntensityComponentSimpleInterpol(pEx_St, pEx_Fi, pEz_St, pEz_Fi, InvStepRelArg, -2, Int_or_ReE);
+							resInt2 = IntensityComponentSimpleInterpol(pEx_St, pEx_Fi, pEz_St, pEz_Fi, InvStepRelArg, -3, Int_or_ReE);
+							resInt3 = IntensityComponentSimpleInterpol(pEx_St, pEx_Fi, pEz_St, pEz_Fi, InvStepRelArg, -4, Int_or_ReE);
+						}
 					}
-				}
-			}
-			else if(iter > 0) //OC08052021
-			{
-				if(pI != 0)
-				{
-					float newI = (float)(((*pI)*iter + resInt)*inv_iter_p_1);
-					*(pI++) = newI;
-				}
-				if(pId != 0)
-				{
-					double newI = ((*pId)*iter + resInt)*inv_iter_p_1;
-					*(pId++) = newI;
-				}
-				if(allStokesReq)
-				{
-					if(RadExtract.pExtractedData != 0)
-					{
-						float newI1 = (float)(((*pI1)*iter + resInt1)*inv_iter_p_1);
-						float newI2 = (float)(((*pI2)*iter + resInt2)*inv_iter_p_1);
-						float newI3 = (float)(((*pI3)*iter + resInt3)*inv_iter_p_1);
-						*(pI1++) = newI1; *(pI2++) = newI2; *(pI3++) = newI3;
-					}
-					else
-					{
-						double newI1 = ((*pI1d)*iter + resInt1)*inv_iter_p_1;
-						double newI2 = ((*pI2d)*iter + resInt2)*inv_iter_p_1;
-						double newI3 = ((*pI3d)*iter + resInt3)*inv_iter_p_1;
-						*(pI1d++) = newI1; *(pI2d++) = newI2; *(pI3d++) = newI3;
-					}
-				}
-			}
-			else //OC08052021
-			{
-				if(pI != 0) *(pI++) += (float)resInt;
-				if(pId != 0) *(pId++) += resInt;
-				if(allStokesReq)
-				{
-					if(RadExtract.pExtractedData != 0)
-					{
-						*(pI1++) += (float)resInt1; *(pI2++) += (float)resInt2; *(pI3++) += (float)resInt3;
-					}
-					else
-					{
-						*(pI1d++) += resInt1; *(pI2d++) += resInt2; *(pI3d++) += resInt3;
-					}
-				}
-			}
 
-			//ixPerX += PerX;
-			pEx_St += PerX;
-			pEz_St += PerX;
-			pEx_Fi += PerX;
-			pEz_Fi += PerX;
-		}
-		izPerZ += PerZ;
-	}
+					if(iter == 0) //OC08052021
+					{
+						//OC140813
+						if(pI != 0) *(pI++) = (float)resInt;
+						if(pId != 0) *(pId++) = resInt; //OC18042020
+						//if(pId != 0) *(pId++) = (double)resInt;
+						if(allStokesReq) //OC18042020
+						{
+							if(RadExtract.pExtractedData != 0)
+							{
+								*(pI1++) = (float)resInt1; *(pI2++) = (float)resInt2; *(pI3++) = (float)resInt3;
+							}
+							else
+							{
+								*(pI1d++) = resInt1; *(pI2d++) = resInt2; *(pI3d++) = resInt3;
+							}
+						}
+					}
+					else if(iter > 0) //OC08052021
+					{
+						if(pI != 0)
+						{
+							float newI = (float)(((*pI)*iter + resInt)*inv_iter_p_1);
+							*(pI++) = newI;
+						}
+						if(pId != 0)
+						{
+							double newI = ((*pId)*iter + resInt)*inv_iter_p_1;
+							*(pId++) = newI;
+						}
+						if(allStokesReq)
+						{
+							if(RadExtract.pExtractedData != 0)
+							{
+								float newI1 = (float)(((*pI1)*iter + resInt1)*inv_iter_p_1);
+								float newI2 = (float)(((*pI2)*iter + resInt2)*inv_iter_p_1);
+								float newI3 = (float)(((*pI3)*iter + resInt3)*inv_iter_p_1);
+								*(pI1++) = newI1; *(pI2++) = newI2; *(pI3++) = newI3;
+							}
+							else
+							{
+								double newI1 = ((*pI1d)*iter + resInt1)*inv_iter_p_1;
+								double newI2 = ((*pI2d)*iter + resInt2)*inv_iter_p_1;
+								double newI3 = ((*pI3d)*iter + resInt3)*inv_iter_p_1;
+								*(pI1d++) = newI1; *(pI2d++) = newI2; *(pI3d++) = newI3;
+							}
+						}
+					}
+					else //OC08052021
+					{
+						if(pI != 0) *(pI++) += (float)resInt;
+						if(pId != 0) *(pId++) += resInt;
+						if(allStokesReq)
+						{
+							if(RadExtract.pExtractedData != 0)
+							{
+								*(pI1++) += (float)resInt1; *(pI2++) += (float)resInt2; *(pI3++) += (float)resInt3;
+							}
+							else
+							{
+								*(pI1d++) += resInt1; *(pI2d++) += resInt2; *(pI3d++) += resInt3;
+							}
+						}
+					}
+
+					//ixPerX += PerX;
+					pEx_St += PerX;
+					pEz_St += PerX;
+					pEx_Fi += PerX;
+					pEz_Fi += PerX;
+				}
+				izPerZ += PerZ;
+			}
+			//iwfrPerWfr += PerWfr;
+		//}
+	//}
 	if(arAuxInt != 0) delete[] arAuxInt; //OC150813
 	return 0;
 }
@@ -1571,6 +1587,7 @@ int srTRadGenManip::ExtractSingleElecMutualIntensityVsZ(srTRadExtract& RadExtrac
 //*************************************************************************
 
 int srTRadGenManip::ExtractSingleElecMutualIntensityVsXZ(srTRadExtract& RadExtract)
+//int srTRadGenManip::ExtractSingleElecMutualIntensityVsXZ(srTRadExtract& RadExtract, gpuUsageArg *pGpuUsage) //Himanshu?
 {//OC13122019
  //This assumes "normal" data alignment in the complex "matrix" E(x,y)*E*(x',y')
 	int res = 0;
@@ -2107,156 +2124,138 @@ int srTRadGenManip::ExtractSingleElecMutualIntensityVsXZ(srTRadExtract& RadExtra
 
 	if(DontNeedInterp)
 	{
-		for(long long it=itStart; it<=itEnd; it++) //OC16042021 (to enable partial update of MI/CSD)
-		//for(long long it=0; it<=(itEnd-itStart); it++) //OC03032021 (to enable partial update of MI/CSD)
-		//for(long long it=0; it<nxnz; it++)
-		{
-			float *pMI = pMI0 + (it - itStart)*PerArg; //OC16042021
-			//float *pMI = pMI0 + it*PerArg;
-			for(long long i=0; i<=it; i++)
-			{
-				//if(res = MutualIntensityComponent(pEx, pExT, pEz, pEzT, PolCom, iter, pMI)) return res;
-
-				double ExRe = 0., ExIm = 0., EzRe = 0., EzIm = 0.;
-				double ExReT = 0., ExImT = 0., EzReT = 0., EzImT = 0.;
-				if(EhOK) { ExRe = *pEx; ExIm = *(pEx + 1); ExReT = *pExT; ExImT = *(pExT + 1); }
-				if(EvOK) { EzRe = *pEz; EzIm = *(pEz + 1); EzReT = *pEzT; EzImT = *(pEzT + 1); }
-				double ReMI = 0., ImMI = 0.;
-
-				switch(PolCom)
-				{
-				case 0: // Lin. Hor.
-				{
-					ReMI = ExRe*ExReT + ExIm*ExImT;
-					ImMI = -(ExIm*ExReT - ExRe*ExImT); //OC01052022: Testing the standard definition: E*(x,y)*E(x',y'); previously it assumed the CSD definition E(x,y)*E*(x',y'), whereas the standard one is E*(x,y)*E(x',y') - the two are related by complex conjugation
-					//ImMI = ExIm*ExReT - ExRe*ExImT;
-					break;
-				}
-				case 1: // Lin. Vert.
-				{
-					ReMI = EzRe*EzReT + EzIm*EzImT;
-					ImMI = -(EzIm*EzReT - EzRe*EzImT); //OC01052022: Testing the standard definition: E*(x,y)*E(x',y'); previously it assumed the CSD definition E(x,y)*E*(x',y'), whereas the standard one is E*(x,y)*E(x',y') - the two are related by complex conjugation
-					//ImMI = EzIm*EzReT - EzRe*EzImT;
-					break;
-				}
-				case 2: // Linear 45 deg.
-				{
-					double ExRe_p_EzRe = ExRe + EzRe, ExIm_p_EzIm = ExIm + EzIm;
-					double ExRe_p_EzReT = ExReT + EzReT, ExIm_p_EzImT = ExImT + EzImT;
-					ReMI = 0.5*(ExRe_p_EzRe*ExRe_p_EzReT + ExIm_p_EzIm*ExIm_p_EzImT);
-					ImMI = -0.5*(ExIm_p_EzIm*ExRe_p_EzReT - ExRe_p_EzRe*ExIm_p_EzImT); //OC01052022: Testing the standard definition: E*(x,y)*E(x',y'); previously it assumed the CSD definition E(x,y)*E*(x',y'), whereas the standard one is E*(x,y)*E(x',y') - the two are related by complex conjugation
-					//ImMI = 0.5*(ExIm_p_EzIm*ExRe_p_EzReT - ExRe_p_EzRe*ExIm_p_EzImT);
-					break;
-				}
-				case 3: // Linear 135 deg.
-				{
-					double ExRe_mi_EzRe = ExRe - EzRe, ExIm_mi_EzIm = ExIm - EzIm;
-					double ExRe_mi_EzReT = ExReT - EzReT, ExIm_mi_EzImT = ExImT - EzImT;
-					ReMI = 0.5*(ExRe_mi_EzRe*ExRe_mi_EzReT + ExIm_mi_EzIm*ExIm_mi_EzImT);
-					ImMI = -0.5*(ExIm_mi_EzIm*ExRe_mi_EzReT - ExRe_mi_EzRe*ExIm_mi_EzImT); //OC01052022: Testing the standard definition: E*(x,y)*E(x',y'); previously it assumed the CSD definition E(x,y)*E*(x',y'), whereas the standard one is E*(x,y)*E(x',y') - the two are related by complex conjugation
-					//ImMI = 0.5*(ExIm_mi_EzIm*ExRe_mi_EzReT - ExRe_mi_EzRe*ExIm_mi_EzImT);
-					break;
-				}
-				case 5: // Circ. Left //OC08092019: corrected to be in compliance with definitions for right-hand frame (x,z,s) and with corresponding definition and calculation of Stokes params
-				//case 4: // Circ. Right
-				{
-					double ExRe_mi_EzIm = ExRe - EzIm, ExIm_p_EzRe = ExIm + EzRe;
-					double ExRe_mi_EzImT = ExReT - EzImT, ExIm_p_EzReT = ExImT + EzReT;
-					ReMI = 0.5*(ExRe_mi_EzIm*ExRe_mi_EzImT + ExIm_p_EzRe*ExIm_p_EzReT);
-					ImMI = -0.5*(ExIm_p_EzRe*ExRe_mi_EzImT - ExRe_mi_EzIm*ExIm_p_EzReT); //OC01052022: Testing the standard definition: E*(x,y)*E(x',y'); previously it assumed the CSD definition E(x,y)*E*(x',y'), whereas the standard one is E*(x,y)*E(x',y') - the two are related by complex conjugation
-					//ImMI = 0.5*(ExIm_p_EzRe*ExRe_mi_EzImT - ExRe_mi_EzIm*ExIm_p_EzReT);
-					break;
-				}
-				case 4: // Circ. Right //OC08092019: corrected to be in compliance with definitions for right-hand frame (x,z,s) and with corresponding definition and calculation of Stokes params
-				//case 5: // Circ. Left
-				{
-					double ExRe_p_EzIm = ExRe + EzIm, ExIm_mi_EzRe = ExIm - EzRe;
-					double ExRe_p_EzImT = ExReT + EzImT, ExIm_mi_EzReT = ExImT - EzReT;
-					ReMI = 0.5*(ExRe_p_EzIm*ExRe_p_EzImT + ExIm_mi_EzRe*ExIm_mi_EzReT);
-					ImMI = -0.5*(ExIm_mi_EzRe*ExRe_p_EzImT - ExRe_p_EzIm*ExIm_mi_EzReT); //OC01052022: Testing the standard definition: E*(x,y)*E(x',y'); previously it assumed the CSD definition E(x,y)*E*(x',y'), whereas the standard one is E*(x,y)*E(x',y') - the two are related by complex conjugation
-					//ImMI = 0.5*(ExIm_mi_EzRe*ExRe_p_EzImT - ExRe_p_EzIm*ExIm_mi_EzReT);
-					break;
-				}
-				case -1: // s0
-				{
-					ReMI = ExRe*ExReT + ExIm*ExImT + EzRe*EzReT + EzIm*EzImT; //NOTE: This assumes the CSD definition E(x,y)*E*(x',y'), whereas the standard one is E*(x,y)*E(x',y') - the two are related by complex conjugation
-					ImMI = -(ExIm*ExReT - ExRe*ExImT + EzIm*EzReT - EzRe*EzImT); //OC01052022: Testing the standard definition: E*(x,y)*E(x',y'); previously it assumed the CSD definition E(x,y)*E*(x',y'), whereas the standard one is E*(x,y)*E(x',y') - the two are related by complex conjugation
-					//ImMI = ExIm*ExReT - ExRe*ExImT + EzIm*EzReT - EzRe*EzImT;
-					break;
-				}
-				case -2: // s1
-				{
-					ReMI = ExRe*ExReT + ExIm*ExImT - (EzRe*EzReT + EzIm*EzImT);
-					ImMI = -(ExIm*ExReT - ExRe*ExImT - (EzIm*EzReT - EzRe*EzImT)); //OC01052022: Testing the standard definition: E*(x,y)*E(x',y'); previously it assumed the CSD definition E(x,y)*E*(x',y'), whereas the standard one is E*(x,y)*E(x',y') - the two are related by complex conjugation
-					//ImMI = ExIm*ExReT - ExRe*ExImT - (EzIm*EzReT - EzRe*EzImT);
-					break;
-				}
-				case -3: // s2
-				{
-					ReMI = ExImT*EzIm + ExIm*EzImT + ExReT*EzRe + ExRe*EzReT;
-					ImMI = -(ExReT*EzIm - ExRe*EzImT - ExImT*EzRe + ExIm*EzReT); //OC01052022: Testing the standard definition: E*(x,y)*E(x',y'); previously it assumed the CSD definition E(x,y)*E*(x',y'), whereas the standard one is E*(x,y)*E(x',y') - the two are related by complex conjugation
-					//ImMI = ExReT*EzIm - ExRe*EzImT - ExImT*EzRe + ExIm*EzReT;
-					break;
-				}
-				case -4: // s3
-				{
-					ReMI = ExReT*EzIm + ExRe*EzImT - ExImT*EzRe - ExIm*EzReT;
-					ImMI = -(ExIm*EzImT - ExImT*EzIm - ExReT*EzRe + ExRe*EzReT); //OC01052022: Testing the standard definition: E*(x,y)*E(x',y'); previously it assumed the CSD definition E(x,y)*E*(x',y'), whereas the standard one is E*(x,y)*E(x',y') - the two are related by complex conjugation
-					//ImMI = ExIm*EzImT - ExImT*EzIm - ExReT*EzRe + ExRe*EzReT;
-					break;
-				}
-				default: // total mutual intensity, same as s0
-				{
-					ReMI = ExRe*ExReT + ExIm*ExImT + EzRe*EzReT + EzIm*EzImT;
-					ImMI = -(ExIm*ExReT - ExRe*ExImT + EzIm*EzReT - EzRe*EzImT); //OC01052022: Testing the standard definition: E*(x,y)*E(x',y'); previously it assumed the CSD definition E(x,y)*E*(x',y'), whereas the standard one is E*(x,y)*E(x',y') - the two are related by complex conjugation
-					//ImMI = ExIm*ExReT - ExRe*ExImT + EzIm*EzReT - EzRe*EzImT;
-					break;
-					//return CAN_NOT_EXTRACT_MUT_INT;
-				}
-				}
-				if(iter == 0)
-				{
-					pMI[0] = (float)ReMI;
-					pMI[1] = (float)ImMI;
-				}
-				else if(iter > 0)
-				{
-					//double iter_p_1 = iter + 1; //OC20012020
-					//long long iter_p_1 = iter + 1;
-					pMI[0] = (float)((pMI[0]*iter + ReMI)*inv_iter_p_1); //OC08052021
-					pMI[1] = (float)((pMI[1]*iter + ImMI)*inv_iter_p_1);
-					//pMI[0] = (float)((pMI[0]*iter + ReMI)/iter_p_1);
-					//pMI[1] = (float)((pMI[1]*iter + ImMI)/iter_p_1);
-				}
-				else
-				{
-					pMI[0] += (float)ReMI;
-					pMI[1] += (float)ImMI;
-				}
-
-				pEx += PerX; pEz += PerX;
-				pMI += 2;
-			}
-
-			pEx = pExInit0;
-			pEz = pEzInit0;
-			pExT += PerX; pEzT += PerX;
-		}
-		if(iter == 0) //OC16102021
-		{//Setting to 0 symmetrical part of MI data (to avoid having garbage there)
-
+		//Himanshu?
+		//GPU_COND(pGpuUsage,
+		//	{
+		//		ExtractSingleElecMutualIntensityVsXZ_GPU(pEx, pEz, pMI0, nxnz, itStart, itEnd, PerX, iter, PolCom, EhOK, EvOK, pGpuUsage);
+		//	})
+		//else
+		//{
 			for(long long it=itStart; it<=itEnd; it++) //OC16042021 (to enable partial update of MI/CSD)
+			//for(long long it=0; it<=(itEnd-itStart); it++) //OC03032021 (to enable partial update of MI/CSD)
+			//for(long long it=0; it<nxnz; it++)
 			{
-				float *pMI = pMI0 + (it - itStart)*(PerArg + 2) + 2; //OC29042022 (?)
-				//float *pMI = pMI0 + (it - itStart)*PerArg;
-				for(long long i=it+1; i<=itEnd; i++)
-				//for(long long i=0; i<=it; i++)
+				float *pMI = pMI0 + (it - itStart)*PerArg; //OC16042021
+				//float *pMI = pMI0 + it*PerArg;
+				for(long long i=0; i<=it; i++)
 				{
-					*(pMI++) = 0.;
-					*(pMI++) = 0.;
+					//if(res = MutualIntensityComponent(pEx, pExT, pEz, pEzT, PolCom, iter, pMI)) return res;
+
+					double ExRe = 0., ExIm = 0., EzRe = 0., EzIm = 0.;
+					double ExReT = 0., ExImT = 0., EzReT = 0., EzImT = 0.;
+					if(EhOK) { ExRe = *pEx; ExIm = *(pEx + 1); ExReT = *pExT; ExImT = *(pExT + 1); }
+					if(EvOK) { EzRe = *pEz; EzIm = *(pEz + 1); EzReT = *pEzT; EzImT = *(pEzT + 1); }
+					double ReMI = 0., ImMI = 0.;
+
+					switch(PolCom)
+					{
+					case 0: // Lin. Hor.
+					{
+						ReMI = ExRe*ExReT + ExIm*ExImT;
+						ImMI = ExIm*ExReT - ExRe*ExImT;
+						break;
+					}
+					case 1: // Lin. Vert.
+					{
+						ReMI = EzRe*EzReT + EzIm*EzImT;
+						ImMI = EzIm*EzReT - EzRe*EzImT;
+						break;
+					}
+					case 2: // Linear 45 deg.
+					{
+						double ExRe_p_EzRe = ExRe + EzRe, ExIm_p_EzIm = ExIm + EzIm;
+						double ExRe_p_EzReT = ExReT + EzReT, ExIm_p_EzImT = ExImT + EzImT;
+						ReMI = 0.5*(ExRe_p_EzRe*ExRe_p_EzReT + ExIm_p_EzIm*ExIm_p_EzImT);
+						ImMI = 0.5*(ExIm_p_EzIm*ExRe_p_EzReT - ExRe_p_EzRe*ExIm_p_EzImT);
+						break;
+					}
+					case 3: // Linear 135 deg.
+					{
+						double ExRe_mi_EzRe = ExRe - EzRe, ExIm_mi_EzIm = ExIm - EzIm;
+						double ExRe_mi_EzReT = ExReT - EzReT, ExIm_mi_EzImT = ExImT - EzImT;
+						ReMI = 0.5*(ExRe_mi_EzRe*ExRe_mi_EzReT + ExIm_mi_EzIm*ExIm_mi_EzImT);
+						ImMI = 0.5*(ExIm_mi_EzIm*ExRe_mi_EzReT - ExRe_mi_EzRe*ExIm_mi_EzImT);
+						break;
+					}
+					case 5: // Circ. Left //OC08092019: corrected to be in compliance with definitions for right-hand frame (x,z,s) and with corresponding definition and calculation of Stokes params
+					//case 4: // Circ. Right
+					{
+						double ExRe_mi_EzIm = ExRe - EzIm, ExIm_p_EzRe = ExIm + EzRe;
+						double ExRe_mi_EzImT = ExReT - EzImT, ExIm_p_EzReT = ExImT + EzReT;
+						ReMI = 0.5*(ExRe_mi_EzIm*ExRe_mi_EzImT + ExIm_p_EzRe*ExIm_p_EzReT);
+						ImMI = 0.5*(ExIm_p_EzRe*ExRe_mi_EzImT - ExRe_mi_EzIm*ExIm_p_EzReT);
+						break;
+					}
+					case 4: // Circ. Right //OC08092019: corrected to be in compliance with definitions for right-hand frame (x,z,s) and with corresponding definition and calculation of Stokes params
+					//case 5: // Circ. Left
+					{
+						double ExRe_p_EzIm = ExRe + EzIm, ExIm_mi_EzRe = ExIm - EzRe;
+						double ExRe_p_EzImT = ExReT + EzImT, ExIm_mi_EzReT = ExImT - EzReT;
+						ReMI = 0.5*(ExRe_p_EzIm*ExRe_p_EzImT + ExIm_mi_EzRe*ExIm_mi_EzReT);
+						ImMI = 0.5*(ExIm_mi_EzRe*ExRe_p_EzImT - ExRe_p_EzIm*ExIm_mi_EzReT);
+						break;
+					}
+					case -1: // s0
+					{
+						ReMI = ExRe*ExReT + ExIm*ExImT + EzRe*EzReT + EzIm*EzImT;
+						ImMI = ExIm*ExReT - ExRe*ExImT + EzIm*EzReT - EzRe*EzImT;
+						break;
+					}
+					case -2: // s1
+					{
+						ReMI = ExRe*ExReT + ExIm*ExImT - (EzRe*EzReT + EzIm*EzImT);
+						ImMI = ExIm*ExReT - ExRe*ExImT - (EzIm*EzReT - EzRe*EzImT);
+						break;
+					}
+					case -3: // s2
+					{
+						ReMI = ExImT*EzIm + ExIm*EzImT + ExReT*EzRe + ExRe*EzReT;
+						ImMI = ExReT*EzIm - ExRe*EzImT - ExImT*EzRe + ExIm*EzReT;
+						break;
+					}
+					case -4: // s3
+					{
+						ReMI = ExReT*EzIm + ExRe*EzImT - ExImT*EzRe - ExIm*EzReT;
+						ImMI = ExIm*EzImT - ExImT*EzIm - ExReT*EzRe + ExRe*EzReT;
+						break;
+					}
+					default: // total mutual intensity, same as s0
+					{
+						ReMI = ExRe*ExReT + ExIm*ExImT + EzRe*EzReT + EzIm*EzImT;
+						ImMI = ExIm*ExReT - ExRe*ExImT + EzIm*EzReT - EzRe*EzImT;
+						break;
+						//return CAN_NOT_EXTRACT_MUT_INT;
+					}
+					}
+					if(iter == 0)
+					{
+						pMI[0] = (float)ReMI;
+						pMI[1] = (float)ImMI;
+					}
+					else if(iter > 0)
+					{
+						//double iter_p_1 = iter + 1; //OC20012020
+						//long long iter_p_1 = iter + 1;
+						pMI[0] = (float)((pMI[0]*iter + ReMI)*inv_iter_p_1); //OC08052021
+						pMI[1] = (float)((pMI[1]*iter + ImMI)*inv_iter_p_1);
+						//pMI[0] = (float)((pMI[0]*iter + ReMI)/iter_p_1);
+						//pMI[1] = (float)((pMI[1]*iter + ImMI)/iter_p_1);
+					}
+					else
+					{
+						pMI[0] += (float)ReMI;
+						pMI[1] += (float)ImMI;
+					}
+
+					pEx += PerX; pEz += PerX;
+					pMI += 2;
 				}
+
+				pEx = pExInit0;
+				pEz = pEzInit0;
+				pExT += PerX; pEzT += PerX;
 			}
-		}
+		//}
 	}
 	else
 	{
@@ -3536,8 +3535,7 @@ void srTRadGenManip::MutualIntSumPart(srTWaveAccessData* pwI1, srTWaveAccessData
 	long long itStart = pwI2->itStart;
 	if(itStart < 0) itStart = 0;
 	long long itFin = pwI2->itFin;
-	if(itFin < 0) itFin = nxnz - 1; //OC04102021
-	//if(itFin < 0) itFin = nxnz;
+	if(itFin < 0) itFin = nxnz;
 
 	double aux; //OC27042021
 
@@ -3724,7 +3722,6 @@ void srTRadGenManip::MutualIntFillHalfHermit(srTWaveAccessData* pwI)
 				*pMIt = -imMI; //Hermitian matrix property
 			}
 		}
-		//int aha = 1;
 	}
 	else if(pDataD != 0)
 	{
@@ -3793,22 +3790,18 @@ void srTRadGenManip::MutualIntTreatComQuadPhTerm(srTWaveAccessData* pwI, double*
 		for(long long izt=0; izt<nz; izt++)
 		{
 			double xt = xStart - xc;
-			phTermZt = ConstRzE*zt*zt; //OC01052022: due to transition to correct definition of CSD: E*(x,y)*E(x',y')
-			//phTermZt = -ConstRzE*zt*zt;
+			phTermZt = -ConstRzE*zt*zt;
 			for(long long ixt=0; ixt<nx; ixt++)
 			{
 				double z = zStart - zc;
-				phTermT = phTermZt + ConstRxE*xt*xt; //OC01052022: due to transition to correct definition of CSD: E*(x,y)*E(x',y')
-				//phTermT = phTermZt - ConstRxE*xt*xt;
+				phTermT = phTermZt - ConstRxE*xt*xt;
 				for(long long iz=0; iz<nz; iz++)
 				{
 					double x = xStart - xc;
-					phTermZ = -ConstRzE*z*z; //OC01052022: due to transition to correct definition of CSD: E*(x,y)*E(x',y')
-					//phTermZ = ConstRzE*z*z;
+					phTermZ = ConstRzE*z*z;
 					for(long long ix=0; ix<nx; ix++)
 					{
-						phTerm = phTermZ - ConstRxE*x*x + phTermT; //OC01052022: due to transition to correct definition of CSD: E*(x,y)*E(x',y')
-						//phTerm = phTermZ + ConstRxE*x*x + phTermT;
+						phTerm = phTermZ + ConstRxE*x*x + phTermT;
 						CosAndSin(phTerm, cosPh, sinPh);
 
 						reMI = *pMI;
@@ -3834,22 +3827,18 @@ void srTRadGenManip::MutualIntTreatComQuadPhTerm(srTWaveAccessData* pwI, double*
 		for(long long izt=0; izt<nz; izt++)
 		{
 			double xt = xStart - xc;
-			phTermZt = ConstRzE*zt*zt; //OC01052022: due to transition to correct definition of CSD: E*(x,y)*E(x',y')
-			//phTermZt = -ConstRzE*zt*zt;
+			phTermZt = -ConstRzE*zt*zt;
 			for(long long ixt=0; ixt<nx; ixt++)
 			{
 				double z = zStart - zc;
-				phTermT = phTermZt + ConstRxE*xt*xt; //OC01052022: due to transition to correct definition of CSD: E*(x,y)*E(x',y')
-				//phTermT = phTermZt - ConstRxE*xt*xt;
+				phTermT = phTermZt - ConstRxE*xt*xt;
 				for(long long iz=0; iz<nz; iz++)
 				{
 					double x = xStart - xc;
-					phTermZ = -ConstRzE*z*z; //OC01052022: due to transition to correct definition of CSD: E*(x,y)*E(x',y')
-					//phTermZ = ConstRzE*z*z;
+					phTermZ = ConstRzE*z*z;
 					for(long long ix=0; ix<nx; ix++)
 					{
-						phTerm = phTermZ - ConstRxE*x*x + phTermT; //OC01052022: due to transition to correct definition of CSD: E*(x,y)*E(x',y')
-						//phTerm = phTermZ + ConstRxE*x*x + phTermT;
+						phTerm = phTermZ + ConstRxE*x*x + phTermT;
 						cosPh = cos(phTerm);
 						sinPh = sin(phTerm);
 						//CosAndSin(phTerm, cosPh, sinPh);

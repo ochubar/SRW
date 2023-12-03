@@ -29,6 +29,9 @@
 #include "srisosrc.h"
 #include "srmatsta.h"
 
+#ifdef _OFFLOAD_GPU
+#include "auxgpu.h" //OC27072023
+#endif
 //#include <time.h> //Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP
 
 //-------------------------------------------------------------------------
@@ -751,7 +754,8 @@ EXP int CALL srwlCalcPowDenSR(SRWLStokes* pStokes, SRWLPartBeam* pElBeam, SRWLPr
 
 //-------------------------------------------------------------------------
 
-EXP int CALL srwlCalcIntFromElecField(char* pInt, SRWLWfr* pWfr, char polar, char intType, char depType, double e, double x, double y, double* pMeth, void* pFldTrj) //OC23022020
+EXP int CALL srwlCalcIntFromElecField(char* pInt, SRWLWfr* pWfr, char polar, char intType, char depType, double e, double x, double y, double* pMeth, void* pFldTrj, void* pGPU) //OC26072023
+//EXP int CALL srwlCalcIntFromElecField(char* pInt, SRWLWfr* pWfr, char polar, char intType, char depType, double e, double x, double y, double* pMeth, void* pFldTrj) //OC23022020
 //EXP int CALL srwlCalcIntFromElecField(char* pInt, SRWLWfr* pWfr, char polar, char intType, char depType, double e, double x, double y, double *pMeth) //OC16122019
 //EXP int CALL srwlCalcIntFromElecField(char* pInt, SRWLWfr* pWfr, char polar, char intType, char depType, double e, double x, double y, int *pMeth) //OC13122019
 //EXP int CALL srwlCalcIntFromElecField(char* pInt, SRWLWfr* pWfr, char polar, char intType, char depType, double e, double x, double y)
@@ -994,7 +998,8 @@ EXP int CALL srwlSetRepresElecField(SRWLWfr* pWfr, char repr)
 
 //-------------------------------------------------------------------------
 
-EXP int CALL srwlPropagElecField(SRWLWfr* pWfr, SRWLOptC* pOpt, int nInt, char** arID, SRWLRadMesh* arIM, char** arI) //OC15082018
+EXP int CALL srwlPropagElecField(SRWLWfr* pWfr, SRWLOptC* pOpt, int nInt, char** arID, SRWLRadMesh* arIM, char** arI, void* pGPU) //OC26072023 (from HG)
+//EXP int CALL srwlPropagElecField(SRWLWfr* pWfr, SRWLOptC* pOpt, int nInt, char** arID, SRWLRadMesh* arIM, char** arI) //OC15082018
 //EXP int CALL srwlPropagElecField(SRWLWfr* pWfr, SRWLOptC* pOpt)
 {
 	if((pWfr == 0) || (pOpt == 0)) return SRWL_INCORRECT_PARAM_FOR_WFR_PROP;
@@ -1047,7 +1052,8 @@ EXP int CALL srwlCalcTransm(SRWLOptT* pOpTr, const double* pDelta, const double*
 
 //-------------------------------------------------------------------------
 
-EXP int CALL srwlUtiFFT(char* pcData, char typeData, double* arMesh, int nMesh, int dir)
+EXP int CALL srwlUtiFFT(char* pcData, char typeData, double* arMesh, int nMesh, int dir, void* pGPU) //OC26072023 
+//EXP int CALL srwlUtiFFT(char* pcData, char typeData, double* arMesh, int nMesh, int dir)
 {
 	if((pcData == 0) || (arMesh == 0) || ((typeData != 'f') && (typeData != 'd')) || (nMesh < 3) || (dir == 0)) return SRWL_INCORRECT_PARAM_FOR_FFT; //OC31012019
 
@@ -1538,6 +1544,53 @@ EXP int CALL srwlPropagRadMultiE(SRWLStokes* pStokes, SRWLWfr* pWfr0, SRWLOptC* 
 	return 0;
 }
 
+//-------------------------------------------------------------------------
+#ifdef _OFFLOAD_GPU //OC30102023
+
+EXP bool CALL srwlUtiGPUAvailable() //OC27072023
+//EXP bool CALL srwlAuxGpuAvailable() //HG
+{
+	return CAuxGPU::GPUAvailable(); //OC05092023
+	//return AuxGpu::GPUAvailable();
+}
+
+//-------------------------------------------------------------------------
+
+EXP bool CALL srwlUtiGPUEnabled() //OC27072023
+//EXP bool CALL srwlAuxGpuEnabled() //HG
+{
+	return CAuxGPU::GPUEnabled(nullptr); //OC05092023
+	//return AuxGpu::GPUEnabled(nullptr);
+}
+
+//-------------------------------------------------------------------------
+
+EXP void CALL srwlUtiGPUSetStatus(bool enable) //OC27072023
+//EXP void CALL srwlAuxGpuSetStatus(bool enable) //HG
+{
+	CAuxGPU::SetGPUStatus(enable); //OC05092023
+	//AuxGpu::SetGPUStatus(enable);
+}
+
+//-------------------------------------------------------------------------
+
+EXP void CALL srwlUtiGPUInit() //OC27072023
+//EXP void CALL srwlAuxGpuInit() //HG
+{
+	CAuxGPU::Init(); //OC05092023 (why void?)
+	//AuxGpu::Init();
+}
+
+//-------------------------------------------------------------------------
+
+EXP void CALL srwlUtiGPUFini() //OC27072023
+//EXP void CALL srwlAuxGpuFini() //HG
+{
+	CAuxGPU::Fini(); //OC05092023 (why void?)
+	//AuxGpu::Fini();
+}
+
+#endif
 //-------------------------------------------------------------------------
 //Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
 /*
