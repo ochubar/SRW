@@ -944,7 +944,7 @@ public:
 	}
 
 	//int PropagateRadiation(srTSRWRadStructAccessData* pRadAccessData, srTParPrecWfrPropag& ParPrecWfrPropag, srTRadResizeVect& ResBeforeAndAfterVect) //virtual in srTGenOptElem
-	int PropagateRadiation(srTSRWRadStructAccessData* pRadAccessData, srTParPrecWfrPropag& ParPrecWfrPropag, srTRadResizeVect& ResBeforeAndAfterVect, void* pvGPU) //virtual in srTGenOptElem //HG01122023
+	int PropagateRadiation(srTSRWRadStructAccessData* pRadAccessData, srTParPrecWfrPropag& ParPrecWfrPropag, srTRadResizeVect& ResBeforeAndAfterVect, void* pvGPU=0) //virtual in srTGenOptElem //HG01122023
 	{
 		m_eStartAux = pRadAccessData->eStart; m_eStepAux = pRadAccessData->eStep; m_ne = pRadAccessData->ne; //required for RadPointModifier
 

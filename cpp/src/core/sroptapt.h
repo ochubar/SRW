@@ -34,7 +34,7 @@ public:
 
 	//int PropagateRadiation(srTSRWRadStructAccessData* pRadAccessData, int MethNo, srTRadResizeVect& ResBeforeAndAfterVect)
 	//int PropagateRadiation(srTSRWRadStructAccessData* pRadAccessData, srTParPrecWfrPropag& ParPrecWfrPropag, srTRadResizeVect& ResBeforeAndAfterVect)
-	int PropagateRadiation(srTSRWRadStructAccessData* pRadAccessData, srTParPrecWfrPropag& ParPrecWfrPropag, srTRadResizeVect& ResBeforeAndAfterVect, void* pvGPU) //HG30112023
+	int PropagateRadiation(srTSRWRadStructAccessData* pRadAccessData, srTParPrecWfrPropag& ParPrecWfrPropag, srTRadResizeVect& ResBeforeAndAfterVect, void* pvGPU=0) //HG30112023
 	{
 		char &MethNo = ParPrecWfrPropag.MethNo;
 
@@ -82,7 +82,7 @@ public:
 	//int PropagateRadiationSimple(srTSRWRadStructAccessData* pRadAccessData, void* pBuf=0) //OC06092019
 	//OC01102019 (restored)
 	//int PropagateRadiationSimple(srTSRWRadStructAccessData* pRadAccessData)
-	int PropagateRadiationSimple(srTSRWRadStructAccessData* pRadAccessData, void* pvGPU) //HG30112023
+	int PropagateRadiationSimple(srTSRWRadStructAccessData* pRadAccessData, void* pvGPU=0) //HG30112023
 	{
 		int result;
 		//if(pRadAccessData->Pres != 0) if(result = SetRadRepres(pRadAccessData, 0)) return result;

@@ -179,7 +179,7 @@ public:
 	//int PropagateRadiationSingleE_Meth_0(srTSRWRadStructAccessData* pRadAccessData, srTSRWRadStructAccessData* pPrevRadAccessData, void* pBuf=0) //OC06092019
 	//OC01102019 (restored)
 	//int PropagateRadiationSingleE_Meth_0(srTSRWRadStructAccessData* pRadAccessData, srTSRWRadStructAccessData* pPrevRadAccessData)
-	int PropagateRadiationSingleE_Meth_0(srTSRWRadStructAccessData* pRadAccessData, srTSRWRadStructAccessData* pPrevRadAccessData, void* pvGPU) //HG01122023
+	int PropagateRadiationSingleE_Meth_0(srTSRWRadStructAccessData* pRadAccessData, srTSRWRadStructAccessData* pPrevRadAccessData, void* pvGPU=0) //HG01122023
 	{//it works for many photon energies too!
 		int result;
 		//if(result = PropagateRadiationSimple(pRadAccessData, pBuf)) return result; //OC06092019
@@ -312,7 +312,7 @@ public:
 	//int PropagateRadiationSimple(srTSRWRadStructAccessData* pRadAccessData, void* pBuf=0) //OC06092019
 	//OC01102019 (restored)
 	//int PropagateRadiationSimple(srTSRWRadStructAccessData* pRadAccessData)
-	int PropagateRadiationSimple(srTSRWRadStructAccessData* pRadAccessData, void* pvGPU) //HG01122023
+	int PropagateRadiationSimple(srTSRWRadStructAccessData* pRadAccessData, void* pvGPU=0) //HG01122023
 	{
 		//srTDriftPropBufVars* pBufVars = (srTDriftPropBufVars*)pBuf; //OC06092019
 		//char LocalPropMode = pBufVars->LocalPropMode; //OC06092019

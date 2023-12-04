@@ -67,10 +67,12 @@ public:
 	void SetupSpherMirrorApprox();
 
 	//int PropagateRadiation(srTSRWRadStructAccessData* pRadAccessData, int MethNo, srTRadResizeVect& ResBeforeAndAfterVect)
-	int PropagateRadiation(srTSRWRadStructAccessData* pRadAccessData, srTParPrecWfrPropag& ParPrecWfrPropag, srTRadResizeVect& ResBeforeAndAfterVect)
+	//int PropagateRadiation(srTSRWRadStructAccessData* pRadAccessData, srTParPrecWfrPropag& ParPrecWfrPropag, srTRadResizeVect& ResBeforeAndAfterVect)
+	int PropagateRadiation(srTSRWRadStructAccessData* pRadAccessData, srTParPrecWfrPropag& ParPrecWfrPropag, srTRadResizeVect& ResBeforeAndAfterVect, void* pvGPU=0) //HG04122023
 	{
 		//if(UseSpherMirrorApprox) return ((srTGenOptElem*)(SpherMirrorApproxHndl.rep))->PropagateRadiation(pRadAccessData, MethNo, ResBeforeAndAfterVect);
-		if(UseSpherMirrorApprox) return ((srTGenOptElem*)(SpherMirrorApproxHndl.rep))->PropagateRadiation(pRadAccessData, ParPrecWfrPropag, ResBeforeAndAfterVect);
+		//if(UseSpherMirrorApprox) return ((srTGenOptElem*)(SpherMirrorApproxHndl.rep))->PropagateRadiation(pRadAccessData, ParPrecWfrPropag, ResBeforeAndAfterVect);
+		if(UseSpherMirrorApprox) return ((srTGenOptElem*)(SpherMirrorApproxHndl.rep))->PropagateRadiation(pRadAccessData, ParPrecWfrPropag, ResBeforeAndAfterVect, pvGPU); //HG04122023
 		else
 		{
             char &MethNo = ParPrecWfrPropag.MethNo;

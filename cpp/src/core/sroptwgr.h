@@ -134,7 +134,8 @@ public:
 	}
 
 	//int PropagateRadiation(srTSRWRadStructAccessData* pRadAccessData, int MethNo, srTRadResizeVect& ResizeBeforeAndAfterVect)
-	int PropagateRadiation(srTSRWRadStructAccessData* pRadAccessData, srTParPrecWfrPropag& ParPrecWfrPropag, srTRadResizeVect& ResizeBeforeAndAfterVect)
+	//int PropagateRadiation(srTSRWRadStructAccessData* pRadAccessData, srTParPrecWfrPropag& ParPrecWfrPropag, srTRadResizeVect& ResizeBeforeAndAfterVect)
+	int PropagateRadiation(srTSRWRadStructAccessData* pRadAccessData, srTParPrecWfrPropag& ParPrecWfrPropag, srTRadResizeVect& ResizeBeforeAndAfterVect, void* pvGPU=0) //HG04122023
 	{
 		//Checks current sampling "resolution" in hor. and vert. directions
 		//Makes necessary sampling for propag. through the waveguide (fit the waveguide with approx. the same resolution, include all harmonics until the cut-off)
@@ -151,7 +152,8 @@ public:
 		if(result = PropagateRadiationSimple_AngRepres(&AuxWfrData)) return result;
 
 		srTRectAperture RectAp(Dx, Dz, TransvCenPoint.x, TransvCenPoint.y);
-		if(result = RectAp.TraverseRadZXE(&AuxWfrData)) return result;
+		//if(result = RectAp.TraverseRadZXE(&AuxWfrData)) return result;
+		if(result = RectAp.TraverseRadZXE(&AuxWfrData, 0, 0, pvGPU)) return result; //HG04122023
 
 		if(result = CopyElecFieldDataForOut(AuxWfrData, *pRadAccessData)) return result;
 		AuxWfrData.DeleteElecFieldArrays(); //deletes Ex, Ez only

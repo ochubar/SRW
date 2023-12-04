@@ -75,7 +75,8 @@ public:
 	}
 
 	//int PropagateRadiation(srTSRWRadStructAccessData* pRadAccessData, int MethNo, srTRadResizeVect& ResBeforeAndAfterVect)
-	int PropagateRadiation(srTSRWRadStructAccessData* pRadAccessData, srTParPrecWfrPropag& ParPrecWfrPropag, srTRadResizeVect& ResBeforeAndAfterVect)
+	//int PropagateRadiation(srTSRWRadStructAccessData* pRadAccessData, srTParPrecWfrPropag& ParPrecWfrPropag, srTRadResizeVect& ResBeforeAndAfterVect)
+	int PropagateRadiation(srTSRWRadStructAccessData* pRadAccessData, srTParPrecWfrPropag& ParPrecWfrPropag, srTRadResizeVect& ResBeforeAndAfterVect, void* pvGPU=0) //HG04122023
 	{
 		char &MethNo = ParPrecWfrPropag.MethNo;
 
@@ -86,7 +87,8 @@ public:
 
 	//int PropagateRadiationSimple(srTSRWRadStructAccessData* pRadAccessData, void* pBuf=0) //OC06092019
 	//OC01102019 (restored)
-	int PropagateRadiationSimple(srTSRWRadStructAccessData* pRadAccessData)
+	//int PropagateRadiationSimple(srTSRWRadStructAccessData* pRadAccessData)
+	int PropagateRadiationSimple(srTSRWRadStructAccessData* pRadAccessData, void* pvGPU=0) //HG04122023
 	{
 		int result;
 		srTWaveAccessData PhShWaveAccessData;
@@ -94,8 +96,10 @@ public:
 		//tPhaseShiftData = (DOUBLE*)(PhShWaveAccessData.pWaveData);
 		tPhaseShiftData = (double*)(PhShWaveAccessData.pWaveData); //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
 
-		if(pRadAccessData->Pres != 0) if(result = SetRadRepres(pRadAccessData, 0)) return result;
-		if(result = TraverseRadZXE(pRadAccessData)) return result;
+		//if(pRadAccessData->Pres != 0) if(result = SetRadRepres(pRadAccessData, 0)) return result;
+		if(pRadAccessData->Pres != 0) if(result = SetRadRepres(pRadAccessData, 0, 0, 0, pvGPU)) return result; //HG04122023
+		//if(result = TraverseRadZXE(pRadAccessData)) return result;
+		if(result = TraverseRadZXE(pRadAccessData, 0, 0, pvGPU)) return result; //HG04122023
 
 		//srTSend Send;
 		//if(result = Send.FinishWorkingWithWave(&PhShWaveAccessData)) return result;
