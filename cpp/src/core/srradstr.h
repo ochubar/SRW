@@ -33,7 +33,7 @@
 #endif
 
 #ifdef _OFFLOAD_GPU //OC28072023
-#include "auxgpu.h" //HG
+#include "auxgpu.h" //HG04122023
 #endif
 
 #include "srobject.h"
@@ -520,14 +520,15 @@ public:
 		//	return;
 		//}
 
-		if(pvGPU != 0)
-		{
+		//if(pvGPU != 0) //HG02122023 Null check is already done by CAuxGPU::GPUEnabled
+		//{
 			TGPUUsageArg *pGPU = (TGPUUsageArg*)pvGPU;
 			if(CAuxGPU::GPUEnabled(pGPU))
 			{
 				MultiplyElFieldByPhaseLin_GPU(xMult, zMult, pGPU);
+				return;	//HG02122023
 			}
-		}
+		//}
 #endif
 
 		float *tEx = pBaseRadX;

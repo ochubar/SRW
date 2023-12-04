@@ -1427,7 +1427,7 @@
       <ProfileGuidedDatabase>srwlpy.pgd</ProfileGuidedDatabase>
     </Link>
     <PostBuildEvent>
-      <Command>copy $(SolutionDir)srwlpy.pyd "$(SolutionDir)..\..\env\work\srw_python\"</Command>
+      <Command>copy $(SolutionDir)srwlpy.pyd "$(SolutionDir)..\..\clients\python\srwpy\"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release_Py3_9|x64'">

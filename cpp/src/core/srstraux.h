@@ -203,6 +203,9 @@ struct srTStokesC {
 
 struct srTEFieldPtrs {
 	float *pExRe, *pExIm, *pEzRe, *pEzIm;
+#ifdef _OFFLOAD_GPU //HG02122023
+	GPU_PORTABLE
+#endif
 	srTEFieldPtrs(float* In_pExRe =0, float* In_pExIm =0, float* In_pEzRe =0, float* In_pEzIm =0) 
 	{ 
 		pExRe = In_pExRe; pExIm = In_pExIm; pEzRe = In_pEzRe; pEzIm = In_pEzIm;
@@ -1588,6 +1591,9 @@ struct srTInterpolAux01 {
 	double cAx2z0, cAx2z1, cAx2z2, cAx2z3, cAx3z0, cAx3z1, cAx3z2, cAx3z3;
 	double cLAx1z0, cLAx0z1, cLAx1z1;
 
+#ifdef _OFFLOAD_GPU //HG02122023
+	GPU_PORTABLE
+#endif
 	srTInterpolAux01()
 	{
 		cAx0z1 = 0.1666666667;
@@ -1654,10 +1660,18 @@ struct srTInterpolAuxF {
 	float f03, f13, f23, f33;
 
 	float fAvg, fNorm;
+
+#ifdef _OFFLOAD_GPU //HG02122023
+	GPU_PORTABLE
+#endif
 	void SetUpAvg()
 	{
 		fAvg = (float)(0.0625*(f00 + f10 + f20 + f30 + f01 + f11 + f21 + f31 + f02 + f12 + f22 + f32 + f03 + f13 + f23 + f33));
 	}
+	
+#ifdef _OFFLOAD_GPU //HG02122023
+	GPU_PORTABLE
+#endif
 	void NormalizeByAvg()
 	{
 		const float CritNorm = 1.;
@@ -1724,11 +1738,17 @@ struct srTDataPtrsForWfrEdgeCorr {
 	double dxSt, dxFi, dzSt, dzFi, dx, dz;
 	char WasSetup;
 
+#ifdef _OFFLOAD_GPU //HG02122023
+	GPU_PORTABLE
+#endif
 	srTDataPtrsForWfrEdgeCorr()
 	{
 		InitializeAll();
 	}
 
+#ifdef _OFFLOAD_GPU //HG02122023
+	GPU_PORTABLE
+#endif
 	void InitializeAll()
 	{
 		ExpArrXSt = ExpArrXFi = 0;
@@ -1747,6 +1767,9 @@ struct srTDataPtrsForWfrEdgeCorr {
 		}
 		WasSetup = 0;
 	}
+#ifdef _OFFLOAD_GPU //HG02122023
+	GPU_PORTABLE
+#endif
 	void DisposeData()
 	{
 		if(ExpArrXSt != 0) delete[] ExpArrXSt;

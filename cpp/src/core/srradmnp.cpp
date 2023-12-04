@@ -676,8 +676,9 @@ int srTRadGenManip::ExtractSingleElecIntensity1DvsZ(srTRadExtract& RadExtract)
 
 //*************************************************************************
 
-int srTRadGenManip::ExtractSingleElecIntensity2DvsXZ(srTRadExtract& RadExtract)
-//int srTRadGenManip::ExtractSingleElecIntensity2DvsXZ(srTRadExtract& RadExtract, gpuUsageArg *pGpuUsage) //Himanshu?
+//int srTRadGenManip::ExtractSingleElecIntensity2DvsXZ(srTRadExtract& RadExtract)
+//int srTRadGenManip::ExtractSingleElecIntensity2DvsXZ(srTRadExtract& RadExtract, gpuUsageArg *pGpuUsage) //HG30112023
+int srTRadGenManip::ExtractSingleElecIntensity2DvsXZ(srTRadExtract& RadExtract, void* pvGPU) //HG02122023
 {
 	int PolCom = RadExtract.PolarizCompon;
 	int Int_or_ReE = RadExtract.Int_or_Phase;
@@ -691,7 +692,7 @@ int srTRadGenManip::ExtractSingleElecIntensity2DvsXZ(srTRadExtract& RadExtract)
 	float *pI = 0, *pI1 = 0, *pI2 = 0, *pI3 = 0; //OC17042020
 	double *pId = 0, *pI1d = 0, *pI2d = 0, *pI3d = 0;
 	long ne = RadAccessData.ne, nx = RadAccessData.nx, nz = RadAccessData.nz;
-	//long ne = RadAccessData.ne, nx = RadAccessData.nx, nz = RadAccessData.nz, nwfr = RadAccessData.nwfr; //Himanshu?
+	//long ne = RadAccessData.ne, nx = RadAccessData.nx, nz = RadAccessData.nz, nwfr = RadAccessData.nwfr; //HG30112023
 	//float *pI = 0;
 	//DOUBLE *pId = 0;
 	//double *pId = 0; //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
@@ -759,185 +760,180 @@ int srTRadGenManip::ExtractSingleElecIntensity2DvsXZ(srTRadExtract& RadExtract)
 	//long izPerZ = 0;
 	long ix, ie;
 
-	//Himanshu?
-	//GPU_COND(pGpuUsage,
-	//{
-	//	ExtractSingleElecIntensity2DvsXZ_GPU(RadExtract, arAuxInt, ie0, ie1, InvStepRelArg, pGpuUsage);
-	//})
-	//else
-	//{
-		//long long iwfrPerWfr = 0;
-		//for(long long iwfr=0; iwfr<nwfr; iwfr++)
-		//{
-			long long izPerZ = 0;
-			for(long long iz=0; iz<nz; iz++) //OC18042020
-			//for(long long iz=0; iz<RadAccessData.nz; iz++) //OC26042019
-			//for(long iz=0; iz<RadAccessData.nz; iz++)
+#ifdef _OFFLOAD_GPU	//HG30112023 //HG02122023
+	if(CAuxGPU::GPUEnabled((TGPUUsageArg*)pvGPU))
+	{
+		ExtractSingleElecIntensity2DvsXZ_GPU(RadExtract, arAuxInt, ie0, ie1, InvStepRelArg, (TGPUUsageArg*)pvGPU);
+	}
+	else
+#endif
+	{
+		long long izPerZ = 0;
+		for(long long iz=0; iz<nz; iz++) //OC18042020
+		//for(long long iz=0; iz<RadAccessData.nz; iz++) //OC26042019
+		//for(long iz=0; iz<RadAccessData.nz; iz++)
+		{
+			float *pEx_StartForX = pEx0 + izPerZ;
+			float *pEz_StartForX = pEz0 + izPerZ;
+			//long ixPerX = 0;
+
+			float *pEx_St = pEx_StartForX + Two_ie0;
+			float *pEz_St = pEz_StartForX + Two_ie0;
+			float *pEx_Fi = pEx_StartForX + Two_ie1;
+			float *pEz_Fi = pEz_StartForX + Two_ie1;
+
+			for(ix=0; ix<nx; ix++) //OC18042020
+			//for(long ix=0; ix<RadAccessData.nx; ix++)
 			{
-				float *pEx_StartForX = pEx0 + izPerZ;
-				float *pEz_StartForX = pEz0 + izPerZ;
-				//long ixPerX = 0;
+				//float *pEx_StartForE = pEx_StartForX + ixPerX;
+				//float *pEz_StartForE = pEz_StartForX + ixPerX;
+				//float *pEx_St = pEx_StartForE + Two_ie0, *pEx_Fi = pEx_StartForE + Two_ie1;
+				//float *pEz_St = pEz_StartForE + Two_ie0, *pEz_Fi = pEz_StartForE + Two_ie1;
 
-				float *pEx_St = pEx_StartForX + Two_ie0;
-				float *pEz_St = pEz_StartForX + Two_ie0;
-				float *pEx_Fi = pEx_StartForX + Two_ie1;
-				float *pEz_Fi = pEz_StartForX + Two_ie1;
+				//OC140813
+				//if(pI != 0) *(pI++) = IntensityComponentSimpleInterpol(pEx_St, pEx_Fi, pEz_St, pEz_Fi, InvStepRelArg, PolCom, Int_or_ReE);
+				//if(pId != 0) *(pId++) = IntensityComponentSimpleInterpol(pEx_St, pEx_Fi, pEz_St, pEz_Fi, InvStepRelArg, PolCom, Int_or_ReE);
 
-				for(ix=0; ix<nx; ix++) //OC18042020
-				//for(long ix=0; ix<RadAccessData.nx; ix++)
-				{
-					//float *pEx_StartForE = pEx_StartForX + ixPerX;
-					//float *pEz_StartForE = pEz_StartForX + ixPerX;
-					//float *pEx_St = pEx_StartForE + Two_ie0, *pEx_Fi = pEx_StartForE + Two_ie1;
-					//float *pEz_St = pEz_StartForE + Two_ie0, *pEz_Fi = pEz_StartForE + Two_ie1;
+				if(intOverEnIsRequired) //OC140813
+				{//integrate over photon energy / time
+					double *tInt = arAuxInt; 
+					float *pEx_StAux = pEx_St;
+					float *pEz_StAux = pEz_St;
 
-					//OC140813
-					//if(pI != 0) *(pI++) = IntensityComponentSimpleInterpol(pEx_St, pEx_Fi, pEz_St, pEz_Fi, InvStepRelArg, PolCom, Int_or_ReE);
-					//if(pId != 0) *(pId++) = IntensityComponentSimpleInterpol(pEx_St, pEx_Fi, pEz_St, pEz_Fi, InvStepRelArg, PolCom, Int_or_ReE);
-
-					if(intOverEnIsRequired) //OC140813
-					{//integrate over photon energy / time
-						double *tInt = arAuxInt; 
-						float *pEx_StAux = pEx_St;
-						float *pEz_StAux = pEz_St;
-
-						if(!allStokesReq) //OC17042020
+					if(!allStokesReq) //OC17042020
+					{
+						for(ie=0; ie<ne; ie++) //OC18042020
+						//for(int ie=0; ie<RadAccessData.ne; ie++)
 						{
-							for(ie=0; ie<ne; ie++) //OC18042020
-							//for(int ie=0; ie<RadAccessData.ne; ie++)
-							{
-								*(tInt++) = IntensityComponent(pEx_StAux, pEz_StAux, PolCom, Int_or_ReE);
-								pEx_StAux += 2;
-								pEz_StAux += 2;
-							}
-							resInt = ConstPhotEnInteg*CGenMathMeth::Integ1D_FuncDefByArray(arAuxInt, ne, RadAccessData.eStep); //OC18042020
-							//resInt = ConstPhotEnInteg*CGenMathMeth::Integ1D_FuncDefByArray(arAuxInt, RadAccessData.ne, RadAccessData.eStep);
+							*(tInt++) = IntensityComponent(pEx_StAux, pEz_StAux, PolCom, Int_or_ReE);
+							pEx_StAux += 2;
+							pEz_StAux += 2;
 						}
-						else
-						{
-							for(ie=0; ie<ne; ie++)
-							{
-								*(tInt++) = IntensityComponent(pEx_StAux, pEz_StAux, -1, Int_or_ReE);
-								pEx_StAux += 2; pEz_StAux += 2;
-							}
-							resInt = ConstPhotEnInteg*CGenMathMeth::Integ1D_FuncDefByArray(arAuxInt, ne, RadAccessData.eStep);
-
-							tInt = arAuxInt; pEx_StAux = pEx_St; pEz_StAux = pEz_St;
-							for(ie=0; ie<ne; ie++)
-							{
-								*(tInt++) = IntensityComponent(pEx_StAux, pEz_StAux, -2, Int_or_ReE);
-								pEx_StAux += 2; pEz_StAux += 2;
-							}
-							resInt1 = ConstPhotEnInteg*CGenMathMeth::Integ1D_FuncDefByArray(arAuxInt, ne, RadAccessData.eStep);
-
-							tInt = arAuxInt; pEx_StAux = pEx_St; pEz_StAux = pEz_St;
-							for(ie=0; ie<ne; ie++)
-							{
-								*(tInt++) = IntensityComponent(pEx_StAux, pEz_StAux, -3, Int_or_ReE);
-								pEx_StAux += 2; pEz_StAux += 2;
-							}
-							resInt2 = ConstPhotEnInteg*CGenMathMeth::Integ1D_FuncDefByArray(arAuxInt, ne, RadAccessData.eStep);
-
-							tInt = arAuxInt; pEx_StAux = pEx_St; pEz_StAux = pEz_St;
-							for(ie=0; ie<ne; ie++)
-							{
-								*(tInt++) = IntensityComponent(pEx_StAux, pEz_StAux, -4, Int_or_ReE);
-								pEx_StAux += 2; pEz_StAux += 2;
-							}
-							resInt3 = ConstPhotEnInteg*CGenMathMeth::Integ1D_FuncDefByArray(arAuxInt, ne, RadAccessData.eStep);
-						}
+						resInt = ConstPhotEnInteg*CGenMathMeth::Integ1D_FuncDefByArray(arAuxInt, ne, RadAccessData.eStep); //OC18042020
+						//resInt = ConstPhotEnInteg*CGenMathMeth::Integ1D_FuncDefByArray(arAuxInt, RadAccessData.ne, RadAccessData.eStep);
 					}
 					else
 					{
-						if(!allStokesReq) //OC18042020
+						for(ie=0; ie<ne; ie++)
 						{
-							resInt = IntensityComponentSimpleInterpol(pEx_St, pEx_Fi, pEz_St, pEz_Fi, InvStepRelArg, PolCom, Int_or_ReE);
+							*(tInt++) = IntensityComponent(pEx_StAux, pEz_StAux, -1, Int_or_ReE);
+							pEx_StAux += 2; pEz_StAux += 2;
 						}
-						else //OC18042020
-						{
-							resInt = IntensityComponentSimpleInterpol(pEx_St, pEx_Fi, pEz_St, pEz_Fi, InvStepRelArg, -1, Int_or_ReE);
-							resInt1 = IntensityComponentSimpleInterpol(pEx_St, pEx_Fi, pEz_St, pEz_Fi, InvStepRelArg, -2, Int_or_ReE);
-							resInt2 = IntensityComponentSimpleInterpol(pEx_St, pEx_Fi, pEz_St, pEz_Fi, InvStepRelArg, -3, Int_or_ReE);
-							resInt3 = IntensityComponentSimpleInterpol(pEx_St, pEx_Fi, pEz_St, pEz_Fi, InvStepRelArg, -4, Int_or_ReE);
-						}
-					}
+						resInt = ConstPhotEnInteg*CGenMathMeth::Integ1D_FuncDefByArray(arAuxInt, ne, RadAccessData.eStep);
 
-					if(iter == 0) //OC08052021
-					{
-						//OC140813
-						if(pI != 0) *(pI++) = (float)resInt;
-						if(pId != 0) *(pId++) = resInt; //OC18042020
-						//if(pId != 0) *(pId++) = (double)resInt;
-						if(allStokesReq) //OC18042020
+						tInt = arAuxInt; pEx_StAux = pEx_St; pEz_StAux = pEz_St;
+						for(ie=0; ie<ne; ie++)
 						{
-							if(RadExtract.pExtractedData != 0)
-							{
-								*(pI1++) = (float)resInt1; *(pI2++) = (float)resInt2; *(pI3++) = (float)resInt3;
-							}
-							else
-							{
-								*(pI1d++) = resInt1; *(pI2d++) = resInt2; *(pI3d++) = resInt3;
-							}
+							*(tInt++) = IntensityComponent(pEx_StAux, pEz_StAux, -2, Int_or_ReE);
+							pEx_StAux += 2; pEz_StAux += 2;
 						}
-					}
-					else if(iter > 0) //OC08052021
-					{
-						if(pI != 0)
-						{
-							float newI = (float)(((*pI)*iter + resInt)*inv_iter_p_1);
-							*(pI++) = newI;
-						}
-						if(pId != 0)
-						{
-							double newI = ((*pId)*iter + resInt)*inv_iter_p_1;
-							*(pId++) = newI;
-						}
-						if(allStokesReq)
-						{
-							if(RadExtract.pExtractedData != 0)
-							{
-								float newI1 = (float)(((*pI1)*iter + resInt1)*inv_iter_p_1);
-								float newI2 = (float)(((*pI2)*iter + resInt2)*inv_iter_p_1);
-								float newI3 = (float)(((*pI3)*iter + resInt3)*inv_iter_p_1);
-								*(pI1++) = newI1; *(pI2++) = newI2; *(pI3++) = newI3;
-							}
-							else
-							{
-								double newI1 = ((*pI1d)*iter + resInt1)*inv_iter_p_1;
-								double newI2 = ((*pI2d)*iter + resInt2)*inv_iter_p_1;
-								double newI3 = ((*pI3d)*iter + resInt3)*inv_iter_p_1;
-								*(pI1d++) = newI1; *(pI2d++) = newI2; *(pI3d++) = newI3;
-							}
-						}
-					}
-					else //OC08052021
-					{
-						if(pI != 0) *(pI++) += (float)resInt;
-						if(pId != 0) *(pId++) += resInt;
-						if(allStokesReq)
-						{
-							if(RadExtract.pExtractedData != 0)
-							{
-								*(pI1++) += (float)resInt1; *(pI2++) += (float)resInt2; *(pI3++) += (float)resInt3;
-							}
-							else
-							{
-								*(pI1d++) += resInt1; *(pI2d++) += resInt2; *(pI3d++) += resInt3;
-							}
-						}
-					}
+						resInt1 = ConstPhotEnInteg*CGenMathMeth::Integ1D_FuncDefByArray(arAuxInt, ne, RadAccessData.eStep);
 
-					//ixPerX += PerX;
-					pEx_St += PerX;
-					pEz_St += PerX;
-					pEx_Fi += PerX;
-					pEz_Fi += PerX;
+						tInt = arAuxInt; pEx_StAux = pEx_St; pEz_StAux = pEz_St;
+						for(ie=0; ie<ne; ie++)
+						{
+							*(tInt++) = IntensityComponent(pEx_StAux, pEz_StAux, -3, Int_or_ReE);
+							pEx_StAux += 2; pEz_StAux += 2;
+						}
+						resInt2 = ConstPhotEnInteg*CGenMathMeth::Integ1D_FuncDefByArray(arAuxInt, ne, RadAccessData.eStep);
+
+						tInt = arAuxInt; pEx_StAux = pEx_St; pEz_StAux = pEz_St;
+						for(ie=0; ie<ne; ie++)
+						{
+							*(tInt++) = IntensityComponent(pEx_StAux, pEz_StAux, -4, Int_or_ReE);
+							pEx_StAux += 2; pEz_StAux += 2;
+						}
+						resInt3 = ConstPhotEnInteg*CGenMathMeth::Integ1D_FuncDefByArray(arAuxInt, ne, RadAccessData.eStep);
+					}
 				}
-				izPerZ += PerZ;
+				else
+				{
+					if(!allStokesReq) //OC18042020
+					{
+						resInt = IntensityComponentSimpleInterpol(pEx_St, pEx_Fi, pEz_St, pEz_Fi, InvStepRelArg, PolCom, Int_or_ReE);
+					}
+					else //OC18042020
+					{
+						resInt = IntensityComponentSimpleInterpol(pEx_St, pEx_Fi, pEz_St, pEz_Fi, InvStepRelArg, -1, Int_or_ReE);
+						resInt1 = IntensityComponentSimpleInterpol(pEx_St, pEx_Fi, pEz_St, pEz_Fi, InvStepRelArg, -2, Int_or_ReE);
+						resInt2 = IntensityComponentSimpleInterpol(pEx_St, pEx_Fi, pEz_St, pEz_Fi, InvStepRelArg, -3, Int_or_ReE);
+						resInt3 = IntensityComponentSimpleInterpol(pEx_St, pEx_Fi, pEz_St, pEz_Fi, InvStepRelArg, -4, Int_or_ReE);
+					}
+				}
+
+				if(iter == 0) //OC08052021
+				{
+					//OC140813
+					if(pI != 0) *(pI++) = (float)resInt;
+					if(pId != 0) *(pId++) = resInt; //OC18042020
+					//if(pId != 0) *(pId++) = (double)resInt;
+					if(allStokesReq) //OC18042020
+					{
+						if(RadExtract.pExtractedData != 0)
+						{
+							*(pI1++) = (float)resInt1; *(pI2++) = (float)resInt2; *(pI3++) = (float)resInt3;
+						}
+						else
+						{
+							*(pI1d++) = resInt1; *(pI2d++) = resInt2; *(pI3d++) = resInt3;
+						}
+					}
+				}
+				else if(iter > 0) //OC08052021
+				{
+					if(pI != 0)
+					{
+						float newI = (float)(((*pI)*iter + resInt)*inv_iter_p_1);
+						*(pI++) = newI;
+					}
+					if(pId != 0)
+					{
+						double newI = ((*pId)*iter + resInt)*inv_iter_p_1;
+						*(pId++) = newI;
+					}
+					if(allStokesReq)
+					{
+						if(RadExtract.pExtractedData != 0)
+						{
+							float newI1 = (float)(((*pI1)*iter + resInt1)*inv_iter_p_1);
+							float newI2 = (float)(((*pI2)*iter + resInt2)*inv_iter_p_1);
+							float newI3 = (float)(((*pI3)*iter + resInt3)*inv_iter_p_1);
+							*(pI1++) = newI1; *(pI2++) = newI2; *(pI3++) = newI3;
+						}
+						else
+						{
+							double newI1 = ((*pI1d)*iter + resInt1)*inv_iter_p_1;
+							double newI2 = ((*pI2d)*iter + resInt2)*inv_iter_p_1;
+							double newI3 = ((*pI3d)*iter + resInt3)*inv_iter_p_1;
+							*(pI1d++) = newI1; *(pI2d++) = newI2; *(pI3d++) = newI3;
+						}
+					}
+				}
+				else //OC08052021
+				{
+					if(pI != 0) *(pI++) += (float)resInt;
+					if(pId != 0) *(pId++) += resInt;
+					if(allStokesReq)
+					{
+						if(RadExtract.pExtractedData != 0)
+						{
+							*(pI1++) += (float)resInt1; *(pI2++) += (float)resInt2; *(pI3++) += (float)resInt3;
+						}
+						else
+						{
+							*(pI1d++) += resInt1; *(pI2d++) += resInt2; *(pI3d++) += resInt3;
+						}
+					}
+				}
+
+				pEx_St += PerX;
+				pEz_St += PerX;
+				pEx_Fi += PerX;
+				pEz_Fi += PerX;
 			}
-			//iwfrPerWfr += PerWfr;
-		//}
-	//}
+			izPerZ += PerZ;
+		}
+	}
 	if(arAuxInt != 0) delete[] arAuxInt; //OC150813
 	return 0;
 }
@@ -1586,8 +1582,8 @@ int srTRadGenManip::ExtractSingleElecMutualIntensityVsZ(srTRadExtract& RadExtrac
 
 //*************************************************************************
 
-int srTRadGenManip::ExtractSingleElecMutualIntensityVsXZ(srTRadExtract& RadExtract)
-//int srTRadGenManip::ExtractSingleElecMutualIntensityVsXZ(srTRadExtract& RadExtract, gpuUsageArg *pGpuUsage) //Himanshu?
+//int srTRadGenManip::ExtractSingleElecMutualIntensityVsXZ(srTRadExtract& RadExtract)
+int srTRadGenManip::ExtractSingleElecMutualIntensityVsXZ(srTRadExtract& RadExtract, void* pvGPU) //HG30112023
 {//OC13122019
  //This assumes "normal" data alignment in the complex "matrix" E(x,y)*E*(x',y')
 	int res = 0;
@@ -2124,13 +2120,14 @@ int srTRadGenManip::ExtractSingleElecMutualIntensityVsXZ(srTRadExtract& RadExtra
 
 	if(DontNeedInterp)
 	{
-		//Himanshu?
-		//GPU_COND(pGpuUsage,
-		//	{
-		//		ExtractSingleElecMutualIntensityVsXZ_GPU(pEx, pEz, pMI0, nxnz, itStart, itEnd, PerX, iter, PolCom, EhOK, EvOK, pGpuUsage);
-		//	})
-		//else
-		//{
+#ifdef _OFFLOAD_GPU //HG30112023
+		if (CAuxGPU::GPUEnabled((TGPUUsageArg*)pvGPU))
+		{
+			ExtractSingleElecMutualIntensityVsXZ_GPU(pEx, pEz, pMI0, nx, nz, ne, itStart, itEnd, PerX, iter, PolCom, EhOK, EvOK, (TGPUUsageArg*)pvGPU);
+		}
+		else
+#endif
+		{
 			for(long long it=itStart; it<=itEnd; it++) //OC16042021 (to enable partial update of MI/CSD)
 			//for(long long it=0; it<=(itEnd-itStart); it++) //OC03032021 (to enable partial update of MI/CSD)
 			//for(long long it=0; it<nxnz; it++)
@@ -2255,7 +2252,7 @@ int srTRadGenManip::ExtractSingleElecMutualIntensityVsXZ(srTRadExtract& RadExtra
 				pEz = pEzInit0;
 				pExT += PerX; pEzT += PerX;
 			}
-		//}
+		}
 	}
 	else
 	{

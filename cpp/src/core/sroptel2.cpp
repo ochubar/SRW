@@ -37,7 +37,8 @@ double srTGenOptElem::CheckMemoryAvailable()
 
 //int srTGenOptElem::PropagateRadiationMeth_0(srTSRWRadStructAccessData* pRadAccessData, void* pBuf) //OC06092019
 //OC01102019 (restored)
-int srTGenOptElem::PropagateRadiationMeth_0(srTSRWRadStructAccessData* pRadAccessData) 
+//int srTGenOptElem::PropagateRadiationMeth_0(srTSRWRadStructAccessData* pRadAccessData) 
+int srTGenOptElem::PropagateRadiationMeth_0(srTSRWRadStructAccessData* pRadAccessData, void *pvGPU) //HG30112023
 {//Moved from derived classes: loops over E, calls derived PropagateRadiationSingleE_Meth_0
  //This propagation method doesn't allow for true wavefront "resizing/resampling" 
  //(which results in changing numbers of points) in "slices" vs photon energy.

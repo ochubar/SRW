@@ -21,7 +21,7 @@
 #include <chrono>
 #include "srradstr.h"
 
-__global__ void MultiplyElFieldByPhaseLin_Kernel(double xMult, double zMult, float* pBaseRadX, float* pBaseRadZ, int nz, int nx, int ne, float zStart, float zStep, float xStart, float xStep) {
+__global__ void MultiplyElFieldByPhaseLin_Kernel(double xMult, double zMult, float* pBaseRadX, float* pBaseRadZ, int nx, int nz, int ne, float xStart, float zStart, float xStep, float zStep) {
     int ix = (blockIdx.x * blockDim.x + threadIdx.x); //nx range
     int iz = (blockIdx.y * blockDim.y + threadIdx.y); //nz range
     
@@ -82,7 +82,7 @@ void srTSRWRadStructAccessData::MultiplyElFieldByPhaseLin_GPU(double xMult, doub
     const int bs = 256;
     dim3 blocks(nx / bs + ((nx & (bs - 1)) != 0), nz);
     dim3 threads(bs, 1);
-    MultiplyElFieldByPhaseLin_Kernel<<<blocks, threads>>> (xMult, zMult, pBaseRadX, pBaseRadZ, nz, nx, ne, (float)zStart, (float)zStep, (float)xStart, (float)xStep);
+    MultiplyElFieldByPhaseLin_Kernel<<<blocks, threads>>> (xMult, zMult, pBaseRadX, pBaseRadZ, nx, nz, ne, (float)xStart, (float)zStart, (float)xStep, (float)zStep);
     //MultiplyElFieldByPhaseLin_Kernel<<<blocks, threads>>> (xMult, zMult, pBaseRadX, pBaseRadZ, nz, nx, ne, zStart, zStep, xStart, xStep);
 
 	if (pBaseRadX != NULL)
@@ -105,7 +105,7 @@ void srTSRWRadStructAccessData::MultiplyElFieldByPhaseLin_GPU(double xMult, doub
 #endif
 }
 
-template<int mode> __global__ void MirrorFieldData_Kernel(long ne, long nx, long nz, float* pEX0, float* pEZ0) {
+template<int mode> __global__ void MirrorFieldData_Kernel(long nx, long nz, long ne, float* pEX0, float* pEZ0) {
 	int ix = (blockIdx.x * blockDim.x + threadIdx.x); //nx range
 	int iz = (blockIdx.y * blockDim.y + threadIdx.y); //nz range
 
@@ -301,11 +301,11 @@ void srTSRWRadStructAccessData::MirrorFieldData_GPU(int sx, int sz, TGPUUsageArg
 	if ((sx > 0) && (sz > 0))
 		return;
 	else if ((sx < 0) && (sz > 0))
-		MirrorFieldData_Kernel<0> <<<blocks, threads>>>(ne, nx, nz, pEX0, pEZ0);
+		MirrorFieldData_Kernel<0> <<<blocks, threads>>>(nx, nz, ne, pEX0, pEZ0);
 	else if ((sx > 0) && (sz < 0))
-		MirrorFieldData_Kernel<1> <<<blocks, threads >>> (ne, nx, nz, pEX0, pEZ0);
+		MirrorFieldData_Kernel<1> <<<blocks, threads >>> (nx, nz, ne, pEX0, pEZ0);
 	else
-		MirrorFieldData_Kernel<2> <<<blocks, threads >>> (ne, nx, nz, pEX0, pEZ0);
+		MirrorFieldData_Kernel<2> <<<blocks, threads >>> (nx, nz, ne, pEX0, pEZ0);
 
 	if (pEX0 != NULL)
 		CAuxGPU::MarkUpdated(pGPU, pEX0, true, false); //OC03082023

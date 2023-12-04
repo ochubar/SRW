@@ -25,9 +25,8 @@ __global__ void ExtractSingleElecIntensity2DvsXZ_Kernel(srTRadExtract RadExtract
 {
 	int ix = (blockIdx.x * blockDim.x + threadIdx.x); //nx range
     int iz = (blockIdx.y * blockDim.y + threadIdx.y); //nz range
-    int iwfr = (blockIdx.z * blockDim.z + threadIdx.z); //nwfr range
     
-	if (ix < RadAccessData.nx && iz < RadAccessData.nz && iwfr < RadAccessData.nwfr) 
+	if (ix < RadAccessData.nx && iz < RadAccessData.nz) 
     {
 		//int PolCom = RadExtract.PolarizCompon;
 			
@@ -35,7 +34,7 @@ __global__ void ExtractSingleElecIntensity2DvsXZ_Kernel(srTRadExtract RadExtract
 
 		float* pI = 0, * pI1 = 0, * pI2 = 0, * pI3 = 0; //OC17042020
 		double* pId = 0, * pI1d = 0, * pI2d = 0, * pI3d = 0;
-		long ne = RadAccessData.ne, nx = RadAccessData.nx, nz = RadAccessData.nz, nwfr = RadAccessData.nwfr;
+		long ne = RadAccessData.ne, nx = RadAccessData.nx, nz = RadAccessData.nz;
 		//float *pI = 0;
 		//DOUBLE *pId = 0;
 		//double *pId = 0; //OC26112019 (related to SRW port to IGOR XOP8 on Mac)
@@ -66,7 +65,6 @@ __global__ void ExtractSingleElecIntensity2DvsXZ_Kernel(srTRadExtract RadExtract
 		//long long PerZ = PerX*RadAccessData.nx;
 		long long PerX = ((long long)ne) << 1; //OC18042020
 		long long PerZ = PerX * nx;
-		long long PerWfr = PerZ * nz;
 
 		//bool intOverEnIsRequired = (RadExtract.Int_or_Phase == 7) && (ne > 1); //OC18042020
 		double resInt, resInt1, resInt2, resInt3;
@@ -74,7 +72,7 @@ __global__ void ExtractSingleElecIntensity2DvsXZ_Kernel(srTRadExtract RadExtract
 		long long Two_ie0 = ie0 << 1, Two_ie1 = ie1 << 1; //OC26042019
 		long ie;
 
-		long offset = iwfr * PerWfr + iz * PerZ + ix * PerX;
+		long offset = iz * PerZ + ix * PerX;
 		long offsetDiv2 = offset >> 1;
 
 		float* pEx_StartForX = pEx0 + offset;
@@ -211,30 +209,30 @@ static inline void ExtractSingleElecIntensity2DvsXZ_GPUSub(dim3 &blocks, dim3 &t
 	}
 }
 
-int srTRadGenManip::ExtractSingleElecIntensity2DvsXZ_GPU(srTRadExtract& RadExtract, double* arAuxInt, long long ie0, long long ie1, double InvStepRelArg, gpuUsageArg *pGpuUsage)
+int srTRadGenManip::ExtractSingleElecIntensity2DvsXZ_GPU(srTRadExtract& RadExtract, double* arAuxInt, long long ie0, long long ie1, double InvStepRelArg, TGPUUsageArg* pGPU)
 {
 	srTSRWRadStructAccessData& RadAccessData = *((srTSRWRadStructAccessData*)(hRadAccessData.ptr()));
 
     const int bs = 256;
-    dim3 blocks(RadAccessData.nx / bs + ((RadAccessData.nx & (bs - 1)) != 0), RadAccessData.nz, RadAccessData.nwfr);
+    dim3 blocks(RadAccessData.nx / bs + ((RadAccessData.nx & (bs - 1)) != 0), RadAccessData.nz);
     dim3 threads(bs, 1);
 
     if (RadAccessData.pBaseRadX != NULL)
 	{
-		RadAccessData.pBaseRadX = (float*)AuxGpu::ToDevice(pGpuUsage, RadAccessData.pBaseRadX, 2*RadAccessData.ne*RadAccessData.nx*RadAccessData.nz*RadAccessData.nwfr*sizeof(float));
-		AuxGpu::EnsureDeviceMemoryReady(pGpuUsage, RadAccessData.pBaseRadX);
+		RadAccessData.pBaseRadX = (float*)CAuxGPU::ToDevice(pGPU, RadAccessData.pBaseRadX, 2*RadAccessData.ne*RadAccessData.nx*RadAccessData.nz*sizeof(float));
+		CAuxGPU::EnsureDeviceMemoryReady(pGPU, RadAccessData.pBaseRadX);
 	}
 	if (RadAccessData.pBaseRadZ != NULL)
 	{
-		RadAccessData.pBaseRadZ = (float*)AuxGpu::ToDevice(pGpuUsage, RadAccessData.pBaseRadZ, 2*RadAccessData.ne*RadAccessData.nx*RadAccessData.nz*RadAccessData.nwfr*sizeof(float));
-		AuxGpu::EnsureDeviceMemoryReady(pGpuUsage, RadAccessData.pBaseRadZ);
+		RadAccessData.pBaseRadZ = (float*)CAuxGPU::ToDevice(pGPU, RadAccessData.pBaseRadZ, 2*RadAccessData.ne*RadAccessData.nx*RadAccessData.nz*sizeof(float));
+		CAuxGPU::EnsureDeviceMemoryReady(pGPU, RadAccessData.pBaseRadZ);
 	}
 
-	srTRadGenManip *local_copy = (srTRadGenManip*)AuxGpu::ToDevice(pGpuUsage, this, sizeof(srTRadGenManip));
-	AuxGpu::EnsureDeviceMemoryReady(pGpuUsage, local_copy);
+	srTRadGenManip *local_copy = (srTRadGenManip*)CAuxGPU::ToDevice(pGPU, this, sizeof(srTRadGenManip));
+	CAuxGPU::EnsureDeviceMemoryReady(pGPU, local_copy);
 
-    arAuxInt = (double*)AuxGpu::ToDevice(pGpuUsage, arAuxInt, RadAccessData.ne*sizeof(double));
-    AuxGpu::EnsureDeviceMemoryReady(pGpuUsage, arAuxInt);
+    arAuxInt = (double*)CAuxGPU::ToDevice(pGPU, arAuxInt, RadAccessData.ne*sizeof(double));
+    CAuxGPU::EnsureDeviceMemoryReady(pGPU, arAuxInt);
 
 	bool allStokesReq = (RadExtract.PolarizCompon == -5);
 	bool intOverEnIsRequired = (RadExtract.Int_or_Phase == 7) && (RadAccessData.ne > 1);
@@ -253,23 +251,23 @@ int srTRadGenManip::ExtractSingleElecIntensity2DvsXZ_GPU(srTRadExtract& RadExtra
 		else
 			ExtractSingleElecIntensity2DvsXZ_GPUSub<false, false> (blocks, threads, RadExtract, RadAccessData, local_copy, arAuxInt, ie0, ie1, InvStepRelArg, Int_or_ReE);
 	
-    AuxGpu::ToHostAndFree(pGpuUsage, local_copy, sizeof(srTRadGenManip), true);
-    AuxGpu::ToHostAndFree(pGpuUsage, arAuxInt, RadAccessData.ne*sizeof(double), true);
-	AuxGpu::MarkUpdated(pGpuUsage, RadAccessData.pBaseRadX, true, false);
-	AuxGpu::MarkUpdated(pGpuUsage, RadAccessData.pBaseRadZ, true, false);
+    CAuxGPU::ToHostAndFree(pGPU, local_copy, sizeof(srTRadGenManip), true);
+    CAuxGPU::ToHostAndFree(pGPU, arAuxInt, RadAccessData.ne*sizeof(double), true);
+	CAuxGPU::MarkUpdated(pGPU, RadAccessData.pBaseRadX, true, false);
+	CAuxGPU::MarkUpdated(pGPU, RadAccessData.pBaseRadZ, true, false);
 
 #ifndef _DEBUG
 	if (RadAccessData.pBaseRadX != NULL)
-		RadAccessData.pBaseRadX = (float*)AuxGpu::GetHostPtr(pGpuUsage, RadAccessData.pBaseRadX);
+		RadAccessData.pBaseRadX = (float*)CAuxGPU::GetHostPtr(pGPU, RadAccessData.pBaseRadX);
 	if (RadAccessData.pBaseRadZ != NULL)
-		RadAccessData.pBaseRadZ = (float*)AuxGpu::GetHostPtr(pGpuUsage, RadAccessData.pBaseRadZ);
+		RadAccessData.pBaseRadZ = (float*)CAuxGPU::GetHostPtr(pGPU, RadAccessData.pBaseRadZ);
 #endif
 
 #ifdef _DEBUG
 	if (RadAccessData.pBaseRadX != NULL)
-		RadAccessData.pBaseRadX = (float*)AuxGpu::ToHostAndFree(pGpuUsage, RadAccessData.pBaseRadX, 2 * RadAccessData.ne * RadAccessData.nx * RadAccessData.nz * RadAccessData.nwfr * sizeof(float));
+		RadAccessData.pBaseRadX = (float*)CAuxGPU::ToHostAndFree(pGPU, RadAccessData.pBaseRadX, 2*RadAccessData.ne*RadAccessData.nx*RadAccessData.nz*sizeof(float));
 	if (RadAccessData.pBaseRadZ != NULL)
-		RadAccessData.pBaseRadZ = (float*)AuxGpu::ToHostAndFree(pGpuUsage, RadAccessData.pBaseRadZ, 2 * RadAccessData.ne * RadAccessData.nx * RadAccessData.nz * RadAccessData.nwfr * sizeof(float));
+		RadAccessData.pBaseRadZ = (float*)CAuxGPU::ToHostAndFree(pGPU, RadAccessData.pBaseRadZ, 2*RadAccessData.ne*RadAccessData.nx*RadAccessData.nz*sizeof(float));
 	cudaStreamSynchronize(0);
 	auto err = cudaGetLastError();
 	printf("%s\r\n", cudaGetErrorString(err));
@@ -437,19 +435,21 @@ __global__ void ExtractSingleElecMutualIntensityVsXZ_Kernel(const float* __restr
 }
 
 template <int PolCom, int gt1_iter>
-int ExtractSingleElecMutualIntensityVsXZ_GPUSub(float* pEx, float* pEz, float* pMI0, long nxnz, long itStart, long itEnd, long PerX, long iter, bool EhOK, bool EvOK, gpuUsageArg* pGpuUsage)
+int ExtractSingleElecMutualIntensityVsXZ_GPUSub(float* pEx, float* pEz, float* pMI0, long nx, long nz, long ne, long itStart, long itEnd, long PerX, long iter, bool EhOK, bool EvOK, TGPUUsageArg* pGPU)
 {
+	long long nxnz = ((long long)nx) * ((long long)nz);
+
 	const int itPerBlk = 1;
 	dim3 threads = dim3(48, 16, 1);
 	dim3 grid = dim3((nxnz + 1) / threads.x + (threads.x > 1), (nxnz / 2) / (threads.y * itPerBlk) + (threads.y > 1), 1);
 
-	pEx = (float*)AuxGpu::ToDevice(pGpuUsage, pEx, nxnz * 2 * sizeof(float));
-	AuxGpu::EnsureDeviceMemoryReady(pGpuUsage, pEx);
+	pEx = (float*)CAuxGPU::ToDevice(pGPU, pEx, nxnz*2*sizeof(float));
+	CAuxGPU::EnsureDeviceMemoryReady(pGPU, pEx);
 
-	pEz = (float*)AuxGpu::ToDevice(pGpuUsage, pEz, nxnz * 2 * sizeof(float));
-	AuxGpu::EnsureDeviceMemoryReady(pGpuUsage, pEz);
+	pEz = (float*)CAuxGPU::ToDevice(pGPU, pEz, nxnz*2*sizeof(float));
+	CAuxGPU::EnsureDeviceMemoryReady(pGPU, pEz);
 
-	pMI0 = (float*)AuxGpu::ToDevice(pGpuUsage, pMI0, (itEnd - itStart) * nxnz * 2 * sizeof(float));
+	pMI0 = (float*)CAuxGPU::ToDevice(pGPU, pMI0, (itEnd - itStart)*nxnz*2*sizeof(float));
 
 	if (EhOK)
 	{
@@ -462,14 +462,14 @@ int ExtractSingleElecMutualIntensityVsXZ_GPUSub(float* pEx, float* pEz, float* p
 		else ExtractSingleElecMutualIntensityVsXZ_Kernel<PolCom, false, false, gt1_iter, itPerBlk> << <grid, threads >> > (pEx, pEz, pMI0, nxnz, itStart, itEnd, PerX, iter);
 	}
 
-	pEx = (float*)AuxGpu::ToHostAndFree(pGpuUsage, pEx, nxnz * 2 * sizeof(float), true);
-	pEz = (float*)AuxGpu::ToHostAndFree(pGpuUsage, pEz, nxnz * 2 * sizeof(float), true);
+	pEx = (float*)CAuxGPU::ToHostAndFree(pGPU, pEx, nxnz * 2 * sizeof(float), true);
+	pEz = (float*)CAuxGPU::ToHostAndFree(pGPU, pEz, nxnz * 2 * sizeof(float), true);
 	
-	AuxGpu::MarkUpdated(pGpuUsage, pMI0, true, false);
+	CAuxGPU::MarkUpdated(pGPU, pMI0, true, false);
 
 #ifdef _DEBUG
 	if (pMI0 != NULL)
-		pMI0 = (float*)AuxGpu::ToHostAndFree(pGpuUsage, pMI0, (itEnd - itStart) * RadAccessData.ne * RadAccessData.nx * RadAccessData.nz * 2 * sizeof(float));
+		pMI0 = (float*)CAuxGPU::ToHostAndFree(pGPU, pMI0, (itEnd - itStart)*ne*nx*nz*2*sizeof(float));
 
 	cudaStreamSynchronize(0);
 	auto err = cudaGetLastError();
@@ -478,40 +478,40 @@ int ExtractSingleElecMutualIntensityVsXZ_GPUSub(float* pEx, float* pEz, float* p
 	return 0;
 }
 
-int srTRadGenManip::ExtractSingleElecMutualIntensityVsXZ_GPU(float* pEx, float* pEz, float* pMI0, long nxnz, long itStart, long itEnd, long PerX, long iter, int PolCom, bool EhOK, bool EvOK, gpuUsageArg* pGpuUsage)
+int srTRadGenManip::ExtractSingleElecMutualIntensityVsXZ_GPU(float* pEx, float* pEz, float* pMI0, long nx, long nz, long ne, long itStart, long itEnd, long PerX, long iter, int PolCom, bool EhOK, bool EvOK, TGPUUsageArg* pGPU)
 {
 	if (iter > 0)
 	{
 		switch (PolCom)
 		{
-		case  0: return ExtractSingleElecMutualIntensityVsXZ_GPUSub<  0, 1>(pEx, pEz, pMI0, nxnz, itStart, itEnd, PerX, iter, EhOK, EvOK, pGpuUsage);
-		case  1: return ExtractSingleElecMutualIntensityVsXZ_GPUSub<  1, 1>(pEx, pEz, pMI0, nxnz, itStart, itEnd, PerX, iter, EhOK, EvOK, pGpuUsage);
-		case  2: return ExtractSingleElecMutualIntensityVsXZ_GPUSub<  2, 1>(pEx, pEz, pMI0, nxnz, itStart, itEnd, PerX, iter, EhOK, EvOK, pGpuUsage);
-		case  3: return ExtractSingleElecMutualIntensityVsXZ_GPUSub<  3, 1>(pEx, pEz, pMI0, nxnz, itStart, itEnd, PerX, iter, EhOK, EvOK, pGpuUsage);
-		case  4: return ExtractSingleElecMutualIntensityVsXZ_GPUSub<  4, 1>(pEx, pEz, pMI0, nxnz, itStart, itEnd, PerX, iter, EhOK, EvOK, pGpuUsage);
-		case  5: return ExtractSingleElecMutualIntensityVsXZ_GPUSub<  5, 1>(pEx, pEz, pMI0, nxnz, itStart, itEnd, PerX, iter, EhOK, EvOK, pGpuUsage);
-		case -1: return ExtractSingleElecMutualIntensityVsXZ_GPUSub< -1, 1>(pEx, pEz, pMI0, nxnz, itStart, itEnd, PerX, iter, EhOK, EvOK, pGpuUsage);
-		case -2: return ExtractSingleElecMutualIntensityVsXZ_GPUSub< -2, 1>(pEx, pEz, pMI0, nxnz, itStart, itEnd, PerX, iter, EhOK, EvOK, pGpuUsage);
-		case -3: return ExtractSingleElecMutualIntensityVsXZ_GPUSub< -3, 1>(pEx, pEz, pMI0, nxnz, itStart, itEnd, PerX, iter, EhOK, EvOK, pGpuUsage);
-		case -4: return ExtractSingleElecMutualIntensityVsXZ_GPUSub< -4, 1>(pEx, pEz, pMI0, nxnz, itStart, itEnd, PerX, iter, EhOK, EvOK, pGpuUsage);
-		default: return ExtractSingleElecMutualIntensityVsXZ_GPUSub< -5, 1>(pEx, pEz, pMI0, nxnz, itStart, itEnd, PerX, iter, EhOK, EvOK, pGpuUsage);
+		case  1: return ExtractSingleElecMutualIntensityVsXZ_GPUSub<  1, 1>(pEx, pEz, pMI0, nx, nz, ne, itStart, itEnd, PerX, iter, EhOK, EvOK, pGPU);
+		case  2: return ExtractSingleElecMutualIntensityVsXZ_GPUSub<  2, 1>(pEx, pEz, pMI0, nx, nz, ne, itStart, itEnd, PerX, iter, EhOK, EvOK, pGPU);
+		case  0: return ExtractSingleElecMutualIntensityVsXZ_GPUSub<  0, 1>(pEx, pEz, pMI0, nx, nz, ne, itStart, itEnd, PerX, iter, EhOK, EvOK, pGPU);
+		case  3: return ExtractSingleElecMutualIntensityVsXZ_GPUSub<  3, 1>(pEx, pEz, pMI0, nx, nz, ne, itStart, itEnd, PerX, iter, EhOK, EvOK, pGPU);
+		case  4: return ExtractSingleElecMutualIntensityVsXZ_GPUSub<  4, 1>(pEx, pEz, pMI0, nx, nz, ne, itStart, itEnd, PerX, iter, EhOK, EvOK, pGPU);
+		case  5: return ExtractSingleElecMutualIntensityVsXZ_GPUSub<  5, 1>(pEx, pEz, pMI0, nx, nz, ne, itStart, itEnd, PerX, iter, EhOK, EvOK, pGPU);
+		case -1: return ExtractSingleElecMutualIntensityVsXZ_GPUSub< -1, 1>(pEx, pEz, pMI0, nx, nz, ne, itStart, itEnd, PerX, iter, EhOK, EvOK, pGPU);
+		case -2: return ExtractSingleElecMutualIntensityVsXZ_GPUSub< -2, 1>(pEx, pEz, pMI0, nx, nz, ne, itStart, itEnd, PerX, iter, EhOK, EvOK, pGPU);
+		case -3: return ExtractSingleElecMutualIntensityVsXZ_GPUSub< -3, 1>(pEx, pEz, pMI0, nx, nz, ne, itStart, itEnd, PerX, iter, EhOK, EvOK, pGPU);
+		case -4: return ExtractSingleElecMutualIntensityVsXZ_GPUSub< -4, 1>(pEx, pEz, pMI0, nx, nz, ne, itStart, itEnd, PerX, iter, EhOK, EvOK, pGPU);
+		default: return ExtractSingleElecMutualIntensityVsXZ_GPUSub< -5, 1>(pEx, pEz, pMI0, nx, nz, ne, itStart, itEnd, PerX, iter, EhOK, EvOK, pGPU);
 		}
 	}
 	else if (iter == 0)
 	{
 		switch (PolCom)
 		{
-		case  0: return ExtractSingleElecMutualIntensityVsXZ_GPUSub<  0, 0>(pEx, pEz, pMI0, nxnz, itStart, itEnd, PerX, iter, EhOK, EvOK, pGpuUsage);
-		case  1: return ExtractSingleElecMutualIntensityVsXZ_GPUSub<  1, 0>(pEx, pEz, pMI0, nxnz, itStart, itEnd, PerX, iter, EhOK, EvOK, pGpuUsage);
-		case  2: return ExtractSingleElecMutualIntensityVsXZ_GPUSub<  2, 0>(pEx, pEz, pMI0, nxnz, itStart, itEnd, PerX, iter, EhOK, EvOK, pGpuUsage);
-		case  3: return ExtractSingleElecMutualIntensityVsXZ_GPUSub<  3, 0>(pEx, pEz, pMI0, nxnz, itStart, itEnd, PerX, iter, EhOK, EvOK, pGpuUsage);
-		case  4: return ExtractSingleElecMutualIntensityVsXZ_GPUSub<  4, 0>(pEx, pEz, pMI0, nxnz, itStart, itEnd, PerX, iter, EhOK, EvOK, pGpuUsage);
-		case  5: return ExtractSingleElecMutualIntensityVsXZ_GPUSub<  5, 0>(pEx, pEz, pMI0, nxnz, itStart, itEnd, PerX, iter, EhOK, EvOK, pGpuUsage);
-		case -1: return ExtractSingleElecMutualIntensityVsXZ_GPUSub< -1, 0>(pEx, pEz, pMI0, nxnz, itStart, itEnd, PerX, iter, EhOK, EvOK, pGpuUsage);
-		case -2: return ExtractSingleElecMutualIntensityVsXZ_GPUSub< -2, 0>(pEx, pEz, pMI0, nxnz, itStart, itEnd, PerX, iter, EhOK, EvOK, pGpuUsage);
-		case -3: return ExtractSingleElecMutualIntensityVsXZ_GPUSub< -3, 0>(pEx, pEz, pMI0, nxnz, itStart, itEnd, PerX, iter, EhOK, EvOK, pGpuUsage);
-		case -4: return ExtractSingleElecMutualIntensityVsXZ_GPUSub< -4, 0>(pEx, pEz, pMI0, nxnz, itStart, itEnd, PerX, iter, EhOK, EvOK, pGpuUsage);
-		default: return ExtractSingleElecMutualIntensityVsXZ_GPUSub< -5, 0>(pEx, pEz, pMI0, nxnz, itStart, itEnd, PerX, iter, EhOK, EvOK, pGpuUsage);
+		case  0: return ExtractSingleElecMutualIntensityVsXZ_GPUSub<  0, 0>(pEx, pEz, pMI0, nx, nz, ne, itStart, itEnd, PerX, iter, EhOK, EvOK, pGPU);
+		case  1: return ExtractSingleElecMutualIntensityVsXZ_GPUSub<  1, 0>(pEx, pEz, pMI0, nx, nz, ne, itStart, itEnd, PerX, iter, EhOK, EvOK, pGPU);
+		case  2: return ExtractSingleElecMutualIntensityVsXZ_GPUSub<  2, 0>(pEx, pEz, pMI0, nx, nz, ne, itStart, itEnd, PerX, iter, EhOK, EvOK, pGPU);
+		case  3: return ExtractSingleElecMutualIntensityVsXZ_GPUSub<  3, 0>(pEx, pEz, pMI0, nx, nz, ne, itStart, itEnd, PerX, iter, EhOK, EvOK, pGPU);
+		case  4: return ExtractSingleElecMutualIntensityVsXZ_GPUSub<  4, 0>(pEx, pEz, pMI0, nx, nz, ne, itStart, itEnd, PerX, iter, EhOK, EvOK, pGPU);
+		case  5: return ExtractSingleElecMutualIntensityVsXZ_GPUSub<  5, 0>(pEx, pEz, pMI0, nx, nz, ne, itStart, itEnd, PerX, iter, EhOK, EvOK, pGPU);
+		case -1: return ExtractSingleElecMutualIntensityVsXZ_GPUSub< -1, 0>(pEx, pEz, pMI0, nx, nz, ne, itStart, itEnd, PerX, iter, EhOK, EvOK, pGPU);
+		case -2: return ExtractSingleElecMutualIntensityVsXZ_GPUSub< -2, 0>(pEx, pEz, pMI0, nx, nz, ne, itStart, itEnd, PerX, iter, EhOK, EvOK, pGPU);
+		case -3: return ExtractSingleElecMutualIntensityVsXZ_GPUSub< -3, 0>(pEx, pEz, pMI0, nx, nz, ne, itStart, itEnd, PerX, iter, EhOK, EvOK, pGPU);
+		case -4: return ExtractSingleElecMutualIntensityVsXZ_GPUSub< -4, 0>(pEx, pEz, pMI0, nx, nz, ne, itStart, itEnd, PerX, iter, EhOK, EvOK, pGPU);
+		default: return ExtractSingleElecMutualIntensityVsXZ_GPUSub< -5, 0>(pEx, pEz, pMI0, nx, nz, ne, itStart, itEnd, PerX, iter, EhOK, EvOK, pGPU);
 		}
 	}
 }

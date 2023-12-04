@@ -330,6 +330,8 @@ void CAuxGPU::Init() {
 
 void CAuxGPU::Fini() {
 #ifdef _OFFLOAD_GPU
+	SetGPUStatus(false);	//HG30112023 Disable GPU
+
 	// Copy back all updated data
 	bool updated = false;
 	bool freed = false;

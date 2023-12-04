@@ -729,10 +729,11 @@ EXP int CALL srwlCalcPowDenSR(SRWLStokes* pStokes, SRWLPartBeam* pElBeam, SRWLPr
  *			   arMeth[18]: used for mutual intensity calculaiton / update: index of first general conjugated position to start updating the mutual intensity
  * 			   arMeth[19]: used for mutual intensity calculaiton / update: index of last general conjugated position to finish updating the mutual intensity
  * @param [in] pFldTrj auxiliary pointer to magnetic field or trajectory of central electron
+ * @param [in] pvGPU optional GPU utilization related parameters (TGPUUsageArg*)
  * @return	integer error (>0) or warnig (<0) code
  * @see ...
  */
-EXP int CALL srwlCalcIntFromElecField(char* pInt, SRWLWfr* pWfr, char pol, char intType, char depType, double e, double x, double y, double* arMeth=0, void* pFldTrj=0, void* pGPU=0); //OC26072023 (from HG)
+EXP int CALL srwlCalcIntFromElecField(char* pInt, SRWLWfr* pWfr, char pol, char intType, char depType, double e, double x, double y, double* arMeth=0, void* pFldTrj=0, void* pvGPU=0); //OC26072023 (from HG)
 //EXP int CALL srwlCalcIntFromElecField(char* pInt, SRWLWfr* pWfr, char pol, char intType, char depType, double e, double x, double y, double* arMeth=0, void* pFldTrj=0);
 //EXP int CALL srwlCalcIntFromElecField(char* pInt, SRWLWfr* pWfr, char pol, char intType, char depType, double e, double x, double y, double* arMeth=0);
 //EXP int CALL srwlCalcIntFromElecField(char* pInt, SRWLWfr* pWfr, char pol, char intType, char depType, double e, double x, double y);
@@ -800,10 +801,11 @@ EXP int CALL srwlSetRepresElecField(SRWLWfr* pWfr, char repr);
  * "Propagates" Electric Field Wavefront through Optical Elements and free spaces
  * @param [in, out] pWfr pointer to pre-calculated Wavefront structure
  * @param [in] pOpt pointer to container of optical elements the propagation should be done through
+ * @param [in] pvGPU optional GPU utilization related parameters (TGPUUsageArg*)
  * @return	integer error (>0) or warnig (<0) code
  * @see ...
  */
-EXP int CALL srwlPropagElecField(SRWLWfr* pWfr, SRWLOptC* pOpt, int nInt=0, char** arID=0, SRWLRadMesh* arIM=0, char** arI=0, void* pGPU=0); //OC26072023 (from HG)
+EXP int CALL srwlPropagElecField(SRWLWfr* pWfr, SRWLOptC* pOpt, int nInt=0, char** arID=0, SRWLRadMesh* arIM=0, char** arI=0, void* pvGPU=0); //OC26072023 (from HG)
 //EXP int CALL srwlPropagElecField(SRWLWfr* pWfr, SRWLOptC* pOpt, int nInt=0, char** arID=0, SRWLRadMesh* arIM=0, char** arI=0); //OC15082018
 //EXP int CALL srwlPropagElecField(SRWLWfr* pWfr, SRWLOptC* pOpt);
 
@@ -848,10 +850,11 @@ EXP int CALL srwlCalcTransm(SRWLOptT* pOpTr, const double* pDelta, const double*
  *             arMesh[5]: (optional) number of points of the second argument
  * @param [in] nMesh length of arMesh array (3 or 6 elements)
  * @param [in] dir direction for the FFT (>0 means forward, <0 means backward)
+ * @param [in] pvGPU optional GPU utilization related parameters (TGPUUsageArg*)
  * @return	integer error (>0) or warnig (<0) code
  * @see ...
  */
-EXP int CALL srwlUtiFFT(char* pcData, char typeData, double* arMesh, int nMesh, int dir, void* pGPU=0); //OC26072023 (from HG)
+EXP int CALL srwlUtiFFT(char* pcData, char typeData, double* arMesh, int nMesh, int dir, void* pvGPU=0); //OC26072023 (from HG)
 //EXP int CALL srwlUtiFFT(char* pcData, char typeData, double* arMesh, int nMesh, int dir);
 
 /** 
@@ -967,42 +970,55 @@ EXP int CALL srwlUtiUndFromMagFldTab(SRWLMagFldC* pUndCnt, SRWLMagFldC* pMagCnt,
  */
 EXP int CALL srwlUtiUndFindMagFldInterpInds(int* arResInds, int* pnResInds, double* arGaps, double* arPhases, int nVals, double arPrecPar[5]);
 
+#ifdef _OFFLOAD_GPU //HG30112023
+/**
+ * Implements GPU related operations.
+ * @param [in] op operation to be performed:
+ * 			   0= Deinitialize GPU
+ * 			   1= Initialize GPU
+ * @param [in] pvGPU optional GPU utilization related parameters (TGPUUsageArg*)
+ * @return	integer error (>0) or warnig (<0) code
+ * @see ...
+ */
+EXP int CALL srwlUtiGPUProc(int op, void* pvGpu=0);
+
 /**
  * Checks if GPU offloading is available
  * @return	true if available
  * @see ...
  */
-EXP bool CALL srwlUtiGPUAvailable(); //OC26072023
-//EXP bool CALL srwlAuxGpuAvailable(); //HG
+//EXP bool CALL srwlUtiGPUAvailable(); //OC26072023
+//EXP bool CALL srwlCAuxGPUAvailable(); //HG
 
 /**
  * Checks if GPU offloading is enabled
  * @return	true if enabled
  * @see ...
  */
-EXP bool CALL srwlUtiGPUEnabled(); //OC26072023
-//EXP bool CALL srwlAuxGpuEnabled(); //HG
+//EXP bool CALL srwlUtiGPUEnabled(); //OC26072023
+//EXP bool CALL srwlCAuxGPUEnabled(); //HG
 
 /**
  * Enable/Disable GPU offloading
  * @see ...
  */
-EXP void CALL srwlUtiGPUSetStatus(bool enable);
-//EXP void CALL srwlAuxGpuSetStatus(bool enable); //HG
+//EXP void CALL srwlUtiGPUSetStatus(bool enable);
+//EXP void CALL srwlCAuxGPUSetStatus(bool enable); //HG
 
 /**
  * Initialize device offloading
  * @see ...
  */
-EXP void CALL srwlUtiGPUInit(); //OC26072023
-//EXP void CALL srwlAuxGpuInit(); //HG
+//EXP void CALL srwlUtiGPUInit(); //OC26072023
+//EXP void CALL srwlCAuxGPUInit(); //HG
 
 /**
  * Finalize device offloading
  * @see ...
  */
-EXP void CALL srwlUtiGPUFini(); //OC26072023
-//EXP void CALL srwlAuxGpuFini(); //HG
+//EXP void CALL srwlUtiGPUFini(); //OC26072023
+//EXP void CALL srwlCAuxGPUFini(); //HG
+#endif
 
 /**
  * These functions were added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP

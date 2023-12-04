@@ -34,7 +34,8 @@ public:
 	srTCompositeOptElem() {}
 
 	int PropagateRadiationTest(srTSRWRadStructAccessData*, srTSRWRadStructAccessData*);
-	int PropagateRadiationGuided(srTSRWRadStructAccessData& wfr, int nInt=0, char** arID=0, SRWLRadMesh* arIM=0, char** arI=0); //OC15082018
+	int PropagateRadiationGuided(srTSRWRadStructAccessData& wfr, int nInt=0, char** arID=0, SRWLRadMesh* arIM=0, char** arI=0, void* pvGPU=0); //HG01122023
+	//int PropagateRadiationGuided(srTSRWRadStructAccessData& wfr, int nInt=0, char** arID=0, SRWLRadMesh* arIM=0, char** arI=0); //OC15082018
 	//int PropagateRadiationGuided(srTSRWRadStructAccessData& wfr);
 	int ExtractPropagatedIntensity(srTSRWRadStructAccessData& wfr, int nInt, char** arID, SRWLRadMesh* arIM, char** arI, int elCnt, int indIntSartSearch=0); //27082018
 
@@ -47,7 +48,8 @@ public:
 		GenOptElemList.push_back(OptElemHndl);
 	}
 
-	int PropagateRadiation(srTSRWRadStructAccessData* pRadAccessData, srTParPrecWfrPropag& ParPrecWfrPropag, srTRadResizeVect& ResizeBeforeAndAfterVect)
+	//int PropagateRadiation(srTSRWRadStructAccessData* pRadAccessData, srTParPrecWfrPropag& ParPrecWfrPropag, srTRadResizeVect& ResizeBeforeAndAfterVect)
+	int PropagateRadiation(srTSRWRadStructAccessData* pRadAccessData, srTParPrecWfrPropag& ParPrecWfrPropag, srTRadResizeVect& ResizeBeforeAndAfterVect, void* pvGPU=0) //HG01122023
 	{
 		int AmOfElem = (int)GenOptElemList.size(); //OC110104
 		int ElemCount = 0; //OC110104
@@ -65,7 +67,8 @@ public:
 			}
 
 			//if(result = ((srTGenOptElem*)((*iter).rep))->PropagateRadiation(pRadAccessData, MethNo, ResizeBeforeAndAfterVect)) return result;
-			if(result = ((srTGenOptElem*)((*iter).rep))->PropagateRadiation(pRadAccessData, ParPrecWfrPropag, ResizeBeforeAndAfterVect)) return result;
+			//if(result = ((srTGenOptElem*)((*iter).rep))->PropagateRadiation(pRadAccessData, ParPrecWfrPropag, ResizeBeforeAndAfterVect)) return result;
+			if(result = ((srTGenOptElem*)((*iter).rep))->PropagateRadiation(pRadAccessData, ParPrecWfrPropag, ResizeBeforeAndAfterVect, pvGPU)) return result; //HG01122023
 		}
 		ParPrecWfrPropag.UseResAfter = GenUseResAfter; //OC110104
 		return 0;

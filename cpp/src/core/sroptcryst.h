@@ -943,7 +943,8 @@ public:
 		return 0;
 	}
 
-	int PropagateRadiation(srTSRWRadStructAccessData* pRadAccessData, srTParPrecWfrPropag& ParPrecWfrPropag, srTRadResizeVect& ResBeforeAndAfterVect) //virtual in srTGenOptElem
+	//int PropagateRadiation(srTSRWRadStructAccessData* pRadAccessData, srTParPrecWfrPropag& ParPrecWfrPropag, srTRadResizeVect& ResBeforeAndAfterVect) //virtual in srTGenOptElem
+	int PropagateRadiation(srTSRWRadStructAccessData* pRadAccessData, srTParPrecWfrPropag& ParPrecWfrPropag, srTRadResizeVect& ResBeforeAndAfterVect, void* pvGPU) //virtual in srTGenOptElem //HG01122023
 	{
 		m_eStartAux = pRadAccessData->eStart; m_eStepAux = pRadAccessData->eStep; m_ne = pRadAccessData->ne; //required for RadPointModifier
 
@@ -967,7 +968,8 @@ public:
 		}
 
 		//return PropagateRadiationMeth_0(pRadAccessData);
-		return PropagateRadiationSingleE_Meth_0(pRadAccessData, 0);
+		//return PropagateRadiationSingleE_Meth_0(pRadAccessData, 0);
+		return PropagateRadiationSingleE_Meth_0(pRadAccessData, 0, pvGPU); //HG01122023
 	}
 
 	//int PropagateRadiationMeth_0(srTSRWRadStructAccessData* pRadAccessData) //virtual in srTGenOptElem
@@ -977,7 +979,8 @@ public:
 
 	//int PropagateRadiationSingleE_Meth_0(srTSRWRadStructAccessData* pRadAccessData, srTSRWRadStructAccessData* pPrevRadAccessData, void* pBuf=0) //OC06092019
 	//OC01102019 (restored)
-	int PropagateRadiationSingleE_Meth_0(srTSRWRadStructAccessData* pRadAccessData, srTSRWRadStructAccessData* pPrevRadAccessData)
+	//int PropagateRadiationSingleE_Meth_0(srTSRWRadStructAccessData* pRadAccessData, srTSRWRadStructAccessData* pPrevRadAccessData)
+	int PropagateRadiationSingleE_Meth_0(srTSRWRadStructAccessData* pRadAccessData, srTSRWRadStructAccessData* pPrevRadAccessData, void* pvGPU) //HG01122023
 	{//It works for many photon energies too (as in the case of Drift)
 	 //The "in-place" processing involving FFT for many photon energies greatly improves efficiency of the code for Time-/Frequency-Dependent simulations for FEL and pulsed lasers.
 		int result;

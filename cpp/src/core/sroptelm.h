@@ -17,6 +17,7 @@
 #include <stdlib.h> //required by some (buggy?) version of GCC
 #include <cstdlib> //required?
 
+
 #include "gmtrans.h"
 #include "gmvect.h"
 
@@ -41,6 +42,11 @@
 #ifdef _WITH_OMP
 #include "fftw.h"
 #endif
+#endif
+
+#ifdef _OFFLOAD_GPU
+#include "auxgpu.h"
+#include "sroptelm_gpu.h"
 #endif
 
 //*************************************************************************
@@ -119,7 +125,10 @@ public:
 #endif
 	}
 
-	virtual int PropagateRadiation(srTSRWRadStructAccessData*, srTParPrecWfrPropag&, srTRadResizeVect&) { return 0;}
+	virtual int SupportedFeatures() { return 0; } //HG01122023 0=CPU only, 1=GPU supported
+
+	//virtual int PropagateRadiation(srTSRWRadStructAccessData*, srTParPrecWfrPropag&, srTRadResizeVect&) { return 0;}
+	virtual int PropagateRadiation(srTSRWRadStructAccessData*, srTParPrecWfrPropag&, srTRadResizeVect&, void* pvGPU=0) { return 0;} //HG01122023
 
 	virtual int PropagateRadMoments(srTSRWRadStructAccessData*, srTMomentsRatios*) { return 0;}
 	virtual int PropagateWaveFrontRadius(srTSRWRadStructAccessData*) { return 0;}
@@ -128,16 +137,21 @@ public:
 
 	//virtual int PropagateRadiationSimple(srTSRWRadStructAccessData*, void* pBuf=0) { return 0;} //OC06092019
 	//OC01102019 (restored)
-	virtual int PropagateRadiationSimple(srTSRWRadStructAccessData*) { return 0;}
+	//virtual int PropagateRadiationSimple(srTSRWRadStructAccessData*) { return 0;}
+	virtual int PropagateRadiationSimple(srTSRWRadStructAccessData*, void* pvGPU=0) { return 0;} //HG01122023
 	virtual int PropagateRadiationSimple1D(srTRadSect1D*) { return 0;}
 	
 	//virtual int PropagateRadiationSingleE_Meth_0(srTSRWRadStructAccessData* pRadAccessData, srTSRWRadStructAccessData* pPrevRadData, void* pBuf=0) { return 0;} //OC06092019
 	//OC01102019 (restored)
-	virtual int PropagateRadiationSingleE_Meth_0(srTSRWRadStructAccessData* pRadAccessData, srTSRWRadStructAccessData* pPrevRadData) { return 0;}
+	//virtual int PropagateRadiationSingleE_Meth_0(srTSRWRadStructAccessData* pRadAccessData, srTSRWRadStructAccessData* pPrevRadData) { return 0;}
+	virtual int PropagateRadiationSingleE_Meth_0(srTSRWRadStructAccessData* pRadAccessData, srTSRWRadStructAccessData* pPrevRadData, void* pvGPU=0) { return 0;} //HG01122023
 
 	virtual int RangeShouldBeAdjustedAtPropag() { return 1;}
 	virtual int ResolutionShouldBeAdjustedAtPropag() { return 1;}
 
+#ifdef _OFFLOAD_GPU //HG01122023
+	virtual int RadPointModifierParallel(srTSRWRadStructAccessData* pRadAccessData, void* pBufVars=0, long pBufVarsSz=0, TGPUUsageArg* pvGPU=0) { return -1; }
+#endif
 	virtual void RadPointModifier(srTEXZ&, srTEFieldPtrs&, void* pBufVars=0) {} //OC29082019
 	//virtual void RadPointModifier(srTEXZ&, srTEFieldPtrs&) {}
 	virtual void RadPointModifier1D(srTEXZ&, srTEFieldPtrs&, void* pBufVars=0) {}//OC06092019
@@ -182,7 +196,8 @@ public:
 
 	//virtual int PropagateRadiationMeth_0(srTSRWRadStructAccessData* pRadAccessData, void* pBuf=0); //OC06092019
 	//OC01102019 (restored)
-	virtual int PropagateRadiationMeth_0(srTSRWRadStructAccessData* pRadAccessData); //moved from derived classes: loops over E, calls derived PropagateRadiationSingleE_Meth_0
+	//virtual int PropagateRadiationMeth_0(srTSRWRadStructAccessData* pRadAccessData); //moved from derived classes: loops over E, calls derived PropagateRadiationSingleE_Meth_0
+	virtual int PropagateRadiationMeth_0(srTSRWRadStructAccessData* pRadAccessData, void* pvGPU=0); //moved from derived classes: loops over E, calls derived PropagateRadiationSingleE_Meth_0 //HG01122023
 
 	void FindWidestWfrMeshParam(vector<srTSRWRadStructAccessData>& vRadSlices, srTSRWRadStructAccessData* pRad, bool keepConstNumPoints);
 	int ReInterpolateWfrDataOnNewTransvMesh(vector<srTSRWRadStructAccessData>& vRadSlices, srTSRWRadStructAccessData* pAuxRadSingleE, srTSRWRadStructAccessData* pRadRes);
@@ -236,7 +251,8 @@ public:
 
 	int FillOutRadFromInRad(srTSRWRadStructAccessData*, srTSRWRadStructAccessData*);
 
-	int TraverseRadZXE(srTSRWRadStructAccessData*, void* pBufVars=0); //OC29082019
+	int TraverseRadZXE(srTSRWRadStructAccessData*, void* pBufVars=0, long pBufVarsSz=0, void* pvGPU=0); //OC29082019 //HG01122023
+	//int TraverseRadZXE(srTSRWRadStructAccessData*, void* pBufVars=0); //OC29082019
 	//int TraverseRadZXE(srTSRWRadStructAccessData*);
 	int TraverseRad1D(srTRadSect1D*, void* pBufVars=0); //OC29082019
 	//int TraverseRad1D(srTRadSect1D*);
@@ -258,41 +274,73 @@ public:
 	int RemoveSliceConstE_FromGenRadStruct(srTSRWRadStructAccessData*, long);
 
 	//int SetRadRepres(srTSRWRadStructAccessData*, char);
-	int SetRadRepres(srTSRWRadStructAccessData*, char, double* ar_xStartInSlicesE=0, double* ar_zStartInSlicesE=0);
+	//int SetRadRepres(srTSRWRadStructAccessData*, char, double* ar_xStartInSlicesE=0, double* ar_zStartInSlicesE=0);
+	int SetRadRepres(srTSRWRadStructAccessData*, char, double* ar_xStartInSlicesE=0, double* ar_zStartInSlicesE=0, void* pvGPU=0); //HG01122023
 	int SetRadRepres1D(srTRadSect1D*, char);
 
-	int SetupWfrEdgeCorrData(srTSRWRadStructAccessData*, float*, float*, srTDataPtrsForWfrEdgeCorr&);
+	int SetupWfrEdgeCorrData(srTSRWRadStructAccessData*, float*, float*, srTDataPtrsForWfrEdgeCorr&, void* pvGPU=0); //HG01122023
+	//int SetupWfrEdgeCorrData(srTSRWRadStructAccessData*, float*, float*, srTDataPtrsForWfrEdgeCorr&);
 	//inline void SetupExpCorrArray(float*, long, double, double, double);
 	inline void SetupExpCorrArray(float*, long long, double, double, double);
-	void MakeWfrEdgeCorrection(srTSRWRadStructAccessData*, float*, float*, srTDataPtrsForWfrEdgeCorr&);
+	void MakeWfrEdgeCorrection(srTSRWRadStructAccessData*, float*, float*, srTDataPtrsForWfrEdgeCorr&, void* pvGPU=0); //HG01122023
+	//void MakeWfrEdgeCorrection(srTSRWRadStructAccessData*, float*, float*, srTDataPtrsForWfrEdgeCorr&);
+#ifdef _OFFLOAD_GPU //HG01122023
+	void srTGenOptElem::MakeWfrEdgeCorrection_GPU(srTSRWRadStructAccessData* RadAccessData, float* pDataEx, float* pDataEz, srTDataPtrsForWfrEdgeCorr& DataPtrs, TGPUUsageArg* pGPU);
+#endif
 
 	int SetupWfrEdgeCorrData1D(srTRadSect1D*, float*, float*, srTDataPtrsForWfrEdgeCorr1D&);
 	void MakeWfrEdgeCorrection1D(srTRadSect1D*, float*, float*, srTDataPtrsForWfrEdgeCorr1D&);
 
 	int ComputeRadMoments(srTSRWRadStructAccessData*);
 
-	int RadResizeGen(srTSRWRadStructAccessData&, srTRadResize&);
+	int RadResizeGen(srTSRWRadStructAccessData&, srTRadResize&, void* pvGPU=0); //HG01122023
+	//int RadResizeGen(srTSRWRadStructAccessData&, srTRadResize&);
 	int RadResizeGenE(srTSRWRadStructAccessData&, srTRadResize&);
-	int RadResizeCore(srTSRWRadStructAccessData&, srTSRWRadStructAccessData&, srTRadResize&, char =0);
+	int RadResizeCore(srTSRWRadStructAccessData&, srTSRWRadStructAccessData&, srTRadResize&, char =0, void* =0); //HG01122023
+	//int RadResizeCore(srTSRWRadStructAccessData&, srTSRWRadStructAccessData&, srTRadResize&, char =0);
+#ifdef _OFFLOAD_GPU //HG01122023
+	int RadResizeCore_GPU(srTSRWRadStructAccessData&, srTSRWRadStructAccessData&, char =0, TGPUUsageArg* =0);
+#endif
 	int RadResizeCoreE(srTSRWRadStructAccessData&, srTSRWRadStructAccessData&, srTRadResize&, char =0);
 	int RadResizeCore_OnlyLargerRange(srTSRWRadStructAccessData& OldRadAccessData, srTSRWRadStructAccessData& NewRadAccessData, srTRadResize& RadResizeStruct, char PolComp);
 	int RadResizeCore_OnlyLargerRangeE(srTSRWRadStructAccessData& OldRadAccessData, srTSRWRadStructAccessData& NewRadAccessData, srTRadResize& RadResizeStruct, char PolComp);
 
 	//inline void GetCellDataForInterpol(float*, long long , long long, srTInterpolAuxF*);
+#ifdef _OFFLOAD_GPU //HG01122023
+	GPU_PORTABLE
+#endif
 	inline static void GetCellDataForInterpol(float*, long long, long long, srTInterpolAuxF*); //OC02022020
 	//inline void SetupCellDataI(srTInterpolAuxF*, srTInterpolAuxF*);
+#ifdef _OFFLOAD_GPU //HG01122023
+	GPU_PORTABLE
+#endif
 	inline static void SetupCellDataI(srTInterpolAuxF*, srTInterpolAuxF*); //OC02022020
 	//char WaveFrontTermCanBeTreated(srTSRWRadStructAccessData&);
 	//char WaveFrontTermCanBeTreated(srTSRWRadStructAccessData&, bool checkBenefit=true); //OC06012017 (uncommented after some fixes in bool srTSRWRadStructAccessData::CheckIfQuadTermTreatIsBenefit(char, char))
 	//char WaveFrontTermCanBeTreated(srTSRWRadStructAccessData&, bool checkBenefit=false); //OC05012017 (changed to checkBenefit=false to resolve problem of resizing in near field at strong under-sampling)
 	char WaveFrontTermCanBeTreated(srTSRWRadStructAccessData&, bool checkBenefit=false); //OC29032017 (changed again to checkBenefit=false to resolve problem of resizing of wiggler radiation at strong under-sampling, the ELETTRA SCW case)
 
-	void TreatStronglyOscillatingTerm(srTSRWRadStructAccessData&, char, char =0, int ieOnly =-1);
+	//void TreatStronglyOscillatingTerm(srTSRWRadStructAccessData&, char, char =0, int ieOnly =-1);
+	void TreatStronglyOscillatingTerm(srTSRWRadStructAccessData&, char, char =0, int ieOnly =-1, void* pvGPU=0); //HG01122023
+#ifdef _OFFLOAD_GPU //HG01122023
+	void TreatStronglyOscillatingTerm_GPU(srTSRWRadStructAccessData& RadAccessData, bool TreatPolCompX, bool TreatPolCompZ, double ConstRx, double ConstRz, int ieStart, int ieBefEnd, TGPUUsageArg* pGPU);
+#endif
 	//void TreatStronglyOscillatingTermIrregMesh(srTSRWRadStructAccessData&, float*, float, float, float, float, char, char =0, int =-1);
 	void TreatStronglyOscillatingTermIrregMesh(srTSRWRadStructAccessData&, double*, double, double, double, double, char, char =0, int =-1); //OC260114
 	//void TreatStronglyOscillatingTermIrregMesh(srTSRWRadStructAccessData&, double*, double, double, double, double, char, char =0, int =-1, double =1, double =1); //OC220214
 	void TreatStronglyOscillatingTermIrregMeshTrf(srTSRWRadStructAccessData& RadAccessData, char AddOrRem, double CrdTrf[2][3], char PolComp =0, int ieOnly =-1); //OC27122020
 
+#ifdef _OFFLOAD_GPU //HG01122023
+	GPU_PORTABLE inline static void SetupInterpolAux02(srTInterpolAuxF*, srTInterpolAux01*, srTInterpolAux02*); //OC02022020
+	GPU_PORTABLE inline static void SetupInterpolAux02_LowOrder(srTInterpolAuxF*, srTInterpolAux01*, srTInterpolAux02*); //OC02022020
+	GPU_PORTABLE inline static void InterpolF(srTInterpolAux02*, double, double, float*, int); //OC02022020
+	GPU_PORTABLE inline static void InterpolFI(srTInterpolAux02*, double, double, float*, int); //OC02022020
+	GPU_PORTABLE inline static void InterpolF_LowOrder(srTInterpolAux02*, double, double, float*, int); //OC02022020
+	GPU_PORTABLE inline static void InterpolFI_LowOrder(srTInterpolAux02*, double, double, float*, int); //OC02022020
+	GPU_PORTABLE inline double InterpLin(double r, double f1, double f2) { return f1 + r*(f2 - f1);}
+	GPU_PORTABLE inline static void ImproveReAndIm(float*, float*); //OC02022020
+	GPU_PORTABLE inline static int CheckForLowOrderInterp(srTInterpolAuxF*, srTInterpolAuxF*, int, int, srTInterpolAux01*, srTInterpolAux02*, srTInterpolAux02*); //OC02022020
+#else
 	//inline void SetupInterpolAux02(srTInterpolAuxF*, srTInterpolAux01*, srTInterpolAux02*);
 	inline static void SetupInterpolAux02(srTInterpolAuxF*, srTInterpolAux01*, srTInterpolAux02*); //OC02022020
 	//inline void SetupInterpolAux02_LowOrder(srTInterpolAuxF*, srTInterpolAux01*, srTInterpolAux02*);
@@ -310,6 +358,7 @@ public:
 	inline static void ImproveReAndIm(float*, float*); //OC02022020
 	//inline int CheckForLowOrderInterp(srTInterpolAuxF*, srTInterpolAuxF*, int, int, srTInterpolAux01*, srTInterpolAux02*, srTInterpolAux02*);
 	inline static int CheckForLowOrderInterp(srTInterpolAuxF*, srTInterpolAuxF*, int, int, srTInterpolAux01*, srTInterpolAux02*, srTInterpolAux02*); //OC02022020
+#endif
 
 	int RadResizeGen1D(srTRadSect1D&, srTRadResize1D&);
 	int RadResizeCore1D(srTRadSect1D&, srTRadSect1D&, srTRadResize1D&);
@@ -346,6 +395,9 @@ public:
 
 	//inline void MultSquareMatrByVect(float**, float*, int, float*);
 	inline void MultSquareMatrByVect(double**, double*, int, double*); //OC130311
+#ifdef _OFFLOAD_GPU //HG04122023
+	GPU_PORTABLE
+#endif
 	inline void CosAndSin(double, float&, float&);
 	inline void FindLowestAndUppestPoints(TVector3d&, TVector3d*, int, int&, int&);
 	inline void ReflectVect(TVector3d& N, TVector3d& V);
