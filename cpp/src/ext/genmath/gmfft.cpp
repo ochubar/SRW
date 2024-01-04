@@ -360,7 +360,7 @@ int CGenMathFFT2D::Make2DFFT(CGenMathFFT2DInfo& FFT2DInfo, fftwnd_plan* pPrecrea
 		}
 	}
 
-#ifdef _FFTW3
+#ifdef _FFTW3 //OC28012019
 	fftwf_plan Plan2DFFT;
 	fftw_plan dPlan2DFFT;
 	fftwf_complex* DataToFFT = 0;
