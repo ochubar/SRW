@@ -26,6 +26,10 @@
 #include <map>
 #include <sstream> //OCTEST_161214
 
+#ifdef _OFFLOAD_GPU //HG30112023
+#include "auxgpu.h"
+#endif
+
 //Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
 //#include <time.h>
 
@@ -3319,6 +3323,22 @@ void ParseSructSmpObj3D(double**& arObjShapeDefs, int& nObj3D, PyObject* oListSh
 	}
 }
 
+#ifdef _OFFLOAD_GPU //HG30112023
+/************************************************************************//**
+ * Convert Python device specification to C++ structure.
+ ***************************************************************************/
+void ParseDeviceParam(PyObject* oDev, gpuUsageArg *pGpuUsage) //HG10202021 Convert Python device specification to C++ structure
+{
+	if (oDev != 0) {
+		if (PyLong_Check(oDev)) {
+			pGpuUsage->deviceIndex = _PyLong_AsInt(oDev);
+			return;
+		}
+	}
+	pGpuUsage->deviceIndex = 0;
+}
+#endif
+
 /************************************************************************//**
  * Updates Py List by numbers
  ***************************************************************************/
@@ -4617,18 +4637,24 @@ static PyObject* srwlpy_CalcIntFromElecField(PyObject *self, PyObject *args)
 {
 	//PyObject *oInt=0, *oWfr=0, *oPol=0, *oIntType=0, *oDepType=0, *oE=0, *oX=0, *oY=0;
 	//PyObject *oInt=0, *oWfr=0, *oPol=0, *oIntType=0, *oDepType=0, *oE=0, *oX=0, *oY=0, *oMeth=0;
-	PyObject *oInt=0, *oWfr=0, *oPol=0, *oIntType=0, *oDepType=0, *oE=0, *oX=0, *oY=0, *oMeth=0, *oFldTrj=0; //OC23022020
+	//PyObject *oInt=0, *oWfr=0, *oPol=0, *oIntType=0, *oDepType=0, *oE=0, *oX=0, *oY=0, *oMeth=0, *oFldTrj=0; //OC23022020
+	PyObject *oInt=0, *oWfr=0, *oPol=0, *oIntType=0, *oDepType=0, *oE=0, *oX=0, *oY=0, *oMeth=0, *oFldTrj=0, *oDev=0; //HG03012024
 	vector<Py_buffer> vBuf;
 	SRWLWfr wfr;
 	SRWLMagFldC *pMagCnt=0; //OC23022020
 	SRWLPrtTrj *pPrtTrj=0;
 
+#ifdef _OFFLOAD_GPU //HG30112023
+	TGPUUsageArg gpu;
+	srwlUtiGPUProc(1); //to prepare GPU for calculations
+#endif
 	try
 	{
 		//if(!PyArg_ParseTuple(args, "OOOOOOOO:CalcIntFromElecField", &oInt, &oWfr, &oPol, &oIntType, &oDepType, &oE, &oX, &oY)) throw strEr_BadArg_CalcIntFromElecField;
 		//if(!PyArg_ParseTuple(args, "OOOOOOOO|O:CalcIntFromElecField", &oInt, &oWfr, &oPol, &oIntType, &oDepType, &oE, &oX, &oY, &oMeth)) throw strEr_BadArg_CalcIntFromElecField; //OC13122019
 		//if(!PyArg_ParseTuple(args, "OOOOOOOO|O:CalcIntFromElecField", &oInt, &oWfr, &oPol, &oIntType, &oDepType, &oE, &oX, &oY, &oMeth, &oFldTrj)) throw strEr_BadArg_CalcIntFromElecField; //OC23022020
-		if(!PyArg_ParseTuple(args, "OOOOOOOO|OO:CalcIntFromElecField", &oInt, &oWfr, &oPol, &oIntType, &oDepType, &oE, &oX, &oY, &oMeth, &oFldTrj)) throw strEr_BadArg_CalcIntFromElecField; //OC03032021 (just formally corrected, according to number of arguments)
+		//if(!PyArg_ParseTuple(args, "OOOOOOOO|OO:CalcIntFromElecField", &oInt, &oWfr, &oPol, &oIntType, &oDepType, &oE, &oX, &oY, &oMeth, &oFldTrj)) throw strEr_BadArg_CalcIntFromElecField; //OC03032021 (just formally corrected, according to number of arguments)
+		if(!PyArg_ParseTuple(args, "OOOOOOOO|OOO:CalcIntFromElecField", &oInt, &oWfr, &oPol, &oIntType, &oDepType, &oE, &oX, &oY, &oMeth, &oFldTrj, &oDev)) throw strEr_BadArg_CalcIntFromElecField; //HG03012024
 		if((oInt == 0) || (oWfr == 0) || (oPol == 0) || (oIntType == 0) || (oDepType == 0) || (oE == 0) || (oX == 0) || (oY == 0)) throw strEr_BadArg_CalcIntFromElecField;
 
 		//char *arInt = (char*)GetPyArrayBuf(oInt, vBuf, PyBUF_WRITABLE, 0);
@@ -4691,7 +4717,13 @@ static PyObject* srwlpy_CalcIntFromElecField(PyObject *self, PyObject *args)
 
 		//ProcRes(srwlCalcIntFromElecField(arInt, &wfr, pol, intType, depType, e, x, y));
 		//ProcRes(srwlCalcIntFromElecField(arInt, &wfr, pol, intType, depType, e, x, y, pMeth)); //OC13122019
+
+#ifdef _OFFLOAD_GPU //HG30112023
+		ParseDeviceParam(oDev, &gpu);
+		ProcRes(srwlCalcIntFromElecField(arInt, &wfr, pol, intType, depType, e, x, y, pMeth, pFldTrj, (void*)&gpu));
+#else
 		ProcRes(srwlCalcIntFromElecField(arInt, &wfr, pol, intType, depType, e, x, y, pMeth, pFldTrj)); //OC23022020
+#endif
 	}
 	catch(const char* erText) 
 	{
@@ -4700,6 +4732,9 @@ static PyObject* srwlpy_CalcIntFromElecField(PyObject *self, PyObject *args)
 		oInt = 0;
 	}
 
+#ifdef _OFFLOAD_GPU //HG30112023
+	srwlUtiGPUProc(0); //to free GPU
+#endif
 	if(pMagCnt != 0) DeallocMagCntArrays(pMagCnt);
 	ReleasePyBuffers(vBuf);
 	EraseElementFromMap(&wfr, gmWfrPyPtr);
@@ -4932,7 +4967,8 @@ static PyObject* srwlpy_SetRepresElecField(PyObject *self, PyObject *args)
 static PyObject* srwlpy_PropagElecField(PyObject *self, PyObject *args)
 {
 	//PyObject *oWfr=0, *oOptCnt=0;
-	PyObject *oWfr=0, *oOptCnt=0, *oInt=0; //OC14082018
+	//PyObject *oWfr=0, *oOptCnt=0, *oInt=0; //OC14082018
+	PyObject *oWfr=0, *oOptCnt=0, *oInt=0, *oDev=0; //Hg03012024
 
 	vector<Py_buffer> vBuf;
 	SRWLWfr wfr;
@@ -4945,10 +4981,15 @@ static PyObject* srwlpy_PropagElecField(PyObject *self, PyObject *args)
 	//float **arInts=0;
 	char **arInts=0;
 
+#ifdef _OFFLOAD_GPU //HG03012024
+	TGPUUsageArg gpu;
+	srwlUtiGPUProc(1); //to prepare GPU for calculations
+#endif
 	try
 	{
 		//if(!PyArg_ParseTuple(args, "OO:PropagElecField", &oWfr, &oOptCnt)) throw strEr_BadArg_PropagElecField;
-		if(!PyArg_ParseTuple(args, "OO|O:PropagElecField", &oWfr, &oOptCnt, &oInt)) throw strEr_BadArg_PropagElecField; //OC14082018
+		//if(!PyArg_ParseTuple(args, "OO|O:PropagElecField", &oWfr, &oOptCnt, &oInt)) throw strEr_BadArg_PropagElecField; //OC14082018
+		if(!PyArg_ParseTuple(args, "OO|OO:PropagElecField", &oWfr, &oOptCnt, &oInt, &oDev)) throw strEr_BadArg_PropagElecField; //HG03012024
 		if((oWfr == 0) || (oOptCnt == 0)) throw strEr_BadArg_PropagElecField;
 
 		//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
@@ -4981,7 +5022,12 @@ static PyObject* srwlpy_PropagElecField(PyObject *self, PyObject *args)
 		}
 
 		//ProcRes(srwlPropagElecField(&wfr, &optCnt));
+#ifdef _OFFLOAD_GPU //HG03012024
+		ParseDeviceParam(oDev, &gpu);
+		ProcRes(srwlPropagElecField(&wfr, &optCnt, nInt, arIntDescr, arIntMesh, arInts, (void*)&gpu));
+#else
 		ProcRes(srwlPropagElecField(&wfr, &optCnt, nInt, arIntDescr, arIntMesh, arInts)); //OC15082018
+#endif
 
 		//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
 		//srwlPrintTime(":srwlpy_PropagElecField :srwlPropagElecField", &start);
@@ -5002,6 +5048,9 @@ static PyObject* srwlpy_PropagElecField(PyObject *self, PyObject *args)
 		//PyErr_PrintEx(1);
 		oWfr = 0;
 	}
+#ifdef _OFFLOAD_GPU //HG03012024
+	srwlUtiGPUProc(0); //to free GPU
+#endif
 
 	DeallocOptCntArrays(&optCnt);
 	ReleasePyBuffers(vBuf);
@@ -5102,12 +5151,18 @@ static PyObject* srwlpy_CalcTransm(PyObject* self, PyObject* args) //HG27012021
  ***************************************************************************/
 static PyObject* srwlpy_UtiFFT(PyObject *self, PyObject *args)
 {
-	PyObject *oData=0, *oMesh=0, *oDir=0;
+	//PyObject *oData=0, *oMesh=0, *oDir=0;
+	PyObject *oData=0, *oMesh=0, *oDir=0, *oDev=0; //HG03012024
 	vector<Py_buffer> vBuf;
 
+#ifdef _OFFLOAD_GPU //HG03012024
+	TGPUUsageArg gpu;
+	srwlUtiGPUProc(1); //to prepare GPU for calculations
+#endif
 	try
 	{
-		if(!PyArg_ParseTuple(args, "OOO:UtiFFT", &oData, &oMesh, &oDir)) throw strEr_BadArg_UtiFFT;
+		//if(!PyArg_ParseTuple(args, "OOO:UtiFFT", &oData, &oMesh, &oDir)) throw strEr_BadArg_UtiFFT;
+		if(!PyArg_ParseTuple(args, "OOO|O:UtiFFT", &oData, &oMesh, &oDir, &oDev)) throw strEr_BadArg_UtiFFT; //HG03012024
 		if((oData == 0) || (oMesh == 0) || (oDir == 0)) throw strEr_BadArg_UtiFFT;
 
 		//int sizeVectBuf = (int)vBuf.size();
@@ -5143,7 +5198,12 @@ static PyObject* srwlpy_UtiFFT(PyObject *self, PyObject *args)
 		if(!PyNumber_Check(oDir)) throw strEr_BadArg_UtiFFT;
 		int dir = (int)PyLong_AsLong(oDir);
 
+#ifdef _OFFLOAD_GPU //HG03012024
+		ParseDeviceParam(oDev, &gpu);
+		ProcRes(srwlUtiFFT(pcData, typeData, arMesh, nMesh, dir, (void*)&gpu));
+#else
 		ProcRes(srwlUtiFFT(pcData, typeData, arMesh, nMesh, dir));
+#endif
 
 		if(meshArType == 'l') UpdatePyListNum(oMesh, arMesh, nMesh); //04092016
 	}
@@ -5153,6 +5213,9 @@ static PyObject* srwlpy_UtiFFT(PyObject *self, PyObject *args)
 		//if(vBuf.size() > 0) ReleasePyBuffers(vBuf);
 		oData = 0; oMesh = 0; oDir = 0;
 	}
+#ifdef _OFFLOAD_GPU //HG03012024
+	srwlUtiGPUProc(0); //to free GPU
+#endif
 
 	ReleasePyBuffers(vBuf);
 
