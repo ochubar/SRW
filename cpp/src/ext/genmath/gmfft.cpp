@@ -228,15 +228,15 @@ void CGenMathFFT::NextCorrectNumberForFFT(long& n)
 int CGenMathFFT1D::Make1DFFT_InPlace(CGenMathFFT1DInfo& FFT1DInfo, void* pvGPU) //OC06092023
 {
 #ifdef _OFFLOAD_GPU //OC06092023 (to avoid useless operations / calls at execution on CPU)
-	if (CAuxGPU::GPUEnabled((TGPUUsageArg*)pvGPU)) //HG04122023
+	if(CAuxGPU::GPUEnabled((TGPUUsageArg*)pvGPU)) //HG04122023
 	//GPU_COND(pvGPU, //OC06092023
 	//GPU_COND(pGpuUsage,
 	{
 		//HG03082022 GPU can do an inplace fft without being given a temporary buffer
 		FFT1DInfo.pOutData = FFT1DInfo.pInData;
 		int result;
-		if (result = Make1DFFT(FFT1DInfo, pvGPU)) return result; //OC06092023
-		//if (result = Make1DFFT(FFT1DInfo, pGpuUsage)) return result;
+		if(result = Make1DFFT(FFT1DInfo, pvGPU)) return result; //OC06092023
+		//if(result = Make1DFFT(FFT1DInfo, pGpuUsage)) return result;
 	}//)
 	else
 #endif
@@ -329,34 +329,34 @@ int CGenMathFFT2D::Make2DFFT(CGenMathFFT2DInfo& FFT2DInfo, fftwnd_plan* pPrecrea
 	//ArrayShiftX = 0; ArrayShiftY = 0; 
 	m_ArrayShiftX = 0; m_ArrayShiftY = 0; //OC02022019
 	m_dArrayShiftX = 0; m_dArrayShiftY = 0;
-	if (FFT2DInfo.pData != 0)
+	if(FFT2DInfo.pData != 0)
 	{
-		if (NeedsShiftBeforeX || NeedsShiftAfterX)
+		if(NeedsShiftBeforeX || NeedsShiftAfterX)
 		{
 			//ArrayShiftX = new float[Nx << 1];
 			//if(ArrayShiftX == 0) return MEMORY_ALLOCATION_FAILURE;
 			m_ArrayShiftX = new float[Nx << 1];
-			if (m_ArrayShiftX == 0) return MEMORY_ALLOCATION_FAILURE;
+			if(m_ArrayShiftX == 0) return MEMORY_ALLOCATION_FAILURE;
 		}
-		if (NeedsShiftBeforeY || NeedsShiftAfterY)
+		if(NeedsShiftBeforeY || NeedsShiftAfterY)
 		{
 			//ArrayShiftY = new float[Ny << 1];
 			//if(ArrayShiftY == 0) return MEMORY_ALLOCATION_FAILURE;
 			m_ArrayShiftY = new float[Ny << 1];
-			if (m_ArrayShiftY == 0) return MEMORY_ALLOCATION_FAILURE;
+			if(m_ArrayShiftY == 0) return MEMORY_ALLOCATION_FAILURE;
 		}
 	}
-	else if (FFT2DInfo.pdData != 0)
+	else if(FFT2DInfo.pdData != 0)
 	{
-		if (NeedsShiftBeforeX || NeedsShiftAfterX)
+		if(NeedsShiftBeforeX || NeedsShiftAfterX)
 		{
 			m_dArrayShiftX = new double[Nx << 1];
-			if (m_dArrayShiftX == 0) return MEMORY_ALLOCATION_FAILURE;
+			if(m_dArrayShiftX == 0) return MEMORY_ALLOCATION_FAILURE;
 		}
-		if (NeedsShiftBeforeY || NeedsShiftAfterY)
+		if(NeedsShiftBeforeY || NeedsShiftAfterY)
 		{
 			m_dArrayShiftY = new double[Ny << 1];
-			if (m_dArrayShiftY == 0) return MEMORY_ALLOCATION_FAILURE;
+			if(m_dArrayShiftY == 0) return MEMORY_ALLOCATION_FAILURE;
 		}
 	}
 
@@ -374,7 +374,7 @@ int CGenMathFFT2D::Make2DFFT(CGenMathFFT2DInfo& FFT2DInfo, fftwnd_plan* pPrecrea
 //#endif
 
 #ifdef _OFFLOAD_GPU //OC06092023 (to avoid #include "auxgpu.h" for CPU)
-	if (CAuxGPU::GPUEnabled((TGPUUsageArg*)pvGPU)) //HG04122023
+	if(CAuxGPU::GPUEnabled((TGPUUsageArg*)pvGPU)) //HG04122023
 	//GPU_COND(pvGPU, //OC06092023
 	//GPU_COND(pGpuUsage, //HG02112021
 	{
@@ -393,8 +393,8 @@ int CGenMathFFT2D::Make2DFFT(CGenMathFFT2DInfo& FFT2DInfo, fftwnd_plan* pPrecrea
 #endif
 	{
 #if _FFTW3 //OC28012019
-		if (FFT2DInfo.pData != 0) DataToFFT = (fftwf_complex*)(FFT2DInfo.pData);
-		else if (FFT2DInfo.pdData != 0) dDataToFFT = (fftw_complex*)(FFT2DInfo.pdData); //OC02022019
+		if(FFT2DInfo.pData != 0) DataToFFT = (fftwf_complex*)(FFT2DInfo.pData);
+		else if(FFT2DInfo.pdData != 0) dDataToFFT = (fftw_complex*)(FFT2DInfo.pdData); //OC02022019
 
 #else
 		fftwnd_plan Plan2DFFT;
@@ -422,21 +422,21 @@ int CGenMathFFT2D::Make2DFFT(CGenMathFFT2DInfo& FFT2DInfo, fftwnd_plan* pPrecrea
 	}
 	
 #ifdef _OFFLOAD_GPU //OC06092023 (to avoid #include "auxgpu.h" for CPU)
-	if (DataToFFT != 0) CAuxGPU::EnsureDeviceMemoryReady((TGPUUsageArg*)pvGPU, DataToFFT); //OC06092023
-	else if (dDataToFFT != 0) CAuxGPU::EnsureDeviceMemoryReady((TGPUUsageArg*)pvGPU, dDataToFFT);
+	if(DataToFFT != 0) CAuxGPU::EnsureDeviceMemoryReady((TGPUUsageArg*)pvGPU, DataToFFT); //OC06092023
+	else if(dDataToFFT != 0) CAuxGPU::EnsureDeviceMemoryReady((TGPUUsageArg*)pvGPU, dDataToFFT);
 	//if (DataToFFT != 0) CAuxGPU::EnsureDeviceMemoryReady(pGpuUsage, DataToFFT);
 	//else if (dDataToFFT != 0) CAuxGPU::EnsureDeviceMemoryReady(pGpuUsage, dDataToFFT);
 #endif
 
-	if (NeedsShiftBeforeX || NeedsShiftBeforeY) //HG02112021
+	if(NeedsShiftBeforeX || NeedsShiftBeforeY) //HG02112021
 	{
 #ifdef _OFFLOAD_GPU //OC06092023 (to avoid #include "auxgpu.h" for CPU)
-		if (CAuxGPU::GPUEnabled((TGPUUsageArg*)pvGPU)) //HG04122023
+		if(CAuxGPU::GPUEnabled((TGPUUsageArg*)pvGPU)) //HG04122023
 		{
 			//GPU_COND(pvGPU, { //OC06092023
 			//GPU_COND(pGpuUsage, {
 			TGPUUsageArg *pGPU = (TGPUUsageArg*)pvGPU;
-			if (DataToFFT != 0) {
+			if(DataToFFT != 0) {
 				m_ArrayShiftX = (float*)CAuxGPU::ToDevice(pGPU, m_ArrayShiftX, (Nx << 1) * sizeof(float), false); //OC06092023
 				m_ArrayShiftY = (float*)CAuxGPU::ToDevice(pGPU, m_ArrayShiftY, (Ny << 1) * sizeof(float), false);
 				CAuxGPU::EnsureDeviceMemoryReady(pGPU, m_ArrayShiftX);
@@ -451,7 +451,7 @@ int CGenMathFFT2D::Make2DFFT(CGenMathFFT2DInfo& FFT2DInfo, fftwnd_plan* pPrecrea
 				//m_ArrayShiftX = (float*)CAuxGPU::ToHostAndFree(pGpuUsage, m_ArrayShiftX, (Nx << 1) * sizeof(float), true);
 				//m_ArrayShiftY = (float*)CAuxGPU::ToHostAndFree(pGpuUsage, m_ArrayShiftY, (Ny << 1) * sizeof(float), true);
 			}
-			else if (dDataToFFT != 0) {
+			else if(dDataToFFT != 0) {
 				m_dArrayShiftX = (double*)CAuxGPU::ToDevice(pGPU, m_dArrayShiftX, (Nx << 1) * sizeof(double), false); //OC06092023
 				m_dArrayShiftY = (double*)CAuxGPU::ToDevice(pGPU, m_dArrayShiftY, (Ny << 1) * sizeof(double), false);
 				CAuxGPU::EnsureDeviceMemoryReady(pGPU, m_dArrayShiftX);
@@ -470,10 +470,10 @@ int CGenMathFFT2D::Make2DFFT(CGenMathFFT2DInfo& FFT2DInfo, fftwnd_plan* pPrecrea
 		else 
 #endif
 		{
-			if (DataToFFT != 0) TreatShifts(DataToFFT);
+			if(DataToFFT != 0) TreatShifts(DataToFFT);
 
 #ifdef _FFTW3 //OC27022019
-			else if (dDataToFFT != 0) TreatShifts(dDataToFFT); //OC02022019
+			else if(dDataToFFT != 0) TreatShifts(dDataToFFT); //OC02022019
 #endif
 		}
 	}
@@ -481,22 +481,22 @@ int CGenMathFFT2D::Make2DFFT(CGenMathFFT2DInfo& FFT2DInfo, fftwnd_plan* pPrecrea
 	bool alreadyNormalized = false; //HG17032022
 	//double Mult = FFT2DInfo.xStep*FFT2DInfo.yStep;
 	double Mult = FFT2DInfo.xStep * FFT2DInfo.yStep * FFT2DInfo.ExtraMult; //OC20112017
-	if (FFT2DInfo.Dir > 0)
+	if(FFT2DInfo.Dir > 0)
 	{
 #ifdef _OFFLOAD_GPU //OC06092023 (to avoid #include "auxgpu.h" for CPU)
-		if (CAuxGPU::GPUEnabled((TGPUUsageArg*)pvGPU)) //HG04122023
+		if(CAuxGPU::GPUEnabled((TGPUUsageArg*)pvGPU)) //HG04122023
 		//GPU_COND(pvGPU, //OC06092023
 		//GPU_COND(pGpuUsage, //HG02112021
 		{
-			if (DataToFFT != 0)
+			if(DataToFFT != 0)
 			{
-				if (pPrecreatedPlan2DFFT == 0) 
+				if(pPrecreatedPlan2DFFT == 0) 
 				{
-					if ((Plan2DFFT_cu == NULL) || (!(PlanNx == Nx && PlanNy == Ny))) //OC06092023 //HG04122023
+					if((Plan2DFFT_cu == NULL) || (!(PlanNx == Nx && PlanNy == Ny))) //OC06092023 //HG04122023
 					//if((Plan2DFFT_cu == NULL) || (!(PlanNx == Nx && PlanNy == Ny && HowMany == FFT2DInfo.howMany))) //OC06092023
 					//if (Plan2DFFT_cu == NULL | !(PlanNx == Nx && PlanNy == Ny && HowMany == FFT2DInfo.howMany)) 
 					{
-						if (Plan2DFFT_cu != NULL)
+						if(Plan2DFFT_cu != NULL)
 						{
 							cufftDestroy(Plan2DFFT_cu);
 							Plan2DFFT_cu = NULL;
@@ -511,21 +511,21 @@ int CGenMathFFT2D::Make2DFFT(CGenMathFFT2DInfo& FFT2DInfo, fftwnd_plan* pPrecrea
 					}
 				}
 				else Plan2DFFT_cu = *(cufftHandle*)pPrecreatedPlan2DFFT;
-				if (Plan2DFFT_cu == 0) return ERROR_IN_FFT;
+				if(Plan2DFFT_cu == 0) return ERROR_IN_FFT;
 
 				auto res = cufftExecC2C(Plan2DFFT_cu, (cufftComplex*)DataToFFT, (cufftComplex*)DataToFFT, CUFFT_FORWARD);
 //				if (res != CUFFT_SUCCESS)
 //					printf("CUFFT Error: %d\r\n", res);
 			}
-			else if (dDataToFFT != 0)
+			else if(dDataToFFT != 0)
 			{
-				if (pdPrecreatedPlan2DFFT == 0) 
+				if(pdPrecreatedPlan2DFFT == 0) 
 				{
-					if ((dPlan2DFFT_cu == NULL) || (!(dPlanNx == Nx && dPlanNy == Ny))) //OC06092023 //HG04122023
+					if((dPlan2DFFT_cu == NULL) || (!(dPlanNx == Nx && dPlanNy == Ny))) //OC06092023 //HG04122023
 					//if((dPlan2DFFT_cu == NULL) || (!(dPlanNx == Nx && dPlanNy == Ny && dHowMany == FFT2DInfo.howMany))) //OC06092023
 					//if (dPlan2DFFT_cu == NULL | !(dPlanNx == Nx && dPlanNy == Ny && dHowMany == FFT2DInfo.howMany)) 
 					{
-						if (dPlan2DFFT_cu != NULL)
+						if(dPlan2DFFT_cu != NULL)
 						{
 							cufftDestroy(dPlan2DFFT_cu);
 							dPlan2DFFT_cu = NULL;
@@ -540,7 +540,7 @@ int CGenMathFFT2D::Make2DFFT(CGenMathFFT2DInfo& FFT2DInfo, fftwnd_plan* pPrecrea
 					}
 				}
 				else dPlan2DFFT_cu = *(cufftHandle*)pdPrecreatedPlan2DFFT;
-				if (dPlan2DFFT_cu == 0) return ERROR_IN_FFT;
+				if(dPlan2DFFT_cu == 0) return ERROR_IN_FFT;
 
 				cufftExecZ2Z(dPlan2DFFT_cu, (cufftDoubleComplex*)dDataToFFT, (cufftDoubleComplex*)dDataToFFT, CUFFT_FORWARD);
 			}
@@ -556,38 +556,38 @@ int CGenMathFFT2D::Make2DFFT(CGenMathFFT2DInfo& FFT2DInfo, fftwnd_plan* pPrecrea
 			for(long iHowMany = 0; iHowMany < FFT2DInfo.howMany; iHowMany++)
 			{
 				long iFFT = Nx * Ny * iHowMany;
-				if (DataToFFT != 0)
+				if(DataToFFT != 0)
 				{
-					if (pPrecreatedPlan2DFFT == 0) Plan2DFFT = fftwf_plan_dft_2d(Ny, Nx, DataToFFT + iFFT, DataToFFT + iFFT, FFTW_FORWARD, FFTW_ESTIMATE);
+					if(pPrecreatedPlan2DFFT == 0) Plan2DFFT = fftwf_plan_dft_2d(Ny, Nx, DataToFFT + iFFT, DataToFFT + iFFT, FFTW_FORWARD, FFTW_ESTIMATE);
 					else Plan2DFFT = *pPrecreatedPlan2DFFT;
-					if (Plan2DFFT == 0) return ERROR_IN_FFT;
+					if(Plan2DFFT == 0) return ERROR_IN_FFT;
 
 					fftwf_execute(Plan2DFFT);
 				}
-				else if (dDataToFFT != 0)
+				else if(dDataToFFT != 0)
 				{
-					if (pdPrecreatedPlan2DFFT == 0) dPlan2DFFT = fftw_plan_dft_2d(Ny, Nx, dDataToFFT + iFFT, dDataToFFT + iFFT, FFTW_FORWARD, FFTW_ESTIMATE);
+					if(pdPrecreatedPlan2DFFT == 0) dPlan2DFFT = fftw_plan_dft_2d(Ny, Nx, dDataToFFT + iFFT, dDataToFFT + iFFT, FFTW_FORWARD, FFTW_ESTIMATE);
 					else dPlan2DFFT = *pdPrecreatedPlan2DFFT;
-					if (dPlan2DFFT == 0) return ERROR_IN_FFT;
+					if(dPlan2DFFT == 0) return ERROR_IN_FFT;
 
 					fftw_execute(dPlan2DFFT);
 				}
 			}
 
 #else
-			if (pPrecreatedPlan2DFFT == 0) Plan2DFFT = fftw2d_create_plan(Ny, Nx, FFTW_FORWARD, FFTW_IN_PLACE);
+			if(pPrecreatedPlan2DFFT == 0) Plan2DFFT = fftw2d_create_plan(Ny, Nx, FFTW_FORWARD, FFTW_IN_PLACE);
 			else Plan2DFFT = *pPrecreatedPlan2DFFT;
-			if (Plan2DFFT == 0) return ERROR_IN_FFT;
+			if(Plan2DFFT == 0) return ERROR_IN_FFT;
 			fftwnd(Plan2DFFT, 1, DataToFFT, 1, 0, DataToFFT, 1, 0);
 #endif
 		}
 
 #ifdef _OFFLOAD_GPU //OC06092023 (to avoid #include "auxgpu.h" for CPU)
-		if (CAuxGPU::GPUEnabled((TGPUUsageArg*)pvGPU)) //HG04122023
+		if(CAuxGPU::GPUEnabled((TGPUUsageArg*)pvGPU)) //HG04122023
 		//GPU_COND(pvGPU, //OC06092023
 		//GPU_COND(pGpuUsage, //HG18072022
 		{
-			if (DataToFFT != 0)
+			if(DataToFFT != 0)
 			{
 				//RepairSignAfter2DFFT_GPU((float*)DataToFFT, Nx, Ny, FFT2DInfo.howMany);
 				//RotateDataAfter2DFFT_GPU((float*)DataToFFT, Nx, Ny, FFT2DInfo.howMany);
@@ -595,7 +595,7 @@ int CGenMathFFT2D::Make2DFFT(CGenMathFFT2DInfo& FFT2DInfo, fftwnd_plan* pPrecrea
 				//RepairSignAndRotateDataAfter2DFFT_GPU((float*)DataToFFT, Nx, Ny, FFT2DInfo.howMany, (float)Mult); //OC06092023
 				RepairSignAndRotateDataAfter2DFFT_GPU((float*)DataToFFT, Nx, Ny, (float)Mult); //OC06092023 //HG04122023
 			}
-			else if (dDataToFFT != 0)
+			else if(dDataToFFT != 0)
 			{
 				//RepairSignAfter2DFFT_GPU((double*)dDataToFFT, Nx, Ny, FFT2DInfo.howMany);
 				//RotateDataAfter2DFFT_GPU((double*)dDataToFFT, Nx, Ny, FFT2DInfo.howMany);
@@ -607,14 +607,14 @@ int CGenMathFFT2D::Make2DFFT(CGenMathFFT2DInfo& FFT2DInfo, fftwnd_plan* pPrecrea
 		else 
 #endif
 		{
-			if (DataToFFT != 0)
+			if(DataToFFT != 0)
 			{
 				RepairSignAfter2DFFT(DataToFFT);
 				RotateDataAfter2DFFT(DataToFFT);
 			}
 
 #ifdef _FFTW3 //OC27022019
-			else if (dDataToFFT != 0)
+			else if(dDataToFFT != 0)
 			{
 				RepairSignAfter2DFFT(dDataToFFT);
 				RotateDataAfter2DFFT(dDataToFFT);
@@ -625,18 +625,18 @@ int CGenMathFFT2D::Make2DFFT(CGenMathFFT2DInfo& FFT2DInfo, fftwnd_plan* pPrecrea
 	else
 	{
 #ifdef _OFFLOAD_GPU //OC06092023 (to avoid #include "auxgpu.h" for CPU)
-		if (CAuxGPU::GPUEnabled((TGPUUsageArg*)pvGPU)) //HG04122023
+		if(CAuxGPU::GPUEnabled((TGPUUsageArg*)pvGPU)) //HG04122023
 		//GPU_COND(pvGPU, //OC06092023
 		//GPU_COND(pGpuUsage, //HG18072022
 		{
-			if (DataToFFT != 0)
+			if(DataToFFT != 0)
 			{
-				if (pPrecreatedPlan2DFFT == 0) {
-					if ((Plan2DFFT_cu == NULL) || (!(PlanNx == Nx && PlanNy == Ny))) //OC06092023 //HG04122023
+				if(pPrecreatedPlan2DFFT == 0) {
+					if((Plan2DFFT_cu == NULL) || (!(PlanNx == Nx && PlanNy == Ny))) //OC06092023 //HG04122023
 					//if((Plan2DFFT_cu == NULL) || (!(PlanNx == Nx && PlanNy == Ny && HowMany == FFT2DInfo.howMany))) //OC06092023
 					//if (Plan2DFFT_cu == NULL | !(PlanNx == Nx && PlanNy == Ny && HowMany == FFT2DInfo.howMany)) 
 					{
-						if (Plan2DFFT_cu != NULL){
+						if(Plan2DFFT_cu != NULL){
 							cufftDestroy(Plan2DFFT_cu);
 							Plan2DFFT_cu = NULL;
 						}
@@ -651,7 +651,7 @@ int CGenMathFFT2D::Make2DFFT(CGenMathFFT2DInfo& FFT2DInfo, fftwnd_plan* pPrecrea
 					}
 				}
 				else Plan2DFFT_cu = *(cufftHandle*)pPrecreatedPlan2DFFT;
-				if (Plan2DFFT_cu == 0) return ERROR_IN_FFT;
+				if(Plan2DFFT_cu == 0) return ERROR_IN_FFT;
 
 				//RotateDataAfter2DFFT_GPU((float*)DataToFFT, Nx, Ny, FFT2DInfo.howMany);
 				//RepairSignAfter2DFFT_GPU((float*)DataToFFT, Nx, Ny, FFT2DInfo.howMany);
@@ -659,14 +659,14 @@ int CGenMathFFT2D::Make2DFFT(CGenMathFFT2DInfo& FFT2DInfo, fftwnd_plan* pPrecrea
 				RepairSignAfter2DFFT_GPU((float*)DataToFFT, Nx, Ny);
 				cufftExecC2C(Plan2DFFT_cu, (cufftComplex*)DataToFFT, (cufftComplex*)DataToFFT, CUFFT_INVERSE);
 			}
-			else if (dDataToFFT != 0)
+			else if(dDataToFFT != 0)
 			{
-				if (pdPrecreatedPlan2DFFT == 0) {
-					if ((dPlan2DFFT_cu == NULL) || (!(dPlanNx == Nx && dPlanNy == Ny))) //OC06092023 //HG04122023
+				if(pdPrecreatedPlan2DFFT == 0) {
+					if((dPlan2DFFT_cu == NULL) || (!(dPlanNx == Nx && dPlanNy == Ny))) //OC06092023 //HG04122023
 					//if((dPlan2DFFT_cu == NULL) || (!(dPlanNx == Nx && dPlanNy == Ny && dHowMany == FFT2DInfo.howMany))) //OC06092023
 					//if (dPlan2DFFT_cu == NULL | !(dPlanNx == Nx && dPlanNy == Ny && dHowMany == FFT2DInfo.howMany)) 
 					{
-						if (dPlan2DFFT_cu != NULL){
+						if(dPlan2DFFT_cu != NULL){
 							cufftDestroy(dPlan2DFFT_cu);
 							dPlan2DFFT_cu = NULL;
 						}
@@ -680,7 +680,7 @@ int CGenMathFFT2D::Make2DFFT(CGenMathFFT2DInfo& FFT2DInfo, fftwnd_plan* pPrecrea
 					}
 				}
 				else dPlan2DFFT_cu = *(cufftHandle*)pdPrecreatedPlan2DFFT;
-				if (dPlan2DFFT_cu == 0) return ERROR_IN_FFT;
+				if(dPlan2DFFT_cu == 0) return ERROR_IN_FFT;
 
 				//RotateDataAfter2DFFT_GPU((double*)dDataToFFT, Nx, Ny, FFT2DInfo.howMany);
 				//RepairSignAfter2DFFT_GPU((double*)dDataToFFT, Nx, Ny, FFT2DInfo.howMany);
@@ -699,29 +699,29 @@ int CGenMathFFT2D::Make2DFFT(CGenMathFFT2DInfo& FFT2DInfo, fftwnd_plan* pPrecrea
 			for (long iHowMany = 0; iHowMany < FFT2DInfo.howMany; iHowMany++)
 			{
 				long iFFT = Nx * Ny * iHowMany;
-				if (DataToFFT != 0)
+				if(DataToFFT != 0)
 				{
-					if (pPrecreatedPlan2DFFT == 0) Plan2DFFT = fftwf_plan_dft_2d(Ny, Nx, DataToFFT + iFFT, DataToFFT + iFFT, FFTW_BACKWARD, FFTW_ESTIMATE);
+					if(pPrecreatedPlan2DFFT == 0) Plan2DFFT = fftwf_plan_dft_2d(Ny, Nx, DataToFFT + iFFT, DataToFFT + iFFT, FFTW_BACKWARD, FFTW_ESTIMATE);
 					else Plan2DFFT = *pPrecreatedPlan2DFFT;
-					if (Plan2DFFT == 0) return ERROR_IN_FFT;
+					if(Plan2DFFT == 0) return ERROR_IN_FFT;
 					RotateDataAfter2DFFT(DataToFFT);
 					RepairSignAfter2DFFT(DataToFFT);
 					fftwf_execute(Plan2DFFT);
 				}
-				else if (dDataToFFT != 0)
+				else if(dDataToFFT != 0)
 				{
-					if (pdPrecreatedPlan2DFFT == 0) dPlan2DFFT = fftw_plan_dft_2d(Ny, Nx, dDataToFFT + iFFT, dDataToFFT + iFFT, FFTW_BACKWARD, FFTW_ESTIMATE);
+					if(pdPrecreatedPlan2DFFT == 0) dPlan2DFFT = fftw_plan_dft_2d(Ny, Nx, dDataToFFT + iFFT, dDataToFFT + iFFT, FFTW_BACKWARD, FFTW_ESTIMATE);
 					else dPlan2DFFT = *pdPrecreatedPlan2DFFT;
-					if (dPlan2DFFT == 0) return ERROR_IN_FFT;
+					if(dPlan2DFFT == 0) return ERROR_IN_FFT;
 					RotateDataAfter2DFFT(dDataToFFT);
 					RepairSignAfter2DFFT(dDataToFFT);
 					fftw_execute(dPlan2DFFT);
 				}
 			}
 #else
-			if (pPrecreatedPlan2DFFT == 0) Plan2DFFT = fftw2d_create_plan(Ny, Nx, FFTW_BACKWARD, FFTW_IN_PLACE);
+			if(pPrecreatedPlan2DFFT == 0) Plan2DFFT = fftw2d_create_plan(Ny, Nx, FFTW_BACKWARD, FFTW_IN_PLACE);
 			else Plan2DFFT = *pPrecreatedPlan2DFFT;
-			if (Plan2DFFT == 0) return ERROR_IN_FFT;
+			if(Plan2DFFT == 0) return ERROR_IN_FFT;
 			RotateDataAfter2DFFT(DataToFFT);
 			RepairSignAfter2DFFT(DataToFFT);
 			fftwnd(Plan2DFFT, 1, DataToFFT, 1, 0, DataToFFT, 1, 0);
@@ -729,9 +729,9 @@ int CGenMathFFT2D::Make2DFFT(CGenMathFFT2DInfo& FFT2DInfo, fftwnd_plan* pPrecrea
 		}
 	}
 	
-	if (!alreadyNormalized){
+	if(!alreadyNormalized){
 #ifdef _OFFLOAD_GPU //OC06092023 (to avoid #include "auxgpu.h" for CPU)
-		if (CAuxGPU::GPUEnabled((TGPUUsageArg*)pvGPU)) //HG04122023
+		if(CAuxGPU::GPUEnabled((TGPUUsageArg*)pvGPU)) //HG04122023
 		//GPU_COND(pvGPU, //OC06092023
 		//GPU_COND(pGpuUsage, //HG18072022
 		{
@@ -739,18 +739,18 @@ int CGenMathFFT2D::Make2DFFT(CGenMathFFT2DInfo& FFT2DInfo, fftwnd_plan* pPrecrea
 			//	NormalizeDataAfter2DFFT_GPU((float*)DataToFFT, Nx, Ny, FFT2DInfo.howMany, Mult);
 			//else if (dDataToFFT != 0)
 			//	NormalizeDataAfter2DFFT_GPU((double*)dDataToFFT, Nx, Ny, FFT2DInfo.howMany, Mult);
-			if (DataToFFT != 0) //HG04122023
+			if(DataToFFT != 0) //HG04122023
 				NormalizeDataAfter2DFFT_GPU((float*)DataToFFT, Nx, Ny, Mult);
-			else if (dDataToFFT != 0)
+			else if(dDataToFFT != 0)
 				NormalizeDataAfter2DFFT_GPU((double*)dDataToFFT, Nx, Ny, Mult);
 		}//)
 		else 
 #endif
 		{
-			if (DataToFFT != 0) NormalizeDataAfter2DFFT(DataToFFT, Mult);
+			if(DataToFFT != 0) NormalizeDataAfter2DFFT(DataToFFT, Mult);
 
 #ifdef _FFTW3 //OC27022019
-			else if (dDataToFFT != 0) NormalizeDataAfter2DFFT(dDataToFFT, Mult);
+			else if(dDataToFFT != 0) NormalizeDataAfter2DFFT(dDataToFFT, Mult);
 #endif
 		}
 	}
@@ -758,25 +758,25 @@ int CGenMathFFT2D::Make2DFFT(CGenMathFFT2DInfo& FFT2DInfo, fftwnd_plan* pPrecrea
 	//if(NeedsShiftAfterX) FillArrayShift('x', t0SignMult*x0_After, FFT2DInfo.xStepTr);
 	//if(NeedsShiftAfterY) FillArrayShift('y', t0SignMult*y0_After, FFT2DInfo.yStepTr);
 
-	if (NeedsShiftAfterX)
+	if(NeedsShiftAfterX)
 	{//OC02022019
-		if (m_ArrayShiftX != 0) FillArrayShift('x', t0SignMult * x0_After, FFT2DInfo.xStepTr, m_ArrayShiftX);
-		else if (m_dArrayShiftX != 0) FillArrayShift('x', t0SignMult * x0_After, FFT2DInfo.xStepTr, m_dArrayShiftX);
+		if(m_ArrayShiftX != 0) FillArrayShift('x', t0SignMult * x0_After, FFT2DInfo.xStepTr, m_ArrayShiftX);
+		else if(m_dArrayShiftX != 0) FillArrayShift('x', t0SignMult * x0_After, FFT2DInfo.xStepTr, m_dArrayShiftX);
 	}
-	if (NeedsShiftAfterY)
+	if(NeedsShiftAfterY)
 	{//OC02022019
-		if (m_ArrayShiftY != 0) FillArrayShift('y', t0SignMult * y0_After, FFT2DInfo.yStepTr, m_ArrayShiftY);
-		else if (m_dArrayShiftY != 0) FillArrayShift('y', t0SignMult * y0_After, FFT2DInfo.yStepTr, m_dArrayShiftY);
+		if(m_ArrayShiftY != 0) FillArrayShift('y', t0SignMult * y0_After, FFT2DInfo.yStepTr, m_ArrayShiftY);
+		else if(m_dArrayShiftY != 0) FillArrayShift('y', t0SignMult * y0_After, FFT2DInfo.yStepTr, m_dArrayShiftY);
 	}
-	if (NeedsShiftAfterX || NeedsShiftAfterY)
+	if(NeedsShiftAfterX || NeedsShiftAfterY)
 	{
 #ifdef _OFFLOAD_GPU //OC06092023 (to avoid #include "auxgpu.h" for CPU)
-		if (CAuxGPU::GPUEnabled((TGPUUsageArg*)pvGPU)) //HG04122023
+		if(CAuxGPU::GPUEnabled((TGPUUsageArg*)pvGPU)) //HG04122023
 		//GPU_COND(pvGPU, //OC06092023
 		//GPU_COND(pGpuUsage, //HG18072022
 		{
 			TGPUUsageArg *pGPU = (TGPUUsageArg*)pvGPU;
-			if (DataToFFT != 0) {
+			if(DataToFFT != 0) {
 				m_ArrayShiftX = (float*)CAuxGPU::ToDevice(pGPU, m_ArrayShiftX, (Nx << 1) * sizeof(float), false); //OC06092023
 				m_ArrayShiftY = (float*)CAuxGPU::ToDevice(pGPU, m_ArrayShiftY, (Ny << 1) * sizeof(float), false);
 				CAuxGPU::EnsureDeviceMemoryReady(pGPU, m_ArrayShiftX);
@@ -792,7 +792,7 @@ int CGenMathFFT2D::Make2DFFT(CGenMathFFT2DInfo& FFT2DInfo, fftwnd_plan* pPrecrea
 				//m_ArrayShiftX = (float*)CAuxGPU::ToHostAndFree(pGpuUsage, m_ArrayShiftX, (Nx << 1) * sizeof(float), true);
 				//m_ArrayShiftY = (float*)CAuxGPU::ToHostAndFree(pGpuUsage, m_ArrayShiftY, (Ny << 1) * sizeof(float), true);
 			}
-			else if (dDataToFFT != 0) {
+			else if(dDataToFFT != 0) {
 				m_dArrayShiftX = (double*)CAuxGPU::ToDevice(pGPU, m_dArrayShiftX, (Nx << 1) * sizeof(double), false); //OC06092023
 				m_dArrayShiftY = (double*)CAuxGPU::ToDevice(pGPU, m_dArrayShiftY, (Ny << 1) * sizeof(double), false);
 				CAuxGPU::EnsureDeviceMemoryReady(pGPU, m_dArrayShiftX);
@@ -812,10 +812,10 @@ int CGenMathFFT2D::Make2DFFT(CGenMathFFT2DInfo& FFT2DInfo, fftwnd_plan* pPrecrea
 		else 
 #endif
 		{
-			if (DataToFFT != 0) TreatShifts(DataToFFT);
+			if(DataToFFT != 0) TreatShifts(DataToFFT);
 
 #ifdef _FFTW3 //OC27022019
-			else if (dDataToFFT != 0) TreatShifts(dDataToFFT); //OC02022019
+			else if(dDataToFFT != 0) TreatShifts(dDataToFFT); //OC02022019
 #endif
 		}
 	}
@@ -825,16 +825,16 @@ int CGenMathFFT2D::Make2DFFT(CGenMathFFT2DInfo& FFT2DInfo, fftwnd_plan* pPrecrea
 	//OC27102018
 	//SY: adopted for OpenMP
 #ifdef _OFFLOAD_GPU //OC06092023 (to avoid #include "auxgpu.h" for CPU)
-	if (CAuxGPU::GPUEnabled((TGPUUsageArg*)pvGPU)) //HG04122023
+	if(CAuxGPU::GPUEnabled((TGPUUsageArg*)pvGPU)) //HG04122023
 	//GPU_COND(pvGPU, //OC06092023
 	//GPU_COND(pGpuUsage, //HG02112021
 	{
-		if (FFT2DInfo.pData != 0) 
+		if(FFT2DInfo.pData != 0) 
 		{
 			CAuxGPU::MarkUpdated((TGPUUsageArg*)pvGPU, DataToFFT, true, false); //OC06092023
 			//CAuxGPU::MarkUpdated(pGpuUsage, DataToFFT, true, false);
 		}
-		else if (FFT2DInfo.pdData != 0) 
+		else if(FFT2DInfo.pdData != 0) 
 		{
 			CAuxGPU::MarkUpdated((TGPUUsageArg*)pvGPU, dDataToFFT, true, false); //OC06092023
 			//CAuxGPU::MarkUpdated(pGpuUsage, dDataToFFT, true, false);
@@ -844,25 +844,25 @@ int CGenMathFFT2D::Make2DFFT(CGenMathFFT2DInfo& FFT2DInfo, fftwnd_plan* pPrecrea
 #endif
 	{
 #if _FFTW3 //OC28012019
-		if (DataToFFT != 0)
+		if(DataToFFT != 0)
 		{
-			if (pPrecreatedPlan2DFFT == 0) fftwf_destroy_plan(Plan2DFFT);
+			if(pPrecreatedPlan2DFFT == 0) fftwf_destroy_plan(Plan2DFFT);
 		}
-		else if (dDataToFFT != 0) //OC03022019
+		else if(dDataToFFT != 0) //OC03022019
 		{
-			if (pdPrecreatedPlan2DFFT == 0) fftw_destroy_plan(dPlan2DFFT);
+			if(pdPrecreatedPlan2DFFT == 0) fftw_destroy_plan(dPlan2DFFT);
 		}
 #else
-		if (pPrecreatedPlan2DFFT == 0) fftwnd_destroy_plan(Plan2DFFT);
+		if(pPrecreatedPlan2DFFT == 0) fftwnd_destroy_plan(Plan2DFFT);
 #endif
 	}
 
 	//if(ArrayShiftX != 0) { delete[] ArrayShiftX; ArrayShiftX = 0;}
 	//if(ArrayShiftY != 0) { delete[] ArrayShiftY; ArrayShiftY = 0;}
-	if (m_ArrayShiftX != 0) { delete[] m_ArrayShiftX;}
-	if (m_ArrayShiftY != 0) { delete[] m_ArrayShiftY;}
-	if (m_dArrayShiftX != 0) { delete[] m_dArrayShiftX;} //OC02022019
-	if (m_dArrayShiftY != 0) { delete[] m_dArrayShiftY;}
+	if(m_ArrayShiftX != 0) { delete[] m_ArrayShiftX;}
+	if(m_ArrayShiftY != 0) { delete[] m_ArrayShiftY;}
+	if(m_dArrayShiftX != 0) { delete[] m_dArrayShiftX;} //OC02022019
+	if(m_dArrayShiftY != 0) { delete[] m_dArrayShiftY;}
 	
 	return 0;
 }
@@ -899,22 +899,22 @@ int CGenMathFFT1D::Make1DFFT(CGenMathFFT1DInfo& FFT1DInfo, void* pvGPU) //OC0509
 
 	m_ArrayShiftX = 0;
 	m_dArrayShiftX = 0;
-	if (NeedsShiftBeforeX || NeedsShiftAfterX)
+	if(NeedsShiftBeforeX || NeedsShiftAfterX)
 	{
-		if (FFT1DInfo.pInData != 0)
+		if(FFT1DInfo.pInData != 0)
 		{
 			m_ArrayShiftX = new float[Nx << 1];
-			if (m_ArrayShiftX == 0) return MEMORY_ALLOCATION_FAILURE;
+			if(m_ArrayShiftX == 0) return MEMORY_ALLOCATION_FAILURE;
 
 #ifdef _OFFLOAD_GPU //OC05092023 (check for memory leak / misuse!)
 			m_ArrayShiftX = (float*)CAuxGPU::ToDevice((TGPUUsageArg*)pvGPU, m_ArrayShiftX, (Nx << 1) * sizeof(float), true);
 			//m_ArrayShiftX = (float*)CAuxGPU::ToDevice(pGpuUsage, m_ArrayShiftX, (Nx << 1) * sizeof(float), true); //HG20012022
 #endif
 		}
-		else if (FFT1DInfo.pdInData != 0)
+		else if(FFT1DInfo.pdInData != 0)
 		{
 			m_dArrayShiftX = new double[Nx << 1];
-			if (m_dArrayShiftX == 0) return MEMORY_ALLOCATION_FAILURE;
+			if(m_dArrayShiftX == 0) return MEMORY_ALLOCATION_FAILURE;
 
 #ifdef _OFFLOAD_GPU //OC05092023 
 			m_dArrayShiftX = (double*)CAuxGPU::ToDevice((TGPUUsageArg*)pvGPU, m_dArrayShiftX, (Nx << 1) * sizeof(double), true);
@@ -937,18 +937,18 @@ int CGenMathFFT1D::Make1DFFT(CGenMathFFT1DInfo& FFT1DInfo, void* pvGPU) //OC0509
 //		printf ("GPU: Make1DFFT\n");
 //#endif
 #ifdef _OFFLOAD_GPU //OC06092023 (to avoid #include "auxgpu.h" for CPU)
-	if (CAuxGPU::GPUEnabled((TGPUUsageArg*)pvGPU)) //HG04122023
+	if(CAuxGPU::GPUEnabled((TGPUUsageArg*)pvGPU)) //HG04122023
 	//GPU_COND(pvGPU, //OC06092023
 	//GPU_COND(pGpuUsage, //HG20012022
 	{
-		if ((FFT1DInfo.pInData != 0) && (FFT1DInfo.pOutData != 0))
+		if((FFT1DInfo.pInData != 0) && (FFT1DInfo.pOutData != 0))
 		{
 			DataToFFT = (fftwf_complex*)CAuxGPU::ToDevice((TGPUUsageArg*)pvGPU, FFT1DInfo.pInData, FFT1DInfo.Nx * FFT1DInfo.HowMany * 2 * sizeof(float)); //OC06092023
 			OutDataFFT = (fftwf_complex*)CAuxGPU::ToDevice((TGPUUsageArg*)pvGPU, FFT1DInfo.pOutData, FFT1DInfo.Nx * FFT1DInfo.HowMany * 2 * sizeof(float), true);
 			//DataToFFT = (fftwf_complex*)CAuxGPU::ToDevice(pGpuUsage, FFT1DInfo.pInData, FFT1DInfo.Nx * FFT1DInfo.HowMany * 2 * sizeof(float));
 			//OutDataFFT = (fftwf_complex*)CAuxGPU::ToDevice(pGpuUsage, FFT1DInfo.pOutData, FFT1DInfo.Nx * FFT1DInfo.HowMany * 2 * sizeof(float), true);
 		}
-		else if ((FFT1DInfo.pdInData != 0) && (FFT1DInfo.pdOutData != 0))
+		else if((FFT1DInfo.pdInData != 0) && (FFT1DInfo.pdOutData != 0))
 		{
 			dDataToFFT = (fftw_complex*)CAuxGPU::ToDevice((TGPUUsageArg*)pvGPU, FFT1DInfo.pdInData, FFT1DInfo.Nx * FFT1DInfo.HowMany * 2 * sizeof(double)); //OC06092023
 			dOutDataFFT = (fftw_complex*)CAuxGPU::ToDevice((TGPUUsageArg*)pvGPU, FFT1DInfo.pdOutData, FFT1DInfo.Nx * FFT1DInfo.HowMany * 2 * sizeof(double), true);
@@ -960,13 +960,13 @@ int CGenMathFFT1D::Make1DFFT(CGenMathFFT1DInfo& FFT1DInfo, void* pvGPU) //OC0509
 #endif
 	{
 #ifdef _FFTW3 //OC28012019
-		if ((FFT1DInfo.pInData != 0) && (FFT1DInfo.pOutData != 0))
+		if((FFT1DInfo.pInData != 0) && (FFT1DInfo.pOutData != 0))
 		{
 			DataToFFT = (fftwf_complex*)(FFT1DInfo.pInData);
 			OutDataFFT = (fftwf_complex*)(FFT1DInfo.pOutData);
 			//pOutDataFFT = OutDataFFT; //OC03092016 to be used solely in fftw call
 		}
-		else if ((FFT1DInfo.pdInData != 0) && (FFT1DInfo.pdOutData != 0))
+		else if((FFT1DInfo.pdInData != 0) && (FFT1DInfo.pdOutData != 0))
 		{
 			dDataToFFT = (fftw_complex*)(FFT1DInfo.pdInData);
 			dOutDataFFT = (fftw_complex*)(FFT1DInfo.pdOutData);
@@ -994,37 +994,37 @@ int CGenMathFFT1D::Make1DFFT(CGenMathFFT1DInfo& FFT1DInfo, void* pvGPU) //OC0509
 	}
 
 #ifdef _OFFLOAD_GPU //OC06092023 (to avoid #include "auxgpu.h" for CPU)
-	if (DataToFFT != 0) CAuxGPU::EnsureDeviceMemoryReady((TGPUUsageArg*)pvGPU, DataToFFT);
-	else if (dDataToFFT != 0) CAuxGPU::EnsureDeviceMemoryReady((TGPUUsageArg*)pvGPU, dDataToFFT);
+	if(DataToFFT != 0) CAuxGPU::EnsureDeviceMemoryReady((TGPUUsageArg*)pvGPU, DataToFFT);
+	else if(dDataToFFT != 0) CAuxGPU::EnsureDeviceMemoryReady((TGPUUsageArg*)pvGPU, dDataToFFT);
 	//if (DataToFFT != 0) CAuxGPU::EnsureDeviceMemoryReady(pGpuUsage, DataToFFT);
 	//else if (dDataToFFT != 0) CAuxGPU::EnsureDeviceMemoryReady(pGpuUsage, dDataToFFT);
 #endif
 
 	char t0SignMult = (FFT1DInfo.Dir > 0) ? -1 : 1;
-	if (NeedsShiftBeforeX)
+	if(NeedsShiftBeforeX)
 	{
 #ifdef _OFFLOAD_GPU //OC06092023 (to avoid #include "auxgpu.h" for CPU)
-		if (CAuxGPU::GPUEnabled((TGPUUsageArg*)pvGPU)) //HG04122023
+		if(CAuxGPU::GPUEnabled((TGPUUsageArg*)pvGPU)) //HG04122023
 		//GPU_COND(pvGPU, 
 		//GPU_COND(pGpuUsage, //HG20012022
 		{
-			if (m_ArrayShiftX != 0) FillArrayShift_GPU(t0SignMult * x0_Before, FFT1DInfo.xStep, Nx, m_ArrayShiftX);
-			else if (m_dArrayShiftX != 0) FillArrayShift_GPU(t0SignMult * x0_Before, FFT1DInfo.xStep, Nx, m_dArrayShiftX);
+			if(m_ArrayShiftX != 0) FillArrayShift_GPU(t0SignMult * x0_Before, FFT1DInfo.xStep, Nx, m_ArrayShiftX);
+			else if(m_dArrayShiftX != 0) FillArrayShift_GPU(t0SignMult * x0_Before, FFT1DInfo.xStep, Nx, m_dArrayShiftX);
 
-			if (DataToFFT != 0) TreatShift_GPU((float*)DataToFFT, FFT1DInfo.HowMany, Nx, m_ArrayShiftX);
-			else if (dDataToFFT != 0) TreatShift_GPU((double*)dDataToFFT, FFT1DInfo.HowMany, Nx, m_dArrayShiftX);
+			if(DataToFFT != 0) TreatShift_GPU((float*)DataToFFT, FFT1DInfo.HowMany, Nx, m_ArrayShiftX);
+			else if(dDataToFFT != 0) TreatShift_GPU((double*)dDataToFFT, FFT1DInfo.HowMany, Nx, m_dArrayShiftX);
 		}//)
 		else 
 #endif
 		{
 			//FillArrayShift(t0SignMult*x0_Before, FFT1DInfo.xStep);
-			if (m_ArrayShiftX != 0) FillArrayShift(t0SignMult * x0_Before, FFT1DInfo.xStep, m_ArrayShiftX);
-			else if (m_dArrayShiftX != 0) FillArrayShift(t0SignMult * x0_Before, FFT1DInfo.xStep, m_dArrayShiftX);
+			if(m_ArrayShiftX != 0) FillArrayShift(t0SignMult * x0_Before, FFT1DInfo.xStep, m_ArrayShiftX);
+			else if(m_dArrayShiftX != 0) FillArrayShift(t0SignMult * x0_Before, FFT1DInfo.xStep, m_dArrayShiftX);
 
-			if (DataToFFT != 0) TreatShift(DataToFFT, FFT1DInfo.HowMany);
+			if(DataToFFT != 0) TreatShift(DataToFFT, FFT1DInfo.HowMany);
 
 #ifdef _FFTW3 //OC27022019
-			else if (dDataToFFT != 0) TreatShift(dDataToFFT, FFT1DInfo.HowMany);
+			else if(dDataToFFT != 0) TreatShift(dDataToFFT, FFT1DInfo.HowMany);
 #endif
 		}
 	}
@@ -1037,32 +1037,32 @@ int CGenMathFFT1D::Make1DFFT(CGenMathFFT1DInfo& FFT1DInfo, void* pvGPU) //OC0509
 	//double Mult = FFT1DInfo.xStep;
 	double Mult = FFT1DInfo.xStep * FFT1DInfo.MultExtra;
 
-	if (FFT1DInfo.Dir > 0) //HG17112021
+	if(FFT1DInfo.Dir > 0) //HG17112021
 	{
 #ifdef _OFFLOAD_GPU //OC06092023 (to avoid #include "auxgpu.h" for CPU)
-		if (CAuxGPU::GPUEnabled((TGPUUsageArg*)pvGPU)) //HG04122023
+		if(CAuxGPU::GPUEnabled((TGPUUsageArg*)pvGPU)) //HG04122023
 		//GPU_COND(pvGPU, 
 		//GPU_COND(pGpuUsage, 
 		{
 			int arN[] = { (int)Nx }; //OC14052020
-			if (DataToFFT != 0)
+			if(DataToFFT != 0)
 			{
-				if (PlanLen != Nx) {
+				if(PlanLen != Nx) {
 					PlanLen = Nx;
-					if (Plan1DFFT_cu != NULL)
+					if(Plan1DFFT_cu != NULL)
 					{
 						cufftDestroy(Plan1DFFT_cu);
 						Plan1DFFT_cu = NULL;
 					}
 					cufftPlanMany(&Plan1DFFT_cu, 1, arN, NULL, 1, Nx, NULL, 1, Nx, CUFFT_C2C, FFT1DInfo.HowMany);
 				}
-				if (Plan1DFFT_cu == 0) return ERROR_IN_FFT;
+				if(Plan1DFFT_cu == 0) return ERROR_IN_FFT;
 				cufftExecC2C(Plan1DFFT_cu, (cufftComplex*)DataToFFT, (cufftComplex*)OutDataFFT, CUFFT_FORWARD);
 			}
-			else if (dDataToFFT != 0) //OC02022019
+			else if(dDataToFFT != 0) //OC02022019
 			{
-				if (dPlanLen != Nx) {
-					if (dPlan1DFFT_cu != NULL)
+				if(dPlanLen != Nx) {
+					if(dPlan1DFFT_cu != NULL)
 					{
 						cufftDestroy(dPlan1DFFT_cu);
 						dPlan1DFFT_cu = NULL;
@@ -1070,7 +1070,7 @@ int CGenMathFFT1D::Make1DFFT(CGenMathFFT1DInfo& FFT1DInfo, void* pvGPU) //OC0509
 					dPlanLen = Nx;
 					cufftPlanMany(&dPlan1DFFT_cu, 1, arN, NULL, 1, Nx, NULL, 1, Nx, CUFFT_Z2Z, FFT1DInfo.HowMany);
 				}
-				if (dPlan1DFFT_cu == 0) return ERROR_IN_FFT;
+				if(dPlan1DFFT_cu == 0) return ERROR_IN_FFT;
 				cufftExecZ2Z(dPlan1DFFT_cu, (cufftDoubleComplex*)dDataToFFT, (cufftDoubleComplex*)dOutDataFFT, CUFFT_FORWARD);
 			}
 		}//)
@@ -1081,13 +1081,13 @@ int CGenMathFFT1D::Make1DFFT(CGenMathFFT1DInfo& FFT1DInfo, void* pvGPU) //OC0509
 #ifdef _FFTW3 //OC28012019
 #ifdef _WITH_OMP
 		//Still needs to be tested!
-			if (DataToFFT != 0)
+			if(DataToFFT != 0)
 			{
 				fftwf_init_threads(); //initialize threading support
 				int nthreads = omp_get_max_threads(); //detect number of OpenMP threads that are available
 				fftwf_plan_with_nthreads(nthreads);
 			}
-			else if (dDataToFFT != 0) //OC02022019
+			else if(dDataToFFT != 0) //OC02022019
 			{
 				fftw_init_threads(); //initialize threading support
 				int nthreads = omp_get_max_threads(); //detect number of OpenMP threads that are available
@@ -1096,28 +1096,28 @@ int CGenMathFFT1D::Make1DFFT(CGenMathFFT1DInfo& FFT1DInfo, void* pvGPU) //OC0509
 #endif //ifndef _WITH_OMP
 			int arN[] = { (int)Nx }; //OC14052020
 			//int arN[] = {Nx};
-			if (DataToFFT != 0)
+			if(DataToFFT != 0)
 			{
 				//Plan1DFFT = fftwf_plan_many_dft(1, arN, FFT1DInfo.HowMany, DataToFFT, NULL, 1, Nx, pOutDataFFT, NULL, 1, Nx, FFTW_FORWARD, flags); 
 				Plan1DFFT = fftwf_plan_many_dft(1, arN, FFT1DInfo.HowMany, DataToFFT, NULL, 1, Nx, OutDataFFT, NULL, 1, Nx, FFTW_FORWARD, flags); //OC02022019
-				if (Plan1DFFT == 0) return ERROR_IN_FFT;
+				if(Plan1DFFT == 0) return ERROR_IN_FFT;
 				fftwf_execute(Plan1DFFT);
 			}
-			else if (dDataToFFT != 0) //OC02022019
+			else if(dDataToFFT != 0) //OC02022019
 			{
 				dPlan1DFFT = fftw_plan_many_dft(1, arN, FFT1DInfo.HowMany, dDataToFFT, NULL, 1, Nx, dOutDataFFT, NULL, 1, Nx, FFTW_FORWARD, flags);
-				if (dPlan1DFFT == 0) return ERROR_IN_FFT;
+				if(dPlan1DFFT == 0) return ERROR_IN_FFT;
 				fftw_execute(dPlan1DFFT);
 			}
 
 #else //ifndef _FFTW3
-			if (DataToFFT == OutDataFFT)
+			if(DataToFFT == OutDataFFT)
 			{
 				flags |= FFTW_IN_PLACE;
 				pOutDataFFT = 0; //OC03092016 (see FFTW 2.1.5 doc clause above)
 			}
 			Plan1DFFT = fftw_create_plan(Nx, FFTW_FORWARD, flags);
-			if (Plan1DFFT == 0) return ERROR_IN_FFT;
+			if(Plan1DFFT == 0) return ERROR_IN_FFT;
 
 			//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
 			//srwlPrintTime("::Make1DFFT : fft create plan dir>0",&start);
@@ -1131,7 +1131,7 @@ int CGenMathFFT1D::Make1DFFT(CGenMathFFT1DInfo& FFT1DInfo, void* pvGPU) //OC0509
 			for (int i = 0; i < FFT1DInfo.HowMany; i++)
 			{
 				//SY: do not use OutDataFFT as scratch space if in-place
-				if (DataToFFT == OutDataFFT) fftw_one(Plan1DFFT, DataToFFT + i * Nx, 0);
+				if(DataToFFT == OutDataFFT) fftw_one(Plan1DFFT, DataToFFT + i * Nx, 0);
 				else fftw_one(Plan1DFFT, DataToFFT + i * Nx, OutDataFFT + i * Nx);
 			}
 #endif
@@ -1141,18 +1141,18 @@ int CGenMathFFT1D::Make1DFFT(CGenMathFFT1DInfo& FFT1DInfo, void* pvGPU) //OC0509
 		//srwlPrintTime("::Make1DFFT : fft  dir>0",&start);
 
 #ifdef _OFFLOAD_GPU //OC06092023 (to avoid #include "auxgpu.h" for CPU)
-		if (CAuxGPU::GPUEnabled((TGPUUsageArg*)pvGPU)) //HG04122023
+		if(CAuxGPU::GPUEnabled((TGPUUsageArg*)pvGPU)) //HG04122023
 		//GPU_COND(pvGPU, 
 		//GPU_COND(pGpuUsage, //HG20012022
 		{
-			if (OutDataFFT != 0)
+			if(OutDataFFT != 0)
 			{
 				RepairAndRotateDataAfter1DFFT_GPU((float*)OutDataFFT, FFT1DInfo.HowMany, Nx, (float)Mult); //OC06092023
 				//RepairAndRotateDataAfter1DFFT_GPU((float*)OutDataFFT, FFT1DInfo.HowMany, Nx, Mult);
 				//RepairSignAfter1DFFT_GPU((float*)OutDataFFT, FFT1DInfo.HowMany, Nx);
 				//RotateDataAfter1DFFT_GPU((float*)OutDataFFT, FFT1DInfo.HowMany, Nx);
 			}
-			else if (dOutDataFFT != 0)
+			else if(dOutDataFFT != 0)
 			{
 				RepairAndRotateDataAfter1DFFT_GPU((double*)dOutDataFFT, FFT1DInfo.HowMany, Nx, Mult);
 				//RepairSignAfter1DFFT_GPU((double*)dOutDataFFT, FFT1DInfo.HowMany, Nx);
@@ -1163,13 +1163,13 @@ int CGenMathFFT1D::Make1DFFT(CGenMathFFT1DInfo& FFT1DInfo, void* pvGPU) //OC0509
 		else 
 #endif
 		{
-			if (OutDataFFT != 0)
+			if(OutDataFFT != 0)
 			{
 				RepairSignAfter1DFFT(OutDataFFT, FFT1DInfo.HowMany);
 				RotateDataAfter1DFFT(OutDataFFT, FFT1DInfo.HowMany);
 			}
 #ifdef _FFTW3 //OC27022019
-			else if (dOutDataFFT != 0)
+			else if(dOutDataFFT != 0)
 			{
 				RepairSignAfter1DFFT(dOutDataFFT, FFT1DInfo.HowMany);
 				RotateDataAfter1DFFT(dOutDataFFT, FFT1DInfo.HowMany);
@@ -1181,44 +1181,44 @@ int CGenMathFFT1D::Make1DFFT(CGenMathFFT1DInfo& FFT1DInfo, void* pvGPU) //OC0509
 	{
 		//int flags = FFTW_ESTIMATE; //OC30012019 (commented-out)
 #ifdef _OFFLOAD_GPU //OC06092023 (to avoid #include "auxgpu.h" for CPU)
-		if (CAuxGPU::GPUEnabled((TGPUUsageArg*)pvGPU)) //HG04122023
+		if(CAuxGPU::GPUEnabled((TGPUUsageArg*)pvGPU)) //HG04122023
 		//GPU_COND(pvGPU, 
 		//GPU_COND(pGpuUsage, //HG20012022
 		{
 			int arN[] = { (int)Nx }; //OC14052020
 			//int arN[] = {Nx};
-			if (DataToFFT != 0)
+			if(DataToFFT != 0)
 			{
-				if (PlanLen != Nx) {
+				if(PlanLen != Nx) {
 					PlanLen = Nx;
 					HowMany = FFT1DInfo.HowMany;
-					if (Plan1DFFT_cu != NULL)
+					if(Plan1DFFT_cu != NULL)
 					{
 						cufftDestroy(Plan1DFFT_cu);
 						Plan1DFFT_cu = NULL;
 					}
 					cufftPlanMany(&Plan1DFFT_cu, 1, arN, NULL, 1, Nx, NULL, 1, Nx, CUFFT_C2C, FFT1DInfo.HowMany);
 				}
-				if (Plan1DFFT_cu == 0) return ERROR_IN_FFT;
+				if(Plan1DFFT_cu == 0) return ERROR_IN_FFT;
 
 				RotateDataAfter1DFFT_GPU((float*)DataToFFT, FFT1DInfo.HowMany, Nx);
 				RepairSignAfter1DFFT_GPU((float*)DataToFFT, FFT1DInfo.HowMany, Nx);
 				cufftExecC2C(Plan1DFFT_cu, (cufftComplex*)DataToFFT, (cufftComplex*)OutDataFFT, CUFFT_INVERSE);
 			}
-			else if (dDataToFFT != 0) //OC02022019
+			else if(dDataToFFT != 0) //OC02022019
 			{
-				if (dPlanLen != Nx) 
+				if(dPlanLen != Nx) 
 				{
 					dPlanLen = Nx;
 					dHowMany = FFT1DInfo.HowMany;
-					if (dPlan1DFFT_cu != NULL)
+					if(dPlan1DFFT_cu != NULL)
 					{
 						cufftDestroy(dPlan1DFFT_cu);
 						dPlan1DFFT_cu = NULL;
 					}
 					cufftPlanMany(&dPlan1DFFT_cu, 1, arN, NULL, 1, Nx, NULL, 1, Nx, CUFFT_Z2Z, FFT1DInfo.HowMany);
 				}
-				if (dPlan1DFFT_cu == 0) return ERROR_IN_FFT;
+				if(dPlan1DFFT_cu == 0) return ERROR_IN_FFT;
 
 				RotateDataAfter1DFFT_GPU((double*)dDataToFFT, FFT1DInfo.HowMany, Nx);
 				RepairSignAfter1DFFT_GPU((double*)dDataToFFT, FFT1DInfo.HowMany, Nx);
@@ -1232,13 +1232,13 @@ int CGenMathFFT1D::Make1DFFT(CGenMathFFT1DInfo& FFT1DInfo, void* pvGPU) //OC0509
 #ifdef _WITH_OMP
 
 			//Still needs to be tested!
-			if (DataToFFT != 0)
+			if(DataToFFT != 0)
 			{
 				fftwf_init_threads(); //initialize threading support
 				int nthreads = omp_get_max_threads(); //detect number of OpenMP threads that are available
 				fftwf_plan_with_nthreads(nthreads);
 			}
-			else if (dDataToFFT != 0)
+			else if(dDataToFFT != 0)
 			{
 				fftw_init_threads(); //initialize threading support
 				int nthreads = omp_get_max_threads(); //detect number of OpenMP threads that are available
@@ -1248,32 +1248,32 @@ int CGenMathFFT1D::Make1DFFT(CGenMathFFT1DInfo& FFT1DInfo, void* pvGPU) //OC0509
 #endif
 			int arN[] = { (int)Nx }; //OC14052020
 	//int arN[] = {Nx};
-			if (DataToFFT != 0)
+			if(DataToFFT != 0)
 			{
 				//Plan1DFFT = fftwf_plan_many_dft(1, arN, FFT1DInfo.HowMany, DataToFFT, NULL, 1, Nx, pOutDataFFT, NULL, 1, Nx, FFTW_BACKWARD, flags); 
 				Plan1DFFT = fftwf_plan_many_dft(1, arN, FFT1DInfo.HowMany, DataToFFT, NULL, 1, Nx, OutDataFFT, NULL, 1, Nx, FFTW_BACKWARD, flags); //OC02022019
-				if (Plan1DFFT == 0) return ERROR_IN_FFT;
+				if(Plan1DFFT == 0) return ERROR_IN_FFT;
 				RotateDataAfter1DFFT(DataToFFT, FFT1DInfo.HowMany);
 				RepairSignAfter1DFFT(DataToFFT, FFT1DInfo.HowMany);
 
 				fftwf_execute(Plan1DFFT);
 			}
-			else if (dDataToFFT != 0) //OC02022019
+			else if(dDataToFFT != 0) //OC02022019
 			{
 				dPlan1DFFT = fftw_plan_many_dft(1, arN, FFT1DInfo.HowMany, dDataToFFT, NULL, 1, Nx, dOutDataFFT, NULL, 1, Nx, FFTW_BACKWARD, flags);
-				if (dPlan1DFFT == 0) return ERROR_IN_FFT;
+				if(dPlan1DFFT == 0) return ERROR_IN_FFT;
 				RotateDataAfter1DFFT(dDataToFFT, FFT1DInfo.HowMany);
 				RepairSignAfter1DFFT(dDataToFFT, FFT1DInfo.HowMany);
 				fftw_execute(dPlan1DFFT);
 			}
 #else //ifndef _FFTW3
-			if (DataToFFT == OutDataFFT)
+			if(DataToFFT == OutDataFFT)
 			{
 				flags |= FFTW_IN_PLACE;
 				pOutDataFFT = 0; //OC03092016 (see FFTW 2.1.5 doc clause above)
 			}
 			Plan1DFFT = fftw_create_plan(Nx, FFTW_BACKWARD, flags);
-			if (Plan1DFFT == 0) return ERROR_IN_FFT;
+			if(Plan1DFFT == 0) return ERROR_IN_FFT;
 
 			//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
 			//srwlPrintTime("::Make1DFFT : fft create plan dir<0",&start);
@@ -1289,10 +1289,10 @@ int CGenMathFFT1D::Make1DFFT(CGenMathFFT1DInfo& FFT1DInfo, void* pvGPU) //OC0509
 			fftw(Plan1DFFT, FFT1DInfo.HowMany, DataToFFT, 1, Nx, pOutDataFFT, 1, Nx); //OC03092016
 #else //OC27102018
 		//SY: split one call into many (for OpenMP)
-#pragma omp parallel for if (omp_get_num_threads()==1) // to avoid nested multi-threading (just in case)
+#pragma omp parallel for if(omp_get_num_threads()==1) // to avoid nested multi-threading (just in case)
 			for (int i = 0; i < FFT1DInfo.HowMany; i++)
 			{
-				if (DataToFFT == OutDataFFT) fftw_one(Plan1DFFT, DataToFFT + i * Nx, 0);
+				if(DataToFFT == OutDataFFT) fftw_one(Plan1DFFT, DataToFFT + i * Nx, 0);
 				else fftw_one(Plan1DFFT, DataToFFT + i * Nx, OutDataFFT + i * Nx);
 			}
 #endif
@@ -1302,25 +1302,25 @@ int CGenMathFFT1D::Make1DFFT(CGenMathFFT1DInfo& FFT1DInfo, void* pvGPU) //OC0509
 		//srwlPrintTime("::Make1DFFT : fft  dir<0",&start);
 	}
 
-	if (!alreadyNormalized)
+	if(!alreadyNormalized)
 	{
 #ifdef _OFFLOAD_GPU //OC06092023 (to avoid #include "auxgpu.h" for CPU)
-		if (CAuxGPU::GPUEnabled((TGPUUsageArg*)pvGPU)) //HG04122023
+		if(CAuxGPU::GPUEnabled((TGPUUsageArg*)pvGPU)) //HG04122023
 		//GPU_COND(pvGPU, 
 		//GPU_COND(pGpuUsage, 
 		{
-			if (OutDataFFT != 0) {
+			if(OutDataFFT != 0) {
 				NormalizeDataAfter1DFFT_GPU((float*)OutDataFFT, FFT1DInfo.HowMany, Nx, Mult);
 			}
-			else if (dOutDataFFT != 0)
+			else if(dOutDataFFT != 0)
 				NormalizeDataAfter1DFFT_GPU((double*)dOutDataFFT, FFT1DInfo.HowMany, Nx, Mult);
 		}//)
 		else 
 #endif
 		{
-			if (OutDataFFT != 0) NormalizeDataAfter1DFFT(OutDataFFT, FFT1DInfo.HowMany, Mult);
+			if(OutDataFFT != 0) NormalizeDataAfter1DFFT(OutDataFFT, FFT1DInfo.HowMany, Mult);
 #ifdef _FFTW3 //OC27022019
-			else if (dOutDataFFT != 0) NormalizeDataAfter1DFFT(dOutDataFFT, FFT1DInfo.HowMany, Mult);
+			else if(dOutDataFFT != 0) NormalizeDataAfter1DFFT(dOutDataFFT, FFT1DInfo.HowMany, Mult);
 #endif
 		}
 	}
@@ -1328,29 +1328,29 @@ int CGenMathFFT1D::Make1DFFT(CGenMathFFT1DInfo& FFT1DInfo, void* pvGPU) //OC0509
 	//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
 	//srwlPrintTime("::Make1DFFT : NormalizeDataAfter1DFFT",&start);
 
-	if (NeedsShiftAfterX)
+	if(NeedsShiftAfterX)
 	{
 #ifdef _OFFLOAD_GPU //OC06092023 (to avoid #include "auxgpu.h" for CPU)
-		if (CAuxGPU::GPUEnabled((TGPUUsageArg*)pvGPU)) //HG04122023
+		if(CAuxGPU::GPUEnabled((TGPUUsageArg*)pvGPU)) //HG04122023
 		//GPU_COND(pvGPU, 
 		//GPU_COND(pGpuUsage, 
 		{
-			if (m_ArrayShiftX != 0) FillArrayShift_GPU(t0SignMult * x0_After, FFT1DInfo.xStepTr, Nx, m_ArrayShiftX); //OC02022019
-			else if (m_dArrayShiftX != 0) FillArrayShift_GPU(t0SignMult * x0_After, FFT1DInfo.xStepTr, Nx, m_dArrayShiftX);
+			if(m_ArrayShiftX != 0) FillArrayShift_GPU(t0SignMult * x0_After, FFT1DInfo.xStepTr, Nx, m_ArrayShiftX); //OC02022019
+			else if(m_dArrayShiftX != 0) FillArrayShift_GPU(t0SignMult * x0_After, FFT1DInfo.xStepTr, Nx, m_dArrayShiftX);
 
-			if (OutDataFFT != 0) TreatShift_GPU((float*)OutDataFFT, FFT1DInfo.HowMany, Nx, m_ArrayShiftX);
-			else if (dOutDataFFT != 0) TreatShift_GPU((double*)dOutDataFFT, FFT1DInfo.HowMany, Nx, m_dArrayShiftX);
+			if(OutDataFFT != 0) TreatShift_GPU((float*)OutDataFFT, FFT1DInfo.HowMany, Nx, m_ArrayShiftX);
+			else if(dOutDataFFT != 0) TreatShift_GPU((double*)dOutDataFFT, FFT1DInfo.HowMany, Nx, m_dArrayShiftX);
 		}//)
 		else 
 #endif
 		{
 			//FillArrayShift(t0SignMult*x0_After, FFT1DInfo.xStepTr);
-			if (m_ArrayShiftX != 0) FillArrayShift(t0SignMult * x0_After, FFT1DInfo.xStepTr, m_ArrayShiftX); //OC02022019
-			else if (m_dArrayShiftX != 0) FillArrayShift(t0SignMult * x0_After, FFT1DInfo.xStepTr, m_dArrayShiftX);
+			if(m_ArrayShiftX != 0) FillArrayShift(t0SignMult * x0_After, FFT1DInfo.xStepTr, m_ArrayShiftX); //OC02022019
+			else if(m_dArrayShiftX != 0) FillArrayShift(t0SignMult * x0_After, FFT1DInfo.xStepTr, m_dArrayShiftX);
 
-			if (OutDataFFT != 0) TreatShift(OutDataFFT, FFT1DInfo.HowMany);
+			if(OutDataFFT != 0) TreatShift(OutDataFFT, FFT1DInfo.HowMany);
 #ifdef _FFTW3 //OC27022019
-			else if (dOutDataFFT != 0) TreatShift(dOutDataFFT, FFT1DInfo.HowMany);
+			else if(dOutDataFFT != 0) TreatShift(dOutDataFFT, FFT1DInfo.HowMany);
 #endif
 		}
 	}
@@ -1362,16 +1362,16 @@ int CGenMathFFT1D::Make1DFFT(CGenMathFFT1DInfo& FFT1DInfo, void* pvGPU) //OC0509
 	}
 
 #ifdef _OFFLOAD_GPU //OC06092023 (to avoid #include "auxgpu.h" for CPU)
-	if (CAuxGPU::GPUEnabled((TGPUUsageArg*)pvGPU)) //HG04122023
+	if(CAuxGPU::GPUEnabled((TGPUUsageArg*)pvGPU)) //HG04122023
 	//GPU_COND(pvGPU,
 	//GPU_COND(pGpuUsage, //HG20012022
 	{
-		if ((FFT1DInfo.pInData != 0) && (FFT1DInfo.pOutData != 0))
+		if((FFT1DInfo.pInData != 0) && (FFT1DInfo.pOutData != 0))
 		{
 			CAuxGPU::MarkUpdated((TGPUUsageArg*)pvGPU, OutDataFFT, true, false); //OC06092023
 			//CAuxGPU::MarkUpdated(pGpuUsage, OutDataFFT, true, false);
 		}
-		else if ((FFT1DInfo.pdInData != 0) && (FFT1DInfo.pdOutData != 0))
+		else if((FFT1DInfo.pdInData != 0) && (FFT1DInfo.pdOutData != 0))
 		{
 			CAuxGPU::MarkUpdated((TGPUUsageArg*)pvGPU, dOutDataFFT, true, false); //OC06092023
 			//CAuxGPU::MarkUpdated(pGpuUsage, dOutDataFFT, true, false);
@@ -1403,7 +1403,7 @@ int CGenMathFFT1D::Make1DFFT(CGenMathFFT1DInfo& FFT1DInfo, void* pvGPU) //OC0509
 #endif
 	}
 
-	if (m_ArrayShiftX != 0)
+	if(m_ArrayShiftX != 0)
 	{
 #ifdef _OFFLOAD_GPU //OC06092023 (to avoid #include "auxgpu.h" for CPU)
 		m_ArrayShiftX = (float*)CAuxGPU::ToHostAndFree((TGPUUsageArg*)pvGPU, m_ArrayShiftX, (Nx << 1) * sizeof(float), true); //OC06092023
@@ -1411,7 +1411,7 @@ int CGenMathFFT1D::Make1DFFT(CGenMathFFT1DInfo& FFT1DInfo, void* pvGPU) //OC0509
 #endif
 		delete[] m_ArrayShiftX;
 	}
-	if (m_dArrayShiftX != 0)
+	if(m_dArrayShiftX != 0)
 	{
 #ifdef _OFFLOAD_GPU //OC06092023 (to avoid #include "auxgpu.h" for CPU)
 		m_dArrayShiftX = (double*)CAuxGPU::ToHostAndFree((TGPUUsageArg*)pvGPU, m_dArrayShiftX, (Nx << 1) * sizeof(double), true); //OC06092023
