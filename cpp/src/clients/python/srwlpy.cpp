@@ -3327,15 +3327,15 @@ void ParseSructSmpObj3D(double**& arObjShapeDefs, int& nObj3D, PyObject* oListSh
 /************************************************************************//**
  * Convert Python device specification to C++ structure.
  ***************************************************************************/
-void ParseDeviceParam(PyObject* oDev, gpuUsageArg *pGpuUsage) //HG10202021 Convert Python device specification to C++ structure
+void ParseDeviceParam(PyObject* oDev, TGPUUsageArg* pGpu) //HG10202021 Convert Python device specification to C++ structure
 {
 	if (oDev != 0) {
 		if (PyLong_Check(oDev)) {
-			pGpuUsage->deviceIndex = _PyLong_AsInt(oDev);
+			pGpu->deviceIndex = _PyLong_AsInt(oDev);
 			return;
 		}
 	}
-	pGpuUsage->deviceIndex = 0;
+	pGpu->deviceIndex = 0;
 }
 #endif
 
