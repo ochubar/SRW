@@ -648,7 +648,7 @@
     </ClCompile>
     <Link>
       <AdditionalDependencies>..\..\..\Python33\libs\python33.lib;srw_win32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <OutputFile>$(SolutionDir)..\..\env\work\srw_python\srwlpy.pyd</OutputFile>
+      <OutputFile>$(SolutionDir)..\..\env\python\srwpy\srwlpy.pyd</OutputFile>
       <IgnoreSpecificDefaultLibraries>LIBC;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
@@ -674,7 +674,7 @@
     </ClCompile>
     <Link>
       <AdditionalDependencies>..\..\..\Python33\libs\python33.lib;srw_win32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <OutputFile>$(SolutionDir)..\..\env\work\srw_python\srwlpy.pyd</OutputFile>
+      <OutputFile>$(SolutionDir)..\..\env\python\srwpy\srwlpy.pyd</OutputFile>
       <IgnoreSpecificDefaultLibraries>LIBC;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
@@ -701,7 +701,7 @@
     </ClCompile>
     <Link>
       <AdditionalDependencies>..\..\..\Python33\libs\python33.lib;srw_win32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <OutputFile>$(SolutionDir)..\..\env\work\srw_python\srwlpy.pyd</OutputFile>
+      <OutputFile>$(SolutionDir)..\..\env\python\srwpy\srwlpy.pyd</OutputFile>
       <IgnoreSpecificDefaultLibraries>LIBC;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
@@ -728,7 +728,7 @@
     </ClCompile>
     <Link>
       <AdditionalDependencies>..\..\..\Python33\libs\python33.lib;srw_win32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <OutputFile>$(SolutionDir)..\..\env\work\srw_python\srwlpy.pyd</OutputFile>
+      <OutputFile>$(SolutionDir)..\..\env\python\srwpy\srwlpy.pyd</OutputFile>
       <IgnoreSpecificDefaultLibraries>LIBC;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
@@ -755,7 +755,7 @@
     </ClCompile>
     <Link>
       <AdditionalDependencies>..\..\..\Python33\libs\python33.lib;srw_win32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <OutputFile>$(SolutionDir)..\..\env\work\srw_python\srwlpy.pyd</OutputFile>
+      <OutputFile>$(SolutionDir)..\..\env\python\srwpy\srwlpy.pyd</OutputFile>
       <IgnoreSpecificDefaultLibraries>LIBC;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
@@ -782,7 +782,7 @@
     </ClCompile>
     <Link>
       <AdditionalDependencies>..\..\..\Python33\libs\python33.lib;srw_win32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <OutputFile>$(SolutionDir)..\..\env\work\srw_python\srwlpy.pyd</OutputFile>
+      <OutputFile>$(SolutionDir)..\..\env\python\srwpy\srwlpy.pyd</OutputFile>
       <IgnoreSpecificDefaultLibraries>LIBC;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
@@ -809,7 +809,7 @@
     </ClCompile>
     <Link>
       <AdditionalDependencies>..\..\..\Python33\libs\python33.lib;srw_win32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <OutputFile>$(SolutionDir)..\..\env\work\srw_python\srwlpy.pyd</OutputFile>
+      <OutputFile>$(SolutionDir)..\..\env\python\srwpy\srwlpy.pyd</OutputFile>
       <IgnoreSpecificDefaultLibraries>LIBC;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
@@ -854,7 +854,7 @@
       <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
     </Link>
     <PostBuildEvent>
-      <Command>copy $(SolutionDir)srwlpy.pyd "$(SolutionDir)..\..\env\work\srw_python\"</Command>
+      <Command>copy $(SolutionDir)srwlpy.pyd "$(SolutionDir)..\..\env\python\srwpy\"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug_Py3_5|x64'">
@@ -874,7 +874,7 @@
     </ClCompile>
     <Link>
       <AdditionalDependencies>..\..\..\Python35_x64\libs\python35.lib;srw_x64.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <OutputFile>$(SolutionDir)..\..\env\work\srw_python\srwlpy.pyd</OutputFile>
+      <OutputFile>$(SolutionDir)..\..\env\python\srwpy\srwlpy.pyd</OutputFile>
       <IgnoreSpecificDefaultLibraries>LIBCMT;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
@@ -902,7 +902,7 @@
     </ClCompile>
     <Link>
       <AdditionalDependencies>..\..\..\Python36_x64\libs\python36.lib;srw_x64.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <OutputFile>$(SolutionDir)..\..\env\work\srw_python\srwlpy.pyd</OutputFile>
+      <OutputFile>$(SolutionDir)..\..\env\python\srwpy\srwlpy.pyd</OutputFile>
       <IgnoreSpecificDefaultLibraries>LIBCMT;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
@@ -930,7 +930,7 @@
     </ClCompile>
     <Link>
       <AdditionalDependencies>..\..\..\Python38_x64\libs\python38.lib;srw_x64.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <OutputFile>$(SolutionDir)..\..\env\work\srw_python\srwlpy.pyd</OutputFile>
+      <OutputFile>$(SolutionDir)..\..\env\python\srwpy\srwlpy.pyd</OutputFile>
       <IgnoreSpecificDefaultLibraries>LIBCMT;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
@@ -958,7 +958,7 @@
     </ClCompile>
     <Link>
       <AdditionalDependencies>..\..\..\Python39_x64\libs\python39.lib;srw_x64.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <OutputFile>$(SolutionDir)..\..\env\work\srw_python\srwlpy.pyd</OutputFile>
+      <OutputFile>$(SolutionDir)..\..\env\python\srwpy\srwlpy.pyd</OutputFile>
       <IgnoreSpecificDefaultLibraries>LIBCMT;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
@@ -1014,7 +1014,7 @@
     </ClCompile>
     <Link>
       <AdditionalDependencies>..\..\..\Python37_x64\libs\python37.lib;srw_x64.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <OutputFile>$(SolutionDir)..\..\env\work\srw_python\srwlpy.pyd</OutputFile>
+      <OutputFile>$(SolutionDir)..\..\env\python\srwpy\srwlpy.pyd</OutputFile>
       <IgnoreSpecificDefaultLibraries>LIBCMT;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
@@ -1052,7 +1052,7 @@
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
     </Link>
     <PostBuildEvent>
-      <Command>copy $(SolutionDir)srwlpy.pyd "$(SolutionDir)..\..\env\work\srw_python\"</Command>
+      <Command>copy $(SolutionDir)srwlpy.pyd "$(SolutionDir)..\..\env\python\srwpy\"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release_Py3_5|Win32'">
@@ -1083,7 +1083,7 @@
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
     </Link>
     <PostBuildEvent>
-      <Command>copy $(SolutionDir)srwlpy.pyd "$(SolutionDir)..\..\env\work\srw_python\"</Command>
+      <Command>copy $(SolutionDir)srwlpy.pyd "$(SolutionDir)..\..\env\python\srwpy\"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release_Py3_6|Win32'">
@@ -1114,7 +1114,7 @@
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
     </Link>
     <PostBuildEvent>
-      <Command>copy $(SolutionDir)srwlpy.pyd "$(SolutionDir)..\..\env\work\srw_python\"</Command>
+      <Command>copy $(SolutionDir)srwlpy.pyd "$(SolutionDir)..\..\env\python\srwpy\"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release_Py3_7|Win32'">
@@ -1145,7 +1145,7 @@
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
     </Link>
     <PostBuildEvent>
-      <Command>copy $(SolutionDir)srwlpy.pyd "$(SolutionDir)..\..\env\work\srw_python\"</Command>
+      <Command>copy $(SolutionDir)srwlpy.pyd "$(SolutionDir)..\..\env\python\srwpy\"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release_Py3_8|Win32'">
@@ -1176,7 +1176,7 @@
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
     </Link>
     <PostBuildEvent>
-      <Command>copy $(SolutionDir)srwlpy.pyd "$(SolutionDir)..\..\env\work\srw_python\"</Command>
+      <Command>copy $(SolutionDir)srwlpy.pyd "$(SolutionDir)..\..\env\python\srwpy\"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release_Py3_9|Win32'">
@@ -1207,7 +1207,7 @@
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
     </Link>
     <PostBuildEvent>
-      <Command>copy $(SolutionDir)srwlpy.pyd "$(SolutionDir)..\..\env\work\srw_python\"</Command>
+      <Command>copy $(SolutionDir)srwlpy.pyd "$(SolutionDir)..\..\env\python\srwpy\"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release_Py3_11|Win32'">
@@ -1238,7 +1238,7 @@
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
     </Link>
     <PostBuildEvent>
-      <Command>copy $(SolutionDir)srwlpy.pyd "$(SolutionDir)..\..\env\work\srw_python\"</Command>
+      <Command>copy $(SolutionDir)srwlpy.pyd "$(SolutionDir)..\..\env\python\srwpy\"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release_Py3_3|x64'">
@@ -1275,7 +1275,7 @@
       <ProfileGuidedDatabase>srwlpy.pgd</ProfileGuidedDatabase>
     </Link>
     <PostBuildEvent>
-      <Command>copy $(SolutionDir)srwlpy.pyd "$(SolutionDir)..\..\env\work\srw_python\"</Command>
+      <Command>copy $(SolutionDir)srwlpy.pyd "$(SolutionDir)..\..\env\python\srwpy\"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release_Py3_5|x64'">
@@ -1313,7 +1313,7 @@
       <ProfileGuidedDatabase>srwlpy.pgd</ProfileGuidedDatabase>
     </Link>
     <PostBuildEvent>
-      <Command>copy $(SolutionDir)srwlpy.pyd "$(SolutionDir)..\..\env\work\srw_python\"</Command>
+      <Command>copy $(SolutionDir)srwlpy.pyd "$(SolutionDir)..\..\env\python\srwpy\"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release_Py3_6|x64'">
@@ -1351,7 +1351,7 @@
       <ProfileGuidedDatabase>srwlpy.pgd</ProfileGuidedDatabase>
     </Link>
     <PostBuildEvent>
-      <Command>copy $(SolutionDir)srwlpy.pyd "$(SolutionDir)..\..\env\work\srw_python\"</Command>
+      <Command>copy $(SolutionDir)srwlpy.pyd "$(SolutionDir)..\..\env\python\srwpy\"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release_Py3_7|x64'">
@@ -1389,7 +1389,7 @@
       <ProfileGuidedDatabase>srwlpy.pgd</ProfileGuidedDatabase>
     </Link>
     <PostBuildEvent>
-      <Command>copy $(SolutionDir)srwlpy.pyd "$(SolutionDir)..\..\env\work\srw_python\"</Command>
+      <Command>copy $(SolutionDir)srwlpy.pyd "$(SolutionDir)..\..\env\python\srwpy\"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release_Py3_8|x64'">
@@ -1465,7 +1465,7 @@
       <ProfileGuidedDatabase>srwlpy.pgd</ProfileGuidedDatabase>
     </Link>
     <PostBuildEvent>
-      <Command>copy $(SolutionDir)srwlpy.pyd "$(SolutionDir)..\..\env\work\srw_python\"</Command>
+      <Command>copy $(SolutionDir)srwlpy.pyd "$(SolutionDir)..\..\env\python\srwpy\"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release_Py3_11|x64'">
@@ -1520,7 +1520,7 @@
     </ClCompile>
     <Link>
       <AdditionalDependencies>..\..\..\Python32\libs\python32.lib;srw_win32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <OutputFile>$(SolutionDir)..\..\env\work\srw_python\srwlpy.pyd</OutputFile>
+      <OutputFile>$(SolutionDir)..\..\env\python\srwpy\srwlpy.pyd</OutputFile>
       <IgnoreSpecificDefaultLibraries>LIBC;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
@@ -1548,7 +1548,7 @@
     </ClCompile>
     <Link>
       <AdditionalDependencies>..\..\..\Python27_x64\libs\python27.lib;srw_x64.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <OutputFile>$(SolutionDir)..\..\env\work\srw_python\srwlpy.pyd</OutputFile>
+      <OutputFile>$(SolutionDir)..\..\env\python\srwpy\srwlpy.pyd</OutputFile>
       <IgnoreSpecificDefaultLibraries>LIBCMT;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
@@ -1582,7 +1582,7 @@
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
     </Link>
     <PostBuildEvent>
-      <Command>copy $(SolutionDir)srwlpy.pyd "$(SolutionDir)..\..\env\work\srw_python\"</Command>
+      <Command>copy $(SolutionDir)srwlpy.pyd "$(SolutionDir)..\..\env\python\srwpy\"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release_Py2x|x64'">
@@ -1616,7 +1616,7 @@
       <TargetMachine>MachineX64</TargetMachine>
     </Link>
     <PostBuildEvent>
-      <Command>copy $(SolutionDir)srwlpy.pyd "$(SolutionDir)..\..\env\work\srw_python\"</Command>
+      <Command>copy $(SolutionDir)srwlpy.pyd "$(SolutionDir)..\..\env\python\srwpy\"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
