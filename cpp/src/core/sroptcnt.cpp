@@ -251,7 +251,8 @@ int srTCompositeOptElem::PropagateRadiationTest(srTSRWRadStructAccessData* pInRa
 
 //*************************************************************************
 
-int srTCompositeOptElem::PropagateRadiationGuided(srTSRWRadStructAccessData& wfr, int nInt, char** arID, SRWLRadMesh* arIM, char** arI) //OC15082018
+//int srTCompositeOptElem::PropagateRadiationGuided(srTSRWRadStructAccessData& wfr, int nInt, char** arID, SRWLRadMesh* arIM, char** arI) //OC15082018
+int srTCompositeOptElem::PropagateRadiationGuided(srTSRWRadStructAccessData& wfr, int nInt, char** arID, SRWLRadMesh* arIM, char** arI, void* pvGPU) //HG30112023
 //int srTCompositeOptElem::PropagateRadiationGuided(srTSRWRadStructAccessData& wfr)
 {
 	//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
@@ -265,6 +266,9 @@ int srTCompositeOptElem::PropagateRadiationGuided(srTSRWRadStructAccessData& wfr
 	int res = 0, elemCount = 0;
 
 	bool propIntIsNeeded = (nInt != 0) && (arID != 0) && (arI != 0); //OC27082018
+#ifdef _OFFLOAD_GPU //HG30112023
+	bool dataOnDevice = false;
+#endif
 
 	for(srTGenOptElemHndlList::iterator it = GenOptElemList.begin(); it != GenOptElemList.end(); ++it)
 	{
@@ -308,7 +312,16 @@ int srTCompositeOptElem::PropagateRadiationGuided(srTSRWRadStructAccessData& wfr
 			if((::fabs(curPropResizeInst.pxd - 1.) > tolRes) || (::fabs(curPropResizeInst.pxm - 1.) > tolRes) ||
 			   //(::fabs(curPropResizeInst.pzd - 1.) > tolRes) || (::fabs(curPropResizeInst.pzm - 1.) > tolRes))
 			   (::fabs(curPropResizeInst.pzd - 1.) > tolRes) || (::fabs(curPropResizeInst.pzm - 1.) > tolRes) || (curPropResizeInst.ShiftTypeBeforeRes > 0)) //OC11072019
-				if(res = RadResizeGen(wfr, curPropResizeInst)) return res;
+			{	
+				//if(res = RadResizeGen(wfr, curPropResizeInst)) return res;
+				if(res = RadResizeGen(wfr, curPropResizeInst, pvGPU)) return res; //HG30112023
+
+#ifdef _OFFLOAD_GPU //HG30112023
+				if (CAuxGPU::GPUEnabled((TGPUUsageArg*)pvGPU)) {
+					dataOnDevice = true;
+				}
+#endif	
+			}
 
 			//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
 			//srwlPrintTime("Iteration: RadResizeGen",&start);
@@ -325,14 +338,55 @@ int srTCompositeOptElem::PropagateRadiationGuided(srTSRWRadStructAccessData& wfr
 		//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
 		//srwlPrintTime("Iteration: precParWfrPropag",&start);
 
+#ifdef _OFFLOAD_GPU //HG30112023
+		TGPUUsageArg* pGPU = (TGPUUsageArg*)pvGPU;
+		if (CAuxGPU::GPUEnabled(pGPU)) {
+			if (dataOnDevice && (((srTGenOptElem*)it->rep)->SupportedFeatures() & 1) == 0)
+			{
+//#if DEBUG
+//				printf("Element does not support GPU, transferring to CPU.\r\n");
+//#endif
+				if (wfr.pBaseRadX != NULL)
+					wfr.pBaseRadX = (float*)CAuxGPU::ToHostAndFree(pGPU, wfr.pBaseRadX, 2 * wfr.ne * wfr.nx * wfr.nz * sizeof(float));
+				if (wfr.pBaseRadZ != NULL)
+					wfr.pBaseRadZ = (float*)CAuxGPU::ToHostAndFree(pGPU, wfr.pBaseRadZ, 2 * wfr.ne * wfr.nx * wfr.nz * sizeof(float));
+				dataOnDevice = false;
+			}
+			else if (!dataOnDevice && (((srTGenOptElem*)it->rep)->SupportedFeatures() & 1) == 1)
+			{
+					dataOnDevice = true;
+//#if DEBUG
+//					printf("Element supports GPU, transferring...\r\n");
+//#endif
+			}
+		}
+#endif
+
 		srTRadResizeVect auxResizeVect;
-		if(res = ((srTGenOptElem*)(it->rep))->PropagateRadiation(&wfr, precParWfrPropag, auxResizeVect)) return res;
+		//if(res = ((srTGenOptElem*)(it->rep))->PropagateRadiation(&wfr, precParWfrPropag, auxResizeVect)) return res;
+		if(res = ((srTGenOptElem*)(it->rep))->PropagateRadiation(&wfr, precParWfrPropag, auxResizeVect, pvGPU)) return res; //HG30112023
 		//maybe to use "PropagateRadiationGuided" for srTCompositeOptElem?
 
 		//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
 		//srwlPrintTime("Iteration: PropagateRadiation",&start);
 
-		if(propIntIsNeeded) ExtractPropagatedIntensity(wfr, nInt, arID, arIM, arI, elemCount);
+		if(propIntIsNeeded)
+		{
+#ifdef _OFFLOAD_GPU //HG09112022 If the data is on the GPU, transfer it to CPU and synchronize before extracting the intensity
+			TGPUUsageArg* pGPU = (TGPUUsageArg*)pvGPU;
+			if (CAuxGPU::GPUEnabled(pGPU)) {
+				if (dataOnDevice)
+				{
+					if (wfr.pBaseRadX != NULL)
+						wfr.pBaseRadX = (float*)CAuxGPU::ToHostAndFree(pGPU, wfr.pBaseRadX, 2 * wfr.ne * wfr.nx * wfr.nz * sizeof(float));
+					if (wfr.pBaseRadZ != NULL)
+						wfr.pBaseRadZ = (float*)CAuxGPU::ToHostAndFree(pGPU, wfr.pBaseRadZ, 2 * wfr.ne * wfr.nx * wfr.nz * sizeof(float));
+					dataOnDevice = false;
+				}
+			}
+#endif
+			ExtractPropagatedIntensity(wfr, nInt, arID, arIM, arI, elemCount);
+		} 
 
 		elemCount++;
 

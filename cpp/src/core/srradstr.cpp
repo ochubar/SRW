@@ -2700,7 +2700,8 @@ void srTSRWRadStructAccessData::CheckAndResetPhaseTermsLin()
 
 //*************************************************************************
 
-void srTSRWRadStructAccessData::MirrorFieldData(int sx, int sz)
+//void srTSRWRadStructAccessData::MirrorFieldData(int sx, int sz)
+void srTSRWRadStructAccessData::MirrorFieldData(int sx, int sz, void* pvGPU) //HG02122023
 {// sx < 0 means mirroring should be done vs x 
  // sz < 0 means mirroring should be done vs z 
 	//long PerX = ne << 1;
@@ -2710,6 +2711,14 @@ void srTSRWRadStructAccessData::MirrorFieldData(int sx, int sz)
 	float buf;
 	float *pEX0 = pBaseRadX;
 	float *pEZ0 = pBaseRadZ;
+
+#ifdef _OFFLOAD_GPU //HG02122023
+	if (CAuxGPU::GPUEnabled((TGPUUsageArg*)pvGPU))
+	{
+		MirrorFieldData_GPU(sx, sz, (TGPUUsageArg*)pvGPU);
+		return;
+	}
+#endif
 
 	if((sx > 0) && (sz > 0)) return; //no mirroring is necessary 
 	else if((sx < 0) && (sz > 0)) //mirroring with respect to x

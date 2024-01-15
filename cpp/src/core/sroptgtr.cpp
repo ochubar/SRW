@@ -1172,7 +1172,7 @@ int srTGenTransmission::DetermineFocalDistByPropag1D(srTRadSect1D& Sect1D, doubl
 }
 
 //*************************************************************************
-
+/* HG01122023 Moved to header file to reduce code duplication for GPU support
 void srTGenTransmission::RadPointModifier(srTEXZ& EXZ, srTEFieldPtrs& EPtrs, void* pBufVars) //OC29082019
 //void srTGenTransmission::RadPointModifier(srTEXZ& EXZ, srTEFieldPtrs& EPtrs)
 {// e in eV; Length in m !!!
@@ -1338,7 +1338,7 @@ void srTGenTransmission::RadPointModifier(srTEXZ& EXZ, srTEFieldPtrs& EPtrs, voi
 		float NewEzIm = (float)(T*((*(EPtrs.pEzRe))*SinPh + (*(EPtrs.pEzIm))*CosPh));
 		*(EPtrs.pEzRe) = NewEzRe; *(EPtrs.pEzIm) = NewEzIm; 
 	}
-}
+} */
 
 //*************************************************************************
 
