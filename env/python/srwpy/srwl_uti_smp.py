@@ -13,10 +13,16 @@ import os
 from array import array
 from copy import * #OC10082021
 
-#import srwlib
-from srwlib import * #OC28012021
-import uti_io
+try: #OC16112022
+    from .srwlib import *
+    from . import uti_io
+except:
+    from srwlib import *
+    import uti_io
 
+#import srwlib
+#from srwlib import * #OC28012021
+#import uti_io
 
 # ********************** The class for Samples:
 class SRWLUtiSmp:

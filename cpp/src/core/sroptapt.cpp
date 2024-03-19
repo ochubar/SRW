@@ -30,14 +30,19 @@ int srTAperture::TraverseRadZXE_TracingZeroField(srTSRWRadStructAccessData* pRad
 	//long izPerZ = 0;
 	long long izPerZ = 0;
 
-	int ixStartNonZeroOld = pRadAccessData->nx + 1, izStartNonZeroOld = -1;
-	int ixStartZeroAgainOld = -1, izStartZeroAgainOld = -1;
-	int ixStartNonZeroNew = pRadAccessData->nx + 1, izStartNonZeroNew = -1;
-	int ixStartZeroAgainNew = -1, izStartZeroAgainNew = -1;
+	//int ixStartNonZeroOld = pRadAccessData->nx + 1, izStartNonZeroOld = -1;
+	long long ixStartNonZeroOld = pRadAccessData->nx + 1, izStartNonZeroOld = -1; //OC03082023
+	//int ixStartZeroAgainOld = -1, izStartZeroAgainOld = -1;
+	long long ixStartZeroAgainOld = -1, izStartZeroAgainOld = -1; //OC03082023
+	//int ixStartNonZeroNew = pRadAccessData->nx + 1, izStartNonZeroNew = -1;
+	long long ixStartNonZeroNew = pRadAccessData->nx + 1, izStartNonZeroNew = -1; //OC03082023
+	//int ixStartZeroAgainNew = -1, izStartZeroAgainNew = -1;
+	long long ixStartZeroAgainNew = -1, izStartZeroAgainNew = -1; //OC03082023
 
 	char zPrevOldWasZero = 1, zPrevNewWasZero = 1;
 
-	for(int iz=0; iz<pRadAccessData->nz; iz++)
+	//for(int iz=0; iz<pRadAccessData->nz; iz++)
+	for(long long iz=0; iz<pRadAccessData->nz; iz++) //OC03082023
 	{
 		float *pEx_StartForX = pEx0 + izPerZ;
 		float *pEz_StartForX = pEz0 + izPerZ;
@@ -46,10 +51,13 @@ int srTAperture::TraverseRadZXE_TracingZeroField(srTSRWRadStructAccessData* pRad
 		long long ixPerX = 0;
 
 		char xPrevOldWasZero = 1, xPrevNewWasZero = 1;
-		int ixStartNonZeroOldLoc = -1, ixStartZeroAgainOldLoc = -1;
-		int ixStartNonZeroNewLoc = -1, ixStartZeroAgainNewLoc = -1;
+		//int ixStartNonZeroOldLoc = -1, ixStartZeroAgainOldLoc = -1;
+		long long ixStartNonZeroOldLoc = -1, ixStartZeroAgainOldLoc = -1; //OC03082023
+		//int ixStartNonZeroNewLoc = -1, ixStartZeroAgainNewLoc = -1;
+		long long ixStartNonZeroNewLoc = -1, ixStartZeroAgainNewLoc = -1; //OC03082023
 
-		for(int ix=0; ix<pRadAccessData->nx; ix++)
+		//for(int ix=0; ix<pRadAccessData->nx; ix++)
+		for(long long ix=0; ix<pRadAccessData->nx; ix++) //OC03082023
 		{
 			float *pEx_StartForE = pEx_StartForX + ixPerX;
 			float *pEz_StartForE = pEz_StartForX + ixPerX;

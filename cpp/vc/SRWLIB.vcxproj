@@ -33,6 +33,14 @@
       <Configuration>Debug_fftw2</Configuration>
       <Platform>x64</Platform>
     </ProjectConfiguration>
+    <ProjectConfiguration Include="Release_cuda|Win32">
+      <Configuration>Release_cuda</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release_cuda|x64">
+      <Configuration>Release_cuda</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
     <ProjectConfiguration Include="Release_omph|Win32">
       <Configuration>Release_omph</Configuration>
       <Platform>Win32</Platform>
@@ -85,6 +93,12 @@
     <UseOfMfc>false</UseOfMfc>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release_cuda|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <PlatformToolset>v143</PlatformToolset>
+    <UseOfMfc>false</UseOfMfc>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release_omp|Win32'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <PlatformToolset>v143</PlatformToolset>
@@ -128,6 +142,13 @@
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <PlatformToolset>v143</PlatformToolset>
+    <UseOfMfc>false</UseOfMfc>
+    <CharacterSet>MultiByte</CharacterSet>
+    <SpectreMitigation>false</SpectreMitigation>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release_cuda|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <PlatformToolset>v143</PlatformToolset>
     <UseOfMfc>false</UseOfMfc>
@@ -185,6 +206,10 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
     <Import Project="$(VCTargetsPath)Microsoft.CPP.UpgradeFromVC71.props" />
   </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release_cuda|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="$(VCTargetsPath)Microsoft.CPP.UpgradeFromVC71.props" />
+  </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release_omp|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
     <Import Project="$(VCTargetsPath)Microsoft.CPP.UpgradeFromVC71.props" />
@@ -214,6 +239,10 @@
     <Import Project="$(VCTargetsPath)Microsoft.CPP.UpgradeFromVC71.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="$(VCTargetsPath)Microsoft.CPP.UpgradeFromVC71.props" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release_cuda|x64'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
     <Import Project="$(VCTargetsPath)Microsoft.CPP.UpgradeFromVC71.props" />
   </ImportGroup>
@@ -295,6 +324,11 @@
     <IntDir>$(Platform)\$(Configuration)\</IntDir>
     <TargetName>srw_win32</TargetName>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release_cuda|Win32'">
+    <OutDir>$(SolutionDir)</OutDir>
+    <IntDir>$(Platform)\$(Configuration)\</IntDir>
+    <TargetName>srw_win32</TargetName>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release_omp|Win32'">
     <OutDir>$(SolutionDir)</OutDir>
     <IntDir>$(Platform)\$(Configuration)\</IntDir>
@@ -312,6 +346,12 @@
     <TargetName>srw_x64</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <OutDir>$(SolutionDir)</OutDir>
+    <IntDir>$(Platform)\$(Configuration)\</IntDir>
+    <EnableManagedIncrementalBuild>true</EnableManagedIncrementalBuild>
+    <TargetName>srw_x64</TargetName>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release_cuda|x64'">
     <OutDir>$(SolutionDir)</OutDir>
     <IntDir>$(Platform)\$(Configuration)\</IntDir>
     <EnableManagedIncrementalBuild>true</EnableManagedIncrementalBuild>
@@ -579,8 +619,8 @@
     </Midl>
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>..\src\core;..\src\lib;..\src\ext\genmath;..\src\ext\auxparse;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>_DEBUG;WIN32;_WINDOWS;_USRDLL;__VC__;SRWLIB_STATIC;_GM_WITHOUT_BASE;_CRT_SECURE_NO_WARNINGS;NON_UNIX_STDIO;_FFTW3;_OFFLOAD_GPU;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>..\src\core;..\src\lib;..\src\ext\genmath;..\src\ext\auxparse;..\src\ext\auxgpu;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_DEBUG;WIN32;_WINDOWS;_USRDLL;__VC__;SRWLIB_STATIC;_GM_WITHOUT_BASE;_CRT_SECURE_NO_WARNINGS;NON_UNIX_STDIO;_FFTW3;_OFFLOAD_GPU;_USE_CUDA;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <StructMemberAlignment>Default</StructMemberAlignment>
@@ -602,8 +642,9 @@
       <Culture>0x0809</Culture>
     </ResourceCompile>
     <Lib>
-      <AdditionalDependencies>..\..\ext_lib\fftw3_64.lib;..\..\ext_lib\fftw3f_64.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>cudart_static.lib;cufft.lib;cudadevrt.lib;..\..\ext_lib\fftw3_64.lib;..\..\ext_lib\fftw3f_64.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>srw_x64.lib</OutputFile>
+      <AdditionalLibraryDirectories>$(CudaToolkitLibDir);</AdditionalLibraryDirectories>
     </Lib>
     <PostBuildEvent>
       <Command>
@@ -690,6 +731,46 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Midl>
+      <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <MkTypLibCompatible>true</MkTypLibCompatible>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <TargetEnvironment>Win32</TargetEnvironment>
+      <TypeLibraryName>.\Release/SRWLIB.tlb</TypeLibraryName>
+    </Midl>
+    <ClCompile>
+      <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
+      <FavorSizeOrSpeed>Neither</FavorSizeOrSpeed>
+      <AdditionalIncludeDirectories>..\src\lib;..\src\core;..\src\ext\genmath;..\src\ext\auxparse;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>NDEBUG;WIN32;_WINDOWS;_USRDLL;__VC__;SRWLIB_STATIC;_GM_WITHOUT_BASE;_CRT_SECURE_NO_WARNINGS;NON_UNIX_STDIO;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <StringPooling>true</StringPooling>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <PrecompiledHeaderOutputFile>
+      </PrecompiledHeaderOutputFile>
+      <AssemblerListingLocation>
+      </AssemblerListingLocation>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <ProgramDataBaseFileName>$(IntDir)vc90.pdb</ProgramDataBaseFileName>
+      <WarningLevel>Level2</WarningLevel>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <CompileAs>Default</CompileAs>
+      <StructMemberAlignment>Default</StructMemberAlignment>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <Culture>0x0809</Culture>
+    </ResourceCompile>
+    <Lib>
+      <AdditionalDependencies>..\..\ext_lib\fftw_f.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <OutputFile>srw_win32.lib</OutputFile>
+    </Lib>
+    <PostBuildEvent>
+      <Command>copy $(TargetPath) "$(SolutionDir)..\..\env\work\srw_python\lib\"</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release_cuda|Win32'">
     <Midl>
       <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MkTypLibCompatible>true</MkTypLibCompatible>
@@ -901,6 +982,55 @@
       </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release_cuda|x64'">
+    <Midl>
+      <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <MkTypLibCompatible>true</MkTypLibCompatible>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <TargetEnvironment>X64</TargetEnvironment>
+      <TypeLibraryName>.\Release/SRWLIB.tlb</TypeLibraryName>
+    </Midl>
+    <ClCompile>
+      <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <AdditionalIncludeDirectories>..\src\lib;..\src\core;..\src\ext\genmath;..\src\ext\auxparse;..\src\ext\auxgpu;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>NDEBUG;WIN32;_WINDOWS;_USRDLL;__VC__;SRWLIB_STATIC;_GM_WITHOUT_BASE;_CRT_SECURE_NO_WARNINGS;NON_UNIX_STDIO;_FFTW3;_OFFLOAD_GPU;_USE_CUDA;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <StringPooling>true</StringPooling>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <FunctionLevelLinking>false</FunctionLevelLinking>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <PrecompiledHeaderOutputFile>
+      </PrecompiledHeaderOutputFile>
+      <AssemblerListingLocation>
+      </AssemblerListingLocation>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <ProgramDataBaseFileName>$(IntDir)vc90.pdb</ProgramDataBaseFileName>
+      <WarningLevel>Level3</WarningLevel>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <DebugInformationFormat>
+      </DebugInformationFormat>
+      <CompileAs>Default</CompileAs>
+      <OmitFramePointers>true</OmitFramePointers>
+      <Optimization>MaxSpeed</Optimization>
+      <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
+      <FloatingPointModel>Precise</FloatingPointModel>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <Culture>0x0809</Culture>
+    </ResourceCompile>
+    <Lib>
+      <AdditionalDependencies>cudart_static.lib;cufft.lib;cudadevrt.lib;..\..\ext_lib\fftw3_64.lib;..\..\ext_lib\fftw3f_64.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <OutputFile>srw_x64.lib</OutputFile>
+      <AdditionalOptions>
+      </AdditionalOptions>
+      <AdditionalLibraryDirectories>$(CudaToolkitLibDir);</AdditionalLibraryDirectories>
+    </Lib>
+    <PostBuildEvent>
+      <Command>
+      </Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release_omp|x64'">
     <Midl>
       <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -946,7 +1076,8 @@
       </AdditionalOptions>
     </Lib>
     <PostBuildEvent>
-      <Command>copy $(SolutionDir)$(TargetName)$(TargetExt) "$(SolutionDir)..\..\env\work\srw_python\lib\"</Command>
+      <Command>
+      </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release_omph|x64'">
@@ -999,6 +1130,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\src\core\sroptcryst.cpp" />
+    <ClCompile Include="..\src\ext\auxgpu\auxgpu.cpp" />
     <ClCompile Include="..\src\ext\auxparse\auxparse.cpp" />
     <ClCompile Include="..\src\ext\f2c_min\CLOSE.C" />
     <ClCompile Include="..\src\ext\f2c_min\DFE.C" />
@@ -1122,11 +1254,12 @@
     <ClCompile Include="..\src\ext\genesis\genesis_july08\tdepend.c" />
     <ClCompile Include="..\src\ext\genesis\genesis_july08\timerec.c" />
     <ClCompile Include="..\src\ext\genesis\genesis_july08\track.c" />
-    <ClCompile Include="..\src\ext\utils\utidev.cpp" />
     <ClCompile Include="..\src\lib\srerror.cpp" />
     <ClCompile Include="..\src\lib\srwlib.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\src\core\sroptelm_gpu.h" />
+    <ClInclude Include="..\src\ext\auxgpu\auxgpu.h" />
     <ClInclude Include="..\src\ext\auxparse\auxparse.h" />
     <ClInclude Include="..\src\ext\genmath\cmplxd.h" />
     <ClInclude Include="..\src\ext\genmath\gmercode.h" />
@@ -1196,10 +1329,17 @@
     <ClInclude Include="..\src\core\srwfrsmp.h" />
     <ClInclude Include="..\src\ext\auxparse\stlstart.h" />
     <ClInclude Include="..\src\core\srercode.h" />
-    <ClInclude Include="..\src\ext\utils\utidev.h" />
     <ClInclude Include="..\src\lib\srerror.h" />
     <ClInclude Include="..\src\lib\srigorre.h" />
     <ClInclude Include="..\src\lib\srwlib.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <CudaCompile Include="..\src\core\sroptdrf_gpu.cu" />
+    <CudaCompile Include="..\src\core\sroptelm_gpu.cu" />
+    <CudaCompile Include="..\src\core\sroptgtr_gpu.cu" />
+    <CudaCompile Include="..\src\core\srradmnp_gpu.cu" />
+    <CudaCompile Include="..\src\core\srradstr_gpu.cu" />
+    <CudaCompile Include="..\src\ext\genmath\gmfft_gpu.cu" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

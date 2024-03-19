@@ -250,6 +250,8 @@
 #define SRWL_INCORRECT_PARAM_FOR_WFR_PROC 194 + FIRST_XOP_ERR
 #define INCONSISTENT_PARAMS_MI_PROC 195 + FIRST_XOP_ERR
 
+#define IMPROPER_OPTICAL_COMPONENT_HYPERBOLOID 196 + FIRST_XOP_ERR
+
 //-------------------------------------------------------------------------
 /* Warning codes */
 

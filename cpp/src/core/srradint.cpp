@@ -940,7 +940,8 @@ srTEFourier srTRadInt::ComputeRightPartOfRadIntegralInNearField(double sStGen, d
 	const int AmOfParts = 15;
 // End Steerable parameters
 
-	double EdgePoints[AmOfParts + 1];
+	double EdgePoints[AmOfParts + 3]; //OC11032024
+	//double EdgePoints[AmOfParts + 1];
 	DetermineIntegIntervalsForRightResidual(sStGen, AmOfParts, EdgePoints);
 
 	const double wfe = 1./3.;

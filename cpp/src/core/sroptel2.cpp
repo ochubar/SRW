@@ -37,7 +37,8 @@ double srTGenOptElem::CheckMemoryAvailable()
 
 //int srTGenOptElem::PropagateRadiationMeth_0(srTSRWRadStructAccessData* pRadAccessData, void* pBuf) //OC06092019
 //OC01102019 (restored)
-int srTGenOptElem::PropagateRadiationMeth_0(srTSRWRadStructAccessData* pRadAccessData) 
+//int srTGenOptElem::PropagateRadiationMeth_0(srTSRWRadStructAccessData* pRadAccessData) 
+int srTGenOptElem::PropagateRadiationMeth_0(srTSRWRadStructAccessData* pRadAccessData, void *pvGPU) //HG30112023
 {//Moved from derived classes: loops over E, calls derived PropagateRadiationSingleE_Meth_0
  //This propagation method doesn't allow for true wavefront "resizing/resampling" 
  //(which results in changing numbers of points) in "slices" vs photon energy.
@@ -115,7 +116,8 @@ int srTGenOptElem::PropagateRadiationMeth_0(srTSRWRadStructAccessData* pRadAcces
 
 		//if(result = PropagateRadiationSingleE_Meth_0(pRadDataSingleE, pPrevRadDataSingleE, pBuf)) return result; //from derived classes
 		//OC01102019 (restored)
-		if(result = PropagateRadiationSingleE_Meth_0(pRadDataSingleE, pPrevRadDataSingleE)) return result; //from derived classes
+		//if(result = PropagateRadiationSingleE_Meth_0(pRadDataSingleE, pPrevRadDataSingleE)) return result; //from derived classes
+		if(result = PropagateRadiationSingleE_Meth_0(pRadDataSingleE, pPrevRadDataSingleE, pvGPU)) return result; //from derived classes //HG12012024
 
 		if(pRadDataSingleE != pRadAccessData)
 		{
@@ -152,7 +154,8 @@ int srTGenOptElem::PropagateRadiationMeth_0(srTSRWRadStructAccessData* pRadAcces
 	{
 		//SY: nothing more is actually needed in this case
 		
-		return PropagateRadiationSingleE_Meth_0(pRadAccessData, 0); //OC01102019 (restored) //from derived classes
+		return PropagateRadiationSingleE_Meth_0(pRadAccessData, 0, pvGPU); //OC17022024
+		//return PropagateRadiationSingleE_Meth_0(pRadAccessData, 0); //OC01102019 (restored) //from derived classes
 		//return PropagateRadiationSingleE_Meth_0(pRadAccessData, 0, pBuf); //OC06092019
 
 		//OC31102018: added by SY (for profiling?) at parallelizing SRW via OpenMP
@@ -260,7 +263,8 @@ int srTGenOptElem::PropagateRadiationMeth_0(srTSRWRadStructAccessData* pRadAcces
 				//OC01102019 (restored)
 				//if(results[ie] = PropagateRadiationSingleE_Meth_0(pRadDataSingleE, pPrevRadDataSingleE)) continue; //from derived classes
 				//OC28112021 (following the suggestion of SY made on GutHub, replaced the above with the line below)
-				if(single_results[ie] = PropagateRadiationSingleE_Meth_0(pRadDataSingleE, pPrevRadDataSingleE)) continue; //from derived classes
+				//if(single_results[ie] = PropagateRadiationSingleE_Meth_0(pRadDataSingleE, pPrevRadDataSingleE)) continue; //from derived classes
+				if(single_results[ie] = PropagateRadiationSingleE_Meth_0(pRadDataSingleE, pPrevRadDataSingleE, pvGPU)) continue; //OC17022024 //from derived classes
 
 				//if(results[ie] = UpdateGenRadStructSliceConstE_Meth_0(pRadDataSingleE, ie, pRadAccessData, 1)) continue;
 				//OC28112021 (following the suggestion of SY made on GutHub, replaced the above with the line below)

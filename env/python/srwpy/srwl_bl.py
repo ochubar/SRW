@@ -9,12 +9,28 @@
 #############################################################################
 
 from __future__ import print_function #Python 2.7 compatibility
-from srwlib import *
-from srwl_uti_mag import *
-from srwl_uti_und import *
-from uti_plot import *
-import uti_math
-import uti_io
+
+try: #OC15112022
+    from .srwlib import *
+    from .srwl_uti_mag import *
+    from .srwl_uti_und import *
+    from .uti_plot import *
+    from . import uti_math
+    from . import uti_io
+except:
+    from srwlib import *
+    from srwl_uti_mag import *
+    from srwl_uti_und import *
+    from uti_plot import *
+    import uti_math
+    import uti_io
+#from srwlib import *
+#from srwl_uti_mag import *
+#from srwl_uti_und import *
+#from uti_plot import *
+#import uti_math
+#import uti_io
+
 #import optparse #MR081032016 #Consider placing import argparse here
 import time
 import re #OC23052020
@@ -1354,6 +1370,79 @@ class SRWLBeamline(object):
         return wfr, arI, resMeshI
 
     #------------------------------------------------------------------------
+    def prep_stokes_fname(self, _type, _pol=6, _fname=None): #OC10102023
+        """Adjusts / modifies (aux.) Stokes file name"""
+
+        charMultiE = 0 #Calculate intensity (flux per unit surface by default)
+        if(_type == 1): charMultiE = 10 #Calculate flux
+
+        fnStk = _fname #copy(_fname)
+        
+        if(((_pol >= 0) and (_pol < 6)) or (_pol == 7)): #OC10102023 (requiring 4 Stokes components)
+        #if((_pol >= 0) and (_pol < 6)): #OC05102023 (requiring 4 Stokes components)
+            charMultiE += 1
+            
+            #OC10102023 (adding "_stk" before ".dat" here)
+            len_fname = 0 if _fname is None else len(_fname)
+            indLastDot = fnStk.rfind('.')
+            if((indLastDot >= 0) and (indLastDot < len_fname)):
+                nameCore = fnStk[:indLastDot]
+                sExt = fnStk[indLastDot:len_fname] #extension with '.'
+                #sExt = fnStk[indLastDot+1:len_fname]
+                fnStk = nameCore + '_stk' + sExt
+
+            #if(charMultiE == 0): charMultiE = 1
+            #elif(charMultiE == 10): charMultiE = 11
+        return fnStk, charMultiE
+
+    #------------------------------------------------------------------------
+    #OC27122023: moved to srwlib.SRWLStokes
+    # def extr_save_spec_comp(self, stk, _type=2, _pol=6, _fname=None, _fname_stk=None): #OC10102023
+    #     """Extracts Flux / Intensity at different polarizations from Stokes data"""
+        
+    #     arI = None
+    #     if(_pol < 7):
+    #         arI = stk.to_int(_pol)
+    #     else:
+    #         arI = []
+    #         for i in range(6):
+    #             arI.append(stk.to_int(i))
+            
+    #     if(srwl_uti_proc_is_master()):
+    #         sValName = 'Flux'
+    #         sValUnitName = 'ph/s/.1%bw'
+    #         if(_type == 2):
+    #             sValName = 'Intensity'
+    #             sValUnitName = 'ph/s/.1%bw/mm^2'
+
+    #         if(_pol != 6): 
+    #             if(_fname_stk is not None):
+    #                 if(len(_fname_stk) > 0):
+    #                     srwl_uti_save_intens_ascii(stk.arS, stk.mesh, _fname_stk, _n_stokes=4, _arLabels=['Photon Energy', 'Horizontal Position', 'Vertical Position', sValName], _arUnits=['eV', 'm', 'm', sValUnitName])
+                
+    #         if(_fname is not None):
+    #             if(len(_fname) > 0):
+    #                 #sValName = 'Flux'
+    #                 #sValUnitName = 'ph/s/.1%bw'
+    #                 #if(_type == 2):
+    #                 #    sValName = 'Intensity'
+    #                 #    sValUnitName = 'ph/s/.1%bw/mm^2'
+                        
+    #                 if(_pol < 7): #OC10102023
+    #                     srwl_uti_save_intens_ascii(arI, stk.mesh, _fname, 0, ['Photon Energy', 'Horizontal Position', 'Vertical Position', sValName], _arUnits=['eV', 'm', 'm', sValUnitName])
+    #                 else: #OC10102023 (adding "_0" .. "_5" before ".dat" here)
+    #                     len_fname = len(_fname)
+    #                     indLastDot = _fname.rfind('.')
+    #                     nameCore = ''; sExt = ''
+    #                     if((indLastDot >= 0) and (indLastDot < len_fname)):
+    #                         nameCore = _fname[:indLastDot]
+    #                         sExt = _fname[indLastDot:len_fname] #extension with '.'
+    #                     for i in range(6):
+    #                         fnPol = nameCore + '_' + repr(i) + sExt
+    #                         srwl_uti_save_intens_ascii(arI[i], stk.mesh, fnPol, 0, ['Photon Energy', 'Horizontal Position', 'Vertical Position', sValName], _arUnits=['eV', 'm', 'm', sValUnitName])
+    #     return arI
+
+    #------------------------------------------------------------------------
     def calc_ur_spec_me(self, _mesh, _harm_init=1, _harm_fin=15, _prec_long=1., _prec_azim=1., _type=1, _pol=6, _fname=''):
         """Calculates multi-electron flux of undulator radiation (within fixed aperture of per unit surface), using approximate periodic magnetic field
         :param _mesh: mesh on which the intensity has to be calculated (SRWLRadMesh instance)
@@ -1370,6 +1459,7 @@ class SRWLBeamline(object):
             4- Circular Right; 
             5- Circular Left; 
             6- Total
+            7- All Polarization Components (0-5)
         :param _fname: name of file to save the resulting data to (for the moment, in ASCII format)
         :return: 1D array with (C-aligned) resulting intensity data
         """
@@ -1412,19 +1502,25 @@ class SRWLBeamline(object):
             eBeamAux = deepcopy(self.eBeam)
             eBeamAux.drift(-zc)
 
+        fnStk, charMultiE = self.prep_stokes_fname(_type, _pol, _fname) #OC10102023
+
         srwl.CalcStokesUR(stk, eBeamAux, und, arPrecPar)
         #Consider treating detector here?
 
-        arI = stk.to_int(_pol)
-        if(len(_fname) > 0):
-            sValName = 'Flux'
-            sValUnitName = 'ph/s/.1%bw'
-            if(_type == 2):
-                sValName = 'Intensity'
-                sValUnitName = 'ph/s/.1%bw/mm^2'
-            srwl_uti_save_intens_ascii(arI, stk.mesh, _fname, 0, ['Photon Energy', 'Horizontal Position', 'Vertical Position', sValName], _arUnits=['eV', 'm', 'm', sValUnitName])
-        return arI
+        return stk.extr_save_pol_comp(_type, _pol, _fname, fnStk) #OC15022024
+        #return stk.extr_save_spec_comp(_type, _pol, _fname, fnStk) #OC27122023
+        #return self.extr_save_spec_comp(stk, _type, _pol, _fname, fnStk) #OC10102023
 
+        #arI = stk.to_int(_pol)
+        #if(len(_fname) > 0):
+        #    sValName = 'Flux'
+        #    sValUnitName = 'ph/s/.1%bw'
+        #    if(_type == 2):
+        #        sValName = 'Intensity'
+        #        sValUnitName = 'ph/s/.1%bw/mm^2'
+        #    srwl_uti_save_intens_ascii(arI, stk.mesh, _fname, 0, ['Photon Energy', 'Horizontal Position', 'Vertical Position', sValName], _arUnits=['eV', 'm', 'm', sValUnitName])
+        #return arI
+    
     #------------------------------------------------------------------------
     #def calc_arb_spec_me(self, _mesh, _meth=2, _rel_prec=0.01, _n_part_tot=100000, _n_part_avg_proc=10, _n_save_per=10, _type=2, _mag=2, _pol=0, _rand_meth=1, _fname=None):
     #def calc_arb_spec_me(self, _mesh, _meth=2, _rel_prec=0.01, _n_part_tot=100000, _n_part_avg_proc=10, _n_save_per=10, _type=2, _mag=2, _pol=0, _rand_meth=1, _fname=None, _sr_samp_fact=-1, _det=None, _me_approx=0): #OC13042018
@@ -1469,31 +1565,52 @@ class SRWLBeamline(object):
         else:
             if(self.mag is None): raise Exception('Accurate Magnetic Field is not defined')
 
-        charMultiE = 0 #Calculate intensity (flux per unit surface by default)
-        if(_type == 1): charMultiE = 10 #Calculate flux
+        fnStk, charMultiE = self.prep_stokes_fname(_type, _pol, _fname) #OC10102023
+        
+        #charMultiE = 0 #Calculate intensity (flux per unit surface by default)
+        #if(_type == 1): charMultiE = 10 #Calculate flux
 
+        # fnStk = copy(_fname) #OC10102023
+        
+        # if(((_pol >= 0) and (_pol < 6)) or (_pol == 7)): #OC10102023 (requiring 4 Stokes components)
+        # #if((_pol >= 0) and (_pol < 6)): #OC05102023 (requiring 4 Stokes components)
+        #     charMultiE += 1
+            
+        #     #OC10102023 (adding "_stk" before ".dat" here)
+        #     len_fname = len(_fname)
+        #     indLastDot = fnStk.rfind('.')
+        #     if((indLastDot >= 0) and (indLastDot < len_fname)):
+        #         nameCore = fnStk[:indLastDot]
+        #         sExt = fnStk[indLastDot:len_fname] #extension with '.'
+        #         #sExt = fnStk[indLastDot+1:len_fname]
+        #         fnStk = nameCore + '_stk' + sExt
+
+        #     #if(charMultiE == 0): charMultiE = 1
+        #     #elif(charMultiE == 10): charMultiE = 11
+        
         #print(_fname)
         stk = srwl_wfr_emit_prop_multi_e(
             _e_beam = self.eBeam, _mag = mag2use, _mesh = _mesh,
             _sr_meth = _meth, _sr_rel_prec = _rel_prec,
             _n_part_tot = _n_part_tot, _n_part_avg_proc = _n_part_avg_proc, _n_save_per = _n_save_per, _rand_meth = _rand_meth,
             #_file_path = _fname, _char = charMultiE)
-            _file_path = _fname, _sr_samp_fact = _sr_samp_fact, _char = charMultiE, _det = _det, _me_approx = _me_approx, #) #OC14042018
+            #_file_path = _fname, _sr_samp_fact = _sr_samp_fact, _char = charMultiE, _det = _det, _me_approx = _me_approx, #) #OC14042018
+            _file_path = fnStk, _sr_samp_fact = _sr_samp_fact, _char = charMultiE, _det = _det, _me_approx = _me_approx, #) #OC14042018
             _file_bkp = True if(_fbk == True) else False) #OC14082018
             
         #Consider treating detector here?
+        
+        if(srwl_uti_proc_is_master()): #OC22122023
+            return stk.extr_save_pol_comp(_type, _pol, _fname) #OC15022024
+            #return stk.extr_save_spec_comp(_type, _pol, _fname) #OC27122023
+            #return self.extr_save_spec_comp(stk, _type, _pol, _fname)
+        else:
+            return None 
 
-        arI = None
-        if(stk is not None):
-            arI = stk.to_int(_pol)
-            if(len(_fname) > 0):
-                sValName = 'Flux'
-                sValUnitName = 'ph/s/.1%bw'
-                if(_type == 2):
-                    sValName = 'Intensity'
-                    sValUnitName = 'ph/s/.1%bw/mm^2'
-                srwl_uti_save_intens_ascii(arI, stk.mesh, _fname, 0, ['Photon Energy', 'Horizontal Position', 'Vertical Position', sValName], _arUnits=['eV', 'm', 'm', sValUnitName])
-        return arI
+        ##arI = None
+        ##if(stk is not None):
+        #return self.extr_save_spec_comp(stk, _type, _pol, _fname)
+        ##return arI
 
     #------------------------------------------------------------------------
     def calc_pow_den(self, _mesh, _prec=1, _meth=1, _z_start=0., _z_fin=0., _mag_type=1, _fname=''):
@@ -1920,7 +2037,8 @@ class SRWLBeamline(object):
     #def calc_wfr_emit_prop_me(self, _mesh, _sr_samp_fact=1, _sr_meth=2, _sr_rel_prec=0.01, _in_wr=0., _in_wre=0., _mag_type=1, _n_part_tot=100000, _n_part_avg_proc=10, _n_save_per=50, _pres_ang=0, _char=0, _x0=0, _y0=0, _e_ph_integ=0, _rand_meth=1, _fname=None, _det=None, _me_approx=0): #OC05042017
     #def calc_wfr_emit_prop_me(self, _mesh, _sr_samp_fact=1, _sr_meth=2, _sr_rel_prec=0.01, _in_wr=0., _in_wre=0., _mag_type=1, _n_part_tot=100000, _n_part_avg_proc=10, _n_save_per=50, _pres_ang=0, _char=0, _x0=0, _y0=0, _e_ph_integ=0, _rand_meth=1, _fname=None, _det=None, _me_approx=0, _fbk=False): #OC14082018
     def calc_wfr_emit_prop_me(self, _mesh, _sr_samp_fact=1, _sr_meth=2, _sr_rel_prec=0.01, _in_wr=0., _in_wre=0., _mag_type=1, _n_part_tot=100000, _n_part_avg_proc=10, _n_save_per=50,
-                              _pres_ang=0, _char=0, _x0=0, _y0=0, _e_ph_integ=0, _rand_meth=1, _fname=None, _det=None, _me_approx=0, _fbk=False, _op_rnd=False, _fform='ascii', _no_opt=False, _nmm=1, _ncm=100, _cm_wfr=None, _ms=0): #OC22112022
+                              _pres_ang=0, _char=0, _x0=0, _y0=0, _e_ph_integ=0, _rand_meth=1, _fname=None, _det=None, _me_approx=0, _fbk=False, _op_rnd=False, _fform='ascii', _no_opt=False, _nmm=1, _ncm=100, _cm_wfr=None, _ms=0, _pol=None): #OC27122023
+                              #_pres_ang=0, _char=0, _x0=0, _y0=0, _e_ph_integ=0, _rand_meth=1, _fname=None, _det=None, _me_approx=0, _fbk=False, _op_rnd=False, _fform='ascii', _no_opt=False, _nmm=1, _ncm=100, _cm_wfr=None, _ms=0): #OC22112022
                               #_pres_ang=0, _char=0, _x0=0, _y0=0, _e_ph_integ=0, _rand_meth=1, _fname=None, _det=None, _me_approx=0, _fbk=False, _op_rnd=False, _fform='ascii', _no_opt=False, _nmm=1, _ncm=100, _cm_wfr=None): #OC02072021
                               #_pres_ang=0, _char=0, _x0=0, _y0=0, _e_ph_integ=0, _rand_meth=1, _fname=None, _det=None, _me_approx=0, _fbk=False, _op_rnd=False, _fform='ascii', _nmm=1, _ncm=1000): #OC27062021
                               #_pres_ang=0, _char=0, _x0=0, _y0=0, _e_ph_integ=0, _rand_meth=1, _fname=None, _det=None, _me_approx=0, _fbk=False, _op_rnd=False, _fform='ascii', _nmm=1): #OC16042021
@@ -1963,6 +2081,15 @@ class SRWLBeamline(object):
         :param _ncm: number of coherent modes to be produced by coherent mode decomposition (CMD) of 4D CSD
         :param _cm_wfr: list of wavefronts (objects of SRWLWfr type) describing coherent modes to be used in partially-coherent radiation propagation calculations; if this list is supplied, it is used instead of any other input radiaiton data
         :param _ms: index of the first wavefront / coherent mode to start computation
+        :param _pol: polarization component to extract: 
+            0- Linear Horizontal; 
+            1- Linear Vertical; 
+            2- Linear 45 degrees; 
+            3- Linear 135 degrees; 
+            4- Circular Right; 
+            5- Circular Left; 
+            6- Total
+            7- All Polarization Components (0-5)
         :return: data structure(s) of resulting intensity
         """
 
@@ -2005,7 +2132,8 @@ class SRWLBeamline(object):
 
         if(_cm_wfr is not None): magToUse = _cm_wfr #OC02072021 (note it overrides other cases - should it be like this?)
 
-        return srwl_wfr_emit_prop_multi_e(
+        res = srwl_wfr_emit_prop_multi_e( #OC27122023
+        #return srwl_wfr_emit_prop_multi_e(
             _e_beam = self.eBeam, _mag = magToUse, _mesh = _mesh, _sr_samp_fact = _sr_samp_fact,
             #_sr_meth = _sr_meth, _sr_rel_prec = _sr_rel_prec,
             #_sr_meth = _sr_meth, _sr_rel_prec = _sr_rel_prec, _w_wr = _in_wr, #OC26032016
@@ -2026,6 +2154,12 @@ class SRWLBeamline(object):
             #_file_bkp = _fbk, _rand_opt = _op_rnd, _file_form = _fform, _n_mpi=_nmm) #OC16042021
             #_file_bkp = _fbk, _rand_opt = _op_rnd, _file_form = _fform, _n_mpi=_nmm, _n_cm=_ncm) #OC27062021
             _file_bkp = _fbk, _rand_opt = _op_rnd, _file_form = _fform, _n_mpi = _nmm, _n_cm = _ncm, _ms = _ms) #OC22112022
+        
+        if(_pol is not None):
+            if(res is not None):
+                if(isinstance(res, SRWLStokes)):
+                    res.extr_save_pol_comp(_type=2, _pol=_pol, _fname=_fname, _fname_stk=None) #Save intensity at a given polarization
+        return res
 
     #------------------------------------------------------------------------
     def cost_func_aux_int_distr(self, _x, *_aux):
@@ -3133,7 +3267,7 @@ class SRWLBeamline(object):
                 _mag_type = _v.pw_mag,
                 _fname= os.path.join(_v.fdir, _v.pw_fn) if(len(_v.pw_fn) > 0) else '')
 
-        #---calculate bemline optics orientations and save it to file
+        #---calculate beamline optics orientations and save it to file
         if(len(_v.op_fno) > 0): #OC23032020
             avgPhEn = _v.w_e
             if(_v.w_ef > 0): avgPhEn = 0.5*(_v.w_e + _v.w_ef)
@@ -3404,7 +3538,11 @@ class SRWLBeamline(object):
                         _nmm = _v.wm_nmm, #) #OC16042021
                         _ncm = _v.wm_ncm, #) #OC27062021
                         _cm_wfr = lstWfrCM, #) #OC02072021
-                        _ms = _v.wm_ms) #OC22112022
+                        _ms = _v.wm_ms, #) #OC22112022
+                        _pol = _v.wm_pol) #OC28122023
+
+        if(not srwl_uti_proc_is_master()): return #OC26122023 
+        #ATTENTION: only plot by Master process after this point!
 
         #---plot results of all calculatiopns here (because the plotting "from the middle of the script" may hang up script execution)
         #uti_plot_init('TkAgg') #make the backend name an input option or move this to uti_plot ?
@@ -3546,7 +3684,14 @@ class SRWLBeamline(object):
             if(_v.sm_type == 2):
                 sValType = 'Flux per Unit Surface'; sValUnit = 'ph/s/.1%bw/mm^2'
             #uti_plot1d(int_sm, [mesh_sm.eStart, mesh_sm.eFin, mesh_sm.ne], ['Photon Energy', sValType, sValType], ['eV', sValUnit])
-            uti_plot1d(_v.sm_res, [mesh_sm.eStart, mesh_sm.eFin, mesh_sm.ne], ['Photon Energy', sValType, sValType], ['eV', sValUnit])
+            
+            if(isinstance(_v.sm_res, list)): #OC10102023
+                arPolName = ['LH', 'LV', 'LT45', 'LT135', 'CR', 'CL']
+                for i in range(6):
+                    sValTypeP = sValType + ' at Polarization: ' + arPolName[i]
+                    uti_plot1d(_v.sm_res[i], [mesh_sm.eStart, mesh_sm.eFin, mesh_sm.ne], ['Photon Energy', sValType, sValTypeP], ['eV', sValUnit])
+            else:
+                uti_plot1d(_v.sm_res, [mesh_sm.eStart, mesh_sm.eFin, mesh_sm.ne], ['Photon Energy', sValType, sValType], ['eV', sValUnit])
 
             plotOK = True
 
@@ -3945,7 +4090,8 @@ def srwl_uti_std_options():
         ['sm_na', 'i', 10, 'number of macro-electrons to average on each node at parallel (MPI-based) calculation of spectrum in case of arbitrary input magnetic field'],
         ['sm_ns', 'i', 10, 'saving periodicity (in terms of macro-electrons) for intermediate intensity at calculation of multi-electron spectrum in case of arbitrary input magnetic field'],
         ['sm_type', 'i', 1, 'calculate flux (=1) or flux per unit surface (=2)'],
-        ['sm_pol', 'i', 6, 'polarization component to extract after calculation of multi-e flux or intensity: 0- Linear Horizontal, 1- Linear Vertical, 2- Linear 45 degrees, 3- Linear 135 degrees, 4- Circular Right, 5- Circular Left, 6- Total'],
+        ['sm_pol', 'i', 6, 'polarization component to extract after calculation of multi-e flux or intensity: 0- Linear Horizontal, 1- Linear Vertical, 2- Linear 45 degrees, 3- Linear 135 degrees, 4- Circular Right, 5- Circular Left, 6- Total, 7- All Polarizations (0..5) in separate files'],
+        #['sm_pol', 'i', 6, 'polarization component to extract after calculation of multi-e flux or intensity: 0- Linear Horizontal, 1- Linear Vertical, 2- Linear 45 degrees, 3- Linear 135 degrees, 4- Circular Right, 5- Circular Left, 6- Total'],
         ['sm_rm', 'i', 1, 'method for generation of pseudo-random numbers for e-beam phase-space integration: 1- standard pseudo-random number generator, 2- Halton sequences, 3- LPtau sequences (to be implemented)'],
         ['sm_am', 'i', 0, 'multi-electron integration approximation method: 0- no approximation (use the standard 5D integration method), 1- integrate numerically only over e-beam energy spread and use convolution to treat transverse emittance'],
         ['sm_fn', 's', 'res_spec_me.dat', 'file name for saving calculated milti-e spectrum vs photon energy'],
@@ -4030,6 +4176,8 @@ def srwl_uti_std_options():
         ['wm_ms', 'i', 0, 'index of initial coherent wavefront (/ mode) to start partially-coherent calculation from'],
 
         ['wm_ch', 'i', 0, 'type of a characteristic to be extracted after calculation of multi-electron wavefront propagation: #0- intensity (s0); 1- four Stokes components; 2- mutual intensity cut vs x; 3- mutual intensity cut vs y'],
+        ['wm_pol', 'i', 6, 'polarization component of to extract after calculation of multi-electron intensity distribution: 0- Linear Horizontal, 1- Linear Vertical, 2- Linear 45 degrees, 3- Linear 135 degrees, 4- Circular Right, 5- Circular Left, 6- Total, 7- All Main Polarizations (0-5)'], #OC28122023
+
         ['wm_ap', 'i', 0, 'switch specifying representation of the resulting Stokes parameters: coordinate (0) or angular (1)'],
         ['wm_x0', 'f', 0, 'horizontal center position for mutual intensity cut calculation'],
         ['wm_y0', 'f', 0, 'vertical center position for mutual intensity cut calculation'],

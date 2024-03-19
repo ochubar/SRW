@@ -86,14 +86,13 @@ void srTSRWRadStructAccessData::AuxSetupActions(srTTrjDat* pTrjDat, srTWfrSmp* p
         RobsXAbsErr = RobsZAbsErr = 0.01*From_s0ToObsPoint;
 	}
 
-
 	//if(pMagElem != 0)
 	//{
- //       RobsXAbsErr = RobsZAbsErr = 0.5*(pMagElem->GetLongExtent());
+	//	RobsXAbsErr = RobsZAbsErr = 0.5*(pMagElem->GetLongExtent());
 	//}
 	//else
 	//{
- //       RobsXAbsErr = RobsZAbsErr = 0.01*From_s0ToObsPoint;
+	//	RobsXAbsErr = RobsZAbsErr = 0.01*From_s0ToObsPoint;
 	//}
 
 	SetupXcZcFromElecData();
@@ -2607,7 +2606,8 @@ void srTSRWRadStructAccessData::AddStokesAtPoint(srTEXZ& EXZ, float* pStokesVal)
 
 //*************************************************************************
 
-void srTSRWRadStructAccessData::CheckAndSubtractPhaseTermsLin(double newXc, double newZc)
+//void srTSRWRadStructAccessData::CheckAndSubtractPhaseTermsLin(double newXc, double newZc)
+void srTSRWRadStructAccessData::CheckAndSubtractPhaseTermsLin(double newXc, double newZc, void *pvGPU) //HG12012024
 {
 	const double ratAllowSubtract = 0.2;
 	const double minNumOptCycles = 10;
@@ -2666,12 +2666,14 @@ void srTSRWRadStructAccessData::CheckAndSubtractPhaseTermsLin(double newXc, doub
 
 	if((xMult == 0) && (zMult == 0)) return;
 	
-	MultiplyElFieldByPhaseLin(xMult, zMult);
+	//MultiplyElFieldByPhaseLin(xMult, zMult);
+	MultiplyElFieldByPhaseLin(xMult, zMult, pvGPU); //HG12012024
 }
 
 //*************************************************************************
 
-void srTSRWRadStructAccessData::CheckAndResetPhaseTermsLin()
+//void srTSRWRadStructAccessData::CheckAndResetPhaseTermsLin()
+void srTSRWRadStructAccessData::CheckAndResetPhaseTermsLin(void* pvGPU) //HG12012024
 {
 	if((!m_xLinOnlyPhaseTermWasSubtracted) && (!m_zLinOnlyPhaseTermWasSubtracted)) return;
 	
@@ -2695,12 +2697,14 @@ void srTSRWRadStructAccessData::CheckAndResetPhaseTermsLin()
 	
 	if((xMult == 0) && (zMult == 0)) return;
 	
-	MultiplyElFieldByPhaseLin(xMult, zMult);
+	//MultiplyElFieldByPhaseLin(xMult, zMult);
+	MultiplyElFieldByPhaseLin(xMult, zMult, pvGPU); //HG12012024
 }
 
 //*************************************************************************
 
-void srTSRWRadStructAccessData::MirrorFieldData(int sx, int sz)
+//void srTSRWRadStructAccessData::MirrorFieldData(int sx, int sz)
+void srTSRWRadStructAccessData::MirrorFieldData(int sx, int sz, void* pvGPU) //HG02122023
 {// sx < 0 means mirroring should be done vs x 
  // sz < 0 means mirroring should be done vs z 
 	//long PerX = ne << 1;
@@ -2710,6 +2714,17 @@ void srTSRWRadStructAccessData::MirrorFieldData(int sx, int sz)
 	float buf;
 	float *pEX0 = pBaseRadX;
 	float *pEZ0 = pBaseRadZ;
+
+#ifdef _OFFLOAD_GPU //HG02122023
+	TGPUUsageArg parGPU(pvGPU); //OC19022024
+	if(CAuxGPU::GPUEnabled(&parGPU)) //OC19022024
+	//if(CAuxGPU::GPUEnabled((TGPUUsageArg*)pvGPU))
+	{
+		//MirrorFieldData_GPU(sx, sz, (TGPUUsageArg*)pvGPU);
+		MirrorFieldData_GPU(sx, sz, &parGPU); //OC19022024
+		return;
+	}
+#endif
 
 	if((sx > 0) && (sz > 0)) return; //no mirroring is necessary 
 	else if((sx < 0) && (sz > 0)) //mirroring with respect to x

@@ -393,7 +393,7 @@
     <ClCompile Include="..\src\ext\f2c_min\Z_EXP.C">
       <Filter>f2c</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\ext\utils\utidev.cpp">
+    <ClCompile Include="..\src\ext\auxgpu\auxgpu.cpp">
       <Filter>core</Filter>
     </ClCompile>
   </ItemGroup>
@@ -614,8 +614,31 @@
     <ClInclude Include="..\src\lib\srwlib.h">
       <Filter>lib</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\ext\utils\utidev.h">
+    <ClInclude Include="..\src\ext\auxgpu\auxgpu.h">
       <Filter>core</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\core\sroptelm_gpu.h">
+      <Filter>core</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <CudaCompile Include="..\src\core\srradstr_gpu.cu">
+      <Filter>core</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\src\ext\genmath\gmfft_gpu.cu">
+      <Filter>core</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\src\core\srradmnp_gpu.cu">
+      <Filter>core</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\src\core\sroptdrf_gpu.cu">
+      <Filter>core</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\src\core\sroptelm_gpu.cu">
+      <Filter>core</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\src\core\sroptgtr_gpu.cu">
+      <Filter>core</Filter>
+    </CudaCompile>
   </ItemGroup>
 </Project>

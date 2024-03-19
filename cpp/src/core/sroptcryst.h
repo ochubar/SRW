@@ -76,7 +76,9 @@ class srTOptCryst : public srTGenOptElem {
 	double m_cos2t; //cos(2.*thBrd); 
 
 	srTOptCrystMeshTrf *m_pMeshTrf;
-	double m_eStartAux, m_eStepAux, m_ne;
+	double m_eStartAux, m_eStepAux;// , m_ne;
+	int m_ne; //OC21012024
+	//long long m_ne; //OC03082023
 	//bool m_xStartIsConstInSlicesE, m_zStartIsConstInSlicesE;
 
 public:
@@ -486,7 +488,8 @@ public:
 		absMaxAngTest = ::abs(zEndOld);
 		if(absMaxAng < absMaxAngTest) absMaxAng = absMaxAngTest;
 
-		int nMesh = 1;
+		int nMesh = 1; //OC21012024
+		//long long nMesh = 1; //OC03082023
 		if(pRad->ne > 1) nMesh = pRad->ne + 1;
 
 		//const double tolCrossTerm = 1.e-04; //to steer
@@ -595,8 +598,10 @@ public:
 
 				double xStartOld = pRad->xStart, zStartOld = pRad->zStart;
 				double xStepOld = pRad->xStep, zStepOld = pRad->zStep;
-				long Nx = pRad->nx, Nz = pRad->nz;
-				long Nx_mi_1 = Nx - 1, Nz_mi_1 = Nz - 1;
+				long Nx = pRad->nx, Nz = pRad->nz; //OC21012024 (rolled back)
+				//long long Nx = pRad->nx, Nz = pRad->nz; //OC03082023
+				long Nx_mi_1 = Nx - 1, Nz_mi_1 = Nz - 1; //OC21012024 (rolled back)
+				//long long Nx_mi_1 = Nx - 1, Nz_mi_1 = Nz - 1; //OC03082023
 				double xEndOld = xStartOld + xStepOld*Nx_mi_1;
 				double zEndOld = zStartOld + zStepOld*Nz_mi_1;
 				double x0 = xStartOld*a11 + zStartOld*a12 + k0*a13;
@@ -633,7 +638,8 @@ public:
 				float *pEx = pRad->pBaseRadX;
 				float *pEz = pRad->pBaseRadZ;
 				long perX = 2;
-				long perZ = perX*Nx;
+				//long perZ = perX*Nx;
+				long long perZ = perX*Nx; //OC03082023
 				char TreatPolCompX = pRad->pBaseRadX != 0;
 				char TreatPolCompZ = pRad->pBaseRadZ != 0;
 
@@ -673,11 +679,13 @@ public:
 
 							if(ordInterp == 1)
 							{
-								int iz0 = (int)((zOld - zStartOld)/zStepOld);
+								int iz0 = (int)((zOld - zStartOld)/zStepOld); //OC21012024 (rolled back)
+								//long long iz0 = (long long)((zOld - zStartOld)/zStepOld); //OC03082023
 								if(iz0 < 0) iz0 = 0;
 								if(iz0 > Nz_mi_1) iz0 = Nz_mi_1;
 
-								int ix0 = (int)((xOld - xStartOld)/xStepOld);
+								int ix0 = (int)((xOld - xStartOld)/xStepOld); //OC21012024 (rolled back)
+								//long long ix0 = (long long)((xOld - xStartOld)/xStepOld); //OC03082023
 								if(ix0 < 0) ix0 = 0;
 								if(ix0 > Nx_mi_1) ix0 = Nx_mi_1;
 
@@ -912,8 +920,10 @@ public:
 					ar_xStartValuesInSlicesE = new double[pRad->ne];
 					double *t_ar_xStartValues = ar_xStartValuesInSlicesE;
 					srTOptCrystMeshTrf *tMeshTrf = pMeshTrf + 1;
-					long nx_mi_1 = pRad->nx - 1;
-					for(long ie=0; ie<(pRad->ne); ie++)
+					long nx_mi_1 = pRad->nx - 1; //OC21012024 (rolled back)
+					//long long nx_mi_1 = pRad->nx - 1; //OC03082023
+					for(long ie=0; ie<(pRad->ne); ie++) //OC21012024 (rolled back)
+					//for(long long ie=0; ie<(pRad->ne); ie++) //OC03082023
 					{
 						if(flipOverXtot) *(t_ar_xStartValues++) = (tMeshTrf->xStart) + (tMeshTrf->xStep)*nx_mi_1;
 						else *(t_ar_xStartValues++) = tMeshTrf->xStart;
@@ -925,8 +935,10 @@ public:
 					ar_zStartValuesInSlicesE = new double[pRad->ne];
 					double *t_ar_zStartValues = ar_zStartValuesInSlicesE;
 					srTOptCrystMeshTrf *tMeshTrf = pMeshTrf + 1;
-					long nz_mi_1 = pRad->nz - 1;
-					for(long ie=0; ie<(pRad->ne); ie++)
+					long nz_mi_1 = pRad->nz - 1; //OC21012024 (rolled back)
+					//long long nz_mi_1 = pRad->nz - 1; //OC03082023
+					for(long ie=0; ie<(pRad->ne); ie++) //OC21012024 (rolled back)
+					//for(long long ie=0; ie<(pRad->ne); ie++) //OC03082023
 					{
 						if(flipOverZtot) *(t_ar_zStartValues++) = (tMeshTrf->zStart) + (tMeshTrf->zStep)*nz_mi_1;
 						else *(t_ar_zStartValues++) = tMeshTrf->zStart;
@@ -943,7 +955,8 @@ public:
 		return 0;
 	}
 
-	int PropagateRadiation(srTSRWRadStructAccessData* pRadAccessData, srTParPrecWfrPropag& ParPrecWfrPropag, srTRadResizeVect& ResBeforeAndAfterVect) //virtual in srTGenOptElem
+	//int PropagateRadiation(srTSRWRadStructAccessData* pRadAccessData, srTParPrecWfrPropag& ParPrecWfrPropag, srTRadResizeVect& ResBeforeAndAfterVect) //virtual in srTGenOptElem
+	int PropagateRadiation(srTSRWRadStructAccessData* pRadAccessData, srTParPrecWfrPropag& ParPrecWfrPropag, srTRadResizeVect& ResBeforeAndAfterVect, void* pvGPU=0) //virtual in srTGenOptElem //HG01122023
 	{
 		m_eStartAux = pRadAccessData->eStart; m_eStepAux = pRadAccessData->eStep; m_ne = pRadAccessData->ne; //required for RadPointModifier
 
@@ -967,7 +980,8 @@ public:
 		}
 
 		//return PropagateRadiationMeth_0(pRadAccessData);
-		return PropagateRadiationSingleE_Meth_0(pRadAccessData, 0);
+		//return PropagateRadiationSingleE_Meth_0(pRadAccessData, 0);
+		return PropagateRadiationSingleE_Meth_0(pRadAccessData, 0, pvGPU); //HG01122023
 	}
 
 	//int PropagateRadiationMeth_0(srTSRWRadStructAccessData* pRadAccessData) //virtual in srTGenOptElem
@@ -977,7 +991,8 @@ public:
 
 	//int PropagateRadiationSingleE_Meth_0(srTSRWRadStructAccessData* pRadAccessData, srTSRWRadStructAccessData* pPrevRadAccessData, void* pBuf=0) //OC06092019
 	//OC01102019 (restored)
-	int PropagateRadiationSingleE_Meth_0(srTSRWRadStructAccessData* pRadAccessData, srTSRWRadStructAccessData* pPrevRadAccessData)
+	//int PropagateRadiationSingleE_Meth_0(srTSRWRadStructAccessData* pRadAccessData, srTSRWRadStructAccessData* pPrevRadAccessData)
+	int PropagateRadiationSingleE_Meth_0(srTSRWRadStructAccessData* pRadAccessData, srTSRWRadStructAccessData* pPrevRadAccessData, void* pvGPU) //HG01122023
 	{//It works for many photon energies too (as in the case of Drift)
 	 //The "in-place" processing involving FFT for many photon energies greatly improves efficiency of the code for Time-/Frequency-Dependent simulations for FEL and pulsed lasers.
 		int result;
@@ -1011,7 +1026,8 @@ public:
 
 		srTOptCrystMeshTrf meshTrf;
 		m_pMeshTrf = &meshTrf;
-		int nMesh = 1;
+		int nMesh = 1; //OC21012024 (rolled back)
+		//long long nMesh = 1; //OC03082023
 		if(pRadAccessData->ne > 1) 
 		{
 			nMesh = pRadAccessData->ne + 1;

@@ -26,15 +26,25 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug_Py3_9|x64'">
     <LocalDebuggerCommand>C:\SoftwareDevelopments\Python39_x64\python.exe</LocalDebuggerCommand>
-    <LocalDebuggerCommandArguments>ELETTRA-CDI-Source-Test-Tandem-350-eV.py</LocalDebuggerCommandArguments>
-    <LocalDebuggerWorkingDirectory>..\..\env\work\srw_python</LocalDebuggerWorkingDirectory>
+    <LocalDebuggerCommandArguments>SRWLIB_Example03.py</LocalDebuggerCommandArguments>
+    <LocalDebuggerWorkingDirectory>..\..\env_old\work\srw_python</LocalDebuggerWorkingDirectory>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug_Py3_11|x64'">
-    <LocalDebuggerCommand>C:\SoftwareDevelopments\Python39_x64\python.exe</LocalDebuggerCommand>
-    <LocalDebuggerCommandArguments>ELETTRA-CDI-Source-Test-Tandem-350-eV.py</LocalDebuggerCommandArguments>
-    <LocalDebuggerWorkingDirectory>..\..\env\work\srw_python</LocalDebuggerWorkingDirectory>
+    <LocalDebuggerCommand>C:\SoftwareDevelopments\Python311_x64\python.exe</LocalDebuggerCommand>
+    <LocalDebuggerCommandArguments>example_3_source_2_vh_then_60mm_oc.py</LocalDebuggerCommandArguments>
+    <LocalDebuggerWorkingDirectory>..\..\env_old\work\srw_python</LocalDebuggerWorkingDirectory>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+    <LocalDebuggerDebuggerType>NativeOnly</LocalDebuggerDebuggerType>
+    <LocalDebuggerAttach>false</LocalDebuggerAttach>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug_Py3_11_cuda|x64'">
+    <LocalDebuggerCommand>C:\SoftwareDevelopments\Python311_x64\python.exe</LocalDebuggerCommand>
+    <LocalDebuggerCommandArguments>SRWLIB_Example17_test_GPU.py</LocalDebuggerCommandArguments>
+    <LocalDebuggerWorkingDirectory>..\..\env_old\work\srw_python</LocalDebuggerWorkingDirectory>
+    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+    <LocalDebuggerDebuggerType>Auto</LocalDebuggerDebuggerType>
+    <LocalDebuggerAttach>false</LocalDebuggerAttach>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug_Py3_7|x64'">
     <LocalDebuggerCommand>..\..\Python37_x64\python.exe</LocalDebuggerCommand>
@@ -79,10 +89,16 @@
     <LocalDebuggerWorkingDirectory>..\..\env\work\srw_python</LocalDebuggerWorkingDirectory>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release_Py3_11|x64'">
-    <LocalDebuggerCommand>C:\SoftwareDevelopments\Python38_x64\python.exe</LocalDebuggerCommand>
+    <LocalDebuggerCommand>C:\SoftwareDevelopments\Python311_x64\python.exe</LocalDebuggerCommand>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
     <LocalDebuggerCommandArguments>split-delay-test-vcc.py</LocalDebuggerCommandArguments>
-    <LocalDebuggerWorkingDirectory>..\..\env\work\srw_python</LocalDebuggerWorkingDirectory>
+    <LocalDebuggerWorkingDirectory>..\..\env_old\work\srw_python</LocalDebuggerWorkingDirectory>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release_Py3_11_cuda|x64'">
+    <LocalDebuggerCommand>C:\SoftwareDevelopments\Python311_x64\python.exe</LocalDebuggerCommand>
+    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+    <LocalDebuggerCommandArguments>split_delay_channel_cut_cryst_02d.py</LocalDebuggerCommandArguments>
+    <LocalDebuggerWorkingDirectory>..\..\env_old\work\srw_python</LocalDebuggerWorkingDirectory>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug_Py2x|x64'">
     <LocalDebuggerCommand>C:\SoftwareDevelopments\Python27_x64\python.exe</LocalDebuggerCommand>
@@ -109,6 +125,12 @@
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug_Py3_11|Win32'">
+    <LocalDebuggerCommand>python</LocalDebuggerCommand>
+    <LocalDebuggerCommandArguments>test_hdf5_convert.py</LocalDebuggerCommandArguments>
+    <LocalDebuggerWorkingDirectory>..\..\env\work\srw_python</LocalDebuggerWorkingDirectory>
+    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug_Py3_11_cuda|Win32'">
     <LocalDebuggerCommand>python</LocalDebuggerCommand>
     <LocalDebuggerCommandArguments>test_hdf5_convert.py</LocalDebuggerCommandArguments>
     <LocalDebuggerWorkingDirectory>..\..\env\work\srw_python</LocalDebuggerWorkingDirectory>

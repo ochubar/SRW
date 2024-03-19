@@ -27,6 +27,12 @@ else
 	endif
 endif
 
+# HG30112023
+CUDA_PATH ?= /usr/local/cuda
+CUDA_MATHLIBS_PATH ?= /usr/local/cuda
+NVCC = $(CUDA_PATH)/bin/nvcc
+NVCXX = $(CUDA_PATH)/bin/nvc++
+
 SRW_SRC_DEF=	-D_GNU_SOURCE -D__USE_XOPEN2K8 -DFFTW_ENABLE_FLOAT -D_GM_WITHOUT_BASE -DSRWLIB_STATIC -DNO_TIMER -DANSI_DECLARATORS -DTRILIBRARY $(OSFLAG)
 SRW_INCLUDES=   -I$(SRW_SRC_GEN_DIR) -I$(SRW_SRC_LIB_DIR) -I$(SH_SRC_PARSE_DIR) -I$(SH_SRC_GEN_MATH_DIR) $(SRW_SRC_DEF) 
 SRW_CFLAGS=		-O3 -fPIC
@@ -35,12 +41,24 @@ LDFLAGS=-L$(LIB_DIR) -lm
 ifeq ($(MODE), omp)
 SRW_CFLAGS+= -D_WITH_OMP -fopenmp -Wno-write-strings 
 LDFLAGS+= -lfftw 
+else #HG30112023
+ifeq ($(MODE), cuda)
+CUDA_INCLUDES = -I$(CUDA_PATH)/include -I$(CUDA_MATHLIBS_PATH)/include
+CUDA_LIBS = -L$(CUDA_PATH)/lib64 -L$(CUDA_MATHLIBS_PATH)/lib64
+
+SRW_SRC_DEF += -D_OFFLOAD_GPU -DUSE_CUDA -D_FFTW3
+SRW_INCLUDES += $(CUDA_INCLUDES) 
+#SRW_CFLAGS += -std=c++17 #HG01012024
+LDFLAGS += $(CUDA_LIBS) -lcudart_static -lcudadevrt -lcufft -lrt
+NVCFLAGS = -O3 -arch=sm_80 -dlto -rdc=true
+CUDA_OBJ=gmfft_gpu.o srradstr_gpu.o sroptelm_gpu.o sroptdrf_gpu.o sroptgtr_gpu.o srradmnp_gpu.o
 else
 ifeq ($(MODE), 0)
 SRW_CFLAGS+= -D_FFTW3 
 LDFLAGS+= -lfftw3f -lfftw3 
 else
 $(error Unknown SRW compilation option)
+endif
 endif
 endif
 
@@ -71,6 +89,10 @@ OBJ +=  timerec.o track.o srerror.o
 
 # src/lib
 OBJ +=  srwlib.o
+# HG30112023
+ifeq ($(MODE), cuda)
+OBJ += auxgpu.o
+endif
 
 PRG= libsrw.a
 
@@ -89,6 +111,24 @@ PRG= libsrw.a
 %.o: $(SRW_SRC_GENESIS_DIR)/%.c
 	$(CC) $(CFLAGS) -c $<  
 
+# HG30112023
+ifeq ($(MODE), cuda)
+lib: $(CUDA_OBJ) $(OBJ)
+	$(NVCC) $(NVCFLAGS) -Xcompiler="$(SRW_CFLAGS)" -dlink -o srwl_link.o *.o $(LDFLAGS)
+	ar -cvq $(PRG) *.o
+	#cp $(PRG) $(LIB_DIR)/
+	rm -f *.o
+
+%.o: $(SRW_SRC_LIB_DIR)/%.cu
+	$(NVCC) -dc $(NVCFLAGS) $(SRW_INCLUDES) $(SRW_SRC_DEF) -Xcompiler="$(CFLAGS)" -c $<
+	
+%.o: $(SH_SRC_GEN_MATH_DIR)/%.cu
+	$(NVCC) -dc $(NVCFLAGS) $(SRW_INCLUDES) $(SRW_SRC_DEF) -Xcompiler="$(CFLAGS)" -c $<
+
+%.o: $(SRW_SRC_GEN_DIR)/%.cu
+	$(NVCC) -dc $(NVCFLAGS) $(SRW_INCLUDES) $(SRW_SRC_DEF) -Xcompiler="$(CFLAGS)" -c $<
+
+else
 lib:	$(OBJ)
 	ar -cvq $(PRG) *.o
 	#cp $(PRG) $(LIB_DIR)/
@@ -102,6 +142,7 @@ lib:	$(OBJ)
 
 %.o: $(SRW_SRC_GEN_DIR)/%.cu
 	$(NVCC) -x=c++ -Xcompiler="$(CFLAGS)" -c $<
+endif
 
 pylib:
 	$(CXX) -shared $(CFLAGS) $(PYFLAGS) -o srwlpy.so $(SRW_SRC_DIR)/clients/python/srwlpy.cpp libsrw.a $(LDFLAGS)

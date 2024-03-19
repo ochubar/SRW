@@ -26,6 +26,11 @@
 #include <map>
 #include <sstream> //OCTEST_161214
 
+//OC18022024 (commented-out)
+//#ifdef _OFFLOAD_GPU //HG30112023
+//#include "auxgpu.h"
+//#endif
+
 //Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
 //#include <time.h>
 
@@ -116,7 +121,22 @@ struct AuxStructPyObjectPtrs {
 	PyObject *o_wfr;
 	//Py_buffer pbEx, pbEy, pbMomX, pbMomY;
 	Py_buffer pbEx, pbEy, pbExAux, pbEyAux, pbMomX, pbMomY; //OC151115
-	vector<Py_buffer> *pv_buf;
+	vector<Py_buffer> *pv_buf; //This vector should not contain any of the above buffers(!)
+
+	AuxStructPyObjectPtrs() //OC19122023
+	{
+		pbEx.buf = 0; pbEy.buf = 0; pbExAux.buf = 0; pbEyAux.buf = 0; pbMomX.buf = 0; pbMomY.buf = 0; //Risky, Py_buffer may change (?)
+	}
+
+	void ReleaseMainBufs() //OC19122023
+	{
+		if(pbEx.buf != 0) PyBuffer_Release(&pbEx);
+		if(pbEy.buf != 0) PyBuffer_Release(&pbEy);
+		if(pbExAux.buf != 0) PyBuffer_Release(&pbExAux);
+		if(pbEyAux.buf != 0) PyBuffer_Release(&pbEyAux);
+		if(pbMomX.buf != 0) PyBuffer_Release(&pbMomX);
+		if(pbMomY.buf != 0) PyBuffer_Release(&pbMomY);
+	}
 };
 
 static map<SRWLWfr*, AuxStructPyObjectPtrs> gmWfrPyPtr;
@@ -146,12 +166,16 @@ void ProcRes(int er) //throw(...)
  * Auxiliary function to erase element from map if key found
  ***************************************************************************/
 //template<class Tkey, class T> void EraseElementFromMap(Tkey key, map<Tkey, T>& m) //GCC doesn't support this for some reason
-void EraseElementFromMap(SRWLWfr* key, map<SRWLWfr*, AuxStructPyObjectPtrs>& m)
+void EraseElementFromMap(SRWLWfr* key, map<SRWLWfr*, AuxStructPyObjectPtrs>& m, bool releaseMainBuf=true) //OC19122023
+//void EraseElementFromMap(SRWLWfr* key, map<SRWLWfr*, AuxStructPyObjectPtrs>& m)
 {
 	map<SRWLWfr*, AuxStructPyObjectPtrs>::iterator iter = m.find(key);
 	//map<SRWLWfr*, AuxStructPyObjectPtrs>::const_iterator iter = m.find(key);
 
 	if(iter == m.end()) return;
+
+	if(releaseMainBuf) iter->second.ReleaseMainBufs(); //OC19122023
+
 	m.erase(iter);
 }
 
@@ -169,6 +193,92 @@ char* GetPyArrayBuf(PyObject* obj, vector<Py_buffer>* pvBuf, Py_ssize_t* pSizeBu
 		if(PyObject_GetBuffer(obj, &pb_tmp, PyBUF_WRITABLE)) return 0;
 		if(pSizeBuf != 0) *pSizeBuf = pb_tmp.len;
 		if(pvBuf != 0) pvBuf->push_back(pb_tmp);
+		return (char*)pb_tmp.buf;
+	}
+#if PY_MAJOR_VERSION < 3
+	//else if(PyBuffer_Check(obj))
+	else
+	{
+		//if(bufFlag != PyBUF_WRITABLE) return 0;
+		PyObject *pOldBuf = PyBuffer_FromReadWriteObject(obj, 0, Py_END_OF_BUFFER);
+		//if(pOldBuf == 0) return 0;
+		if(pOldBuf == 0) //RN010814
+		{
+			PyErr_Clear(); return 0;
+		}
+
+		void *pVoidBuffer = 0;
+		Py_ssize_t sizeBuf;
+		char *pRes = 0;
+		if(!PyObject_AsWriteBuffer(pOldBuf, &pVoidBuffer, &sizeBuf))
+		{
+			if(pVoidBuffer != 0) pRes = (char*)pVoidBuffer;
+		}
+		Py_DECREF(pOldBuf);
+		if(pSizeBuf != 0) *pSizeBuf = sizeBuf;
+		return pRes;
+	}
+#endif
+	return 0;
+}
+
+/************************************************************************//**
+ * Gets access to Py array buffer (no vector)
+ ***************************************************************************/
+char* GetPyArrayBuf(PyObject* obj, Py_buffer* pBuf, Py_ssize_t* pSizeBuf) //OC19122023
+{//for simplicity and uniformity of treatment in Py3 and Py2, only writable buffers are supported
+	if(obj == 0) return 0;
+	if(PyObject_CheckBuffer(obj))
+	{
+		//Py_buffer pb_tmp; 
+		//if(PyObject_GetBuffer(obj, &pb_tmp, PyBUF_WRITABLE)) return 0;
+		if(PyObject_GetBuffer(obj, pBuf, PyBUF_WRITABLE)) return 0;
+		//if(pSizeBuf != 0) *pSizeBuf = pb_tmp.len;
+		if(pSizeBuf != 0) *pSizeBuf = pBuf->len;
+		//if(pvBuf != 0) pvBuf->push_back(pb_tmp);
+		//return (char*)pb_tmp.buf;
+		return (char*)pBuf->buf;
+	}
+#if PY_MAJOR_VERSION < 3
+	//else if(PyBuffer_Check(obj))
+	else
+	{
+		//if(bufFlag != PyBUF_WRITABLE) return 0;
+		PyObject *pOldBuf = PyBuffer_FromReadWriteObject(obj, 0, Py_END_OF_BUFFER);
+		//if(pOldBuf == 0) return 0;
+		if(pOldBuf == 0) //RN010814
+		{
+			PyErr_Clear(); return 0;
+		}
+
+		void *pVoidBuffer = 0;
+		Py_ssize_t sizeBuf;
+		char *pRes = 0;
+		if(!PyObject_AsWriteBuffer(pOldBuf, &pVoidBuffer, &sizeBuf))
+		{
+			if(pVoidBuffer != 0) pRes = (char*)pVoidBuffer;
+		}
+		Py_DECREF(pOldBuf);
+		if(pSizeBuf != 0) *pSizeBuf = sizeBuf;
+		return pRes;
+	}
+#endif
+	return 0;
+}
+
+/************************************************************************//**
+ * Gets access to Py array buffer (no vector)
+ ***************************************************************************/
+char* GetPyArrayBuf(PyObject* obj, Py_ssize_t* pSizeBuf) //OC19122023
+{//for simplicity and uniformity of treatment in Py3 and Py2, only writable buffers are supported
+	if(obj == 0) return 0;
+	if(PyObject_CheckBuffer(obj))
+	{
+		Py_buffer pb_tmp; 
+		//if(PyObject_GetBuffer(obj, &pb_tmp, PyBUF_WRITABLE)) return 0;
+		if(PyObject_GetBuffer(obj, &pb_tmp, PyBUF_WRITABLE)) return 0;
+		if(pSizeBuf != 0) *pSizeBuf = pb_tmp.len;
+		//if(pvBuf != 0) pvBuf->push_back(pb_tmp);
 		return (char*)pb_tmp.buf;
 	}
 #if PY_MAJOR_VERSION < 3
@@ -2189,7 +2299,7 @@ void ParseSructSRWLOptMirExtTor(SRWLOptMirTor* pOpt, PyObject* oOpt) //throw(...
 }
 
 /************************************************************************//**
- * Parses PyObject* to SRWLOptMirTor*
+ * Parses PyObject* to SRWLOptMirSph*
  ***************************************************************************/
 void ParseSructSRWLOptMirExtSph(SRWLOptMirSph* pOpt, PyObject* oOpt) //throw(...) 
 {
@@ -2201,6 +2311,40 @@ void ParseSructSRWLOptMirExtSph(SRWLOptMirSph* pOpt, PyObject* oOpt) //throw(...
 	if(o_tmp == 0) throw strEr_BadOptMir;
 	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptMir;
 	pOpt->rad = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+}
+
+/************************************************************************//**
+ * Parses PyObject* to SRWLOptMirHyp* //TW24012024
+ ***************************************************************************/
+void ParseSructSRWLOptMirExtHyp(SRWLOptMirHyp* pOpt, PyObject* oOpt) //throw(...) 
+{//TW24012024
+	if((pOpt == 0) || (oOpt == 0)) throw strEr_NoObj;
+
+	//ParseSructSRWLOptMir(&(pOpt->baseMir), oOpt, pvBuf);
+
+	PyObject *o_tmp = PyObject_GetAttrString(oOpt, "p");
+	if(o_tmp == 0) throw strEr_BadOptMir;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptMir;
+	pOpt->p = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "q");
+	if(o_tmp == 0) throw strEr_BadOptMir;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptMir;
+	pOpt->q = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "angGraz");
+	if(o_tmp == 0) throw strEr_BadOptMir;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptMir;
+	pOpt->angGraz = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "radSag");
+	if(o_tmp == 0) throw strEr_BadOptMir;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptMir;
+	pOpt->radSag = PyFloat_AsDouble(o_tmp);
 	Py_DECREF(o_tmp);
 }
 
@@ -2257,6 +2401,13 @@ void* ParseSructSRWLOptMirAll(PyObject* oOpt, char* sPyTypeName, vector<Py_buffe
 		strcat(srwOptTypeName, "sphere\0");
 		ParseSructSRWLOptMir(&(((SRWLOptMirSph*)pMir)->baseMir), oOpt, pvBuf);
 		ParseSructSRWLOptMirExtSph((SRWLOptMirSph*)pMir, oOpt);
+	}
+	else if(strcmp(sPyTypeName, "SRWLOptMirHyp") == 0) //TW24012024
+	{
+		pMir = new SRWLOptMirHyp();
+		strcat(srwOptTypeName, "hyperboloid\0");
+		ParseSructSRWLOptMir(&(((SRWLOptMirHyp*)pMir)->baseMir), oOpt, pvBuf);
+		ParseSructSRWLOptMirExtHyp((SRWLOptMirHyp*)pMir, oOpt);
 	}
 
 	return pMir;
@@ -2928,9 +3079,13 @@ void ParseSructSRWLWfr(SRWLWfr* pWfr, PyObject* oWfr, vector<Py_buffer>* pvBuf, 
 	//	sPyObjectPtrs.pbEx = pb_tmp;
 	//}
 	//else pWfr->arEx = 0;
-	int sizeVectBuf = (int)pvBuf->size();
-	if(!(pWfr->arEx = GetPyArrayBuf(o_tmp, pvBuf, 0))) throw strEr_BadWfr;
-	if((int)pvBuf->size() > sizeVectBuf) sPyObjectPtrs.pbEx = (*pvBuf)[sizeVectBuf];
+
+	//OC19122023
+	if(!(pWfr->arEx = GetPyArrayBuf(o_tmp, &(sPyObjectPtrs.pbEx), 0))) throw strEr_BadWfr;
+	//OC19122023 (commented-out)
+	//int sizeVectBuf = (int)pvBuf->size(); 
+	//if(!(pWfr->arEx = GetPyArrayBuf(o_tmp, pvBuf, 0))) throw strEr_BadWfr;
+	//if((int)pvBuf->size() > sizeVectBuf) sPyObjectPtrs.pbEx = (*pvBuf)[sizeVectBuf];
 	Py_DECREF(o_tmp);
 
 	o_tmp = PyObject_GetAttrString(oWfr, "arEy");
@@ -2943,9 +3098,13 @@ void ParseSructSRWLWfr(SRWLWfr* pWfr, PyObject* oWfr, vector<Py_buffer>* pvBuf, 
 	//	sPyObjectPtrs.pbEy = pb_tmp;
 	//}
 	//else pWfr->arEy = 0;
-	sizeVectBuf = (int)pvBuf->size();
-	if(!(pWfr->arEy = GetPyArrayBuf(o_tmp, pvBuf, 0))) throw strEr_BadWfr;
-	if((int)pvBuf->size() > sizeVectBuf) sPyObjectPtrs.pbEy = (*pvBuf)[sizeVectBuf];
+
+	//OC19122023
+	if(!(pWfr->arEy = GetPyArrayBuf(o_tmp, &(sPyObjectPtrs.pbEy), 0))) throw strEr_BadWfr;
+	//OC19122023 (commented-out)
+	//sizeVectBuf = (int)pvBuf->size();
+	//if(!(pWfr->arEy = GetPyArrayBuf(o_tmp, pvBuf, 0))) throw strEr_BadWfr;
+	//if((int)pvBuf->size() > sizeVectBuf) sPyObjectPtrs.pbEy = (*pvBuf)[sizeVectBuf];
 	Py_DECREF(o_tmp);
 
 	if((pWfr->arEx == 0) && (pWfr->arEy == 0)) throw strEr_BadWfr;
@@ -2956,14 +3115,16 @@ void ParseSructSRWLWfr(SRWLWfr* pWfr, PyObject* oWfr, vector<Py_buffer>* pvBuf, 
 		o_tmp = PyObject_GetAttrString(oWfr, "arExAux");
 		if(o_tmp != 0)
 		{
-			sizeVectBuf = (int)pvBuf->size();
-			//if(pWfr->arExAux = GetPyArrayBuf(o_tmp, pvBuf, 0))
-			pWfr->arExAux = GetPyArrayBuf(o_tmp, pvBuf, 0);
-			if(pWfr->arExAux)
-			{
-				if((int)pvBuf->size() > sizeVectBuf) sPyObjectPtrs.pbExAux = (*pvBuf)[sizeVectBuf];
-				Py_DECREF(o_tmp);
-			}
+			pWfr->arExAux = GetPyArrayBuf(o_tmp, &(sPyObjectPtrs.pbExAux), 0); //OC19122023
+			//OC19122023 (commented-out)
+			//sizeVectBuf = (int)pvBuf->size();
+			//pWfr->arExAux = GetPyArrayBuf(o_tmp, pvBuf, 0);
+			//if(pWfr->arExAux)
+			//{
+			//	if((int)pvBuf->size() > sizeVectBuf) sPyObjectPtrs.pbExAux = (*pvBuf)[sizeVectBuf];
+			//	Py_DECREF(o_tmp);
+			//}
+			Py_DECREF(o_tmp); //OC19122023
 		}
 	}
 
@@ -2973,14 +3134,16 @@ void ParseSructSRWLWfr(SRWLWfr* pWfr, PyObject* oWfr, vector<Py_buffer>* pvBuf, 
 		o_tmp = PyObject_GetAttrString(oWfr, "arEyAux");
 		if(o_tmp != 0)
 		{
-			sizeVectBuf = (int)pvBuf->size();
-			//if(pWfr->arEyAux = GetPyArrayBuf(o_tmp, pvBuf, 0))
-			pWfr->arEyAux = GetPyArrayBuf(o_tmp, pvBuf, 0);
-			if(pWfr->arEyAux)
-			{
-				if((int)pvBuf->size() > sizeVectBuf) sPyObjectPtrs.pbEyAux = (*pvBuf)[sizeVectBuf];
-				Py_DECREF(o_tmp);
-			}
+			pWfr->arEyAux = GetPyArrayBuf(o_tmp, &(sPyObjectPtrs.pbEyAux), 0); //OC19122023
+			//OC19122023 (commented-out)
+			//sizeVectBuf = (int)pvBuf->size();
+			//pWfr->arEyAux = GetPyArrayBuf(o_tmp, pvBuf, 0);
+			//if(pWfr->arEyAux)
+			//{
+			//	if((int)pvBuf->size() > sizeVectBuf) sPyObjectPtrs.pbEyAux = (*pvBuf)[sizeVectBuf];
+			//	Py_DECREF(o_tmp);
+			//}
+			Py_DECREF(o_tmp); //OC19122023
 		}
 	}
 
@@ -3150,9 +3313,13 @@ void ParseSructSRWLWfr(SRWLWfr* pWfr, PyObject* oWfr, vector<Py_buffer>* pvBuf, 
 	//pvBuf->push_back(pb_tmp);
 	//pWfr->arMomX = (double*)pb_tmp.buf;
 	//sPyObjectPtrs.pbMomX = pb_tmp;
-	sizeVectBuf = (int)pvBuf->size();
-	if(!(pWfr->arMomX = (double*)GetPyArrayBuf(o_tmp, pvBuf, 0))) throw strEr_BadWfr;
-	if((int)pvBuf->size() > sizeVectBuf) sPyObjectPtrs.pbMomX = (*pvBuf)[sizeVectBuf];
+
+	//OC19122023
+	if(!(pWfr->arMomX = (double*)GetPyArrayBuf(o_tmp, &(sPyObjectPtrs.pbMomX), 0))) throw strEr_BadWfr;
+	//OC19122023 (commented-out)
+	//sizeVectBuf = (int)pvBuf->size();
+	//if(!(pWfr->arMomX = (double*)GetPyArrayBuf(o_tmp, pvBuf, 0))) throw strEr_BadWfr;
+	//if((int)pvBuf->size() > sizeVectBuf) sPyObjectPtrs.pbMomX = (*pvBuf)[sizeVectBuf];
 	Py_DECREF(o_tmp);
 
 	o_tmp = PyObject_GetAttrString(oWfr, "arMomY");
@@ -3162,9 +3329,13 @@ void ParseSructSRWLWfr(SRWLWfr* pWfr, PyObject* oWfr, vector<Py_buffer>* pvBuf, 
 	//pvBuf->push_back(pb_tmp);
 	//pWfr->arMomY = (double*)pb_tmp.buf;
 	//sPyObjectPtrs.pbMomY = pb_tmp;
-	sizeVectBuf = (int)pvBuf->size();
-	if(!(pWfr->arMomY = (double*)GetPyArrayBuf(o_tmp, pvBuf, 0))) throw strEr_BadWfr;
-	if((int)pvBuf->size() > sizeVectBuf) sPyObjectPtrs.pbMomY = (*pvBuf)[sizeVectBuf];
+
+	//OC19122023
+	if(!(pWfr->arMomY = (double*)GetPyArrayBuf(o_tmp, &(sPyObjectPtrs.pbMomY), 0))) throw strEr_BadWfr;
+	//OC19122023 (commented-out)
+	//sizeVectBuf = (int)pvBuf->size();
+	//if(!(pWfr->arMomY = (double*)GetPyArrayBuf(o_tmp, pvBuf, 0))) throw strEr_BadWfr;
+	//if((int)pvBuf->size() > sizeVectBuf) sPyObjectPtrs.pbMomY = (*pvBuf)[sizeVectBuf];
 	Py_DECREF(o_tmp);
 
 	o_tmp = PyObject_GetAttrString(oWfr, "arWfrAuxData");
@@ -3317,6 +3488,41 @@ void ParseSructSmpObj3D(double**& arObjShapeDefs, int& nObj3D, PyObject* oListSh
 			}
 		}
 	}
+}
+
+//#ifdef _OFFLOAD_GPU //HG30112023
+///************************************************************************//**
+// * Convert Python device specification to C++ structure.
+// ***************************************************************************/
+//void ParseDeviceParam(PyObject* oDev, TGPUUsageArg* pGpu) //HG10202021 Convert Python device specification to C++ structure
+//{
+//	if(oDev != 0) {
+//		if(PyLong_Check(oDev)) {
+//			pGpu->deviceIndex = _PyLong_AsInt(oDev);
+//			return;
+//		}
+//	}
+//	pGpu->deviceIndex = 0;
+//}
+//#endif
+
+/************************************************************************//**
+ * Convert Python device specification to C structure.
+ ***************************************************************************/
+void ParseDeviceParam(PyObject* oDev, double* &parGPUParam) //HG10202021 Convert Python device specification to C++ structure
+{
+	if(oDev != 0) {
+		if(PyLong_Check(oDev)) {
+			parGPUParam = new double[2]; //HG08022024
+			parGPUParam[0] = 1; //OC: The number of parameters?
+			parGPUParam[1] = (double)_PyLong_AsInt(oDev);
+			return;
+		}
+	}
+	//OC: treat the case when oDev is a list or an array(?!)
+
+	parGPUParam = 0; //OC18022024 (to make in line with all other places like this)
+	//parGPUParam = nullptr; //HG08022024
 }
 
 /************************************************************************//**
@@ -3959,14 +4165,10 @@ int ModifySRWLWfr(int action, SRWLWfr* pWfr, char pol)
 	PyObject *oFunc=0; //OC151115
 	PyObject *argList=0;
 
-	//We probably need to release Py buffers of Ex, Ey (?):
-	//PyBuffer_Release(&(it->second.pbEx));
-	//PyBuffer_Release(&(it->second.pbEy));
-	//PyBuffer_Release(&(it->second.pbMomX));
-	//PyBuffer_Release(&(it->second.pbMomY));
-
 	int ExNeeded = ((pol == 0) || (pol == 'x') || (pol == 'X')) ? 1 : 0;
 	int EyNeeded = ((pol == 0) || (pol == 'y') || (pol == 'Y') || (pol == 'z') || (pol == 'Z')) ? 1 : 0;
+
+	bool releaseE = false, releaseEaux = false, releaseMom = false; //OC20122023
 
 	if(action == 0)
 	{//delete existing wavefront data
@@ -3978,6 +4180,7 @@ int ModifySRWLWfr(int action, SRWLWfr* pWfr, char pol)
 #else
 		argList = Py_BuildValue("(i,i,i,i,i,c)", 0, 0, 0, 1, 1, pWfr->numTypeElFld);
 #endif
+		releaseE = releaseEaux = releaseMom = true; //OC20122023
 	}
 	//else if(action == 1)
 	//{//allocate new wavefront data (without checking/deleting any existing data)
@@ -4005,6 +4208,7 @@ int ModifySRWLWfr(int action, SRWLWfr* pWfr, char pol)
 		//argList = Py_BuildValue("(i,i,i,i,i,c)", pWfr->mesh.ne, pWfr->mesh.nx, pWfr->mesh.ny, ExNeeded, EyNeeded, pWfr->numTypeElFld);
 		argList = Py_BuildValue("(i,i,i,i,i,c,i)", pWfr->mesh.ne, pWfr->mesh.nx, pWfr->mesh.ny, ExNeeded, EyNeeded, pWfr->numTypeElFld, backupNeeded); //OC141115
 #endif
+		releaseE = releaseEaux = releaseMom = true; //OC20122023
 	}
 	else if(action == 20) //OC151115
 	{//delete wavefront backup data
@@ -4012,6 +4216,8 @@ int ModifySRWLWfr(int action, SRWLWfr* pWfr, char pol)
 
 		int typeData = 2; //backup only
 		argList = Py_BuildValue("(i,i,i)", typeData, ExNeeded, EyNeeded); //OC151115
+
+		releaseEaux = true; //OC20122023
 	}
 
 	if(argList == 0) return -1;
@@ -4020,6 +4226,45 @@ int ModifySRWLWfr(int action, SRWLWfr* pWfr, char pol)
 
 	//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
 	//srwlPrintTime("::ModifySRWLWfr : before PyObject_CallObject",&start);
+
+	//We probably need to release Py buffers of Ex, Ey (?):
+	//OC20122023
+	if(releaseE)
+	{
+		Py_buffer &rpbEx = it->second.pbEx, &rpbEy = it->second.pbEy;
+		if(rpbEx.buf != 0)
+		{
+			PyBuffer_Release(&rpbEx); rpbEx.buf = 0;
+		}
+		if(rpbEy.buf != 0)
+		{
+			PyBuffer_Release(&rpbEy); rpbEy.buf = 0;
+		}
+	}
+	if(releaseEaux)
+	{
+		Py_buffer &rpbExAux = it->second.pbExAux, &rpbEyAux = it->second.pbEyAux;
+		if(rpbExAux.buf != 0)
+		{
+			PyBuffer_Release(&rpbExAux); rpbExAux.buf = 0;
+		}
+		if(rpbEyAux.buf != 0)
+		{
+			PyBuffer_Release(&rpbEyAux); rpbEyAux.buf = 0;
+		}
+	}
+	if(releaseMom) //Maybe update of Mom is not really necessary (also in Py)?
+	{
+		Py_buffer &rpbMomX = it->second.pbMomX, &rpbMomY = it->second.pbMomY;
+		if(rpbMomX.buf != 0)
+		{
+			PyBuffer_Release(&rpbMomX); rpbMomX.buf = 0;
+		}
+		if(rpbMomY.buf != 0)
+		{
+			PyBuffer_Release(&rpbMomY); rpbMomY.buf = 0;
+		}
+	}
 
 	PyObject *res = PyObject_CallObject(oFunc, argList); //re-allocate in Py
 	Py_DECREF(argList);
@@ -4044,10 +4289,13 @@ int ModifySRWLWfr(int action, SRWLWfr* pWfr, char pol)
 	//	pWfr->arEx = (char*)pb_tmp.buf;
 	//	it->second.pbEx = pb_tmp;
 	//}
-	int sizeVectBuf = 0;
-	if(it->second.pv_buf != 0) sizeVectBuf = (int)it->second.pv_buf->size();
-	if(!(pWfr->arEx = GetPyArrayBuf(o_tmp, it->second.pv_buf, 0))) return -1;
-	if((int)it->second.pv_buf->size() > sizeVectBuf) it->second.pbEx = (*it->second.pv_buf)[sizeVectBuf];
+	//int sizeVectBuf = 0; //OC20122023 (commented-out)
+	//if(it->second.pv_buf != 0) sizeVectBuf = (int)it->second.pv_buf->size(); //OC20122023 (commented-out)
+
+	if(!(pWfr->arEx = GetPyArrayBuf(o_tmp, &(it->second.pbEx), 0))) return -1; //OC20122023
+	//OC20122023 (commented-out)
+	//if(!(pWfr->arEx = GetPyArrayBuf(o_tmp, it->second.pv_buf, 0))) return -1;
+	//if((int)it->second.pv_buf->size() > sizeVectBuf) it->second.pbEx = (*it->second.pv_buf)[sizeVectBuf];
 	Py_DECREF(o_tmp);
 
 	//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
@@ -4062,10 +4310,13 @@ int ModifySRWLWfr(int action, SRWLWfr* pWfr, char pol)
 	//	pWfr->arEy = (char*)pb_tmp.buf;
 	//	it->second.pbEy = pb_tmp;
 	//}
-	sizeVectBuf = 0;
-	if(it->second.pv_buf != 0) sizeVectBuf = (int)it->second.pv_buf->size();
-	if(!(pWfr->arEy = GetPyArrayBuf(o_tmp, it->second.pv_buf, 0))) return -1;
-	if((int)it->second.pv_buf->size() > sizeVectBuf) it->second.pbEy = (*it->second.pv_buf)[sizeVectBuf];
+	//sizeVectBuf = 0; //OC20122023 (commented-out)
+	//if(it->second.pv_buf != 0) sizeVectBuf = (int)it->second.pv_buf->size(); //OC20122023 (commented-out)
+
+	if(!(pWfr->arEy = GetPyArrayBuf(o_tmp, &(it->second.pbEy), 0))) return -1; //OC20122023
+	//OC20122023 (commented-out)
+	//if(!(pWfr->arEy = GetPyArrayBuf(o_tmp, it->second.pv_buf, 0))) return -1;
+	//if((int)it->second.pv_buf->size() > sizeVectBuf) it->second.pbEy = (*it->second.pv_buf)[sizeVectBuf];
 	Py_DECREF(o_tmp);
 
 	//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
@@ -4077,15 +4328,16 @@ int ModifySRWLWfr(int action, SRWLWfr* pWfr, char pol)
 		o_tmp = PyObject_GetAttrString(oWfr, "arExAux");
 		if(o_tmp != 0)
 		{
-			sizeVectBuf = 0;
-			if(it->second.pv_buf != 0) sizeVectBuf = (int)it->second.pv_buf->size();
-			//if(pWfr->arExAux = GetPyArrayBuf(o_tmp, it->second.pv_buf, 0))
-			pWfr->arExAux = GetPyArrayBuf(o_tmp, it->second.pv_buf, 0);
-			if(pWfr->arExAux)
-			{
-				if((int)it->second.pv_buf->size() > sizeVectBuf) it->second.pbExAux = (*it->second.pv_buf)[sizeVectBuf];
-				Py_DECREF(o_tmp);
-			}
+			//sizeVectBuf = 0; //OC20122023 (commented-out)
+			//if(it->second.pv_buf != 0) sizeVectBuf = (int)it->second.pv_buf->size(); //OC20122023 (commented-out)
+			//pWfr->arExAux = GetPyArrayBuf(o_tmp, it->second.pv_buf, 0); //OC20122023 (commented-out)
+			if(!(pWfr->arExAux = GetPyArrayBuf(o_tmp, &(it->second.pbExAux), 0))) return -1; //OC20122023
+			//if(pWfr->arExAux) //OC20122023 (commented-out)
+			//{
+			//	if((int)it->second.pv_buf->size() > sizeVectBuf) it->second.pbExAux = (*it->second.pv_buf)[sizeVectBuf];
+			//	//Py_DECREF(o_tmp); 
+			//}
+			Py_DECREF(o_tmp); //OC13122023
 		}
 	}
 
@@ -4103,15 +4355,16 @@ int ModifySRWLWfr(int action, SRWLWfr* pWfr, char pol)
 		o_tmp = PyObject_GetAttrString(oWfr, "arEyAux");
 		if(o_tmp != 0)
 		{
-			sizeVectBuf = 0;
-			if(it->second.pv_buf != 0) sizeVectBuf = (int)it->second.pv_buf->size();
-			//if(pWfr->arEyAux = GetPyArrayBuf(o_tmp, it->second.pv_buf, 0))
-			pWfr->arEyAux = GetPyArrayBuf(o_tmp, it->second.pv_buf, 0);
-			if(pWfr->arEyAux)
-			{
-				if((int)it->second.pv_buf->size() > sizeVectBuf) it->second.pbEyAux = (*it->second.pv_buf)[sizeVectBuf];
-				Py_DECREF(o_tmp);
-			}
+			//sizeVectBuf = 0; //OC20122023 (commented-out)
+			//if(it->second.pv_buf != 0) sizeVectBuf = (int)it->second.pv_buf->size(); //OC20122023 (commented-out)
+			//pWfr->arEyAux = GetPyArrayBuf(o_tmp, it->second.pv_buf, 0); //OC20122023 (commented-out)
+			if(!(pWfr->arEyAux = GetPyArrayBuf(o_tmp, &(it->second.pbEyAux), 0))) return -1; //OC20122023
+			//if(pWfr->arEyAux) //OC20122023 (commented-out)
+			//{
+			//	if((int)it->second.pv_buf->size() > sizeVectBuf) it->second.pbEyAux = (*it->second.pv_buf)[sizeVectBuf];
+			//	//Py_DECREF(o_tmp);
+			//}
+			Py_DECREF(o_tmp); //OC13122023
 		}
 	}
 
@@ -4132,10 +4385,11 @@ int ModifySRWLWfr(int action, SRWLWfr* pWfr, char pol)
 	//	pWfr->arMomX = (double*)pb_tmp.buf;
 	//	it->second.pbMomX = pb_tmp;
 	//}
-	sizeVectBuf = 0;
-	if(it->second.pv_buf != 0) sizeVectBuf = (int)it->second.pv_buf->size();
-	if(!(pWfr->arMomX = (double*)GetPyArrayBuf(o_tmp, it->second.pv_buf, 0))) return -1;
-	if((int)it->second.pv_buf->size() > sizeVectBuf) it->second.pbMomX = (*it->second.pv_buf)[sizeVectBuf];
+	//sizeVectBuf = 0; //OC20122023 (commented-out)
+	//if(it->second.pv_buf != 0) sizeVectBuf = (int)it->second.pv_buf->size(); //OC20122023 (commented-out)
+	//if(!(pWfr->arMomX = (double*)GetPyArrayBuf(o_tmp, it->second.pv_buf, 0))) return -1; //OC20122023 (commented-out)
+	//if((int)it->second.pv_buf->size() > sizeVectBuf) it->second.pbMomX = (*it->second.pv_buf)[sizeVectBuf]; //OC20122023 (commented-out)
+	if(!(pWfr->arMomX = (double*)GetPyArrayBuf(o_tmp, &(it->second.pbMomX), 0))) return -1; //OC20122023
 	Py_DECREF(o_tmp);
 
 	//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
@@ -4150,10 +4404,11 @@ int ModifySRWLWfr(int action, SRWLWfr* pWfr, char pol)
 	//	pWfr->arMomY = (double*)pb_tmp.buf;
 	//	it->second.pbMomY = pb_tmp;
 	//}
-	sizeVectBuf = 0;
-	if(it->second.pv_buf != 0) sizeVectBuf = (int)it->second.pv_buf->size();
-	if(!(pWfr->arMomY = (double*)GetPyArrayBuf(o_tmp, it->second.pv_buf, 0))) return -1;
-	if((int)it->second.pv_buf->size() > sizeVectBuf) it->second.pbMomY = (*it->second.pv_buf)[sizeVectBuf];
+	//sizeVectBuf = 0; //OC20122023 (commented-out)
+	//if(it->second.pv_buf != 0) sizeVectBuf = (int)it->second.pv_buf->size(); //OC20122023 (commented-out)
+	//if(!(pWfr->arMomY = (double*)GetPyArrayBuf(o_tmp, it->second.pv_buf, 0))) return -1; //OC20122023 (commented-out)
+	//if((int)it->second.pv_buf->size() > sizeVectBuf) it->second.pbMomY = (*it->second.pv_buf)[sizeVectBuf]; //OC20122023 (commented-out)
+	if(!(pWfr->arMomY = (double*)GetPyArrayBuf(o_tmp, &(it->second.pbMomY), 0))) return -1; //OC20122023
 	Py_DECREF(o_tmp);
 
 	//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
@@ -4187,7 +4442,8 @@ char* AllocPyArrayGetBuf(char type, long long len)
 	if(oAr == 0) throw strEr_FailedAllocPyArray;
 
 	Py_ssize_t sizeBuf=0;
-	char *resBuf = GetPyArrayBuf(oAr, 0, &sizeBuf);
+	char *resBuf = GetPyArrayBuf(oAr, &sizeBuf); //OC19122023
+	//char *resBuf = GetPyArrayBuf(oAr, 0, &sizeBuf);
 	if((resBuf == 0) || (sizeBuf <= 0)) throw strEr_FailedAllocPyArray;
 
 	gmBufPyObjPtr[resBuf] = oAr; //to be able to manipulate with Py objects corresponding to arrays
@@ -4415,8 +4671,9 @@ static PyObject* srwlpy_CalcElecFieldSR(PyObject *self, PyObject *args)
 	}
 
 	if(pMagCnt != 0) DeallocMagCntArrays(pMagCnt);
-	ReleasePyBuffers(vBuf);
+	//ReleasePyBuffers(vBuf); //OC20122023 (commented-out)
 	EraseElementFromMap(&wfr, gmWfrPyPtr);
+	ReleasePyBuffers(vBuf); //OC20122023
 
 	if(oWfr) Py_XINCREF(oWfr);
 	return oWfr;
@@ -4617,18 +4874,26 @@ static PyObject* srwlpy_CalcIntFromElecField(PyObject *self, PyObject *args)
 {
 	//PyObject *oInt=0, *oWfr=0, *oPol=0, *oIntType=0, *oDepType=0, *oE=0, *oX=0, *oY=0;
 	//PyObject *oInt=0, *oWfr=0, *oPol=0, *oIntType=0, *oDepType=0, *oE=0, *oX=0, *oY=0, *oMeth=0;
-	PyObject *oInt=0, *oWfr=0, *oPol=0, *oIntType=0, *oDepType=0, *oE=0, *oX=0, *oY=0, *oMeth=0, *oFldTrj=0; //OC23022020
+	//PyObject *oInt=0, *oWfr=0, *oPol=0, *oIntType=0, *oDepType=0, *oE=0, *oX=0, *oY=0, *oMeth=0, *oFldTrj=0; //OC23022020
+	PyObject *oInt=0, *oWfr=0, *oPol=0, *oIntType=0, *oDepType=0, *oE=0, *oX=0, *oY=0, *oMeth=0, *oFldTrj=0, *oDev=0; //HG03012024
 	vector<Py_buffer> vBuf;
 	SRWLWfr wfr;
 	SRWLMagFldC *pMagCnt=0; //OC23022020
 	SRWLPrtTrj *pPrtTrj=0;
+	double* arGPUParam=0; //HG18022024
 
+//OC18022024 (commented-out)
+//#ifdef _OFFLOAD_GPU //HG30112023
+//	TGPUUsageArg gpu;
+//	srwlUtiGPUProc(1); //to prepare GPU for calculations
+//#endif
 	try
 	{
 		//if(!PyArg_ParseTuple(args, "OOOOOOOO:CalcIntFromElecField", &oInt, &oWfr, &oPol, &oIntType, &oDepType, &oE, &oX, &oY)) throw strEr_BadArg_CalcIntFromElecField;
 		//if(!PyArg_ParseTuple(args, "OOOOOOOO|O:CalcIntFromElecField", &oInt, &oWfr, &oPol, &oIntType, &oDepType, &oE, &oX, &oY, &oMeth)) throw strEr_BadArg_CalcIntFromElecField; //OC13122019
 		//if(!PyArg_ParseTuple(args, "OOOOOOOO|O:CalcIntFromElecField", &oInt, &oWfr, &oPol, &oIntType, &oDepType, &oE, &oX, &oY, &oMeth, &oFldTrj)) throw strEr_BadArg_CalcIntFromElecField; //OC23022020
-		if(!PyArg_ParseTuple(args, "OOOOOOOO|OO:CalcIntFromElecField", &oInt, &oWfr, &oPol, &oIntType, &oDepType, &oE, &oX, &oY, &oMeth, &oFldTrj)) throw strEr_BadArg_CalcIntFromElecField; //OC03032021 (just formally corrected, according to number of arguments)
+		//if(!PyArg_ParseTuple(args, "OOOOOOOO|OO:CalcIntFromElecField", &oInt, &oWfr, &oPol, &oIntType, &oDepType, &oE, &oX, &oY, &oMeth, &oFldTrj)) throw strEr_BadArg_CalcIntFromElecField; //OC03032021 (just formally corrected, according to number of arguments)
+		if(!PyArg_ParseTuple(args, "OOOOOOOO|OOO:CalcIntFromElecField", &oInt, &oWfr, &oPol, &oIntType, &oDepType, &oE, &oX, &oY, &oMeth, &oFldTrj, &oDev)) throw strEr_BadArg_CalcIntFromElecField; //HG03012024
 		if((oInt == 0) || (oWfr == 0) || (oPol == 0) || (oIntType == 0) || (oDepType == 0) || (oE == 0) || (oX == 0) || (oY == 0)) throw strEr_BadArg_CalcIntFromElecField;
 
 		//char *arInt = (char*)GetPyArrayBuf(oInt, vBuf, PyBUF_WRITABLE, 0);
@@ -4691,7 +4956,17 @@ static PyObject* srwlpy_CalcIntFromElecField(PyObject *self, PyObject *args)
 
 		//ProcRes(srwlCalcIntFromElecField(arInt, &wfr, pol, intType, depType, e, x, y));
 		//ProcRes(srwlCalcIntFromElecField(arInt, &wfr, pol, intType, depType, e, x, y, pMeth)); //OC13122019
-		ProcRes(srwlCalcIntFromElecField(arInt, &wfr, pol, intType, depType, e, x, y, pMeth, pFldTrj)); //OC23022020
+
+//OC18022024 (commented-out)
+//#ifdef _OFFLOAD_GPU //HG30112023
+		//ParseDeviceParam(oDev, &gpu);
+		ParseDeviceParam(oDev, arGPUParam); //HG18022024
+		//ProcRes(srwlCalcIntFromElecField(arInt, &wfr, pol, intType, depType, e, x, y, pMeth, pFldTrj, (void*)&gpu));
+		//ProcRes(srwlCalcIntFromElecField(arInt, &wfr, pol, intType, depType, e, x, y, pMeth, pFldTrj, (void*)arGPUParam)); //HG18022024
+		ProcRes(srwlCalcIntFromElecField(arInt, &wfr, pol, intType, depType, e, x, y, pMeth, pFldTrj, arGPUParam)); //OC18022024
+//#else
+//		ProcRes(srwlCalcIntFromElecField(arInt, &wfr, pol, intType, depType, e, x, y, pMeth, pFldTrj)); //OC23022020
+//#endif
 	}
 	catch(const char* erText) 
 	{
@@ -4699,6 +4974,11 @@ static PyObject* srwlpy_CalcIntFromElecField(PyObject *self, PyObject *args)
 		//PyErr_PrintEx(1);
 		oInt = 0;
 	}
+
+//#ifdef _OFFLOAD_GPU //HG30112023
+//	srwlUtiGPUProc(0); //to free GPU
+//#endif
+	if(arGPUParam != 0) delete[] arGPUParam; //HG18022024
 
 	if(pMagCnt != 0) DeallocMagCntArrays(pMagCnt);
 	ReleasePyBuffers(vBuf);
@@ -4932,7 +5212,8 @@ static PyObject* srwlpy_SetRepresElecField(PyObject *self, PyObject *args)
 static PyObject* srwlpy_PropagElecField(PyObject *self, PyObject *args)
 {
 	//PyObject *oWfr=0, *oOptCnt=0;
-	PyObject *oWfr=0, *oOptCnt=0, *oInt=0; //OC14082018
+	//PyObject *oWfr=0, *oOptCnt=0, *oInt=0; //OC14082018
+	PyObject *oWfr=0, *oOptCnt=0, *oInt=0, *oDev=0; //HG03012024
 
 	vector<Py_buffer> vBuf;
 	SRWLWfr wfr;
@@ -4944,11 +5225,18 @@ static PyObject* srwlpy_PropagElecField(PyObject *self, PyObject *args)
 	SRWLRadMesh *arIntMesh=0;
 	//float **arInts=0;
 	char **arInts=0;
+	double *arGPUParam=0; //HG18022024
 
+//OC18022024 (commented-out)
+//#ifdef _OFFLOAD_GPU //HG03012024
+//	TGPUUsageArg gpu;
+//	srwlUtiGPUProc(1); //to prepare GPU for calculations
+//#endif
 	try
 	{
 		//if(!PyArg_ParseTuple(args, "OO:PropagElecField", &oWfr, &oOptCnt)) throw strEr_BadArg_PropagElecField;
-		if(!PyArg_ParseTuple(args, "OO|O:PropagElecField", &oWfr, &oOptCnt, &oInt)) throw strEr_BadArg_PropagElecField; //OC14082018
+		//if(!PyArg_ParseTuple(args, "OO|O:PropagElecField", &oWfr, &oOptCnt, &oInt)) throw strEr_BadArg_PropagElecField; //OC14082018
+		if(!PyArg_ParseTuple(args, "OO|OO:PropagElecField", &oWfr, &oOptCnt, &oInt, &oDev)) throw strEr_BadArg_PropagElecField; //HG03012024
 		if((oWfr == 0) || (oOptCnt == 0)) throw strEr_BadArg_PropagElecField;
 
 		//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
@@ -4980,9 +5268,21 @@ static PyObject* srwlpy_PropagElecField(PyObject *self, PyObject *args)
 			}
 		}
 
-		//ProcRes(srwlPropagElecField(&wfr, &optCnt));
-		ProcRes(srwlPropagElecField(&wfr, &optCnt, nInt, arIntDescr, arIntMesh, arInts)); //OC15082018
+		//OCTEST15122023 (added)
+		//ReleasePyBuffers(vBuf);
+		//END OCTEST
 
+		//ProcRes(srwlPropagElecField(&wfr, &optCnt));
+//OC18022024 (commented-out)
+//#ifdef _OFFLOAD_GPU //HG03012024
+		//ParseDeviceParam(oDev, &gpu);
+		ParseDeviceParam(oDev, arGPUParam); //HG07022024
+		//ProcRes(srwlPropagElecField(&wfr, &optCnt, nInt, arIntDescr, arIntMesh, arInts, (void*)&gpu));
+		//ProcRes(srwlPropagElecField(&wfr, &optCnt, nInt, arIntDescr, arIntMesh, arInts, (void*)arGPUParam)); //HG07022024
+		ProcRes(srwlPropagElecField(&wfr, &optCnt, nInt, arIntDescr, arIntMesh, arInts, arGPUParam)); //OC18022024
+//#else
+//		ProcRes(srwlPropagElecField(&wfr, &optCnt, nInt, arIntDescr, arIntMesh, arInts)); //OC15082018
+//#endif
 		//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
 		//srwlPrintTime(":srwlpy_PropagElecField :srwlPropagElecField", &start);
 
@@ -5002,10 +5302,16 @@ static PyObject* srwlpy_PropagElecField(PyObject *self, PyObject *args)
 		//PyErr_PrintEx(1);
 		oWfr = 0;
 	}
+//OC18022024 (commented-out)
+//#ifdef _OFFLOAD_GPU //HG03012024
+//	srwlUtiGPUProc(0); //to free GPU
+//#endif
 
 	DeallocOptCntArrays(&optCnt);
-	ReleasePyBuffers(vBuf);
 	EraseElementFromMap(&wfr, gmWfrPyPtr);
+	ReleasePyBuffers(vBuf);
+
+	if(arGPUParam != 0) delete[] arGPUParam; //OC18022024
 
 	for(int i=0; i<4; i++) if(arIntDescr[i] != 0) delete[] arIntDescr[i];
 	if(arIntMesh != 0) delete[] arIntMesh;
@@ -5102,12 +5408,21 @@ static PyObject* srwlpy_CalcTransm(PyObject* self, PyObject* args) //HG27012021
  ***************************************************************************/
 static PyObject* srwlpy_UtiFFT(PyObject *self, PyObject *args)
 {
-	PyObject *oData=0, *oMesh=0, *oDir=0;
+	//PyObject *oData=0, *oMesh=0, *oDir=0;
+	PyObject *oData=0, *oMesh=0, *oDir=0, *oDev=0; //HG03012024
 	vector<Py_buffer> vBuf;
+	double* arGPUParam = 0; //HG18022024
+
+//OC18022024 (commented-out)
+//#ifdef _OFFLOAD_GPU //HG03012024
+//	TGPUUsageArg gpu;
+//	srwlUtiGPUProc(1); //to prepare GPU for calculations
+//#endif
 
 	try
 	{
-		if(!PyArg_ParseTuple(args, "OOO:UtiFFT", &oData, &oMesh, &oDir)) throw strEr_BadArg_UtiFFT;
+		//if(!PyArg_ParseTuple(args, "OOO:UtiFFT", &oData, &oMesh, &oDir)) throw strEr_BadArg_UtiFFT;
+		if(!PyArg_ParseTuple(args, "OOO|O:UtiFFT", &oData, &oMesh, &oDir, &oDev)) throw strEr_BadArg_UtiFFT; //HG03012024
 		if((oData == 0) || (oMesh == 0) || (oDir == 0)) throw strEr_BadArg_UtiFFT;
 
 		//int sizeVectBuf = (int)vBuf.size();
@@ -5143,7 +5458,16 @@ static PyObject* srwlpy_UtiFFT(PyObject *self, PyObject *args)
 		if(!PyNumber_Check(oDir)) throw strEr_BadArg_UtiFFT;
 		int dir = (int)PyLong_AsLong(oDir);
 
-		ProcRes(srwlUtiFFT(pcData, typeData, arMesh, nMesh, dir));
+//OC18022024 (commented-out)
+//#ifdef _OFFLOAD_GPU //HG03012024
+		//ParseDeviceParam(oDev, &gpu);
+		ParseDeviceParam(oDev, arGPUParam); //HG18022024
+		//ProcRes(srwlUtiFFT(pcData, typeData, arMesh, nMesh, dir, (void*)&gpu));
+		//ProcRes(srwlUtiFFT(pcData, typeData, arMesh, nMesh, dir, (void*)arGPUParam)); //HG18022024
+		ProcRes(srwlUtiFFT(pcData, typeData, arMesh, nMesh, dir, arGPUParam)); //OC18022024
+//#else
+//		ProcRes(srwlUtiFFT(pcData, typeData, arMesh, nMesh, dir));
+//#endif
 
 		if(meshArType == 'l') UpdatePyListNum(oMesh, arMesh, nMesh); //04092016
 	}
@@ -5153,7 +5477,12 @@ static PyObject* srwlpy_UtiFFT(PyObject *self, PyObject *args)
 		//if(vBuf.size() > 0) ReleasePyBuffers(vBuf);
 		oData = 0; oMesh = 0; oDir = 0;
 	}
+//OC18022024 (commented-out)
+//#ifdef _OFFLOAD_GPU //HG03012024
+//	srwlUtiGPUProc(0); //to free GPU
+//#endif
 
+	if(arGPUParam != 0) delete[] arGPUParam; //OC18022024
 	ReleasePyBuffers(vBuf);
 
 	if(oData) Py_XINCREF(oData);

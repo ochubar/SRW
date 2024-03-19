@@ -254,6 +254,8 @@ CErrWarn::CErrWarn()
 
 	error.push_back("Inconsistent parameters were supplied to (mutual) intensity processing function.\0"); //#195
 
+	error.push_back("Incorrect hyperboloidal mirror parameters: p, q, grazing angle and sagital radius should be positive.\0"); //#196
+
 //};
 
 //string CErrWarn::warning[] = {

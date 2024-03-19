@@ -29,7 +29,11 @@ Modules:
 
 .. moduleauthor:: Rob Nagler <nagler@radiasoft.net>
 """
-import uti_plot_com
+try: #OC15112022
+    from . import uti_plot_com
+except:
+    import uti_plot_com
+#import uti_plot_com
 import sys
 import traceback
 

@@ -336,9 +336,11 @@ void srTCSR::fillInSymPartsOfResults(char FinalResAreSymOverX, char FinalResAreS
 	long long PerZ = PerX*m_Wfr.nx;
 
 	char SymWithRespectToXax, SymWithRespectToZax;
-	int HalfNz = m_Wfr.nz >> 1, Nz_mi_1 = m_Wfr.nz - 1;
+	//int HalfNz = m_Wfr.nz >> 1, Nz_mi_1 = m_Wfr.nz - 1;
+	long long HalfNz = m_Wfr.nz >> 1, Nz_mi_1 = m_Wfr.nz - 1; //OC03082023
 	//int izStart = ((HalfNz << 1) == m_Wfr.nz)? HalfNz : (HalfNz + 1); //OC030110
-	int HalfNx = m_Wfr.nx >> 1, Nx_mi_1 = m_Wfr.nx - 1;
+	//int HalfNx = m_Wfr.nx >> 1, Nx_mi_1 = m_Wfr.nx - 1;
+	long long HalfNx = m_Wfr.nx >> 1, Nx_mi_1 = m_Wfr.nx - 1; //OC03082023
 	//int ixStart = ((HalfNx << 1) == m_Wfr.nx)? HalfNx : (HalfNx + 1);
 	int iz, ix;
 

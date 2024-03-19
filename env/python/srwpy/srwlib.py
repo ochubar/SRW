@@ -3,7 +3,19 @@
 #############################################################################
 
 from __future__ import absolute_import, division, print_function #Py 2.*/3.* compatibility
-import srwlpy as srwl
+
+try: #OC15112022
+    from . import srwlpy as srwl
+    from . import uti_math
+    from .srwl_uti_cryst import *
+    from .uti_math_eigen import UtiMathEigen
+except: #OC15112022
+    import srwlpy as srwl
+    import uti_math
+    from srwl_uti_cryst import *
+    from uti_math_eigen import UtiMathEigen
+
+#import srwlpy as srwl
 from array import *
 from math import *
 from copy import *
@@ -14,14 +26,15 @@ import random
 import sys
 import os
 import traceback
-import uti_math
+#import uti_math
 import errno
 import tempfile
 import shutil
 import time
+#import gc #OC13122023 TEST
 
-from srwl_uti_cryst import *
-from uti_math_eigen import UtiMathEigen #OC21062021
+#from srwl_uti_cryst import *
+#from uti_math_eigen import UtiMathEigen #OC21062021
 
 #try:
 #    from uti_plot import * #universal simple plotting module distributed together with SRWLib
@@ -2107,6 +2120,57 @@ class SRWLStokes(object):
         
         return resDegCoh
 
+    def extr_save_pol_comp(self, _type=2, _pol=6, _fname=None, _fname_stk=None): #OC27122023
+    #def extr_save_spec_comp(self, stk, _type=2, _pol=6, _fname=None, _fname_stk=None): #OC10102023
+        """Extracts Flux / Intensity at different polarizations from Stokes data and saves it to a file"""
+        
+        arI = None
+        if(_pol < 7):
+            arI = self.to_int(_pol) #OC27122023
+            #arI = stk.to_int(_pol)
+        else:
+            arI = []
+            for i in range(6):
+                arI.append(self.to_int(i)) #OC27122023
+                #arI.append(stk.to_int(i))
+            
+        if(srwl_uti_proc_is_master()): #Consider removing it from here?
+            sValName = 'Flux'
+            sValUnitName = 'ph/s/.1%bw'
+            if(_type == 2):
+                sValName = 'Intensity'
+                sValUnitName = 'ph/s/.1%bw/mm^2'
+
+            if(_pol != 6): 
+                if(_fname_stk is not None):
+                    if(len(_fname_stk) > 0):
+                        srwl_uti_save_intens_ascii(self.arS, self.mesh, _fname_stk, _n_stokes=4, _arLabels=['Photon Energy', 'Horizontal Position', 'Vertical Position', sValName], _arUnits=['eV', 'm', 'm', sValUnitName]) #OC27122023
+                        #srwl_uti_save_intens_ascii(stk.arS, stk.mesh, _fname_stk, _n_stokes=4, _arLabels=['Photon Energy', 'Horizontal Position', 'Vertical Position', sValName], _arUnits=['eV', 'm', 'm', sValUnitName])
+                
+            if(_fname is not None):
+                if(len(_fname) > 0):
+                    #sValName = 'Flux'
+                    #sValUnitName = 'ph/s/.1%bw'
+                    #if(_type == 2):
+                    #    sValName = 'Intensity'
+                    #    sValUnitName = 'ph/s/.1%bw/mm^2'
+                        
+                    if(_pol < 7): #OC10102023
+                        srwl_uti_save_intens_ascii(arI, self.mesh, _fname, 0, ['Photon Energy', 'Horizontal Position', 'Vertical Position', sValName], _arUnits=['eV', 'm', 'm', sValUnitName]) #OC27122023
+                        #srwl_uti_save_intens_ascii(arI, stk.mesh, _fname, 0, ['Photon Energy', 'Horizontal Position', 'Vertical Position', sValName], _arUnits=['eV', 'm', 'm', sValUnitName])
+                    else: #OC10102023 (adding "_0" .. "_5" before ".dat" here)
+                        len_fname = len(_fname)
+                        indLastDot = _fname.rfind('.')
+                        nameCore = ''; sExt = ''
+                        if((indLastDot >= 0) and (indLastDot < len_fname)):
+                            nameCore = _fname[:indLastDot]
+                            sExt = _fname[indLastDot:len_fname] #extension with '.'
+                        for i in range(6):
+                            fnPol = nameCore + '_' + repr(i) + sExt
+                            srwl_uti_save_intens_ascii(arI[i], self.mesh, fnPol, 0, ['Photon Energy', 'Horizontal Position', 'Vertical Position', sValName], _arUnits=['eV', 'm', 'm', sValUnitName]) #OC27122023
+                            #srwl_uti_save_intens_ascii(arI[i], stk.mesh, fnPol, 0, ['Photon Energy', 'Horizontal Position', 'Vertical Position', sValName], _arUnits=['eV', 'm', 'm', sValUnitName])
+        return arI
+
 #****************************************************************************
 class SRWLWfr(object):
     """Radiation Wavefront (Electric Field)"""
@@ -2242,6 +2306,8 @@ class SRWLWfr(object):
         self.mesh.ne = _ne
         self.mesh.nx = _nx
         self.mesh.ny = _ny
+        #gc.collect() #OC14122023
+        #print('                           exiting allocate')
 
     def delE(self, _type=0, _treatEX=1, _treatEY=1): #OC151115
         """Delete Electric Field data
@@ -2252,19 +2318,28 @@ class SRWLWfr(object):
         if _treatEX:
             if((_type == 0) or (_type == 1)):
                 if(self.arEx is not None):
-                    del self.arEx; self.arEx = None
+                    del self.arEx
+                    self.arEx = None
             if((_type == 0) or (_type == 2)):
                 if(hasattr(self, 'arExAux')):
                     if(self.arExAux is not None):
-                        del self.arExAux; self.arExAux = None
+                        del self.arExAux
+                        #gc.collect() #OC13122023
+                        self.arExAux = None
+                        #print('          self.arExAux deleted') #debugging
         if _treatEY:
             if((_type == 0) or (_type == 1)):
                 if(self.arEy is not None):
-                    del self.arEy; self.arEy = None
+                    del self.arEy
+                    self.arEy = None
             if((_type == 0) or (_type == 2)):
                 if(hasattr(self, 'arEyAux')):
                     if(self.arEyAux is not None):
-                        del self.arEyAux; self.arEyAux = None
+                        del self.arEyAux
+                        #gc.collect() #OC13122023
+                        self.arEyAux = None
+                        #print('          self.arEyAux deleted') #debugging
+
 
     def addE(self, _wfr, _meth=0):
         """Add Another Electric Field Wavefront
@@ -3351,6 +3426,63 @@ class SRWLOptMirPl(SRWLOptMir):
 
 class SRWLOptMirEl(SRWLOptMir):
     """Optical Element: Mirror: Elliptical
+       NOTE: in the Local frame of the Mirror tangential direction is X, saggital Y, mirror normal is along Z"""
+    
+    def __init__(self, _p=1, _q=1, _ang_graz=1e-03, _r_sag=1.e+23,
+                 _size_tang=1, _size_sag=1, _ap_shape='r', _sim_meth=2, _npt=500, _nps=500, _treat_in_out=1, _ext_in=0, _ext_out=0,
+                 _nvx=0, _nvy=0, _nvz=-1, _tvx=1, _tvy=0, _x=0, _y=0,
+                 _refl=1, _n_ph_en=1, _n_ang=1, _n_comp=1, _ph_en_start=1000., _ph_en_fin=1000., _ph_en_scale_type='lin', _ang_start=0, _ang_fin=0, _ang_scale_type='lin'):
+        """
+        :param _p: distance from first focus (\"source\") to mirror center [m]
+        :param _q: distance from mirror center to second focus (\"image\") [m]
+        :param _ang_graz: grazing angle at mirror center at perfect orientation [rad]
+        :param _r_sag: sagital radius of curvature at mirror center [m]
+        :param _size_tang: size in tangential direction [m]
+        :param _size_sag: size in sagital direction [m]
+        :param _ap_shape: shape of aperture in local frame ('r' for rectangular, 'e' for elliptical)
+        :param _sim_meth: simulation method (1 for "thin" approximation, 2 for "thick" approximation)
+        :param _npt: number of mesh points to represent mirror in tangential direction (used for "thin" approximation)
+        :param _nps: number of mesh points to represent mirror in sagital direction (used for "thin" approximation)
+        :param _treat_in_out: switch specifying how to treat input and output wavefront before and after the main propagation through the optical element:
+                0- assume that the input wavefront is defined in the plane before the optical element, and the output wavefront is required in a plane just after the element;
+                1- assume that the input wavefront is defined in the plane at the optical element center and the output wavefront is also required at the element center;
+                2- assume that the input wavefront is defined in the plane at the optical element center and the output wavefront is also required at the element center; however, before the propagation though the optical element, the wavefront should be propagated through a drift back to a plane just before the optical element, then a special propagator will bring the wavefront to a plane at the optical element exit, and after this the wavefront will be propagated through a drift back to the element center;
+        :param _ext_in: optical element extent on the input side, i.e. distance between the input plane and the optical center (positive, in [m]) to be used at wavefront propagation manipulations; if 0, this extent will be calculated internally from optical element parameters
+        :param _ext_out: optical element extent on the output side, i.e. distance between the optical center and the output plane (positive, in [m]) to be used at wavefront propagation manipulations; if 0, this extent will be calculated internally from optical element parameters        
+        :param _nvx: horizontal coordinate of central normal vector
+        :param _nvy: vertical coordinate of central normal vector
+        :param _nvz: longitudinal coordinate of central normal vector
+        :param _tvx: horizontal coordinate of central tangential vector
+        :param _tvy: vertical coordinate of central tangential vector
+        :param _x: horizontal position of mirror center [m]
+        :param _y: vertical position of mirror center [m]
+        :param _refl: reflectivity coefficient to set (can be one number or C-aligned flat complex array vs photon energy vs grazing angle vs component (sigma, pi))
+        :param _n_ph_en: number of photon energy values for which the reflectivity coefficient is specified
+        :param _n_ang: number of grazing angle values for which the reflectivity coefficient is specified
+        :param _n_comp: number of electric field components for which the reflectivity coefficient is specified (can be 1 or 2)
+        :param _ph_en_start: initial photon energy value for which the reflectivity coefficient is specified
+        :param _ph_en_fin: final photon energy value for which the reflectivity coefficient is specified
+        :param _ph_en_scale_type: photon energy sampling type ('lin' for linear, 'log' for logarithmic)
+        :param _ang_start: initial grazing angle value for which the reflectivity coefficient is specified
+        :param _ang_fin: final grazing angle value for which the reflectivity coefficient is specified
+        :param _ang_scale_type: angle sampling type ('lin' for linear, 'log' for logarithmic)      
+        """
+
+        self.p = _p
+        self.q = _q
+        self.angGraz = _ang_graz
+        self.radSag = _r_sag
+        
+        #finishing of the mirror setup requires calling these 3 functions (with their required arguments):
+        #self.set_dim_sim_meth(_size_tang, _size_sag, _ap_shape, _sim_meth, _npt, _nps, _treat_in_out, _ext_in, _ext_out)
+        #self.set_orient(_nvx, _nvy, _nvz, _tvx, _tvy, _x, _y)
+        #self.set_reflect(_refl, _n_ph_en, _n_ang, _n_comp, _ph_en_start, _ph_en_fin, _ph_en_scale_type, _ang_start, _ang_fin, _ang_scale_type)
+        self.set_all(_size_tang, _size_sag, _ap_shape, _sim_meth, _npt, _nps, _treat_in_out, _ext_in, _ext_out,
+                     _nvx, _nvy, _nvz, _tvx, _tvy, _x, _y,
+                     _refl, _n_ph_en, _n_ang, _n_comp, _ph_en_start, _ph_en_fin, _ph_en_scale_type, _ang_start, _ang_fin, _ang_scale_type)
+
+class SRWLOptMirHyp(SRWLOptMir):
+    """Optical Element: Mirror: Hyperboloid #TW24012024
        NOTE: in the Local frame of the Mirror tangential direction is X, saggital Y, mirror normal is along Z"""
     
     def __init__(self, _p=1, _q=1, _ang_graz=1e-03, _r_sag=1.e+23,
@@ -7364,6 +7496,117 @@ def srwl_uti_read_wfr_cm_hdf5(_file_path, _gen0s=True): #OC11042020
 
     return lstWfr
 
+#**********************Auxiliary function to save a Wavefront to a file
+def srwl_uti_save_wfr_hdf5(_wfr, _file_path, _form=0): #OC09032024
+    """
+    Save CMD data (with a number of fully-coherent wavefronts, calculated in the same mesh vs x nad y) to a file
+    :param _wfr: wavefront (SRWLWfr) type object
+    :param _file_path: string specifying path do data file to be loaded
+    :param _form: format to store electric field data (=0: standard alignment in SRW, =1: with photon energy being outmost cycle, ...)
+    """
+    ### Load package numpy
+    try:
+        import numpy as np
+    except:
+        raise Exception('NumPy can not be loaded. You may need to install numpy. If you are using pip, you can use the following command to install it: \npip install numpy')
+    ### Load package h5py
+    try:
+        import h5py as h5
+    except:
+        raise Exception('h5py can not be loaded. You may need to install h5py. If you are using pip, you can use the following command to install it: \npip install h5py')
+
+    if(not isinstance(_wfr, SRWLWfr)): 
+        raise Exception('Wavefront (SRWLWfr) type object is expected')
+
+    mesh = _wfr.mesh
+    if(not isinstance(mesh, SRWLRadMesh)): 
+        raise Exception('Wavefront mesh (SRWLRadMesh) type object is expected')
+    
+    ne = mesh.ne; nx = mesh.nx; ny = mesh.ny
+    nxny = nx*ny; nenxny = ne*nxny
+    arECR = None
+
+    # if(not isinstance(_ar_intens, (array, np.ndarray))): #OC04102021
+    # #if(not (isinstance(_ar_intens, array) or isinstance(_ar_intens, np.array))):
+    #     intensity_data = np.array([0]*nVal, 'f')
+    #     intensity_data[:] = _ar_intens
+    #     #intensity_data = np.array([_ar_intens[ii] for ii in range(nVal)])
+    # else: intensity_data = _ar_intens
+
+    with h5.File(_file_path, 'w') as hf:
+
+        #Write attributes first
+        ats = hf.attrs
+        ats.create('eStart', mesh.eStart)
+        ats.create('eFin', mesh.eFin)
+        ats.create('ne', ne)
+        ats.create('xStart', mesh.xStart)
+        ats.create('xFin', mesh.xFin)
+        ats.create('nx', nx)
+        ats.create('yStart', mesh.yStart)
+        ats.create('yFin', mesh.yFin)
+        ats.create('ny', ny)
+        ats.create('zStart', mesh.zStart)
+
+        ats.create('numTypeElFld', _wfr.numTypeElFld)
+        ats.create('Rx', _wfr.Rx)
+        ats.create('Ry', _wfr.Ry)
+        ats.create('dRx', _wfr.dRx)
+        ats.create('dRy', _wfr.dRy)
+        ats.create('xc', _wfr.xc)
+        ats.create('yc', _wfr.yc)
+        ats.create('avgPhotEn', _wfr.avgPhotEn)
+        ats.create('presCA', _wfr.presCA)
+        ats.create('presFT', _wfr.presFT)
+        ats.create('unitElFld', _wfr.unitElFld)
+        ats.create('unitElFldAng', _wfr.unitElFldAng)
+
+        #Write electric field data
+        dataType = np.float32
+        if(_form == 1):
+            dataType = np.complex64
+            
+        if(_wfr.arEx is not None): 
+            arEx = _wfr.arEx
+            if(not isinstance(arEx, (np.ndarray))):
+                arEx = np.array(_wfr.arEx)
+                
+            if(_form == 1):
+                arE = np.array([0]*(2*nenxny), dtype=np.float32)
+                arEC = arE.view(np.complex64)
+                arECR = arEC.reshape(ne, nxny)
+                arExC = arEx.view(dataType)
+                for i in range(ne):
+                    arECR[i] = arExC[i:nenxny:ne]
+                arEx = arECR
+                    
+            data = arEx.view(dataType)
+            hf.create_dataset('arEx', data=data, dtype=dataType, shape=data.shape)
+            
+        if(_wfr.arEy is not None): 
+            arEy = _wfr.arEy
+            if(not isinstance(arEy, (np.ndarray))):
+                arEy = np.array(_wfr.arEy)
+ 
+            if(_form == 1):
+                if(arECR is None):
+                    arE = np.array([0]*(2*nenxny), dtype=np.float32)
+                    arEC = arE.view(np.complex64)
+                    arECR = arEC.reshape(ne, nxny)
+                    
+                arEyC = arEy.view(dataType)
+                for i in range(ne):
+                    arECR[i] = arEyC[i:nenxny:ne]
+                arEy = arECR
+                
+            data = arEy.view(dataType)
+            hf.create_dataset('arEy', data=data, dtype=dataType, shape=data.shape)
+            #data = _wfr.arEy.view(np.float32)
+            #hf.create_dataset('arEy', data=data, dtype=np.float32, shape=data.shape)
+
+    hf.close()
+    return 
+
 #**********************Auxiliary function to write auxiliary/debugging information to an ASCII file:
 ##def srwl_uti_save_text(_text, _file_path):
 ##    f = open(_file_path, 'w')
@@ -8906,6 +9149,7 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
 
     resStokes = None
     workStokes = None
+    #workStokes1cmp = None #OC04032024 (commented-out) #OC29122023
     resStokes2 = None #OC30052017
     workStokes2 = None
     #arAuxResSt12 = None #OC31052017
@@ -10136,8 +10380,10 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
                     ##srwl.CalcIntFromElecField(workStokes.arS, wfr, 6, 0, depTypeME_Approx, phEnME_Approx, _x0, _y0)
                     #END DEBUG
 
-                #elif(_char == 1): #Four Stokes components
-                    #To implement extraction of Stokes components, with and without convolution, in CalcIntFromElecField
+                elif(_char == 1): #Four Stokes components
+                    
+                    #OC29122023
+                    srwl.CalcIntFromElecField(workStokes.arS, wfr, -5, 1, depTypeInt, phEnInt, 0., 0.) #All Stokes (implement extraction of Stokes components, with convolution, in CalcIntFromElecField)
 
                 #if(_pres_ang == 2): #23122018
                 #    #To make convolution taking into account angular divergancies only!
@@ -10287,7 +10533,11 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
                             if resStokes.mesh.is_equal(workStokes.mesh): #OC01082022
                                 resStokes.avg_update_same_mesh(workStokes, iAvgProc, numComp, ePhIntegMult, _sum=doPropCM)
                             else:
-                                resStokes.avg_update_interp(workStokes, iAvgProc, 1, numComp, ePhIntegMult, _sum=doPropCM)
+                                
+                                try: #OC14012024 (added "try-except")
+                                    resStokes.avg_update_interp(workStokes, iAvgProc, 1, numComp, ePhIntegMult, _sum=doPropCM)
+                                except:
+                                    print('Failed to add intensity of single-electron / fully coherent radiation')
 
                             #resStokes.avg_update_interp(workStokes, iAvgProc, 1, numComp, ePhIntegMult, _sum=doPropCM) #OC04112020
                         
@@ -11428,7 +11678,12 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
 #Import of modules requiring classes defined in this smodule
 #****************************************************************************
 #****************************************************************************
-from srwl_uti_src import *
+try: #OC04032024
+    from .srwl_uti_src import *
+except:
+    from srwl_uti_src import *
+
+#from srwl_uti_src import *
 
 #****************************************************************************
 #****************************************************************************

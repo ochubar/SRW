@@ -96,7 +96,8 @@ public:
 		m_PropWfrInPlace = true; //OC151008 //previous electric field is NOT necessary for the propagation
 	}
 
-	int PropagateRadiation(srTSRWRadStructAccessData* pRadAccessData, srTParPrecWfrPropag& ParPrecWfrPropag, srTRadResizeVect& ResBeforeAndAfterVect)
+	//int PropagateRadiation(srTSRWRadStructAccessData* pRadAccessData, srTParPrecWfrPropag& ParPrecWfrPropag, srTRadResizeVect& ResBeforeAndAfterVect)
+	int PropagateRadiation(srTSRWRadStructAccessData* pRadAccessData, srTParPrecWfrPropag& ParPrecWfrPropag, srTRadResizeVect& ResBeforeAndAfterVect, void* pvGPU=0) //HG04122023
 	{
 		//char &MethNo = ParPrecWfrPropag.MethNo;
 		SetupPropBufVars_Gen(pRadAccessData);
@@ -136,7 +137,8 @@ public:
 
 	//int PropagateRadiationSingleE_Meth_0(srTSRWRadStructAccessData* pWfr, srTSRWRadStructAccessData* pPrevWfr, void* pBuf=0) //OC06092019
 	//OC01102019 (restored)
-	int PropagateRadiationSingleE_Meth_0(srTSRWRadStructAccessData* pWfr, srTSRWRadStructAccessData* pPrevWfr)
+	//int PropagateRadiationSingleE_Meth_0(srTSRWRadStructAccessData* pWfr, srTSRWRadStructAccessData* pPrevWfr)
+	int PropagateRadiationSingleE_Meth_0(srTSRWRadStructAccessData* pWfr, srTSRWRadStructAccessData* pPrevWfr, void* pvGPU) //OC17022024
 	{//this version doesn't use pPrevWfr
 	 //however, it may modify me
 
@@ -223,6 +225,7 @@ public:
 
 		double *pStart = &(pWfr->xStart), *pStep = &(pWfr->xStep);
 		long *pN = &(pWfr->nx);
+		//long long *pN = &(pWfr->nx);
 		if(RotPlane == 'v')
 		{
 			pStart = &(pWfr->zStart); pStep = &(pWfr->zStep);

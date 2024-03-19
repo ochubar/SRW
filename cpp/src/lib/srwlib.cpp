@@ -29,6 +29,9 @@
 #include "srisosrc.h"
 #include "srmatsta.h"
 
+#ifdef _OFFLOAD_GPU
+#include "auxgpu.h" //OC27072023
+#endif
 //#include <time.h> //Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP
 
 //-------------------------------------------------------------------------
@@ -751,7 +754,9 @@ EXP int CALL srwlCalcPowDenSR(SRWLStokes* pStokes, SRWLPartBeam* pElBeam, SRWLPr
 
 //-------------------------------------------------------------------------
 
-EXP int CALL srwlCalcIntFromElecField(char* pInt, SRWLWfr* pWfr, char polar, char intType, char depType, double e, double x, double y, double* pMeth, void* pFldTrj) //OC23022020
+EXP int CALL srwlCalcIntFromElecField(char* pInt, SRWLWfr* pWfr, char polar, char intType, char depType, double e, double x, double y, double* pMeth, void* pFldTrj, double* arParGPU) //OC19022024
+//EXP int CALL srwlCalcIntFromElecField(char* pInt, SRWLWfr* pWfr, char polar, char intType, char depType, double e, double x, double y, double* pMeth, void* pFldTrj, void* pvGPU) //OC26072023
+//EXP int CALL srwlCalcIntFromElecField(char* pInt, SRWLWfr* pWfr, char polar, char intType, char depType, double e, double x, double y, double* pMeth, void* pFldTrj) //OC23022020
 //EXP int CALL srwlCalcIntFromElecField(char* pInt, SRWLWfr* pWfr, char polar, char intType, char depType, double e, double x, double y, double *pMeth) //OC16122019
 //EXP int CALL srwlCalcIntFromElecField(char* pInt, SRWLWfr* pWfr, char polar, char intType, char depType, double e, double x, double y, int *pMeth) //OC13122019
 //EXP int CALL srwlCalcIntFromElecField(char* pInt, SRWLWfr* pWfr, char polar, char intType, char depType, double e, double x, double y)
@@ -761,9 +766,16 @@ EXP int CALL srwlCalcIntFromElecField(char* pInt, SRWLWfr* pWfr, char polar, cha
 
 	if((pWfr == 0) || (pInt == 0)) return SRWL_INCORRECT_PARAM_FOR_INT_EXTR;
 
+//HG26022024 (commented-out)
+//#ifdef _OFFLOAD_GPU //HG07022024
+//	srwlUtiGPUProc(1, arParGPU); //OC20022024
+//	//srwlUtiGPUProc(1, pvGPU); //initialize GPU
+//#endif
+
 	SRWLPrtTrj *pTrj=0; //OC23022020
 	srTTrjDat *pTrjDat=0;
 	bool trjDataShouldBeDel = false;
+	int res = 0; //OC20022024
 	try 
 	{
 		srTSRWRadStructAccessData wfr(pWfr);
@@ -796,7 +808,9 @@ EXP int CALL srwlCalcIntFromElecField(char* pInt, SRWLWfr* pWfr, char polar, cha
 			//pFldTrj = pTrjData;
 		}
 
-		radGenManip.ExtractRadiation((int)polar, (int)arIntTypeConv[intType], (int)depType, wfr.Pres, e, x, y, pInt, pMeth, pTrjDat); //OC23022020
+		radGenManip.ExtractRadiation((int)polar, (int)arIntTypeConv[intType], (int)depType, wfr.Pres, e, x, y, pInt, pMeth, pTrjDat, (void*)arParGPU); //OC19022024
+		//radGenManip.ExtractRadiation((int)polar, (int)arIntTypeConv[intType], (int)depType, wfr.Pres, e, x, y, pInt, pMeth, pTrjDat, pvGPU); //HG03122023
+		//radGenManip.ExtractRadiation((int)polar, (int)arIntTypeConv[intType], (int)depType, wfr.Pres, e, x, y, pInt, pMeth, pTrjDat); //OC23022020
 		//radGenManip.ExtractRadiation((int)polar, (int)arIntTypeConv[intType], (int)depType, wfr.Pres, e, x, y, pInt, pMeth); //OC13122019
 		//radGenManip.ExtractRadiation((int)polar, (int)intType, (int)depType, wfr.Pres, e, x, y, pInt);
 
@@ -813,7 +827,13 @@ EXP int CALL srwlCalcIntFromElecField(char* pInt, SRWLWfr* pWfr, char polar, cha
 	}
 	catch(int erNo) 
 	{
-		return erNo;
+//#ifdef _OFFLOAD_GPU //HG07022024
+//		srwlUtiGPUProc(0, arParGPU); //OC20022024
+//		//srwlUtiGPUProc(0, pvGPU); //to free GPU
+//#endif
+		//OC20022024: commented-out above
+		//return erNo;
+		res = erNo; //OC20022024
 	}
 	if(trjDataShouldBeDel)
 	{
@@ -826,7 +846,13 @@ EXP int CALL srwlCalcIntFromElecField(char* pInt, SRWLWfr* pWfr, char polar, cha
 		delete pTrj;
 	}
 	if(pTrjDat != 0) delete pTrjDat;
-	return 0;
+
+#ifdef _OFFLOAD_GPU //HG07022024
+	srwlUtiGPUProc(0, arParGPU); //OC20022024 (to free GPU)
+	//srwlUtiGPUProc(0, pvGPU); //to free GPU
+#endif
+	//return 0;
+	return res; //OC20022024
 }
 
 //-------------------------------------------------------------------------
@@ -994,7 +1020,9 @@ EXP int CALL srwlSetRepresElecField(SRWLWfr* pWfr, char repr)
 
 //-------------------------------------------------------------------------
 
-EXP int CALL srwlPropagElecField(SRWLWfr* pWfr, SRWLOptC* pOpt, int nInt, char** arID, SRWLRadMesh* arIM, char** arI) //OC15082018
+EXP int CALL srwlPropagElecField(SRWLWfr* pWfr, SRWLOptC* pOpt, int nInt, char** arID, SRWLRadMesh* arIM, char** arI, double* arParGPU) //OC219022024
+//EXP int CALL srwlPropagElecField(SRWLWfr* pWfr, SRWLOptC* pOpt, int nInt, char** arID, SRWLRadMesh* arIM, char** arI, void* pvGPU) //OC26072023 (from HG)
+//EXP int CALL srwlPropagElecField(SRWLWfr* pWfr, SRWLOptC* pOpt, int nInt, char** arID, SRWLRadMesh* arIM, char** arI) //OC15082018
 //EXP int CALL srwlPropagElecField(SRWLWfr* pWfr, SRWLOptC* pOpt)
 {
 	if((pWfr == 0) || (pOpt == 0)) return SRWL_INCORRECT_PARAM_FOR_WFR_PROP;
@@ -1004,6 +1032,10 @@ EXP int CALL srwlPropagElecField(SRWLWfr* pWfr, SRWLOptC* pOpt, int nInt, char**
 	//double start;
 	//get_walltime (&start);
 
+#ifdef _OFFLOAD_GPU //HG07022024
+	srwlUtiGPUProc(1, arParGPU); //OC20022024
+	//srwlUtiGPUProc(1, pvGPU);
+#endif
 	try 
 	{
 		srTCompositeOptElem optCont(*pOpt);
@@ -1014,7 +1046,9 @@ EXP int CALL srwlPropagElecField(SRWLWfr* pWfr, SRWLOptC* pOpt, int nInt, char**
 		//srwlPrintTime("srwlPropagElecField: CheckRadStructForPropagation",&start);
 
 		//if(locErNo = optCont.PropagateRadiationGuided(wfr)) return locErNo;
-		if(locErNo = optCont.PropagateRadiationGuided(wfr, nInt, arID, arIM, arI)) return locErNo; //OC15082018
+		//if(locErNo = optCont.PropagateRadiationGuided(wfr, nInt, arID, arIM, arI)) return locErNo; //OC15082018
+		//if(locErNo = optCont.PropagateRadiationGuided(wfr, nInt, arID, arIM, arI, pvGPU)) return locErNo; //HG03122023
+		if(locErNo = optCont.PropagateRadiationGuided(wfr, nInt, arID, arIM, arI, (void*)arParGPU)) return locErNo; //HG03122023
 
 		//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
 		//srwlPrintTime("srwlPropagElecField: PropagateRadiationGuided",&start);
@@ -1028,9 +1062,15 @@ EXP int CALL srwlPropagElecField(SRWLWfr* pWfr, SRWLOptC* pOpt, int nInt, char**
 	}
 	catch(int erNo)
 	{
-		return erNo;
+		//return erNo;
+		locErNo = erNo; //OC20022024
 	}
-	return 0;
+#ifdef _OFFLOAD_GPU //HG07022024
+	srwlUtiGPUProc(0, arParGPU); //OC20022024
+	//srwlUtiGPUProc(0, pvGPU);
+#endif
+	//return 0;
+	return locErNo; //OC20022024
 }
 
 //-------------------------------------------------------------------------
@@ -1047,7 +1087,9 @@ EXP int CALL srwlCalcTransm(SRWLOptT* pOpTr, const double* pDelta, const double*
 
 //-------------------------------------------------------------------------
 
-EXP int CALL srwlUtiFFT(char* pcData, char typeData, double* arMesh, int nMesh, int dir)
+EXP int CALL srwlUtiFFT(char* pcData, char typeData, double* arMesh, int nMesh, int dir, double* arParGPU) //OC19022024 
+//EXP int CALL srwlUtiFFT(char* pcData, char typeData, double* arMesh, int nMesh, int dir, void* pvGPU) //OC26072023 
+//EXP int CALL srwlUtiFFT(char* pcData, char typeData, double* arMesh, int nMesh, int dir)
 {
 	if((pcData == 0) || (arMesh == 0) || ((typeData != 'f') && (typeData != 'd')) || (nMesh < 3) || (dir == 0)) return SRWL_INCORRECT_PARAM_FOR_FFT; //OC31012019
 
@@ -1066,6 +1108,11 @@ EXP int CALL srwlUtiFFT(char* pcData, char typeData, double* arMesh, int nMesh, 
 		int dimFFT = 1;
 		if(ny > 1) dimFFT = 2;
 		//float *pfData = (float*)pcData; //OC31012019 (commented-out)
+
+#ifdef _OFFLOAD_GPU //HG07022024
+		srwlUtiGPUProc(1, arParGPU); //OC20022024
+		//srwlUtiGPUProc(1, pvGPU);
+#endif
 
 		if(dimFFT == 1)
 		{
@@ -1092,7 +1139,10 @@ EXP int CALL srwlUtiFFT(char* pcData, char typeData, double* arMesh, int nMesh, 
 			FFT1DInfo.UseGivenStartTrValue = 0;
 
 			CGenMathFFT1D FFT1D;
-			if(locErNo = FFT1D.Make1DFFT(FFT1DInfo)) return locErNo;
+			//if(locErNo = FFT1D.Make1DFFT(FFT1DInfo)) return locErNo;
+			//if(locErNo = FFT1D.Make1DFFT(FFT1DInfo, pvGPU)) return locErNo; //HG03122023
+			//if(locErNo = FFT1D.Make1DFFT(FFT1DInfo, (void*)arParGPU)) return locErNo; //OC19022024
+			if(locErNo = FFT1D.Make1DFFT(FFT1DInfo, (void*)arParGPU)) throw locErNo; //OC20022024
 
 			arMesh[0] = FFT1DInfo.xStartTr;
 			arMesh[1] = FFT1DInfo.xStepTr;
@@ -1122,8 +1172,14 @@ EXP int CALL srwlUtiFFT(char* pcData, char typeData, double* arMesh, int nMesh, 
 			FFT2DInfo.UseGivenStartTrValues = 0;
 
 			CGenMathFFT2D FFT2D;
-			if(locErNo = FFT2D.Make2DFFT(FFT2DInfo)) return locErNo;
-
+			//if(locErNo = FFT2D.Make2DFFT(FFT2DInfo)) return locErNo;
+			//if(locErNo = FFT2D.Make2DFFT(FFT2DInfo, 0, 0, pvGPU)) return locErNo; //HG03122023
+#ifdef _FFTW3 //OC31012019
+			//if(locErNo = FFT2D.Make2DFFT(FFT2DInfo, 0, 0, (void*)arParGPU)) return locErNo; //OC19022024
+			if(locErNo = FFT2D.Make2DFFT(FFT2DInfo, 0, 0, (void*)arParGPU)) throw locErNo; //OC20022024
+#else //OC12032024
+			if(locErNo = FFT2D.Make2DFFT(FFT2DInfo)) throw locErNo; //OC12032024
+#endif
 			arMesh[0] = FFT2DInfo.xStartTr;
 			arMesh[1] = FFT2DInfo.xStepTr;
 			arMesh[3] = FFT2DInfo.yStartTr;
@@ -1134,9 +1190,17 @@ EXP int CALL srwlUtiFFT(char* pcData, char typeData, double* arMesh, int nMesh, 
 	}
 	catch(int erNo)
 	{
-		return erNo;
+		locErNo = erNo; //OC20022024
+		//return erNo;
 	}
-	return 0;
+
+#ifdef _OFFLOAD_GPU
+	srwlUtiGPUProc(0, arParGPU); //OC20022024
+	//srwlUtiGPUProc(0, pvGPU);
+#endif
+
+	return locErNo; //OC20022024
+	//return 0;
 }
 
 //-------------------------------------------------------------------------
@@ -1538,6 +1602,63 @@ EXP int CALL srwlPropagRadMultiE(SRWLStokes* pStokes, SRWLWfr* pWfr0, SRWLOptC* 
 	return 0;
 }
 
+//-------------------------------------------------------------------------
+//#ifdef _OFFLOAD_GPU //OC20022024 (commented-out) //OC30102023
+EXP int CALL srwlUtiGPUProc(int op, double* arParGPU) //OC20022024
+//EXP int CALL srwlUtiGPUProc(int op, void* pvGPU) //HG04122023
+{
+#ifdef _OFFLOAD_GPU //HG07022024
+	if(op == 0) CAuxGPU::Fini();
+	if(op == 1) CAuxGPU::Init();
+#endif //HG07022024
+	return 0;
+}
+
+/* HG30112023
+EXP bool CALL srwlUtiGPUAvailable() //OC27072023
+//EXP bool CALL srwlAuxGpuAvailable() //HG
+{
+	return CAuxGPU::GPUAvailable(); //OC05092023
+	//return AuxGpu::GPUAvailable();
+}
+
+//-------------------------------------------------------------------------
+
+EXP bool CALL srwlUtiGPUEnabled() //OC27072023
+//EXP bool CALL srwlAuxGpuEnabled() //HG
+{
+	return CAuxGPU::GPUEnabled(nullptr); //OC05092023
+	//return AuxGpu::GPUEnabled(nullptr);
+}
+
+//-------------------------------------------------------------------------
+
+EXP void CALL srwlUtiGPUSetStatus(bool enable) //OC27072023
+//EXP void CALL srwlAuxGpuSetStatus(bool enable) //HG
+{
+	CAuxGPU::SetGPUStatus(enable); //OC05092023
+	//AuxGpu::SetGPUStatus(enable);
+}
+
+//-------------------------------------------------------------------------
+
+EXP void CALL srwlUtiGPUInit() //OC27072023
+//EXP void CALL srwlAuxGpuInit() //HG
+{
+	CAuxGPU::Init(); //OC05092023 (why void?)
+	//AuxGpu::Init();
+}
+
+//-------------------------------------------------------------------------
+
+EXP void CALL srwlUtiGPUFini() //OC27072023
+//EXP void CALL srwlAuxGpuFini() //HG
+{
+	CAuxGPU::Fini(); //OC05092023 (why void?)
+	//AuxGpu::Fini();
+}
+*/
+//#endif //OC20022024 (commented-out)
 //-------------------------------------------------------------------------
 //Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
 /*

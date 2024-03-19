@@ -578,51 +578,56 @@ int srTAuxMatStat::FindIntensityLimitsInds(CHGenObj& hRad, int ie, double RelPow
 	IndLims[2] = 0;
 	IndLims[3] = Rad.nz - 1;
 
-	srTRadExtract RadExtract;
-	RadExtract.PolarizCompon = 6;
-	RadExtract.Int_or_Phase = 0;
-	RadExtract.PlotType = 3;
-	RadExtract.TransvPres = Rad.Pres;
-
-	RadExtract.ePh = Rad.eStart + ie*Rad.eStep;
-	RadExtract.pExtractedData = new float[Rad.nx*Rad.nz];
-
-	//srTRadGenManip RadGenManip(Rad);
-	srTRadGenManip RadGenManip(hRad);
-	srTWaveAccessData ExtractedWaveData;
-	int res = 0;
-	if(res = RadGenManip.ExtractRadiation(RadExtract, ExtractedWaveData)) 
+	try //OC21022024: to rewrite, avoiding allocation: new float[Rad.nx*Rad.nz]; !
 	{
-		delete[] RadExtract.pExtractedData; return res;
+		srTRadExtract RadExtract;
+		RadExtract.PolarizCompon = 6;
+		RadExtract.Int_or_Phase = 0;
+		RadExtract.PlotType = 3;
+		RadExtract.TransvPres = Rad.Pres;
+
+		RadExtract.ePh = Rad.eStart + ie*Rad.eStep;
+		RadExtract.pExtractedData = new float[Rad.nx*Rad.nz];
+
+		//srTRadGenManip RadGenManip(Rad);
+		srTRadGenManip RadGenManip(hRad);
+		srTWaveAccessData ExtractedWaveData;
+		int res = 0;
+		if(res = RadGenManip.ExtractRadiation(RadExtract, ExtractedWaveData))
+		{
+			delete[] RadExtract.pExtractedData; return res;
+		}
+
+		float AuxArrF[5];
+		srTWaveAccessData OutInfoData;
+		//char InfoSuf[] = "_inf"; // To steer //OC030110
+		(OutInfoData.WaveType)[0] = 'f';
+		OutInfoData.AmOfDims = 1;
+		(OutInfoData.DimSizes)[0] = 5;
+		(OutInfoData.DimSizes)[1] = 0;
+		(OutInfoData.DimStartValues)[0] = 0;
+		(OutInfoData.DimSteps)[0] = 1;
+		OutInfoData.pWaveData = (char*)AuxArrF;
+		for(int i=0; i<5; i++) AuxArrF[i] = 0.;
+		AuxArrF[0] = (float)IntegrateSimple(ExtractedWaveData);
+		if(res = FindIntensityLimits2D(ExtractedWaveData, RelPow, OutInfoData))
+		{
+			delete[] RadExtract.pExtractedData; return res;
+		}
+
+		IndLims[0] = (int)((AuxArrF[1] - Rad.xStart)*1.0000001/Rad.xStep);
+		if(IndLims[0] < 0) IndLims[0] = 0;
+		IndLims[1] = (int)((AuxArrF[2] - Rad.xStart)*1.0000001/Rad.xStep);
+		if(IndLims[1] >= Rad.nx) IndLims[1] = Rad.nx - 1;
+		IndLims[2] = (int)((AuxArrF[3] - Rad.zStart)*1.0000001/Rad.zStep);
+		if(IndLims[2] < 0) IndLims[2] = 0;
+		IndLims[3] = (int)((AuxArrF[4] - Rad.zStart)*1.0000001/Rad.zStep);
+		if(IndLims[3] >= Rad.nz) IndLims[3] = Rad.nz - 1;
+
+		delete[] RadExtract.pExtractedData;
 	}
-
-	float AuxArrF[5];
-	srTWaveAccessData OutInfoData;
-	//char InfoSuf[] = "_inf"; // To steer //OC030110
-	(OutInfoData.WaveType)[0] = 'f';
-	OutInfoData.AmOfDims = 1;
-	(OutInfoData.DimSizes)[0] = 5;
-	(OutInfoData.DimSizes)[1] = 0;
-	(OutInfoData.DimStartValues)[0] = 0;
-	(OutInfoData.DimSteps)[0] = 1;
-	OutInfoData.pWaveData = (char*)AuxArrF;
-	for(int i=0; i<5; i++) AuxArrF[i] = 0.;
-	AuxArrF[0] = (float)IntegrateSimple(ExtractedWaveData);
-	if(res = FindIntensityLimits2D(ExtractedWaveData, RelPow, OutInfoData)) 
-	{
-		delete[] RadExtract.pExtractedData; return res;
-	}
-
-	IndLims[0] = (int)((AuxArrF[1] - Rad.xStart)*1.0000001/Rad.xStep);
-	if(IndLims[0] < 0) IndLims[0] = 0;
-	IndLims[1] = (int)((AuxArrF[2] - Rad.xStart)*1.0000001/Rad.xStep);
-	if(IndLims[1] >= Rad.nx) IndLims[1] = Rad.nx - 1;
-	IndLims[2] = (int)((AuxArrF[3] - Rad.zStart)*1.0000001/Rad.zStep);
-	if(IndLims[2] < 0) IndLims[2] = 0;
-	IndLims[3] = (int)((AuxArrF[4] - Rad.zStart)*1.0000001/Rad.zStep);
-	if(IndLims[3] >= Rad.nz) IndLims[3] = Rad.nz - 1;
-
-	delete[] RadExtract.pExtractedData;
+	catch(...)
+	{ }
 	return 0;
 }
 

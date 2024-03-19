@@ -80,7 +80,8 @@ public:
 	}
 
 	//int PropagateRadiation(srTSRWRadStructAccessData* pRadAccessData, int MethNo, srTRadResizeVect& ResBeforeAndAfterVect)
-	int PropagateRadiation(srTSRWRadStructAccessData* pRadAccessData, srTParPrecWfrPropag& ParPrecWfrPropag, srTRadResizeVect& ResBeforeAndAfterVect)
+	//int PropagateRadiation(srTSRWRadStructAccessData* pRadAccessData, srTParPrecWfrPropag& ParPrecWfrPropag, srTRadResizeVect& ResBeforeAndAfterVect)
+	int PropagateRadiation(srTSRWRadStructAccessData* pRadAccessData, srTParPrecWfrPropag& ParPrecWfrPropag, srTRadResizeVect& ResBeforeAndAfterVect, void* pvGPU=0) //HG04122023
 	{
 		char &MethNo = ParPrecWfrPropag.MethNo;
 		//if(MethNo == 2) return PropagateRadiationMeth_2(pRadAccessData, ResBeforeAndAfterVect);
@@ -90,11 +91,14 @@ public:
 
 	//int PropagateRadiationSimple(srTSRWRadStructAccessData* pRadAccessData, void* pBuf=0) //OC06092019
 	//OC01102019 (restored)
-	int PropagateRadiationSimple(srTSRWRadStructAccessData* pRadAccessData)
+	//int PropagateRadiationSimple(srTSRWRadStructAccessData* pRadAccessData)
+	int PropagateRadiationSimple(srTSRWRadStructAccessData* pRadAccessData, void* pvGPU=0) //HG04122023
 	{
 		int result;
-		if(pRadAccessData->Pres != 0) if(result = SetRadRepres(pRadAccessData, 0)) return result;
-		return TraverseRadZXE(pRadAccessData);
+		//if(pRadAccessData->Pres != 0) if(result = SetRadRepres(pRadAccessData, 0)) return result;
+		if(pRadAccessData->Pres != 0) if(result = SetRadRepres(pRadAccessData, 0, 0, 0, pvGPU)) return result; //HG04122023
+		//return TraverseRadZXE(pRadAccessData);
+		return TraverseRadZXE(pRadAccessData, 0, 0, pvGPU);	//HG04122023
 	}
   	int PropagateRadiationSimple1D(srTRadSect1D* pSect1D)
 	{

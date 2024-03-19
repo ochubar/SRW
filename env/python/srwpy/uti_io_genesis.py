@@ -8,8 +8,15 @@
 #rank  = comm.Get_rank()  #Process number
 #nproc = comm.Get_size()  #Total number of processes
 
-from __future__ import print_function #Python 2.7 compatibility
-from srwlib import *
+from __future__ import print_function
+try: #OC04032024
+    from .srwlib import *
+except:
+#finally:
+    from srwlib import *
+
+#import string #Python 2.7 compatibility
+#from srwlib import *
 
 #from xframework.adaptors.genesis import *
 ##################from ocelot.adaptors.genesis import *
@@ -259,7 +266,8 @@ def uti_io_read_Genesis_rad(fileName='simulation.gout.dfl', _ncar=51, _mult=1., 
     return resFldData
 
 #******************************************************************************
-def uti_io_set_wfr_from_Genesis_files(_fpGenOut, _fpGenRad, _pol='h', _slice_skip_per=0, _slice_start=0, _slice_end=-1):
+def uti_io_set_wfr_from_Genesis_files(_fpGenOut, _fpGenRad, _pol='h', _slice_skip_per=0, _slice_start=0, _slice_end=-1): #OC18122023
+#def uti_io_set_wfr_from_Genesis_files(_fpGenOut, _fpGenRad, _pol='h', _slice_skip_per=0, _slice_start=0, _slice_end=-1):
     """Sets up SRW wavefront from Genesis output
     :param _fpGenOut: file path to Genesis Output file
     :param _fpGenRad: file path to Genesis Radiation file
@@ -269,31 +277,46 @@ def uti_io_set_wfr_from_Genesis_files(_fpGenOut, _fpGenRad, _pol='h', _slice_ski
     :param _slice_end: last slice number (in the Genesis file) to read in
     """
 
-    outGenesis = uti_io_read_Genesis_output(_fpGenOut)
-    
-    ncar = int(outGenesis('ncar'))
-    zrayl = outGenesis('zrayl')
-    rmax0 = outGenesis('rmax0')
-    xlamds = outGenesis('xlamds')
-    rxbeam = outGenesis('rxbeam')
-    rybeam = outGenesis('rybeam')
-    zsep = outGenesis('zsep')
-    ntail = outGenesis('ntail')
-    itdp = int(outGenesis('itdp'))
-    xlamd = outGenesis('xlamd')
-
     pi = 3.14159265358979
     lightSpeed = 2.9979245812E+08 #Speed of Light [m/c]
     light_eV_mu = 1.23984186
     #vacimp = 376.7303135 #Vacuum impedance in Ohms
     #eev = 510998.902 #Energy units (mc^2) in eV
 
-    photEn_xlamds = light_eV_mu*1.e-06/xlamds
+    fpGenOutIsStr = isinstance(_fpGenOut, str) #OC18122023
+    
+    if(fpGenOutIsStr): #OC18122023
 
-    w0 = sqrt(zrayl*xlamds/pi)
-    sigrB = sqrt(rxbeam*rxbeam + rybeam*rybeam)
-    #sigrF = w0
-    dGrid = 0.5*rmax0*(sigrB + w0) #Mesh from -grid to +grid; This is the genesis input parameter dgrid/2
+        outGenesis = uti_io_read_Genesis_output(_fpGenOut)
+    
+        ncar = int(outGenesis('ncar'))
+        zrayl = outGenesis('zrayl')
+        rmax0 = outGenesis('rmax0')
+        xlamds = outGenesis('xlamds')
+        rxbeam = outGenesis('rxbeam')
+        rybeam = outGenesis('rybeam')
+        zsep = outGenesis('zsep')
+        ntail = outGenesis('ntail')
+        itdp = int(outGenesis('itdp'))
+        #xlamd = outGenesis('xlamd')
+
+        w0 = sqrt(zrayl*xlamds/pi)
+        sigrB = sqrt(rxbeam*rxbeam + rybeam*rybeam)
+        dGrid = 0.5*rmax0*(sigrB + w0) #Mesh from -grid to +grid; This is the genesis input parameter dgrid/2
+    
+    elif isinstance(_fpGenOut, dict): #OC18122023
+
+        ncar = _fpGenOut['ncar']
+        dGrid = _fpGenOut['dgrid']
+        xlamds = _fpGenOut['xlamds']
+        zsep = _fpGenOut['zsep']
+        ntail = _fpGenOut['ntail']
+        itdp = _fpGenOut['itdp']
+
+    else:
+        raise Exception('Unrecognized radiation parameters structure')
+
+    photEn_xlamds = light_eV_mu*1.e-06/xlamds
 
     #This defines a constant to be used for conversion (multiplication) of GENESIS Electric field
     #to SRW TD Electric Field in units of sqrt(W/mm^2)

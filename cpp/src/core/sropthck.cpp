@@ -23,6 +23,8 @@ srTMirror::srTMirror(srTStringVect* pMirInf, srTDataMD* pExtraData)
 	if((pMirInf == 0) || (pMirInf->size() < 30)) { ErrorCode = IMPROPER_OPTICAL_COMPONENT_STRUCTURE; return;}
 	if(pExtraData != 0) m_reflData = *pExtraData;
 
+	m_isConvex = false; //OC06032024 (to re-define below, if necessary!)
+
 	const char* mirID = (*pMirInf)[1];
 
 	m_halfDim1 = 0.5*atof((*pMirInf)[10]); //dimensions
@@ -69,6 +71,8 @@ srTMirror::srTMirror(srTStringVect* pMirInf, srTDataMD* pExtraData)
 
 srTMirror::srTMirror(const SRWLOptMir& srwlMir) 
 {
+	m_isConvex = false; //OC06032024 (to re-define below, if necessary!)
+
 	m_halfDim1 = 0.5*srwlMir.dt; //dimensions: tangential
 	m_halfDim2 = 0.5*srwlMir.ds; //dimensions: sagital
 
@@ -201,6 +205,7 @@ srTMirror* srTMirror::DefineMirror(char* sType, void* pvData)
 	else if(strcmp(sType, "mirror: paraboloid") == 0) pOutMir = new srTMirrorParaboloid(*((SRWLOptMirPar*)pvData));
 	else if(strcmp(sType, "mirror: toroid") == 0) pOutMir = new srTMirrorToroid(*((SRWLOptMirTor*)pvData));
 	else if(strcmp(sType, "mirror: sphere") == 0) pOutMir = new srTMirrorSphere(*((SRWLOptMirSph*)pvData));
+	else if(strcmp(sType, "mirror: hyperboloid") == 0) pOutMir = new srTMirrorHyperboloid(*((SRWLOptMirHyp*)pvData)); //TW24012024
 	else throw UNKNOWN_OPTICAL_ELEMENT;
 
 	pOutMir->m_isGrating = false;
@@ -222,6 +227,7 @@ srTMirror* srTMirror::DefineGrating(char* sType, void* pvData)
 	if(strcmp(sMirSubType, "mirror: plane") == 0) pOutMir = new srTMirrorPlane(*((SRWLOptMirPl*)pvMirSub));
 	else if(strcmp(sMirSubType, "mirror: ellipsoid") == 0) pOutMir = new srTMirrorEllipsoid(*((SRWLOptMirEl*)pvMirSub));
 	else if(strcmp(sMirSubType, "mirror: toroid") == 0) pOutMir = new srTMirrorToroid(*((SRWLOptMirTor*)pvMirSub));
+	else if(strcmp(sMirSubType, "mirror: hyperboloid") == 0) pOutMir = new srTMirrorHyperboloid(*((SRWLOptMirHyp*)pvMirSub)); //TW24012024
 	else throw UNKNOWN_OPTICAL_ELEMENT;
 
 	pOutMir->m_grM = pInGrat->m;
@@ -2920,6 +2926,366 @@ srTMirrorEllipsoid::srTMirrorEllipsoid(const SRWLOptMirEl& srwlMirEl) : srTMirro
 	double radTan = sqrt(pq*pq*pq)/(m_ax*m_az);
 	EstimateFocalLengths(radTan, m_radSag);
 }
+
+//*************************************************************************
+
+srTMirrorHyperboloid::srTMirrorHyperboloid(const SRWLOptMirHyp& srwlMirHy) //TW19012024
+	: srTMirror(srwlMirHy.baseMir)
+	, m_p(srwlMirHy.p)
+	, m_q(srwlMirHy.q)
+	, m_angGraz(srwlMirHy.angGraz)
+	, m_isCylinder(srwlMirHy.radSag >= 1e16)
+	, m_ax(0.5 * fabs(m_p - m_q))
+	, m_az(sqrt(m_p * m_q) * sin(m_angGraz))
+	, m_ay(m_isCylinder ? 1e16 : m_az)
+	, m_axE2(m_ax * m_ax)
+	, m_azE2(m_az * m_az)
+	, m_ayE2(m_ay * m_ay)
+	, m_angRot(0)
+	, m_xcLocNorm(0), m_zcLocNorm(0)
+	, m_cosAngRotNormLoc(0), m_sinAngRotNormLoc(0)
+	//, m_isConvex(true) //OC06032024 (commented-out, since moved to srTMirror)
+{
+	//Validate parameters: make sure all are positive
+	if((m_p <= 0) || (m_q <= 0) || (m_angGraz <= 0) || (srwlMirHy.radSag <= 0))
+	{
+		ErrorCode = IMPROPER_OPTICAL_COMPONENT_HYPERBOLOID;
+		return;
+	} //throw here?
+
+	DetermineHyperboloidParamsInLocFrame();
+
+	// Estimate focal lengths: ?
+	double pq = m_p*m_q;
+	double radTan = -sqrt(pq*pq*pq)/(m_ax*m_az); //OC05032024 (to re-check, including sign!)
+	if(!m_isConvex) radTan = -radTan; //OC05032024
+	//double radTan = sqrt(pq*pq*pq)/(m_ax*m_az);
+
+	EstimateFocalLengths(radTan, 1.e+23); //OC05032024 (to re-check!)
+	//EstimateFocalLengths(radTan, srwlMirHy.angGraz);
+
+	/* probably not needed with the local-frame solution
+	// calculate the canonical description parameters
+	m_ax = 0.5 * fabs(m_p - m_q);  // a = 0.5|p-q|
+	m_az = sqrt(m_p * m_q) * sin(m_angGraz);  // b = sqrt(pq)sin(theta)
+	m_ay = m_isCylinder ? 1e16 : m_az;  // Inf for cylinder and b for hyperboloid
+	double c = 0.5 * sqrt(m_p * m_p + m_q * m_q - 2 * m_p * m_q * cos(2 * m_angGraz));  // focal distance
+	m_axE2 = m_ax * m_ax;
+	m_azE2 = m_az * m_az;
+	m_ayE2 = m_ay * m_ay;
+
+	// determine the transformation between canonical & mirror frames
+	m_acuteAngRot = atan((m_p + m_q) * tan(m_angGraz) / fabs(m_p - m_q)); // the acute rotation angle (cw or ccw TBD later)
+
+	// determine convex or concave
+	m_isConvex = m_p > m_q? true: false;
+
+	// determine facing up or down
+	m_isFacingUp = m_vCenTang.z < 0 ? true: false;
+
+	// determine the rotation angle from the mirror frame to canonical frame
+	const double Pi = 3.141592653589793;
+	if (m_isConvex) { // convex
+		if (m_isFacingUp) {// ccw(beta)
+			m_cosAngRotHyper = cos(m_acuteAngRot);
+			m_sinAngRotHyper = sin(m_acuteAngRot);
+			m_xcCano = -(m_p * m_p - m_q * m_q) / (4 * c);
+			m_zcCano = m_p * m_q * sin(2 * m_grAng) / (2 * c);
+		}
+		else {// cw(pi - beta)
+			m_cosAngRotHyper = cos(Pi - m_acuteAngRot);
+			m_sinAngRotHyper = - sin(Pi - m_acuteAngRot);
+			m_xcCano = -(m_p * m_p - m_q * m_q) / (4 * c);
+			m_zcCano = -m_p * m_q * sin(2 * m_grAng) / (2 * c);
+		}
+	}
+	else { // concave
+		if (m_isFacingUp) {// ccw(beta)
+			m_cosAngRotHyper = cos(m_acuteAngRot);
+			m_sinAngRotHyper = sin(m_acuteAngRot);
+			m_xcCano = -(m_p * m_p - m_q * m_q) / (4 * c);
+			m_zcCano = -m_p * m_q * sin(2 * m_grAng) / (2 * c);
+		}
+		else {// cw(pi - beta)
+			m_cosAngRotHyper = cos(Pi - m_acuteAngRot);
+			m_sinAngRotHyper = - sin(Pi - m_acuteAngRot);
+			m_xcCano = -(m_p * m_p - m_q * m_q) / (4 * c);
+			m_zcCano = m_p * m_q * sin(2 * m_grAng) / (2 * c);
+		}
+	}
+	*/
+}
+
+//*************************************************************************
+//OC06032024 (moved to .h from .cpp)
+//void srTMirrorHyperboloid::DetermineHyperboloidParamsInLocFrame() //TW19012024
+//{
+//	// determine convex & concave and which part of the hyperboloid
+//	m_isConvex = m_p > m_q ? true : false; // p>q, convex; p<q, concave; optical system sense
+//	double z0_sign = m_vCenTang.z > 0 ? -1.0 : 1.0;  // t.z<0, z0>0; t.z>0, z0<0;
+//
+//	// determine the rotation angle from the Local to Local Normal frame
+//	double acuteAngRot = atan((m_p + m_q) * tan(m_angGraz) / fabs(m_p - m_q));
+//	if(m_isConvex && z0_sign > 0 || !m_isConvex && z0_sign < 0) {
+//		m_angRot = acuteAngRot;
+//	}
+//	else {
+//		m_angRot = PI - acuteAngRot;
+//	}
+//	m_sinAngRotNormLoc = sin(m_angRot);
+//	m_cosAngRotNormLoc = cos(m_angRot);
+//
+//	// determine the coordinate of the mirror center in the Local Normal frame
+//	double c = 0.5 * sqrt(m_q * m_q + m_p * m_p - 2 * m_q * m_p * cos(2 * m_angGraz));
+//	double x0 = (m_q * m_q - m_p * m_p) / (4 * c);
+//	double z0 = z0_sign * (m_q * m_p * sin(2 * m_angGraz)) / (2 * c);
+//	m_xcLocNorm = x0;
+//	m_zcLocNorm = z0;
+//}
+
+//*************************************************************************
+//OC06032024 (moved to .h from .cpp)
+//bool srTMirrorHyperboloid::FindRayIntersectWithSurfInLocFrame(TVector3d &inP, TVector3d &inV, TVector3d &resP, TVector3d *pResN) //OC04022024 (moved to .h) //TW19012024
+//{
+//	// make sure the direction vector inV is normalized
+//	inV.Normalize();
+//
+//	return FindRayIntersectSol1(inP, inV, resP, pResN);
+//}
+
+//*************************************************************************
+//OC06032024 (moved to .h from .cpp)
+//bool srTMirrorHyperboloid::FindRayIntersectSol1(TVector3d& inP, TVector3d& inV, TVector3d& resP, TVector3d* pResN) //TW19012024
+//{
+//	// Coordinates of all points and vectors in the frame where the elipse is described by x^2/m_ax^2 - y^2/m_ay^2 - z^2/m_az^2 = 1:
+//	// Transform inP to the Local Normal frame
+//	double x0 = m_xcLocNorm + inP.x * m_cosAngRotNormLoc + inP.z * m_sinAngRotNormLoc;
+//	double y0 = inP.y;
+//	double z0 = m_zcLocNorm - inP.x * m_sinAngRotNormLoc + inP.z * m_cosAngRotNormLoc;
+//
+//	// Transform inV to the Local Normal frame
+//	double vx = inV.x * m_cosAngRotNormLoc + inV.z * m_sinAngRotNormLoc;
+//	double vy = inV.y;
+//	double vz = -inV.x * m_sinAngRotNormLoc + inV.z * m_cosAngRotNormLoc;
+//
+//	// calculate t
+//	double A = m_ayE2 * m_azE2 * vx * vx - m_axE2 * m_azE2 * vy * vy - m_axE2 * m_ayE2 * vz * vz;
+//	double B = 2 * (m_ayE2 * m_azE2 * x0 * vx - m_axE2 * m_azE2 * y0 * vy - m_axE2 * m_ayE2 * vz * z0);
+//	double C = m_ayE2 * m_azE2 * x0 * x0 - m_axE2 * m_azE2 * y0 * y0 - m_axE2 * m_ayE2 * z0 * z0 - m_axE2 * m_ayE2 * m_azE2;
+//	double Delta = B * B - 4 * A * C;
+//
+//	// no intersection at all
+//	if(Delta < 0) {
+//		return false;
+//	}
+//
+//	//OC06032024
+//	double twoA = 2*A; 
+//	double sqrtDelta = sqrt(Delta);
+//	double t1 = (-B + sqrtDelta) / twoA; //Consider using expansion if necessary, not to lose precision
+//	double t2 = (-B - sqrtDelta) / twoA;
+//	double t0 = 0;
+//
+//	//OC06032024 (commented-out)
+//	//// determine which t is correct
+//	//double t1 = (-B + sqrt(B * B - 4 * A * C)) / (2 * A);
+//	//double t2 = (-B - sqrt(B * B - 4 * A * C)) / (2 * A);
+//	//double t0 = 0;
+//
+//	if(!Which_t(inP, inV, t1, t2, t0)) {
+//		return false;
+//	}
+//
+//	double xi = x0 + t0 * vx;
+//	double yi = y0 + t0 * vy;
+//	double zi = z0 + t0 * vz;
+//
+//	//Transforming coordinates back to the Local frame
+//	double xi_mi_m_xcLocNorm = xi - m_xcLocNorm;
+//	double zi_mi_m_zcLocNorm = zi - m_zcLocNorm;
+//	resP.x = xi_mi_m_xcLocNorm * m_cosAngRotNormLoc - zi_mi_m_zcLocNorm * m_sinAngRotNormLoc;
+//	resP.y = yi;
+//	resP.z = xi_mi_m_xcLocNorm * m_sinAngRotNormLoc + zi_mi_m_zcLocNorm * m_cosAngRotNormLoc;
+//
+//	//Components of the normal vector in the frame where the elipse is described by x^2/m_ax^2 + y^2/m_ay^2 + z^2/m_az^2 = 1:
+//	if(pResN != 0) {
+//		double xnLocNorm = xi / m_axE2, ynLocNorm = -yi / m_ayE2, znLocNorm = -zi / m_azE2;
+//		double invNorm = 1. / sqrt(xnLocNorm * xnLocNorm + ynLocNorm * ynLocNorm + znLocNorm * znLocNorm);
+//
+//		if(m_isConvex) {
+//			xnLocNorm *= invNorm; ynLocNorm *= invNorm; znLocNorm *= invNorm;
+//		}
+//		else {
+//			xnLocNorm *= -invNorm; ynLocNorm *= -invNorm; znLocNorm *= -invNorm;
+//		}
+//
+//		// Same components in the Local frame :
+//		pResN->x = xnLocNorm * m_cosAngRotNormLoc - znLocNorm * m_sinAngRotNormLoc;
+//		pResN->y = ynLocNorm;
+//		pResN->z = xnLocNorm * m_sinAngRotNormLoc + znLocNorm * m_cosAngRotNormLoc;
+//		pResN->Normalize();
+//	}
+//
+//	return true;
+//}
+
+//*************************************************************************
+//OC06032024 (moved to .h from .cpp)
+//bool srTMirrorHyperboloid::FindRayIntersectSol2(TVector3d &inP, TVector3d &inV, TVector3d &resP, TVector3d *pResN) //TW19012024
+//{
+//	double t = 0;
+//	if(!Calculate_t(inP, inV, t)) {
+//		return false;
+//	}
+//
+//	resP.x = inP.x + t * inV.x;
+//	resP.y = inP.y + t * inV.y;
+//	resP.z = inP.z + t * inV.z;
+//
+//	if(pResN != 0) {
+//		// TODO
+//		;
+//	}
+//	return true;
+//}
+
+//*************************************************************************
+//OC06032024 (moved to .h from .cpp)
+//double srTMirrorHyperboloid::HyperboloidHeight(double x, double y) //TW19012024
+//{
+//	// deal with cylindrical hyperbola
+//	y = m_isCylinder ? 0 : y;
+//
+//	// deal with convex or concave
+//	double root_sign = -1;
+//	if(m_p > m_q) // convex case
+//	{
+//		root_sign = 1;
+//		//if (m_vCenTang.z < 0) // bottom
+//		//{
+//		//	x = -x;
+//		//}
+//	}
+//	else // concave case 
+//	{
+//		root_sign = -1;
+//		//if (m_vCenTang.z < 0) // top
+//		//{
+//		//	x = -x;
+//		//}
+//	}
+//
+//	// z(x,y) = Az^2 + Bz + C
+//	double cosAngGraz = cos(m_angGraz), sinAngGraz = sin(m_angGraz); //OC06032024
+//	
+//	double A = cosAngGraz*cosAngGraz - (4 * m_p * m_q * sinAngGraz*sinAngGraz) / ((m_q - m_p) * (m_q - m_p)); //OC06032024
+//	//double A = cos(m_angGraz) * cos(m_angGraz) - (4 * m_p * m_q * sin(m_angGraz) * sin(m_angGraz)) / ((m_q - m_p) * (m_q - m_p));
+//	double B = -(2 * sinAngGraz) / (m_q - m_p) * (2 * m_p * m_q + (m_p + m_q) * cosAngGraz * x); //OC06032024
+//	//double B = -(2 * sin(m_angGraz)) / (m_q - m_p) * (2 * m_p * m_q + (m_p + m_q) * cos(m_angGraz) * x);
+//	double C = y * y + sinAngGraz*sinAngGraz * x * x; //OC06032024
+//	//double C = y * y + sin(m_angGraz) * sin(m_angGraz) * x * x;
+//
+//	return (-B + root_sign * sqrt(B * B - 4 * A * C)) / (2 * A);
+//}
+
+//*************************************************************************
+//OC06032024 (moved to .h from .cpp)
+//bool srTMirrorHyperboloid::Calculate_t(const TVector3d &inP, const TVector3d &inV, double &t) //TW19012024
+//{
+//	// just for less typing
+//	double vx = inV.x, vy = inV.y, vz = inV.z;
+//	double px = inP.x, py = inP.y, pz = inP.z;
+//
+//	double cosAngGraz = cos(m_angGraz), sinAngGraz = sin(m_angGraz); //OC06032024
+//
+//	// just for less typing
+//	double A = cosAngGraz * cosAngGraz - (4 * m_p * m_q * sinAngGraz * sinAngGraz) / ((m_q - m_p) * (m_q - m_p)); //OC06032024
+//	//double A = cos(m_angGraz) * cos(m_angGraz) - (4 * m_p * m_q * sin(m_angGraz) * sin(m_angGraz)) / ((m_q - m_p) * (m_q - m_p));
+//	double D = sinAngGraz / (m_q - m_p) * (m_p + m_q) * cosAngGraz; //OC06032024
+//	//double D = sin(m_angGraz) / (m_q - m_p) * (m_p + m_q) * cos(m_angGraz);
+//	double E = sinAngGraz / (m_q - m_p) * m_p * m_q; //OC06032024
+//	//double E = sin(m_angGraz) / (m_q - m_p) * m_p * m_q;
+//
+//	// Dt^2 + Et + F = 0
+//	double F = A * vz * vz - 2 * D * vx * vz + sinAngGraz * sinAngGraz * vx * vx + vy * vy; //OC06032024
+//	//double F = A * vz * vz - 2 * D * vx * vz + sin(m_angGraz) * sin(m_angGraz) * vx * vx + vy * vy;
+//	double G = 2 * (A * pz * vz - D * (pz * vx + px * vz) - 2 * E * vz + sinAngGraz * sinAngGraz * px * vx + py * vy); //OC06032024
+//	//double G = 2 * (A * pz * vz - D * (pz * vx + px * vz) - 2 * E * vz + sin(m_angGraz) * sin(m_angGraz) * px * vx + py * vy);
+//	double H = A * pz * pz - 2 * D * px * pz - 4 * E * pz + sinAngGraz * sinAngGraz * px * px + py * py; //OC06032024
+//	//double H = A * pz * pz - 2 * D * px * pz - 4 * E * pz + sin(m_angGraz) * sin(m_angGraz) * px * px + py * py;
+//
+//	// determinant
+//	double Delta = G * G - 4 * F * H;
+//	if(Delta < 0) {
+//		t = 0;
+//		return false;
+//	}
+//
+//	// solve the equation and select the correct t
+//	double sqrtDelta = sqrt(Delta); //OC06032024
+//	double t1 = (-G + sqrtDelta) / (2 * F); //OC06032024
+//	//double t1 = (-G + sqrt(Delta)) / (2 * F);
+//	double t2 = (-G - sqrtDelta) / (2 * F); //OC06032024
+//	//double t2 = (-G - sqrt(Delta)) / (2 * F);
+//
+//	// validate & select the correct t solution
+//	if(!Which_t(inP, inV, t1, t2, t)) {
+//		return false;
+//	}
+//	return true;
+//}
+
+//*************************************************************************
+//OC06032024 (moved to .h from .cpp)
+//bool srTMirrorHyperboloid::Validate_t(const TVector3d& inP, const TVector3d& inV, const double& t) //TW19012024
+//{
+//	//OC06032024 (commented-out, otherwise hals of wavefront was not "reflected")
+//	//if(t < 0)
+//	//{
+//	//	return false;
+//	//}
+//
+//	double xi = inP.x + t * inV.x;
+//	double yi = inP.y + t * inV.y;
+//	double zi = inP.z + t * inV.z;
+//
+//	// calculate the zi on the hyperboloid using xi and yi
+//	double zi_calc = 0;
+//	if(!m_isConvex && m_vCenTang.z >= 0) {
+//		zi_calc = HyperboloidHeight(xi, yi);
+//	}
+//	else if(!m_isConvex && m_vCenTang.z < 0) {
+//		zi_calc = HyperboloidHeight(-xi, yi);
+//	}
+//	else if(m_isConvex && m_vCenTang.z >= 0) {
+//		zi_calc = -HyperboloidHeight(xi, yi);
+//	}
+//	else {
+//		zi_calc = -HyperboloidHeight(-xi, yi);
+//	}
+//
+//	bool is_xiyi = (-m_halfDim1 <= xi && xi <= m_halfDim1 && -m_halfDim2 <= yi && yi <= m_halfDim2);
+//	bool is_zi = (zi - zi_calc) < 1e-12;
+//
+//	return (is_xiyi && is_zi);
+//}
+
+//*************************************************************************
+//OC06032024 (moved to .h from .cpp)
+//bool srTMirrorHyperboloid::Which_t(const TVector3d& inP, const TVector3d& inV, const double& t1, const double& t2, double& t) //TW19012024
+//{
+//	bool is_t1_valid = Validate_t(inP, inV, t1);
+//	bool is_t2_valid = Validate_t(inP, inV, t2);
+//
+//	if(!is_t1_valid && !is_t2_valid) {
+//		t = 0;
+//		return false;
+//	}
+//	else {
+//		t = is_t1_valid ? t1 : t2;
+//		return true;
+//	}
+//}
 
 //*************************************************************************
 

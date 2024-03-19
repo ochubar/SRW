@@ -14,6 +14,17 @@
 #ifndef __GMFFT_H
 #define __GMFFT_H
 
+#ifdef _OFFLOAD_GPU //HG10072021
+#include "cufft.h"
+#include "cuda_runtime.h"
+#include "auxgpu.h" //OC06092023
+#endif 
+//#include "auxgpu.h" //OC05092023: to move into "_OFFLOAD_GPU" block?
+
+//#ifndef GPU_COND //OC06092023 ???
+//#define GPU_COND(arg, code) { code }
+//#endif
+
 #ifdef _FFTW3 //OC28012019
 #include "fftw3.h"
 #else
@@ -167,19 +178,53 @@ class CGenMathFFT2D : public CGenMathFFT {
 	float *m_ArrayShiftX, *m_ArrayShiftY; //OC02022019
 	double *m_dArrayShiftX, *m_dArrayShiftY; 
 
+#ifdef _OFFLOAD_GPU //HG04122023
+	static long PlanNx, PlanNy;
+	static long dPlanNx, dPlanNy;
+	static cufftHandle Plan2DFFT_cu;
+	static cufftHandle dPlan2DFFT_cu;
+#endif
+
 public:
 	CGenMathFFT2D()
 	{
 		NeedsShiftBeforeX = NeedsShiftBeforeY = NeedsShiftAfterX = NeedsShiftAfterY = 0;
+#ifdef _OFFLOAD_GPU //HG04122023
+		PlanNx = PlanNy = dPlanNx = dPlanNy = 0;
+		Plan2DFFT_cu = dPlan2DFFT_cu = 0;
+#endif
 	}
+
+#ifdef _OFFLOAD_GPU //HG13012024
+	~CGenMathFFT2D()
+	{
+		if(Plan2DFFT_cu != 0) cufftDestroy(Plan2DFFT_cu);
+		if(dPlan2DFFT_cu != 0) cufftDestroy(dPlan2DFFT_cu);
+	}
+#endif
 
 	//int Make2DFFT(CGenMathFFT2DInfo&);
 	//Modification by S.Yakubov for parallelizing SRW via OpenMP:
 #ifdef _FFTW3 //28012019
-	int Make2DFFT(CGenMathFFT2DInfo&, fftwf_plan* pPrecreatedPlan2DFFT=0, fftw_plan* pdPrecreatedPlan2DFFT=0); //OC02022019
+	int Make2DFFT(CGenMathFFT2DInfo&, fftwf_plan* pPrecreatedPlan2DFFT=0, fftw_plan* pdPrecreatedPlan2DFFT=0, void* pvGPU = 0); //OC05092023
+	//int Make2DFFT(CGenMathFFT2DInfo&, fftwf_plan* pPrecreatedPlan2DFFT=0, fftw_plan* pdPrecreatedPlan2DFFT=0, gpuUsageArg *pGpuUsage = 0); //OC02022019
 	//int Make2DFFT(CGenMathFFT2DInfo&, fftwf_plan* pPrecreatedPlan2DFFT=0);
 #else
 	int Make2DFFT(CGenMathFFT2DInfo&, fftwnd_plan* pPrecreatedPlan2DFFT=0); //OC27102018
+#endif
+
+#ifdef _OFFLOAD_GPU //HG04122023
+	void RepairSignAfter2DFFT_GPU(float* pAfterFFT, long Nx, long Ny);
+	void RotateDataAfter2DFFT_GPU(float* pAfterFFT, long Nx, long Ny);
+	void RepairSignAndRotateDataAfter2DFFT_GPU(float* pAfterFFT, long Nx, long Ny, float Mult=1.f); //to check
+	void NormalizeDataAfter2DFFT_GPU(float* pAfterFFT, long Nx, long Ny, double Mult);
+	void TreatShifts2D_GPU(float* pData, long Nx, long Ny, bool NeedsShiftX, bool NeedsShiftY, float* m_ArrayShiftX, float* m_ArrayShiftY);
+
+	void RepairSignAfter2DFFT_GPU(double* pAfterFFT, long Nx, long Ny);
+	void RotateDataAfter2DFFT_GPU(double* pAfterFFT, long Nx, long Ny);
+	void RepairSignAndRotateDataAfter2DFFT_GPU(double* pAfterFFT, long Nx, long Ny, double Mult=1.);
+	void NormalizeDataAfter2DFFT_GPU(double* pAfterFFT, long Nx, long Ny, double Mult);
+	void TreatShifts2D_GPU(double* pData, long Nx, long Ny, bool NeedsShiftX, bool NeedsShiftY, double* m_ArrayShiftX, double* m_ArrayShiftY);
 #endif
 
 	int AuxDebug_TestFFT_Plans();
@@ -243,7 +288,7 @@ public:
 		//fftwf_complex *t3 = pAfterFFT + HalfNx, *t4 = pAfterFFT + HalfNyNx;
 		//fftwf_complex Buf;
 		T *t1 = pAfterFFT, *t2 = pAfterFFT + (HalfNyNx + HalfNx);
-	    T *t3 = pAfterFFT + HalfNx, *t4 = pAfterFFT + HalfNyNx;
+		T *t3 = pAfterFFT + HalfNx, *t4 = pAfterFFT + HalfNyNx;
 		T Buf;
 
 		for(long jj=0; jj<HalfNy; jj++)
@@ -343,7 +388,7 @@ public:
 		fftwf_complex *t = pAfterFFT;
 		for(long long i=0; i<NxNy; i++)
 		{
-			(*t)[0] *= fMult; (*(t++))[1] *= fMult; 
+			(*t)[0] *= fMult; (*(t++))[1] *= fMult;
 		}
 	}
 	void NormalizeDataAfter2DFFT(fftw_complex* pAfterFFT, double Mult)
@@ -353,7 +398,7 @@ public:
 		fftw_complex *t = pAfterFFT;
 		for(long long i=0; i<NxNy; i++)
 		{
-			(*t)[0] *= Mult; (*(t++))[1] *= Mult; 
+			(*t)[0] *= Mult; (*(t++))[1] *= Mult;
 		}
 	}
 #else
@@ -554,15 +599,60 @@ class CGenMathFFT1D : public CGenMathFFT {
 	char NeedsShiftBeforeX, NeedsShiftAfterX;
 	float *m_ArrayShiftX;
 	double *m_dArrayShiftX; //OC02022019
+#ifdef _OFFLOAD_GPU //HG04122023
+	static long PlanLen, HowMany;
+	static long dPlanLen, dHowMany;
+	static cufftHandle Plan1DFFT_cu;
+	static cufftHandle dPlan1DFFT_cu;
+#endif
 
 public:
 	CGenMathFFT1D()
 	{
 		NeedsShiftBeforeX = NeedsShiftAfterX = 0;
+#ifdef _OFFLOAD_GPU //HG04122023
+		PlanLen = dPlanLen = 0;
+		Plan1DFFT_cu = dPlan1DFFT_cu = 0;
+		HowMany = dHowMany = 0;
+#endif
 	}
 
-	int Make1DFFT(CGenMathFFT1DInfo&);
-	int Make1DFFT_InPlace(CGenMathFFT1DInfo& FFT1DInfo);
+#ifdef _OFFLOAD_GPU //HG13012024
+	~CGenMathFFT1D()
+	{
+		if(Plan1DFFT_cu != 0) cufftDestroy(Plan1DFFT_cu);
+		if(dPlan1DFFT_cu != 0) cufftDestroy(dPlan1DFFT_cu);
+	}
+#endif
+
+	int Make1DFFT(CGenMathFFT1DInfo& FFT1DInfo, void* pvGPU=0); //OC05092023
+	int Make1DFFT_InPlace(CGenMathFFT1DInfo& FFT1DInfo, void* pvGPU=0); //OC05092023
+
+//#ifndef _OFFLOAD_GPU //OC05092023
+//	int Make1DFFT(CGenMathFFT1DInfo& FFT1DInfo);
+//	int Make1DFFT_InPlace(CGenMathFFT1DInfo& FFT1DInfo);
+//#else
+//	int Make1DFFT(CGenMathFFT1DInfo& FFT1DInfo, TGPUUsageArg* pGPU=0);
+//	int Make1DFFT_InPlace(CGenMathFFT1DInfo& FFT1DInfo, TGPUUsageArg* pGPU=0);
+//	//int Make1DFFT(CGenMathFFT1DInfo& FFT1DInfo, gpuUsageArg *pGpuUsage=0); //HG
+//	//int Make1DFFT_InPlace(CGenMathFFT1DInfo& FFT1DInfo, gpuUsageArg *pGpuUsage=0);
+//#endif
+
+#ifdef _OFFLOAD_GPU //HG04122023
+	void RepairSignAfter1DFFT_GPU(float* pAfterFFT, long HowMany, long Nx);
+	void RotateDataAfter1DFFT_GPU(float* pAfterFFT, long HowMany, long Nx);
+	void RepairAndRotateDataAfter1DFFT_GPU(float* pAfterFFT, long HowMany, long Nx, float Mult=1.f);
+	void NormalizeDataAfter1DFFT_GPU(float* pAfterFFT, long HowMany, long Nx, double Mult);
+	void FillArrayShift_GPU(double t0, double tStep, long Nx, float* tShiftX);
+	void TreatShift_GPU(float* pData, long HowMany, long Nx, float* tShiftX);
+
+	void RepairSignAfter1DFFT_GPU(double* pAfterFFT, long HowMany, long Nx);
+	void RotateDataAfter1DFFT_GPU(double* pAfterFFT, long HowMany, long Nx);
+	void RepairAndRotateDataAfter1DFFT_GPU(double* pAfterFFT, long HowMany, long Nx, double Mult=1.);
+	void NormalizeDataAfter1DFFT_GPU(double* pAfterFFT, long HowMany, long Nx, double Mult);
+	void FillArrayShift_GPU(double t0, double tStep, long Nx, double* tShiftX);
+	void TreatShift_GPU(double* pData, long HowMany, long Nx, double* tShiftX);
+#endif
 
 	void SetupLimitsTr(CGenMathFFT1DInfo& FFT1DInfo)
 	{ // Modify this if Make1DFFT is modified !

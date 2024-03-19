@@ -100,7 +100,8 @@ public:
 	srTZonePlate() {}
 
 	//int PropagateRadiation(srTSRWRadStructAccessData* pRadAccessData, int MethNo, srTRadResizeVect& ResBeforeAndAfterVect)
-	int PropagateRadiation(srTSRWRadStructAccessData* pRadAccessData, srTParPrecWfrPropag& ParPrecWfrPropag, srTRadResizeVect& ResBeforeAndAfterVect)
+	//int PropagateRadiation(srTSRWRadStructAccessData* pRadAccessData, srTParPrecWfrPropag& ParPrecWfrPropag, srTRadResizeVect& ResBeforeAndAfterVect)
+	int PropagateRadiation(srTSRWRadStructAccessData* pRadAccessData, srTParPrecWfrPropag& ParPrecWfrPropag, srTRadResizeVect& ResBeforeAndAfterVect, void* pvGPU=0) //HG04122023
 	{
 		//if(ParPrecWfrPropag.AnalTreatment == 1)
 		//{// Treating linear terms analytically
@@ -111,7 +112,8 @@ public:
 		
 		int result = 0;
 
-		if(MethNo == 0) result = PropagateRadiationMeth_0(pRadAccessData);
+		//if(MethNo == 0) result = PropagateRadiationMeth_0(pRadAccessData);
+		if(MethNo == 0) result = PropagateRadiationMeth_0(pRadAccessData, pvGPU); //HG04122023
 		//else return PropagateRadiationMeth_2(pRadAccessData, ResBeforeAndAfterVect);
 		else result = PropagateRadiationMeth_2(pRadAccessData, ParPrecWfrPropag, ResBeforeAndAfterVect);
 
@@ -125,11 +127,14 @@ public:
 
 	//int PropagateRadiationSimple(srTSRWRadStructAccessData* pRadAccessData, void* pBuf=0) //OC06092019
 	//OC01102019 (restored)
-	int PropagateRadiationSimple(srTSRWRadStructAccessData* pRadAccessData)
+	//int PropagateRadiationSimple(srTSRWRadStructAccessData* pRadAccessData)
+	int PropagateRadiationSimple(srTSRWRadStructAccessData* pRadAccessData, void* pvGPU=0) //HG04122023
 	{
 		int result;
-		if(pRadAccessData->Pres != 0) if(result = SetRadRepres(pRadAccessData, 0)) return result;
-		if(result = TraverseRadZXE(pRadAccessData)) return result;
+		//if(pRadAccessData->Pres != 0) if(result = SetRadRepres(pRadAccessData, 0)) return result;
+		if(pRadAccessData->Pres != 0) if(result = SetRadRepres(pRadAccessData, 0, 0, 0, pvGPU)) return result; //HG04122023
+		//if(result = TraverseRadZXE(pRadAccessData)) return result;
+		if(result = TraverseRadZXE(pRadAccessData, 0, 0, pvGPU)) return result; //HG04122023
 		return 0;
 	}
   	int PropagateRadiationSimple1D(srTRadSect1D* pSect1D)
@@ -142,7 +147,15 @@ public:
 
 	int PropagateRadMoments(srTSRWRadStructAccessData* pRadAccessData, srTMomentsRatios* MomRatArray)
 	{
-		SetupFocalDistForPhotonEnergy(pRadAccessData->eStart);
+		//OC10032024
+		double eHalfRange = 0.;
+		if(pRadAccessData->ne > 1)
+		{
+			eHalfRange = 0.5*(pRadAccessData->eStep)*(pRadAccessData->ne - 1);
+		}
+
+		SetupFocalDistForPhotonEnergy(pRadAccessData->eStart + eHalfRange); //OC10032024
+		//SetupFocalDistForPhotonEnergy(pRadAccessData->eStart);
 		return srTFocusingElem::PropagateRadMoments(pRadAccessData, MomRatArray);
 	}
 
@@ -151,9 +164,10 @@ public:
         FocDistX = FocDistZ = 1.E+23;
 		if(ePh <= 0.) return;
 
-		//double Wavelength_m = (1.239842E-06)/ePh; // assuming ePh in eV
-		//FocDistX = RnMax*RnMax/(Nzones*Wavelength_m); 
-		//FocDistZ = FocDistX;
+		//OC10032024 (uncommented the following)
+		double Wavelength_m = (1.239842E-06)/ePh; // assuming ePh in eV
+		FocDistX = RnMax*RnMax/(Nzones*Wavelength_m); 
+		FocDistZ = FocDistX;
 	}
 
 	void RadPointModifier(srTEXZ& EXZ, srTEFieldPtrs& EPtrs, void* pBufVars=0) //OC29082019

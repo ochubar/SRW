@@ -28,7 +28,8 @@ struct srTWaveguideRectPropBufVars {
 	double xStartTr, zStartTr;
 	double xStepTr, zStepTr;
 	double xFractStepTr, zFractStepTr;
-	long HalfNx, HalfNz;
+	long HalfNx, HalfNz; //OC24012024 (rolled back)
+	//long long HalfNx, HalfNz; //OC03082023
 	//double Inv_xRangeTr, Inv_zRangeTr;
 	double Inv_xStepTr, Inv_zStepTr;
 
@@ -134,7 +135,8 @@ public:
 	}
 
 	//int PropagateRadiation(srTSRWRadStructAccessData* pRadAccessData, int MethNo, srTRadResizeVect& ResizeBeforeAndAfterVect)
-	int PropagateRadiation(srTSRWRadStructAccessData* pRadAccessData, srTParPrecWfrPropag& ParPrecWfrPropag, srTRadResizeVect& ResizeBeforeAndAfterVect)
+	//int PropagateRadiation(srTSRWRadStructAccessData* pRadAccessData, srTParPrecWfrPropag& ParPrecWfrPropag, srTRadResizeVect& ResizeBeforeAndAfterVect)
+	int PropagateRadiation(srTSRWRadStructAccessData* pRadAccessData, srTParPrecWfrPropag& ParPrecWfrPropag, srTRadResizeVect& ResizeBeforeAndAfterVect, void* pvGPU=0) //HG04122023
 	{
 		//Checks current sampling "resolution" in hor. and vert. directions
 		//Makes necessary sampling for propag. through the waveguide (fit the waveguide with approx. the same resolution, include all harmonics until the cut-off)
@@ -151,7 +153,8 @@ public:
 		if(result = PropagateRadiationSimple_AngRepres(&AuxWfrData)) return result;
 
 		srTRectAperture RectAp(Dx, Dz, TransvCenPoint.x, TransvCenPoint.y);
-		if(result = RectAp.TraverseRadZXE(&AuxWfrData)) return result;
+		//if(result = RectAp.TraverseRadZXE(&AuxWfrData)) return result;
+		if(result = RectAp.TraverseRadZXE(&AuxWfrData, 0, 0, pvGPU)) return result; //HG04122023
 
 		if(result = CopyElecFieldDataForOut(AuxWfrData, *pRadAccessData)) return result;
 		AuxWfrData.DeleteElecFieldArrays(); //deletes Ex, Ez only
@@ -242,15 +245,19 @@ public:
 	int HarmExists(double x, double z, double Lambda_m)
 	{
 		//long ix = (long)(x + BufVars.xFractStepTr - BufVars.xStartTr)*BufVars.Inv_xRangeTr;
-		long ix = (long)((x + BufVars.xFractStepTr - BufVars.xStartTr)*BufVars.Inv_xStepTr);
+		long ix = (long)((x + BufVars.xFractStepTr - BufVars.xStartTr)*BufVars.Inv_xStepTr); //OC24012024 (rolled back)
+		//long long ix = (long long)((x + BufVars.xFractStepTr - BufVars.xStartTr)*BufVars.Inv_xStepTr); //OC03082023
 
-		long xHarmNum = BufVars.HalfNx - ix;
+		long xHarmNum = BufVars.HalfNx - ix; //OC24012024 (rolled back)
+		//long long xHarmNum = BufVars.HalfNx - ix; //OC03082023
 		if(BufVars.PropagInFreeSpaceHoriz) xHarmNum = 0;
 
 		//long iz = (long)(z + BufVars.zFractStepTr - BufVars.zStartTr)*BufVars.Inv_zRangeTr;
-		long iz = (long)((z + BufVars.zFractStepTr - BufVars.zStartTr)*BufVars.Inv_zStepTr);
+		long iz = (long)((z + BufVars.zFractStepTr - BufVars.zStartTr)*BufVars.Inv_zStepTr); //OC24012024 (rolled back)
+		//long long iz = (long long)((z + BufVars.zFractStepTr - BufVars.zStartTr)*BufVars.Inv_zStepTr); //OC03082023
 
-		long zHarmNum = BufVars.HalfNz - iz;
+		long zHarmNum = BufVars.HalfNz - iz; //OC24012024 (rolled back)
+		//long long zHarmNum = BufVars.HalfNz - iz; //OC03082023
 		if(BufVars.PropagInFreeSpaceVert) zHarmNum = 0;
 
 		return (Lambda_m*Lambda_m*(xHarmNum*xHarmNum*BufVars.InvDxe2 + zHarmNum*zHarmNum*BufVars.InvDze2) < 4.)? 1 : 0;
