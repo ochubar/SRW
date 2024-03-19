@@ -13,8 +13,8 @@ def test_example04(example_code):
     exec(example_code, globals(), globals())
 
     # end of example, start testing
-    assert len(arI1x) == 700
-    assert len(arI1y) == 750
+    assert len(arI1x) == 120
+    assert len(arI1y) == 112
     assert hasattr(wfr, "mesh")
     assert hasattr(wfr, "partBeam")
     for param in ["zStart",

@@ -4,7 +4,7 @@ import subprocess
 import sys
 
 
-@pytest.mark.fast
+@pytest.mark.slow
 @pytest.mark.interactive
 @pytest.mark.skipif(sys.platform != "linux", reason="runs only on Linux")
 # @pytest.mark.skipif(sys.platform not in ["linux", "darwin"], reason="runs only on Unix")

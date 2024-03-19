@@ -1,0 +1,6 @@
+mpi4py
+oasys_srw
+primme
+pykern
+mpld3
+scikit-image

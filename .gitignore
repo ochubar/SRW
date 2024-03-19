@@ -19,6 +19,8 @@ docs/build/
 # Compiled libraries
 *.a
 *.so
+*.pyd
 
+.vscode/
 __srwl_logs__/
 uti_plot*.png

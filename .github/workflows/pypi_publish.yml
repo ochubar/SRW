@@ -1,0 +1,160 @@
+name: PyPI Publish
+
+on:
+  release:
+    types: [published]
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build-n-publish:
+    # pull requests are a duplicate of a branch push if within the same repo.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
+
+    name: ${{ matrix.host-os }} / Python ${{ matrix.python-version }} / OpenMP ${{ matrix.openmp }}
+    runs-on: ${{ matrix.host-os }}
+    strategy:
+      matrix:
+        host-os: ["ubuntu-latest", "macos-latest", "windows-latest"]
+        python-version: ["3.8", "3.9", "3.10", "3.11"]
+        openmp: ["off"]
+      fail-fast: false
+
+    defaults:
+      run:
+        shell: bash -l {0}
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set OpenMP mode
+        if: matrix.openmp == 'on'
+        run: |
+          export MODE="omp"
+          echo "MODE=${MODE}" >> $GITHUB_ENV
+
+      - name: Set MacOS Deployment Target
+        if: runner.os == 'macOS'
+        run: |
+          export MACOSX_DEPLOYMENT_TARGET="10.15"
+          echo "MACOSX_DEPLOYMENT_TARGET=${MACOSX_DEPLOYMENT_TARGET}" >> $GITHUB_ENV
+
+      - uses: conda-incubator/setup-miniconda@v2
+        with:
+          activate-environment: testenv
+          allow-softlinks: true
+          auto-activate-base: false
+          auto-update-conda: true
+          channel-priority: flexible
+          channels: conda-forge
+          miniconda-version: "latest"
+          python-version: ${{ matrix.python-version }}
+          show-channel-urls: true
+          use-only-tar-bz2: false
+
+      - name: Set up Visual Studio shell
+        if: runner.os == 'Windows'
+        uses: egor-tensin/vs-shell@v2
+        with:
+          arch: x64
+
+      - name: Install build requirements with conda
+        if: runner.os != 'Linux'
+        run: |
+          set -vxeuo pipefail
+          conda install -y cmake
+
+      - name: Install OpenMP for macOS with conda
+        if: runner.os == 'macOS' && matrix.openmp == 'on'
+        run: |
+          set -vxeuo pipefail
+          conda install -y -c conda-forge llvm-openmp
+
+      # NOTE: This step is not needed for fast tests.
+      # - name: Install mpi4py for Unix with conda
+      #   if: runner.os != 'Windows'
+      #   run: |
+      #     set -vxeuo pipefail
+      #     conda install -y -c conda-forge mpi4py openmpi
+
+      - name: Install cibuildwheel on Linux
+        if: runner.os == 'Linux'
+        run: |
+          set -vxeuo pipefail
+          python -m pip install --upgrade pip
+          python -m pip install cibuildwheel
+          echo "CIBW_BEFORE_ALL=pip install cmake" >> $GITHUB_ENV
+          PYTH_VER=${{ matrix.python-version }}
+          PYTH_VER=${PYTH_VER//.}
+          echo "CIBW_BUILD="cp$PYTH_VER-manylinux*"" >> $GITHUB_ENV
+
+      - name: Build wheel on Linux
+        if: runner.os == 'Linux'
+        run: |
+          set -vxeuo pipefail
+          python -VV
+          python -m cibuildwheel --output-dir dist env/python
+          ls -la dist/*
+
+      - name: Build wheel on Windows/Mac
+        if: runner.os != 'Linux'
+        run: |
+          set -vxeuo pipefail
+          cd env/python
+          python -VV
+          python setup.py bdist_wheel
+          ls -la dist/*
+          mkdir -p ../../dist
+          cp dist/*.whl ../../dist/
+
+      - name: Publish wheels to GitHub artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: wheels
+          path: dist/*
+
+      - name: Install the package and test requirements
+        run: |
+          set -vxeuo pipefail
+          pip install -v dist/*64.whl
+
+          # Smoke import test:
+          python -c "import srwpy; import srwpy.srwlpy"
+
+          # Check CLI tools:
+          srw-viewer --help
+
+          python -m pip install -r env/python/requirements-dev.txt
+          python -m pip list
+
+      - name: Run fast tests
+        run: |
+          set -vxeuo pipefail
+          cd env/python
+          pytest -k fast
+
+  publish-to-pypi:
+    # Hints from:
+    #   - https://github.com/pypa/gh-action-pypi-publish/discussions/28
+    #   - https://github.com/Lightning-AI/lightning/blob/master/.github/workflows/release-pypi.yml
+    if: github.event_name == 'release'
+    name: Publish to PyPI
+    needs: build-n-publish
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Download wheels from GitHub artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: wheels
+          path: dist/
+
+      - name: Publish wheels to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: ./dist/
