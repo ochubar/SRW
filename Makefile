@@ -81,3 +81,4 @@ clean:
 	if [ -d $(root_dir)/.git ]; then rm -f $(examples_dir)/srwlpy*.so && (git checkout $(examples_dir)/srwlpy*.so 2>/dev/null || :); fi;
 
 .PHONY: all clean core fftw nofftw pylib
+
