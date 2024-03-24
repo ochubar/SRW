@@ -285,6 +285,11 @@ CErrWarn::CErrWarn()
 	warning.push_back("Electron beam is not ultra-relativistic. The resulting accuracy may be poor.");
 	warning.push_back("To calculate emission at harmonics (HGHG), this version of GENESIS requires Electron Distribution data."); //#define GENESIS_RAD_HARM_CALC_NEEDS_ELEC_DISTRIB 24 + SRW_WARNINGS_OFFSET
 	warning.push_back("Zero wavefront radius of curvature was submitted; the corresponding quadratic phase term was not treated."); //#define ZERO_WFR_RAD_CURV_PH_TERM_NOT_TREATED 25 + SRW_WARNINGS_OFFSET
+#ifdef _OFFLOAD_GPU //HG21032024
+	warning.push_back("GPU usage is requested, but GPU offloading failed. Computation will be performed on CPU."); //#define GPU_COMPUTATION_FAILED 26 + SRW_WARNINGS_OFFSET
+#else
+	warning.push_back("GPU usage is requested, but GPU offloading is not compiled in. Computation will be performed on CPU."); //#define GPU_COMPUTATION_FAILED 26 + SRW_WARNINGS_OFFSET
+#endif
 
 //};
 }

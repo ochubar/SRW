@@ -768,8 +768,8 @@ EXP int CALL srwlCalcIntFromElecField(char* pInt, SRWLWfr* pWfr, char polar, cha
 
 //HG26022024 (commented-out)
 //#ifdef _OFFLOAD_GPU //HG07022024
-//	srwlUtiGPUProc(1, arParGPU); //OC20022024
-//	//srwlUtiGPUProc(1, pvGPU); //initialize GPU
+	srwlUtiGPUProc(1, arParGPU); //HG21042024 Uncommented (required, must've been missed in previous exchanges) //OC20022024
+	//srwlUtiGPUProc(1, pvGPU); //initialize GPU
 //#endif
 
 	SRWLPrtTrj *pTrj=0; //OC23022020
@@ -1032,10 +1032,10 @@ EXP int CALL srwlPropagElecField(SRWLWfr* pWfr, SRWLOptC* pOpt, int nInt, char**
 	//double start;
 	//get_walltime (&start);
 
-#ifdef _OFFLOAD_GPU //HG07022024
+//#ifdef _OFFLOAD_GPU  //HG21032024 (commented-out) //HG07022024
 	srwlUtiGPUProc(1, arParGPU); //OC20022024
 	//srwlUtiGPUProc(1, pvGPU);
-#endif
+//#endif //HG21032024 (commented-out)
 	try 
 	{
 		srTCompositeOptElem optCont(*pOpt);
@@ -1109,10 +1109,10 @@ EXP int CALL srwlUtiFFT(char* pcData, char typeData, double* arMesh, int nMesh, 
 		if(ny > 1) dimFFT = 2;
 		//float *pfData = (float*)pcData; //OC31012019 (commented-out)
 
-#ifdef _OFFLOAD_GPU //HG07022024
+//#ifdef _OFFLOAD_GPU //HG21032024 (commented-out) //HG07022024
 		srwlUtiGPUProc(1, arParGPU); //OC20022024
 		//srwlUtiGPUProc(1, pvGPU);
-#endif
+//#endif //HG21032024 (commented-out)
 
 		if(dimFFT == 1)
 		{
@@ -1609,7 +1609,33 @@ EXP int CALL srwlUtiGPUProc(int op, double* arParGPU) //OC20022024
 {
 #ifdef _OFFLOAD_GPU //HG07022024
 	if(op == 0) CAuxGPU::Fini();
-	if(op == 1) CAuxGPU::Init();
+	//if(op == 1) CAuxGPU::Init();
+	if(op == 1) //HG22032024
+	{
+		CAuxGPU::Init();
+		if(arParGPU != 0 && arParGPU[0] > 0 && arParGPU[1] > 0) //HG07022024
+		{
+			//Check if any GPU is available
+			if(!CAuxGPU::GPUAvailable())
+			{
+				CErrWarn::AddWarningMessage(&gVectWarnNos, GPU_COMPUTATION_FAILED);
+				return 0;
+			}
+
+			//Make sure that the specific GPU index requested is available
+			TGPUUsageArg parGPU(arParGPU);
+			if(!CAuxGPU::GPUEnabled(&parGPU))
+			{
+				CErrWarn::AddWarningMessage(&gVectWarnNos, GPU_COMPUTATION_FAILED);
+				return 0;
+			}
+		}
+	}
+#else
+	//Emits warning message that GPU offloading is not compiled in if GPU is requested during initialization
+	if(arParGPU != 0 && arParGPU[0] > 0 && arParGPU[1] > 0 && op == 1)
+		CErrWarn::AddWarningMessage(&gVectWarnNos, GPU_COMPUTATION_FAILED);
+
 #endif //HG07022024
 	return 0;
 }

@@ -57,7 +57,6 @@ def main(): #HG22032024
     uti_plot_data_file(opt.infile, opt.readlab, opt.e, opt.x, opt.y, opt.joined,
                        opt.multicol_data, opt.multicol_data_col_x, opt.multicol_data_col_y, #OC14112017 #MR31102017
                        opt.scale, opt.width_pixels)
-
     uti_plot_show()
 
 if __name__=='__main__': #HG22032024
