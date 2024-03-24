@@ -86,7 +86,7 @@ with open(os.path.join(base_dir, 'requirements.txt')) as requirements_file:
                     if not line.startswith('#')]
 
 setup(name='srwpy',
-      version='4.0.0b1',
+      version='4.1.0', #'4.0.0b1',
       description='This is SRW for Python',
       author='O. Chubar et al.',
       author_email='chubar@bnl.gov',
