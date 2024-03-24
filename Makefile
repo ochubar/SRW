@@ -23,6 +23,12 @@ examples_dir = env/python/srwpy/examples
 #example10_data_dir = $(examples_dir)/data_example_10
 export MODE ?= 0
 
+#HG20042024
+ifeq ($(MODE), cuda)
+export CUDA_PATH ?= /usr/local/cuda
+export CUDA_MATHLIBS_PATH ?= /usr/local/cuda
+endif
+
 nofftw: core pylib
 
 all: clean fftw core pylib

@@ -253,16 +253,16 @@ pip install -e .
 
 ## VI. GPU Acceleration of SRW
 
-SRW has basic support for GPU acceleration of some routines through CUDA. Compilation of SRW with GPU acceleration requires the CUDA HPC SDK to be installed and, on Linux can be performed with:
+SRW has basic support for GPU acceleration of some routines through CUDA. Compilation of SRW with GPU acceleration requires the CUDA HPC SDK or CUDA Toolkit to be installed. 
+To compile on Linux, run the following from the SRW base directory:
 
 ```bash
 MODE=cuda make
 ```
 
-To compile on Windows, open the SRW solution in Visual Studio, set the target to the `_cuda` variants and update the library and include paths for the SRWLIB project. You may also have to copy the following DLLs from the HPC SDK install into the env/python/srwpy directory:
+To compile on Windows, ensure that CUDA Toolkit v12.4 is installed, open the SRW solution in Visual Studio, set the target for the SRWLIB project to the `_cuda` variant and update the library and include paths. You may also have to copy the following DLLs from the HPC SDK or CUDA Toolkit install into the env/python/srwpy directory to resolve the `DLL load failed while importing srwlpy` error:
 
-- cudart64_110.dll
-- cufft64_10.dll
+- cufft64_11.dll
 
 ## Authors and Contributors to SRW project
 

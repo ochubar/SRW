@@ -4,6 +4,8 @@ SRW_SRC_GEN_DIR=$(SRW_SRC_DIR)/core
 SRW_SRC_LIB_DIR=$(SRW_SRC_DIR)/lib
 SRW_SRC_GENESIS_DIR=$(SRW_SRC_DIR)/ext/genesis/genesis_july08
 SH_SRC_PARSE_DIR=$(SRW_SRC_DIR)/ext/auxparse
+#HG20032024
+SH_SRC_AUXGPU_DIR=$(SRW_SRC_DIR)/ext/auxgpu 
 SH_SRC_GEN_MATH_DIR=$(SRW_SRC_DIR)/ext/genmath
 LIB_DIR=$(SOFT_DEV_DIR)/../ext_lib
 
@@ -47,8 +49,9 @@ CUDA_INCLUDES = -I$(CUDA_PATH)/include -I$(CUDA_MATHLIBS_PATH)/include
 CUDA_LIBS = -L$(CUDA_PATH)/lib64 -L$(CUDA_MATHLIBS_PATH)/lib64
 
 SRW_SRC_DEF += -D_OFFLOAD_GPU -DUSE_CUDA -D_FFTW3
-SRW_INCLUDES += $(CUDA_INCLUDES) 
-#SRW_CFLAGS += -std=c++17 #HG01012024
+#HG20032024 Add SH_SRC_AUXGPU_DIR to SRW_INCLUDES
+SRW_INCLUDES += $(CUDA_INCLUDES) -I$(SH_SRC_AUXGPU_DIR)
+#SRW_CFLAGS += -std=c++17 #HG01012023
 LDFLAGS += $(CUDA_LIBS) -lcudart_static -lcudadevrt -lcufft -lrt
 NVCFLAGS = -O3 -arch=sm_80 -dlto -rdc=true
 CUDA_OBJ=gmfft_gpu.o srradstr_gpu.o sroptelm_gpu.o sroptdrf_gpu.o sroptgtr_gpu.o srradmnp_gpu.o
@@ -127,6 +130,10 @@ lib: $(CUDA_OBJ) $(OBJ)
 
 %.o: $(SRW_SRC_GEN_DIR)/%.cu
 	$(NVCC) -dc $(NVCFLAGS) $(SRW_INCLUDES) $(SRW_SRC_DEF) -Xcompiler="$(CFLAGS)" -c $<
+
+#HG20032024
+%.o: $(SH_SRC_AUXGPU_DIR)/%.cpp
+	$(CXX) $(CFLAGS) -c $<  
 
 else
 lib:	$(OBJ)

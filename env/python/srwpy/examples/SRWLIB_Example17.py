@@ -190,15 +190,19 @@ srwl_uti_save_intens_ascii(
 
 #***********Wavefront Propagation
 print('   Propagating wavefront ... ', end='')
+tryUsingGPU = 1 #0 #Set to 1 if GPU should be used, 0 otherwise #OC21032024
+if(tryUsingGPU): print('trying to use GPU ... ', end='')
 t = time.time()
-srwl.PropagElecField(wfr, opBL)
+srwl.PropagElecField(wfr, opBL, None, tryUsingGPU)
+#srwl.PropagElecField(wfr, opBL)
 print('done in', round(time.time() - t), 's')
 
 print('   Extracting, projecting propagated wavefront intensity on detector and saving it to file ... ', end='')
 t = time.time()
 mesh1 = deepcopy(wfr.mesh)
 arI1 = array('f', [0]*mesh1.nx*mesh1.ny) #"flat" array to take 2D intensity data
-srwl.CalcIntFromElecField(arI1, wfr, 6, 0, 3, mesh1.eStart, 0, 0) #extracts intensity
+srwl.CalcIntFromElecField(arI1, wfr, 6, 0, 3, mesh1.eStart, 0, 0, None, None, tryUsingGPU) #extracts intensity (eventually using GPU)
+#srwl.CalcIntFromElecField(arI1, wfr, 6, 0, 3, mesh1.eStart, 0, 0) #extracts intensity
 
 stkDet = det.treat_int(arI1, _mesh = mesh1) #"Projecting" intensity on detector (by interpolation)
 mesh1 = stkDet.mesh; arI1 = stkDet.arS

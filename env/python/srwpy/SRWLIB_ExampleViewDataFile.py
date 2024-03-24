@@ -15,7 +15,8 @@ except:
 import optparse
 import os
 
-if __name__=='__main__':
+def main(): #HG22032024
+#if __name__=='__main__':
     p = optparse.OptionParser()
     p.add_option('-f', '--infile', dest='infile', metavar='FILE', default='', help='input file name')
     p.add_option('-e', '--e', dest='e', metavar='NUMBER', type='float', default=0, help='photon energy')
@@ -58,3 +59,6 @@ if __name__=='__main__':
                        opt.scale, opt.width_pixels)
 
     uti_plot_show()
+
+if __name__=='__main__': #HG22032024
+    main()

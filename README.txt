@@ -144,6 +144,29 @@ IV. Compiling and testing SRW Library and its Python binding on Mac OSX.
 	sudo port install gcc47
 	Modify the SRW_Dev/cpp/gcc/Makefile so that CC=<path to macports>/gcc and CXX=<path to macports>/g++, and proceed to the compilation as described in III.1.2.2.	
 
+V. Compiling and testing SRW Library and its Python binding on Windows and Linux (via CMake/Pip)
+------------------------------------------------------------------
+
+	Run the following in a Visual Studio Developer Command Line/Linux Terminal:
+
+	cmake -B build
+	cmake --build build -j
+
+	The pip installable version of the package can be obtained by running the following in a Visual Studio Developer Command Line/Linux Terminal:
+
+	cd env/python
+	pip install -e .
+
+VI. GPU Acceleration of SRW
+------------------------------------------------------------------
+
+	SRW has basic support for GPU acceleration of some routines through CUDA. Compilation of SRW with GPU acceleration requires the CUDA HPC SDK or CUDA Toolkit to be installed. 
+	To compile on Linux, run the following from the SRW base directory:
+
+	MODE=cuda make
+
+	To compile on Windows, ensure that CUDA Toolkit v12.4 is installed, open the SRW solution in Visual Studio, set the target for the SRWLIB project to the `_cuda` variant and update the library and include paths. You may also have to copy the following DLLs from the HPC SDK or CUDA Toolkit install into the env/python/srwpy directory to resolve the `DLL load failed while importing srwlpy` error:
+	- cufft64_11.dll
 
 Authors and Contributors to SRW project:
 ----------------------------------------
