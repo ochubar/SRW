@@ -801,8 +801,11 @@ public:
 			char AnglesXAreSmall = (xMagn < CritRatTransvLong*(::fabs(RobsX)));
 			char AnglesZAreSmall = (zMagn < CritRatTransvLong*(::fabs(RobsZ)));
 
-			WfrQuadTermCanBeTreatedAtResizeX = (AnglesXAreSmall && RobsXErrIsSmall);
-			WfrQuadTermCanBeTreatedAtResizeZ = (AnglesZAreSmall && RobsZErrIsSmall);
+			//WfrQuadTermCanBeTreatedAtResizeX = (AnglesXAreSmall && RobsXErrIsSmall);
+			//WfrQuadTermCanBeTreatedAtResizeZ = (AnglesZAreSmall && RobsZErrIsSmall);
+			//OCTEST20092024 (trying to drop he small angle requirement - perhaps it's not really necessary, consider spherical wave e.g.)
+			WfrQuadTermCanBeTreatedAtResizeX = (RobsXErrIsSmall);
+			WfrQuadTermCanBeTreatedAtResizeZ = (RobsZErrIsSmall);
 
 			return (WfrQuadTermCanBeTreatedAtResizeX || WfrQuadTermCanBeTreatedAtResizeZ);
 		}

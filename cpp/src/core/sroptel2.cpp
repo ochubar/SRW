@@ -105,6 +105,11 @@ int srTGenOptElem::PropagateRadiationMeth_0(srTSRWRadStructAccessData* pRadAcces
 			pRadDataSingleE->xStep = pRadAccessData->xStep;
 			pRadDataSingleE->zStart = pRadAccessData->zStart;
 			pRadDataSingleE->zStep = pRadAccessData->zStep;
+
+			pRadDataSingleE->xWfrMin = pRadAccessData->xWfrMin; //HG23072024 (fix of a crash at propagation "from waist")
+			pRadDataSingleE->xWfrMax = pRadAccessData->xWfrMax;
+			pRadDataSingleE->zWfrMin = pRadAccessData->zWfrMin;
+			pRadDataSingleE->zWfrMax = pRadAccessData->zWfrMax;
 		}
 		if(pPrevRadDataSingleE != 0)
 		{
@@ -121,7 +126,25 @@ int srTGenOptElem::PropagateRadiationMeth_0(srTSRWRadStructAccessData* pRadAcces
 
 		if(pRadDataSingleE != pRadAccessData)
 		{
-			if(result = UpdateGenRadStructSliceConstE_Meth_0(pRadDataSingleE, ie, pRadAccessData)) return result;
+			if(ie > 0) //OC23072024
+			{
+				srTSRWRadStructAccessData &prevRadDataSingleE = vRadSlices[ie - 1];
+				if(!gridParamWereModifInSlices)
+				{
+					if((pRadDataSingleE->nx != prevRadDataSingleE.nx) || (pRadDataSingleE->xStart != prevRadDataSingleE.xStart) || (pRadDataSingleE->xStep != prevRadDataSingleE.xStep)) gridParamWereModifInSlices = true;
+				}
+				if(!gridParamWereModifInSlices)
+				{
+					if((pRadDataSingleE->nz != prevRadDataSingleE.nz) || (pRadDataSingleE->zStart != prevRadDataSingleE.zStart) || (pRadDataSingleE->zStep != prevRadDataSingleE.zStep)) gridParamWereModifInSlices = true;
+				}
+			}
+
+			//if(result = UpdateGenRadStructSliceConstE_Meth_0(pRadDataSingleE, ie, pRadAccessData)) return result;
+			//HG23072024 (fix of a crash at propagation "from waist"):
+			//OC: does "ie < (neOrig - 1)" cast to 0 or 1 only (never 2)?
+			if(result = UpdateGenRadStructSliceConstE_Meth_0(pRadDataSingleE, ie, pRadAccessData, ie < (neOrig - 1))) return result; //Updating slice data is required even if it is re-interpolated later
+
+			//if(result = UpdateGenRadStructSliceConstE_Meth_0(pRadDataSingleE, ie, pRadAccessData, ie < (neOrig - 1))) return result;
 			//the above doesn't change the transverse grid parameters in *pRadAccessData
 
 			//vRadSlices.push_back(*pRadDataSingleE); //this automatically calls destructor, which can eventually delete "emulated" structs!
@@ -129,9 +152,10 @@ int srTGenOptElem::PropagateRadiationMeth_0(srTSRWRadStructAccessData* pRadAcces
 			srTSRWRadStructAccessData copyRadDataSingleE(*pRadDataSingleE, false); //OC290813 fixing memory leak(?) //this doesn't assume to copy pBaseRadX, pBaseRadZ
 			copyRadDataSingleE.pBaseRadX = copyRadDataSingleE.pBaseRadZ = 0; copyRadDataSingleE.BaseRadWasEmulated = false;
 			vRadSlices.push_back(copyRadDataSingleE);
-			
-			if((pRadDataSingleE->nx != pRadAccessData->nx) || (pRadDataSingleE->xStart != pRadAccessData->xStart) || (pRadDataSingleE->xStep != pRadAccessData->xStep)) gridParamWereModifInSlices = true;
-			if((pRadDataSingleE->nz != pRadAccessData->nz) || (pRadDataSingleE->zStart != pRadAccessData->zStart) || (pRadDataSingleE->zStep != pRadAccessData->zStep)) gridParamWereModifInSlices = true;
+
+			//OC23072024 (commented-out)
+			//if((pRadDataSingleE->nx != pRadAccessData->nx) || (pRadDataSingleE->xStart != pRadAccessData->xStart) || (pRadDataSingleE->xStep != pRadAccessData->xStep)) gridParamWereModifInSlices = true;
+			//if((pRadDataSingleE->nz != pRadAccessData->nz) || (pRadDataSingleE->zStart != pRadAccessData->zStart) || (pRadDataSingleE->zStep != pRadAccessData->zStep)) gridParamWereModifInSlices = true;
 		}
 	}
 
@@ -142,6 +166,20 @@ int srTGenOptElem::PropagateRadiationMeth_0(srTSRWRadStructAccessData* pRadAcces
 	if(gridParamWereModifInSlices)
 	{//to test!
 		if(result = ReInterpolateWfrDataOnNewTransvMesh(vRadSlices, pRadDataSingleE, pRadAccessData)) return result;
+	}
+	else
+	{//OC23072024
+		if((pRadDataSingleE != 0) && (pRadDataSingleE != pRadAccessData))
+		{
+			pRadAccessData->xStart = pRadDataSingleE->xStart;
+			pRadAccessData->xStep = pRadDataSingleE->xStep;
+			pRadAccessData->zStart = pRadDataSingleE->zStart;
+			pRadAccessData->zStep = pRadDataSingleE->zStep;
+			pRadAccessData->xWfrMin = pRadDataSingleE->xWfrMin;
+			pRadAccessData->xWfrMax = pRadDataSingleE->xWfrMax;
+			pRadAccessData->zWfrMin = pRadDataSingleE->zWfrMin;
+			pRadAccessData->zWfrMax = pRadDataSingleE->zWfrMax;
+		}
 	}
 
 	if((pRadDataSingleE != 0) && (pRadDataSingleE != pRadAccessData)) delete pRadDataSingleE;

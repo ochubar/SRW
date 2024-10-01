@@ -155,7 +155,8 @@ class SRWLBeamline(object):
     #------------------------------------------------------------------------
     def set_e_beam(self, _e_beam_name='', _e_beam=None, _i=-1, _ens=-1, _emx=-1, _emy=-1, _dr=0, _x=0, _y=0, _xp=0, _yp=0, _e=None, _de=0,
                    _betax=None, _alphax=None, _etax=None, _etaxp=None, _betay=None, _alphay=None, _etay=0, _etayp=0,
-                   _sigx=None, _sigxp=None, _mxxp=None, _sigy=None, _sigyp=None, _myyp=None):
+                   _sigx=None, _sigxp=None, _mxxp=None, _sigy=None, _sigyp=None, _myyp=None, _z=None): #OC23092024 (allowed setting z-coordinate of initial conditions for the case of presence of quads)
+                   #_sigx=None, _sigxp=None, _mxxp=None, _sigy=None, _sigyp=None, _myyp=None):
         """Setup Electron Beam
 
         :param _e_beam_name: e-beam unique name, e.g. 'NSLS-II Low Beta Day 1' (see srwl_uti_src.py)
@@ -292,6 +293,7 @@ class SRWLBeamline(object):
         if(_y is not None): self.eBeam.partStatMom1.y = _y
         if(_xp is not None): self.eBeam.partStatMom1.xp = _xp
         if(_yp is not None): self.eBeam.partStatMom1.yp = _yp
+        if(_z is not None): self.eBeam.partStatMom1.z = _z #OC23092024
         
         if((_dr is not None) and (_dr != 0)): self.eBeam.drift(_dr) #OC16032017 (see above)
 
@@ -878,12 +880,19 @@ class SRWLBeamline(object):
             if(self.mag_approx is None): raise Exception('Approximate Magnetic Field is not defined')
         elif(_mag_type == 2):
             if(self.mag is None): raise Exception('Magnetic Field is not defined')
+        elif(_mag_type == 3): #OC07092024
+            if((self.mag_approx is None) and (self.mag is None)): raise Exception('Magnetic Field is not defined')            
         else: raise Exception('Incorrect Magnetic Field type identificator')
 
         magToUse = self.mag_approx
         if(_mag_type == 2):
             magToUse = self.mag
             #print('Using tabulated magnetic field...')
+        elif(_mag_type == 3): #OC07092024
+            if magToUse is None: magToUse = self.mag
+            elif self.mag is not None: 
+                magToUse = deepcopy(self.mag_approx)
+                magToUse.combine(self.mag)
 
         nTot = _nx*_ny*_nz
         aux = [0]*nTot
@@ -915,6 +924,7 @@ class SRWLBeamline(object):
         :param _mag_type: "type" of magnetic field to use: 
             1- "Approximate", referenced by self.mag_approx; 
             2- "Accurate" (tabulated), referenced by self.mag; 
+            3- "Combined", i.e. referenced by self.mag and self.mag_approx (test); 
         :param _fname: name of file to save the resulting data to (for the moment, in ASCII format)
         :return: trajectory structure
         """
@@ -925,12 +935,19 @@ class SRWLBeamline(object):
             if(self.mag_approx is None): raise Exception('Approximate Magnetic Field is not defined')
         elif(_mag_type == 2):
             if(self.mag is None): raise Exception('Magnetic Field is not defined')
+        elif(_mag_type == 3): #OC07092024
+            if((self.mag_approx is None) and (self.mag is None)): raise Exception('Magnetic Field is not defined')
         else: raise Exception('Incorrect Magnetic Field type identificator')
 
         magToUse = self.mag_approx
         if(_mag_type == 2):
             magToUse = self.mag
             #print('Using tabulated magnetic field...')
+        elif(_mag_type == 3): #OC07092024
+            if magToUse is None: magToUse = self.mag
+            elif self.mag is not None: 
+                magToUse = deepcopy(self.mag_approx)
+                magToUse.combine(self.mag)
 
         partTraj = SRWLPrtTrj()
         partTraj.partInitCond = self.eBeam.partStatMom1
@@ -1042,6 +1059,7 @@ class SRWLBeamline(object):
         :param _mag_type: "type" of magnetic field to use: 
             1- "Approximate", referenced by self.mag_approx; 
             2- "Accurate" (tabulated), referenced by self.mag; 
+            3- "Combined", i.e. referenced by self.mag and self.mag_approx (test); 
         :param _fname: name of file to save the resulting data to (for the moment, in ASCII format)
         :param _det: detector (instance of SRWLDet)
         :param _zi: initial lonngitudinal position [m] of electron trajectory for SR calculation
@@ -1073,12 +1091,19 @@ class SRWLBeamline(object):
             if(self.mag_approx is None): raise Exception('Approximate Magnetic Field is not defined')
         elif(_mag_type == 2):
             if(self.mag is None): raise Exception('Magnetic Field is not defined')
+        elif(_mag_type == 3): #OC07092024
+            if((self.mag_approx is None) and (self.mag is None)): raise Exception('Magnetic Field is not defined')
         else: raise Exception('Incorrect Magnetic Field type identificator')
 
         magToUse = self.mag_approx
         if(_mag_type == 2):
             magToUse = self.mag
             #print('Using tabulated magnetic field...')
+        elif(_mag_type == 3): #OC07092024
+            if magToUse is None: magToUse = self.mag
+            elif self.mag is not None: 
+                magToUse = deepcopy(self.mag_approx)
+                magToUse.combine(self.mag)
 
         wfr = SRWLWfr()
         wfr.allocate(_mesh.ne, _mesh.nx, _mesh.ny) #Numbers of points vs Photon Energy, Horizontal and Vertical Positions
@@ -1638,10 +1663,18 @@ class SRWLBeamline(object):
             if(self.mag_approx is None): raise Exception('Approximate Magnetic Field is not defined')
         elif(_mag_type == 2):
             if(self.mag is None): raise Exception('Magnetic Field is not defined')
+        elif(_mag_type == 3): #OC07092024
+            if((self.mag_approx is None) and (self.mag is None)): raise Exception('Magnetic Field is not defined')
         else: raise Exception('Incorrect Magnetic Field type identificator')
 
         magToUse = self.mag_approx
-        if(_mag_type == 2): magToUse = self.mag
+        if(_mag_type == 2): 
+            magToUse = self.mag
+        elif(_mag_type == 3): #OC07092024
+            if magToUse is None: magToUse = self.mag
+            elif self.mag is not None: 
+                magToUse = deepcopy(self.mag_approx)
+                magToUse.combine(self.mag)
 
         arPrecPar = [_prec, _meth, _z_start, _z_fin, 20000]
 
@@ -1941,7 +1974,7 @@ class SRWLBeamline(object):
         if(isinstance(_wfr, SRWLWfr) == False):
             raise Exception('Incorrect wavefront (SRWLWfr) structure')
 
-        from datetime import datetime #OCTEST
+        #from datetime import datetime #OCTEST
 
         print('Propagation ... ', end='')
         t0 = time.time();
@@ -2116,7 +2149,13 @@ class SRWLBeamline(object):
         #print(self.mag) #DEBUG
 
         magToUse = self.mag_approx
-        if(_mag_type == 2): magToUse = self.mag
+        if(_mag_type == 2): 
+            magToUse = self.mag
+        elif(_mag_type == 3): #OC08092024
+            if magToUse is None: magToUse = self.mag
+            elif self.mag is not None: 
+                magToUse = deepcopy(self.mag_approx)
+                magToUse.combine(self.mag)
 
         #if((magToUse is None) and (self.gsnBeam is not None)): magToUse = self.gsnBeam #OC15092017 (because _mag is used for SRWLGsnBm when doing partially-coherent simulations in the scope of Gaussian-Schell model)
         if(magToUse is None):
@@ -2801,7 +2840,8 @@ class SRWLBeamline(object):
                 _mxxp=_v.ebm_mxxp,
                 _sigy=_v.ebm_sigy,
                 _sigyp=_v.ebm_sigyp,
-                _myyp=_v.ebm_myyp)
+                _myyp=_v.ebm_myyp, #)
+                _z=_v.ebm_z) #OC23092024
             
         #print('e-beam was set up')
 
@@ -2997,28 +3037,113 @@ class SRWLBeamline(object):
                 #_v.w_mag = 2
                 #_v.tr_mag = 2
 
-        #---setup magnetic field of a dipole magnet
-        if hasattr(_v, 'mag_bx') == False: _v.mag_bx = 0
-        if hasattr(_v, 'mag_by') == False: _v.mag_by = 0
-        if hasattr(_v, 'mag_gn') == False: _v.mag_gn = 0
-        if hasattr(_v, 'mag_gs') == False: _v.mag_gs = 0
-        if hasattr(_v, 'mag_len') == False: _v.mag_len = 1.5 #?
-        if hasattr(_v, 'mag_led') == False: _v.mag_led = 0
-        if hasattr(_v, 'mag_r') == False: _v.mag_r = 0
-        if hasattr(_v, 'mag_zc') == False: _v.mag_zc = 0
-        if((_v.mag_bx != 0) or (_v.mag_by != 0) or (_v.mag_gn != 0) or (_v.mag_gs != 0)):
-            print('Before setting up multipole') #DEBUG
-            self.set_mag_multipole(#setup dipole / quad magnet parameters
-                _bx = _v.mag_bx,
-                _by = _v.mag_by,
-                _gn = _v.mag_gn,
-                _gs = _v.mag_gs,
-                _len = _v.mag_len,
-                _led = _v.mag_led,
-                _r = _v.mag_r,
-                _zc = _v.mag_zc)
-            #self.mag = None #OC16122016 (commented-out)
-            
+        #---setup magnetic field of a dipole/multipole magnet
+        if(hasattr(_v, 'mag_bx') or hasattr(_v, 'mag_by') or hasattr(_v, 'mag_gn') or hasattr(_v, 'mag_gs')): #OC07092024
+            if hasattr(_v, 'mag_bx') == False: _v.mag_bx = 0
+            if hasattr(_v, 'mag_by') == False: _v.mag_by = 0
+            if hasattr(_v, 'mag_gn') == False: _v.mag_gn = 0
+            if hasattr(_v, 'mag_gs') == False: _v.mag_gs = 0
+            if hasattr(_v, 'mag_len') == False: _v.mag_len = 1. #?
+            if hasattr(_v, 'mag_led') == False: _v.mag_led = 0
+            if hasattr(_v, 'mag_r') == False: _v.mag_r = 0
+            if hasattr(_v, 'mag_zc') == False: _v.mag_zc = 0
+            if((_v.mag_bx != 0) or (_v.mag_by != 0) or (_v.mag_gn != 0) or (_v.mag_gs != 0)):
+                #print('Before setting up multipole') #DEBUG
+                self.set_mag_multipole(#setup dipole / quad magnet parameters
+                    _bx = _v.mag_bx,
+                    _by = _v.mag_by,
+                    _gn = _v.mag_gn,
+                    _gs = _v.mag_gs,
+                    _len = _v.mag_len,
+                    _led = _v.mag_led,
+                    _r = _v.mag_r,
+                    _zc = _v.mag_zc)
+                #self.mag = None #OC16122016 (commented-out)
+
+        if(hasattr(_v, 'mag2_bx') or hasattr(_v, 'mag2_by') or hasattr(_v, 'mag2_gn') or hasattr(_v, 'mag2_gs')): #OC07092024
+            if not hasattr(_v, 'mag2_bx'): _v.mag2_bx = 0
+            if not hasattr(_v, 'mag2_by'): _v.mag2_by = 0
+            if not hasattr(_v, 'mag2_gn'): _v.mag2_gn = 0
+            if not hasattr(_v, 'mag2_gs'): _v.mag2_gs = 0
+            if not hasattr(_v, 'mag2_len'): _v.mag2_len = 1. #?
+            if not hasattr(_v, 'mag2_led'): _v.mag2_led = 0
+            if not hasattr(_v, 'mag2_r'): _v.mag2_r = 0
+            if not hasattr(_v, 'mag2_zc'): _v.mag2_zc = 0
+            if((_v.mag2_bx != 0) or (_v.mag2_by != 0) or (_v.mag2_gn != 0) or (_v.mag2_gs != 0)):
+                self.set_mag_multipole(#setup dipole / quad magnet parameters
+                    _bx = _v.mag2_bx,
+                    _by = _v.mag2_by,
+                    _gn = _v.mag2_gn,
+                    _gs = _v.mag2_gs,
+                    _len = _v.mag2_len,
+                    _led = _v.mag2_led,
+                    _r = _v.mag2_r,
+                    _zc = _v.mag2_zc,
+                    _add = 1)
+
+        if(hasattr(_v, 'mag3_bx') or hasattr(_v, 'mag3_by') or hasattr(_v, 'mag3_gn') or hasattr(_v, 'mag3_gs')): #OC07092024
+            if not hasattr(_v, 'mag3_bx'): _v.mag3_bx = 0
+            if not hasattr(_v, 'mag3_by'): _v.mag3_by = 0
+            if not hasattr(_v, 'mag3_gn'): _v.mag3_gn = 0
+            if not hasattr(_v, 'mag3_gs'): _v.mag3_gs = 0
+            if not hasattr(_v, 'mag3_len'): _v.mag3_len = 1. #?
+            if not hasattr(_v, 'mag3_led'): _v.mag3_led = 0
+            if not hasattr(_v, 'mag3_r'): _v.mag3_r = 0
+            if not hasattr(_v, 'mag3_zc'): _v.mag3_zc = 0
+            if((_v.mag3_bx != 0) or (_v.mag3_by != 0) or (_v.mag3_gn != 0) or (_v.mag3_gs != 0)):
+                self.set_mag_multipole(#setup dipole / quad magnet parameters
+                    _bx = _v.mag3_bx,
+                    _by = _v.mag3_by,
+                    _gn = _v.mag3_gn,
+                    _gs = _v.mag3_gs,
+                    _len = _v.mag3_len,
+                    _led = _v.mag3_led,
+                    _r = _v.mag3_r,
+                    _zc = _v.mag3_zc,
+                    _add = 1)
+
+        if(hasattr(_v, 'mag4_bx') or hasattr(_v, 'mag4_by') or hasattr(_v, 'mag4_gn') or hasattr(_v, 'mag4_gs')): #OC07092024
+            if not hasattr(_v, 'mag4_bx'): _v.mag4_bx = 0
+            if not hasattr(_v, 'mag4_by'): _v.mag4_by = 0
+            if not hasattr(_v, 'mag4_gn'): _v.mag4_gn = 0
+            if not hasattr(_v, 'mag4_gs'): _v.mag4_gs = 0
+            if not hasattr(_v, 'mag4_len'): _v.mag4_len = 1. #?
+            if not hasattr(_v, 'mag4_led'): _v.mag4_led = 0
+            if not hasattr(_v, 'mag4_r'): _v.mag4_r = 0
+            if not hasattr(_v, 'mag4_zc'): _v.mag4_zc = 0
+            if((_v.mag4_bx != 0) or (_v.mag4_by != 0) or (_v.mag4_gn != 0) or (_v.mag4_gs != 0)):
+                self.set_mag_multipole(#setup dipole / quad magnet parameters
+                    _bx = _v.mag4_bx,
+                    _by = _v.mag4_by,
+                    _gn = _v.mag4_gn,
+                    _gs = _v.mag4_gs,
+                    _len = _v.mag4_len,
+                    _led = _v.mag4_led,
+                    _r = _v.mag4_r,
+                    _zc = _v.mag4_zc,
+                    _add = 1)
+
+        if(hasattr(_v, 'mag5_bx') or hasattr(_v, 'mag5_by') or hasattr(_v, 'mag5_gn') or hasattr(_v, 'mag5_gs')): #OC07092024
+            if not hasattr(_v, 'mag5_bx'): _v.mag5_bx = 0
+            if not hasattr(_v, 'mag5_by'): _v.mag5_by = 0
+            if not hasattr(_v, 'mag5_gn'): _v.mag5_gn = 0
+            if not hasattr(_v, 'mag5_gs'): _v.mag5_gs = 0
+            if not hasattr(_v, 'mag5_len'): _v.mag5_len = 1. #?
+            if not hasattr(_v, 'mag5_led'): _v.mag5_led = 0
+            if not hasattr(_v, 'mag5_r'): _v.mag5_r = 0
+            if not hasattr(_v, 'mag5_zc'): _v.mag5_zc = 0
+            if((_v.mag5_bx != 0) or (_v.mag5_by != 0) or (_v.mag5_gn != 0) or (_v.mag5_gs != 0)):
+                self.set_mag_multipole(#setup dipole / quad magnet parameters
+                    _bx = _v.mag5_bx,
+                    _by = _v.mag5_by,
+                    _gn = _v.mag5_gn,
+                    _gs = _v.mag5_gs,
+                    _len = _v.mag5_len,
+                    _led = _v.mag5_led,
+                    _r = _v.mag5_r,
+                    _zc = _v.mag5_zc,
+                    _add = 1)
+                
         #---setup arbitrary magnetic field source from one file of tabulated 3D magnetic field data
         if hasattr(_v, 'mag_fn'):
             if(len(_v.mag_fn) > 0):
@@ -3800,38 +3925,40 @@ class SRWLBeamline(object):
                                 ['Horizontal Position', 'Vertical Position', sValLabel + ' After Elem. #' + repr(curIntData[0])],
                                 ['m', 'm', sValUnit],
                                 True)
+                            
+                plotOK = True #OC12092024
 
-        #if _v.wm and (len(_v.wm_pl) > 0): #OC19012021
-        #    if (_v.wm_pl == 'xy') or (_v.wm_pl == 'yx') or (_v.wm_pl == 'XY') or (_v.wm_pl == 'YX'):
-        #        #print('2D plot panel is to be prepared')
+        if _v.wm and (len(_v.wm_pl) > 0): #OC19012021
+            if (_v.wm_pl == 'xy') or (_v.wm_pl == 'yx') or (_v.wm_pl == 'XY') or (_v.wm_pl == 'YX'):
+                #print('2D plot panel is to be prepared')
                 
-        #        sValLabel = 'Flux per Unit Surface'
-        #        sValUnit = 'ph/s/.1%bw/mm^2'
-        #        if(_v.w_u == 0):
-        #            sValLabel = 'Intensity'
-        #            sValUnit = 'a.u.'
-        #        elif(_v.w_u == 2):
-        #            if(_v.w_ft == 't'):
-        #                sValLabel = 'Power Density'
-        #                sValUnit = 'W/mm^2'
-        #            elif(_v.w_ft == 'f'):
-        #                sValLabel = 'Spectral Fluence'
-        #                sValUnit = 'J/eV/mm^2'
+                sValLabel = 'Flux per Unit Surface'
+                sValUnit = 'ph/s/.1%bw/mm^2'
+                if(_v.w_u == 0):
+                    sValLabel = 'Intensity'
+                    sValUnit = 'a.u.'
+                elif(_v.w_u == 2):
+                    if(_v.w_ft == 't'):
+                        sValLabel = 'Power Density'
+                        sValUnit = 'W/mm^2'
+                    elif(_v.w_ft == 'f'):
+                        sValLabel = 'Spectral Fluence'
+                        sValUnit = 'J/eV/mm^2'
 
-        #        uti_plot2d1d(
-        #            #int_w0,
-        #            _v.wm_res.arS,
-        #            [_v.wm_res.mesh.xStart, _v.wm_res.mesh.xFin, _v.wm_res.mesh.nx],
-        #            [_v.wm_res.mesh.yStart, _v.wm_res.mesh.yFin, _v.wm_res.mesh.ny],
-        #            0, #0.5*(mesh_si.xStart + mesh_si.xFin),
-        #            0, #0.5*(mesh_si.yStart + mesh_si.yFin),
-        #            ['Horizontal Position', 'Vertical Position', sValLabel + ' After Propagation'],
-        #            ['m', 'm', sValUnit],
-        #            True)
+                uti_plot2d1d(
+                    #int_w0,
+                    _v.wm_res.arS,
+                    [_v.wm_res.mesh.xStart, _v.wm_res.mesh.xFin, _v.wm_res.mesh.nx],
+                    [_v.wm_res.mesh.yStart, _v.wm_res.mesh.yFin, _v.wm_res.mesh.ny],
+                    0, #0.5*(mesh_si.xStart + mesh_si.xFin),
+                    0, #0.5*(mesh_si.yStart + mesh_si.yFin),
+                    ['Horizontal Position', 'Vertical Position', sValLabel + ' After Propagation'],
+                    ['m', 'm', sValUnit],
+                    True)
+                plotOK = True
 
             #to continue here
                 
-            plotOK = True
 
         if(plotOK): uti_plot_show()
 
@@ -4199,7 +4326,8 @@ def srwl_uti_std_options():
         ['wm_fncm', 's', '', 'file name of input coherent modes; if this file name is supplied, the eventual partially-coherent radiation propagation simulation will be done based on propagation of the coherent modes from that file.'], #OC02072021
 
         ['wm_fbk', '', '', 'create backup file(s) with propagated multi-e intensity distribution vs horizontal and vertical position and other radiation characteristics', 'store_true'],
-        ['wm_pl', 's', 'xy', 'plot the propagated radiaiton intensity distributions in graph(s): ""- dont plot, "x"- vs horizontal position, "y"- vs vertical position, "xy"- vs horizontal and vertical position'],
+        ['wm_pl', 's', '', 'plot the propagated radiaiton intensity distributions in graph(s): ""- dont plot, "x"- vs horizontal position, "y"- vs vertical position, "xy"- vs horizontal and vertical position'], #OC25072024
+        #['wm_pl', 's', 'xy', 'plot the propagated radiaiton intensity distributions in graph(s): ""- dont plot, "x"- vs horizontal position, "y"- vs vertical position, "xy"- vs horizontal and vertical position'],
 
         #['ws_fn', 's', '', 'file name for saving single-e (/ fully coherent) wavefront data'],
         #['wm_fn', 's', '', 'file name for saving multi-e (/ partially coherent) wavefront data'],

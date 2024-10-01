@@ -8,12 +8,19 @@ import numpy as np
 from numpy import fft
 from array import *
 from scipy.interpolate import interp2d
+from array import * #OC15052024
 
-try:
-    from srwlib import *
+#try:
+#    from srwlib import *
+#except:
+#    from oasys_srw.srwlib import *          # get oasys_srw: https://github.com/oasys-kit/OASYS1-srwpy
+
+try: #OC15052024
+    from .srwlib import *
+    from . import uti_math
 except:
-    from oasys_srw.srwlib import *          # get oasys_srw: https://github.com/oasys-kit/OASYS1-srwpy
-
+    from srwlib import *
+    import uti_math
     
 ######################################################################
 ## Optical Elements
@@ -400,7 +407,6 @@ def srw_uti_mtrl_Param_psd2D(sigma, exponent, PixelWidth, m , n, qr=0, C=None):
 ## Surface generation from PSD
 ######################################################################
 
-
 def srw_uti_mtrl_psd2D_Prof(Cq, qx, qy, symmetry=False, dist=0, seed=None):
     '''
     parameters (in SI units)
@@ -586,3 +592,60 @@ If the axis direction is defined to be the z axis, and the meridional plane is t
 the pupil at yp=0. The principal ray is both sagittal and meridional. All other sagittal rays are skew rays.
 
 """
+
+######################################################################
+## Misc. Auxiliary function to calculate spectral transmission of beamlines with grating mono from avg. monochromatic intensity distribution and dispersion rate at an exit slit
+######################################################################
+def srwl_uti_opt_spec_transm(_ar, _x_grid, _y_grid, _dx, _dy, _re, _ne, _disp_rate, _disp_pl='v', _e0=0., _x0=0., _y0=0., _nx_int=0, _ny_int=0): #OC15052024
+    """Auxiliary function to calculate spectral transmission of beamlines with grating mono from avg. monochromatic intensity distribution and dispersion rate at an exit slit
+
+    Args:
+        _ar_int (python array): input 2D flat array of the monochromatic intensity distribution at the exit slit [ph/s/.1%bw/mm^2]
+        _x_grid (list/array): list/array specifying grid vs one dimensions (_x_grid[0] is start, _x_grid[1] is end, _x_grid[2] is number of points)
+        _y_grid (list/array): list/array specifying grid vs another dimensions (_y_grid[0] is start, _y_grid[1] is end, _y_grid[2] is number of points)
+        _dx (float): horizontal size of the exit slit [m]
+        _dy (float): vertical size of the exit slit [m]
+        _re (float): photon energy range [eV]
+        _ne (int): number of photons vs. photon energy
+        _disp_rate (float): linear dispersion rate at the exit slit [eV/m]
+        _disp_pl (string): input character describing orientation of the dispersion plane ('h' or 'x' for horizontal, 'v' or 'y' for vertical, default)
+        _e0 (float): central relative photon energy for the resulting spectrum [eV]
+        _x0 (float): central horizontal position of the exit slit [m]
+        _y0 (float): central vertical position of the exit slit [m]
+        _nx_int (int): number of points vs. hor. position to use at integration within aperture
+        _ny_int (int): number of points vs. vert. position to use at integration within aperture
+    """
+    
+    arSpec = array('d', [0]*_ne)
+    multFlux = 1.e+06 #Flux values multiplier, since input positions are in [m] whereas flux density in [ph/s/.1%bw/mm^2]
+    
+    #xc = 0.5*(_x_grid[0] + _x_grid[1])
+    #yc = 0.5*(_y_grid[0] + _y_grid[1])
+    dxHalf = 0.5*_dx
+    dyHalf = 0.5*_dy
+    xLim = [_x0-dxHalf, _x0+dxHalf, _nx_int]
+    yLim = [_y0-dyHalf, _y0+dyHalf, _ny_int]
+    
+    reHalf = 0.5*_re
+    posStart = (_e0 - reHalf)/_disp_rate
+    posEnd = (_e0 + reHalf)/_disp_rate
+    posStep = (posEnd - posStart)/(_ne - 1)
+    pos = posStart
+    
+    posIsY = False
+    if _disp_pl in ['v', 'V', 'y', 'Y']: posIsY = True
+    
+    for ie in range(_ne):
+        
+        if posIsY:
+            yLim[0] = pos - dyHalf
+            yLim[1] = pos + dyHalf
+        else:
+            xLim[0] = pos - dxHalf
+            xLim[1] = pos + dxHalf
+        
+        arSpec[ie] = uti_math.integ_ar_2d(_ar, 1, _x_grid, _y_grid, _x_lim=xLim, _y_lim=yLim)*multFlux
+        pos += posStep
+    
+    return arSpec
+    

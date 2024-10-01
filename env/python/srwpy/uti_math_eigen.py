@@ -43,8 +43,12 @@ try:
 except:
     print("UtiMathEigen WARNING: sklearn unavailable; to install: pip install -U scikit-learn")
 import math
-import numpy as np
 
+#import numpy as np #OC23062024 (commented-out)
+try: #OC23062024
+    import numpy as np
+except:
+    pass
 
 #class Linear_alg:
 class UtiMathEigen: #OC12052021

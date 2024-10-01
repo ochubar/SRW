@@ -593,6 +593,31 @@ class SRWLMagFldC(SRWLMagFld):
             self.arVy.append(_vy)
             self.arVz.append(_vz)
             self.arAng.append(_ang)
+            
+    def combine(self, _magCnt): #OC07092024
+        if(_magCnt is None): return
+        if(not isinstance(_magCnt, SRWLMagFldC)): raise Exception("Magnetic field container is expected.")
+        
+        nOldElem = len(self.arMagFld)
+        nNewElem = len(_magCnt.arMagFld)
+        for i in range(nNewElem):
+            self.arMagFld.append(_magCnt.arMagFld[i])
+            self.arXc.append(_magCnt.arXc[i])
+            self.arYc.append(_magCnt.arYc[i])
+            self.arZc.append(_magCnt.arZc[i])
+            
+        if hasattr(_magCnt, 'arVx'):
+            if not hasattr(self, 'arVx'): self.arVx = array('d', [0]*nOldElem)
+            self.arVx.extend(_magCnt.arVx)
+        if hasattr(_magCnt, 'arVy'):
+            if not hasattr(self, 'arVy'): self.arVy = array('d', [0]*nOldElem)
+            self.arVy.extend(_magCnt.arVy)
+        if hasattr(_magCnt, 'arVz'):
+            if not hasattr(self, 'arVz'): self.arVz = array('d', [1]*nOldElem)
+            self.arVz.extend(_magCnt.arVz)
+        if hasattr(_magCnt, 'arAng'):
+            if not hasattr(self, 'arAng'): self.arAng = array('d', [0]*nOldElem)
+            self.arAng.extend(_magCnt.arAng)
 
 #****************************************************************************
 class SRWLPrtTrj(object):

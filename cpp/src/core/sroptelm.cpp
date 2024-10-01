@@ -3068,7 +3068,10 @@ int srTGenOptElem::RadResizeCore(srTSRWRadStructAccessData& OldRadAccessData, sr
 	//srwlPrintTime(":RadResizeCore: init variables 1",&start);
 
 	//if((!RadResizeStruct.DoNotTreatSpherTerm) && WaveFrontTermCanBeTreated(OldRadAccessData))
-	if((!RadResizeStruct.doNotTreatSpherTerm()) && WaveFrontTermCanBeTreated(OldRadAccessData)) //OC090311
+	//if((!RadResizeStruct.doNotTreatSpherTerm()) && WaveFrontTermCanBeTreated(OldRadAccessData)) //OC090311
+	//***************
+	if((!RadResizeStruct.doNotTreatSpherTerm()) && WaveFrontTermCanBeTreated(OldRadAccessData) && (OldRadAccessData.Pres < 1)) //OCTEST06262024 (to test resize in ang. repres.)
+	//***************
 	{
 		//Added by SY (for profiling?) at parallelizing SRW via OpenMP:
 		//srwlPrintTime(":RadResizeCore: doNotTreatSpherTerm+WaveFrontTermCanBeTreated",&start);

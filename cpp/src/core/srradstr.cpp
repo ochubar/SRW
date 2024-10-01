@@ -4655,6 +4655,13 @@ void srTSRWRadStructAccessData::ResizeCoreXZ(SRWLRadMesh& oldMesh, float* pOldRa
 	//bool OrigWfrQuadTermCanBeTreatedAtResizeX = OldRadAccessData.WfrQuadTermCanBeTreatedAtResizeX;
 	//bool OrigWfrQuadTermCanBeTreatedAtResizeZ = OldRadAccessData.WfrQuadTermCanBeTreatedAtResizeZ;
 
+	//OC22092024
+	bool allowReAndImCorrFromI = true;
+	if(arPar != 0)
+	{
+		if(arPar[2] == 0.) allowReAndImCorrFromI = false;
+	}
+
 	if(allowTreatQuadPhaseTerm && QuadPhaseTermCanBeTreated())
 	{
 		//NewRadAccessData.WfrQuadTermCanBeTreatedAtResizeX = OldRadAccessData.WfrQuadTermCanBeTreatedAtResizeX;
@@ -4834,7 +4841,8 @@ void srTSRWRadStructAccessData::ResizeCoreXZ(SRWLRadMesh& oldMesh, float* pOldRa
 						srTGenOptElem::InterpolFI(InterpolAux02I, xRel, zRel, BufFI, 0);
 					}
 					(*BufFI) *= AuxFI->fNorm;
-					srTGenOptElem::ImproveReAndIm(BufF, BufFI);
+					//srTGenOptElem::ImproveReAndIm(BufF, BufFI);
+					if(allowReAndImCorrFromI) srTGenOptElem::ImproveReAndIm(BufF, BufFI); //OC22092024
 					//if(FieldShouldBeZeroed) { *BufF = 0.; *(BufF+1) = 0.; } //OC17102021 (commented-out, since this case is treated before these interpolations)
 					*pEX_New = *BufF;
 					*(pEX_New+1) = *(BufF+1);
@@ -4844,15 +4852,18 @@ void srTSRWRadStructAccessData::ResizeCoreXZ(SRWLRadMesh& oldMesh, float* pOldRa
 					if(UseLowOrderInterp_PolCompZ)
 					{
 						srTGenOptElem::InterpolF_LowOrder(InterpolAux02, xRel, zRel, BufF, 2);
-						srTGenOptElem::InterpolFI_LowOrder(InterpolAux02I, xRel, zRel, BufFI, 1);
+						//srTGenOptElem::InterpolFI_LowOrder(InterpolAux02I, xRel, zRel, BufFI, 1);
+						if(allowReAndImCorrFromI) srTGenOptElem::InterpolFI_LowOrder(InterpolAux02I, xRel, zRel, BufFI, 1); //OC22092024
 					}
 					else
 					{
 						srTGenOptElem::InterpolF(InterpolAux02, xRel, zRel, BufF, 2);
-						srTGenOptElem::InterpolFI(InterpolAux02I, xRel, zRel, BufFI, 1);
+						//srTGenOptElem::InterpolFI(InterpolAux02I, xRel, zRel, BufFI, 1);
+						if(allowReAndImCorrFromI) srTGenOptElem::InterpolFI(InterpolAux02I, xRel, zRel, BufFI, 1); //OC22092024
 					}
 					(*(BufFI+1)) *= (AuxFI+1)->fNorm;
-					srTGenOptElem::ImproveReAndIm(BufF+2, BufFI+1);
+					//srTGenOptElem::ImproveReAndIm(BufF+2, BufFI+1);
+					if(allowReAndImCorrFromI) srTGenOptElem::ImproveReAndIm(BufF+2, BufFI+1); //OC22092024
 					//if(FieldShouldBeZeroed) { *(BufF+2) = 0.; *(BufF+3) = 0.; } //OC17102021 (commented-out, since this case is treated before these interpolations)
 					*pEZ_New = *(BufF+2);
 					*(pEZ_New+1) = *(BufF+3);
@@ -4860,7 +4871,35 @@ void srTSRWRadStructAccessData::ResizeCoreXZ(SRWLRadMesh& oldMesh, float* pOldRa
 			}
 		}
 	}
-	if(WaveFrontTermWasTreated) TreatQuadPhaseTerm('a', polComp);
+	//if(WaveFrontTermWasTreated) TreatQuadPhaseTerm('a', polComp);
+	//OC21092024
+	if(WaveFrontTermWasTreated)
+	{//Treatment of the Quad. Phase Term has to be done on NEW data!
+		//Setting temporarily all required member variables in this
+
+		//float *pBaseRadX, *pBaseRadZ;
+		//waveHndl wRad, wRadX, wRadZ;
+		//int hStateRadX, hStateRadZ;
+		//double eStep, eStart, xStep, xStart, zStep, zStart;
+		//long ne, nx, nz;
+
+		pBaseRadX = pNewRadX;
+		pBaseRadZ = pNewRadZ;
+		xStep= xStepNew; xStart = xStartNew;
+		zStep= zStepNew; zStart = zStartNew;
+		nx = nxNew; 
+		nz = nzNew;
+
+		TreatQuadPhaseTerm('a', polComp);
+
+		//Setting back the member variables to their original values
+		pBaseRadX = pOldRadX;
+		pBaseRadZ = pOldRadZ;
+		xStep = xStepOld; xStart = xStartOld;
+		zStep = zStepOld; zStart = zStartOld;
+		nx = oldMesh.nx; 
+		nz = oldMesh.ny;
+	}
 }
 
 //*************************************************************************
@@ -5085,7 +5124,31 @@ void srTSRWRadStructAccessData::ResizeCoreE(SRWLRadMesh& oldMesh, float* pOldRad
 			}
 		}
 	}
-	if(WaveFrontTermWasTreated) TreatQuadPhaseTerm('r', polComp);
+	//if(WaveFrontTermWasTreated) TreatQuadPhaseTerm('r', polComp);
+	//OC22092024
+	if(WaveFrontTermWasTreated)
+	{//Treatment of the Quad. Phase Term has to be done on NEW data!
+		//Setting temporarily all required member variables in this
+
+		//float *pBaseRadX, *pBaseRadZ;
+		//waveHndl wRad, wRadX, wRadZ;
+		//int hStateRadX, hStateRadZ;
+		//double eStep, eStart, xStep, xStart, zStep, zStart;
+		//long ne, nx, nz;
+
+		pBaseRadX = pNewRadX;
+		pBaseRadZ = pNewRadZ;
+		eStep= eStepNew; eStart = eStartNew;
+		ne = neNew;
+
+		TreatQuadPhaseTerm('a', polComp);
+
+		//Setting back the member variables to their original values
+		pBaseRadX = pOldRadX;
+		pBaseRadZ = pOldRadZ;
+		eStep = eStepOld; eStart = eStartOld;
+		ne = oldMesh.ne;
+	}
 }
 
 //*************************************************************************

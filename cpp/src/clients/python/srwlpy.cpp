@@ -5067,7 +5067,9 @@ static PyObject* srwlpy_ResizeElecFieldMesh(PyObject *self, PyObject *args)
 		//oFunc = PyObject_GetAttrString(oWfr, "allocate");
 		//END OCTEST
 
-		double arPar[] = {0.,1.}; int nPar = 2; double *pPar = arPar; //[0] with or without FFT, [1]==1 means treatment of quadratic term is allowed
+		//double arPar[] = {0.,1.}; int nPar = 2; double *pPar = arPar; //[0] with or without FFT, [1]==1 means treatment of quadratic term is allowed
+		//OC22092024
+		double arPar[] = { 0.,1.,1.}; int nPar = 3; double *pPar = arPar; //[0] means with (1) or without (0) FFT, [1] means treatment of quadratic term is allowed (1) or not (0), [2] means correction of Re and Im parts of the E-field based on intensity is allowed (1) or not (0)
 		CopyPyListElemsToNumArray(oPar, 'd', pPar, nPar);
 
 		ProcRes(srwlResizeElecFieldMesh(&wfr, &newMesh, arPar));
