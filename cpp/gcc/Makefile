@@ -5,7 +5,7 @@ SRW_SRC_LIB_DIR=$(SRW_SRC_DIR)/lib
 SRW_SRC_GENESIS_DIR=$(SRW_SRC_DIR)/ext/genesis/genesis_july08
 SH_SRC_PARSE_DIR=$(SRW_SRC_DIR)/ext/auxparse
 #HG20032024
-SH_SRC_AUXGPU_DIR=$(SRW_SRC_DIR)/ext/auxgpu 
+SH_SRC_AUXGPU_DIR=$(SRW_SRC_DIR)/ext/auxgpu
 SH_SRC_GEN_MATH_DIR=$(SRW_SRC_DIR)/ext/genmath
 LIB_DIR=$(SOFT_DEV_DIR)/../ext_lib
 
