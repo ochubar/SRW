@@ -112,7 +112,7 @@ PRG= libsrw.a
 	$(CXX) $(CFLAGS) -c $<  
 
 %.o: $(SRW_SRC_GENESIS_DIR)/%.c
-	$(CC) $(CFLAGS) -c $<  
+	$(CC) $(CFLAGS) -c $< -std=c99 -Wno-implicit-int
 
 # HG30112023
 ifeq ($(MODE), cuda)
