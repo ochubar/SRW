@@ -3515,7 +3515,11 @@ void ParseDeviceParam(PyObject* oDev, double* &parGPUParam) //HG10202021 Convert
 		if(PyLong_Check(oDev)) {
 			parGPUParam = new double[2]; //HG08022024
 			parGPUParam[0] = 1; //OC: The number of parameters?
+#if PY_MAJOR_VERSION >=3 && PY_MINOR_VERSION >= 13 //HG16062025
+			parGPUParam[1] = (double)PyLong_AsInt(oDev);
+#else
 			parGPUParam[1] = (double)_PyLong_AsInt(oDev);
+#endif
 			return;
 		}
 	}
