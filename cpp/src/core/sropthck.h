@@ -253,12 +253,17 @@ public:
 		//int nComp = m_reflData.DimSizes[2];
 		int nComp = (int)(m_reflData.DimSizes[2]); //OC28042019
 
+		/*
 		const long perPhotEn = 2;
 		//long perAng = perPhotEn*ne;
 		//const long perSigPi = perAng*nAng;
 		long long perAng = perPhotEn*ne;
 		long long perSigPi = perAng*nAng;
-
+		*/
+		//NW19062025
+		const long perSigPi = 2;
+		long long perAng = perSigPi*nComp;
+		long long perPhotEn = perAng*nAng; 
 		int ie = (int)((phEn - eStart)/eStep + 0.00001);
 		if((phEn - (eStart + ie*eStep)) > 0.5*eStep) ie++;
 		if(ie < 0) ie = 0;

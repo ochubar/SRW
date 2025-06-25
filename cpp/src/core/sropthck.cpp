@@ -15,6 +15,7 @@
 #include "sropthck.h"
 #include "sroptdrf.h"
 #include "gminterp.h"
+#include <iostream>
 
 //*************************************************************************
 
@@ -2795,57 +2796,64 @@ void srTMirror::RadPointModifier_FourierByParts(srTEXZ& EXZ, srTEFieldPtrs& EPtr
 	double EsigRe = vEr*vSig, EsigIm = vEi*vSig; //in the frame of incident beam
 	double EpiRe = vEr*vPi, EpiIm = vEi*vPi;
 
-	//getting complex reflecivity coefficients for Sigma and Pi components of the electric field
-	//int ne = m_reflData.DimSizes[1];
-	long ne = (long)(m_reflData.DimSizes[1]); //OC28042019
-	double eStart = m_reflData.DimStartValues[1];
-	double eStep = m_reflData.DimSteps[1];
-	//int nAng = m_reflData.DimSizes[2];
-	long nAng = (long)(m_reflData.DimSizes[2]); //OC28042019
-	double angStart = m_reflData.DimStartValues[2];
-	double angStep = m_reflData.DimSteps[2];
+	// NW16062025 using GetComplexReflectCoefFromTable *************************
+	// //getting complex reflecivity coefficients for Sigma and Pi components of the electric field
+	// //int ne = m_reflData.DimSizes[1];
+	// long ne = (long)(m_reflData.DimSizes[1]); //OC28042019
+	// double eStart = m_reflData.DimStartValues[1];
+	// double eStep = m_reflData.DimSteps[1];
+	// //int nAng = m_reflData.DimSizes[2];
+	// long nAng = (long)(m_reflData.DimSizes[2]); //OC28042019
+	// double angStart = m_reflData.DimStartValues[2];
+	// double angStep = m_reflData.DimSteps[2];
 
-	const long perSigPi = 2;
-	const long perPhotEn = perSigPi << 1;
-	//long perAng = perPhotEn*ne;
-	long long perAng = perPhotEn*ne;
+	// const long perSigPi = 2;
+	// const long perPhotEn = perSigPi << 1;
+	// //long perAng = perPhotEn*ne;
+	// long long perAng = perPhotEn*ne;
 
-	int ie = (int)((EXZ.e - eStart)/eStep + 0.00001);
-	if((EXZ.e - (eStart + ie*eStep)) > 0.5*eStep) ie++;
-	if(ie < 0) ie = 0;
-	if(ie >= ne) ie = ne - 1;
+	// int ie = (int)((EXZ.e - eStart)/eStep + 0.00001);
+	// if((EXZ.e - (eStart + ie*eStep)) > 0.5*eStep) ie++;
+	// if(ie < 0) ie = 0;
+	// if(ie >= ne) ie = ne - 1;
+	// *************************************************************************
 
 	double sinAngInc = ::fabs(vRay*vNormAtP);
 	double angInc = asin(sinAngInc);
 
-	int iAng = (int)((angInc - angStart)/angStep + 0.00001);
-	if((angInc - (angStart + iAng*angStep)) > 0.5*angStep) iAng++;
-	if(iAng < 0) iAng = 0;
-	if(iAng >= nAng) iAng = nAng - 1;
-
-	//long ofstSig = perPhotEn*ie + perAng*iAng;
-	long long ofstSig = perPhotEn*ie + perAng*iAng;
-	//long ofstPi = ofstSig + perSigPi;
+	// NW16062025 using GetComplexReflectCoefFromTable *************************
 	double RsigRe=1, RsigIm=0, RpiRe=1, RpiIm=0;
+	GetComplexReflectCoefFromTable(EXZ.e, angInc, RsigRe, RsigIm, RpiRe, RpiIm);
 
-	//setting appropriate pointer type 
-	if(m_reflData.pData != 0)
-	{
-		if(m_reflData.DataType[1] == 'f')
-		{
-			float *pRsig = ((float*)(m_reflData.pData)) + ofstSig;
-			float *pRpi = pRsig + perSigPi;
-			RsigRe = *(pRsig++); RsigIm = *pRsig;
-			RpiRe = *(pRpi++); RpiIm = *pRpi;
-		}
-		else
-		{
-			double *pRsig = ((double*)(m_reflData.pData)) + ofstSig;
-			double *pRpi = pRsig + perSigPi;
-			RsigRe = *(pRsig++); RsigIm = *pRsig;
-			RpiRe = *(pRpi++); RpiIm = *pRpi;
-		}
-	}
+	// int iAng = (int)((angInc - angStart)/angStep + 0.00001);
+	// if((angInc - (angStart + iAng*angStep)) > 0.5*angStep) iAng++;
+	// if(iAng < 0) iAng = 0;
+	// if(iAng >= nAng) iAng = nAng - 1;
+
+	// //long ofstSig = perPhotEn*ie + perAng*iAng;
+	// long long ofstSig = perPhotEn*ie + perAng*iAng;
+	// //long ofstPi = ofstSig + perSigPi;
+	// double RsigRe=1, RsigIm=0, RpiRe=1, RpiIm=0;
+
+	// //setting appropriate pointer type 
+	// if(m_reflData.pData != 0)
+	// {
+	// 	if(m_reflData.DataType[1] == 'f')
+	// 	{
+	// 		float *pRsig = ((float*)(m_reflData.pData)) + ofstSig;
+	// 		float *pRpi = pRsig + perSigPi;
+	// 		RsigRe = *(pRsig++); RsigIm = *pRsig;
+	// 		RpiRe = *(pRpi++); RpiIm = *pRpi;
+	// 	}
+	// 	else
+	// 	{
+	// 		double *pRsig = ((double*)(m_reflData.pData)) + ofstSig;
+	// 		double *pRpi = pRsig + perSigPi;
+	// 		RsigRe = *(pRsig++); RsigIm = *pRsig;
+	// 		RpiRe = *(pRpi++); RpiIm = *pRpi;
+	// 	}
+	// }
+	// *************************************************************************
 
 	double newEsigRe = -cosPh*(EsigIm*RsigIm - EsigRe*RsigRe) - sinPh*(EsigRe*RsigIm + EsigIm*RsigRe);
 	double newEsigIm = cosPh*(EsigRe*RsigIm + EsigIm*RsigRe) - sinPh*(EsigIm*RsigIm - EsigRe*RsigRe);
