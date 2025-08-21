@@ -85,7 +85,7 @@ with open(os.path.join(base_dir, 'requirements.txt')) as requirements_file:
     requirements = [line for line in requirements_file.read().splitlines()
                     if not line.startswith('#')]
 
-setup(name='srwpy',
+setup(name='srwpy-hgtest00',
       version='4.1.0', #'4.0.0b1',
       description='This is SRW for Python',
       author='O. Chubar et al.',
