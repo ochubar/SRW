@@ -378,7 +378,7 @@ if(meshP0vsT != None):
 if(meshP0vsXY != None):
     plotMeshP0vsX = [meshP0vsXY.xStart, meshP0vsXY.xFin, meshP0vsXY.nx]
     plotMeshP0vsY = [meshP0vsXY.yStart, meshP0vsXY.yFin, meshP0vsXY.ny]
-    uti_plot2d1d(arP0vsXY, plotMeshP0vsX, plotMeshP0vsY, x=0, y=0, labels=['Horizontal Position', 'Vertical Position', 'Power Density Before Propagation at t=' + repr(round(tc0*1.e+15)) + ' fs'], units=['m', 'm', 'W/mm^2'])
+    uti_plot2d1d(arP0vsXY, plotMeshP0vsX, plotMeshP0vsY, x=0, y=0, labels=['Horizontal Position', 'Vertical Position', 'Power Density Before Propagation at t=' + str(round(tc0*1.e+15)) + ' fs'], units=['m', 'm', 'W/mm^2'])
 
 if(meshI0vsE != None):
     plotMeshI0vsE = [meshI0vsE.eStart, meshI0vsE.eFin, meshI0vsE.ne]
@@ -387,7 +387,7 @@ if(meshI0vsE != None):
 
 plotMeshI0vsX = [meshI0vsXY.xStart, meshI0vsXY.xFin, meshI0vsXY.nx]
 plotMeshI0vsY = [meshI0vsXY.yStart, meshI0vsXY.yFin, meshI0vsXY.ny]
-uti_plot2d1d(arI0vsXY, plotMeshI0vsX, plotMeshI0vsY, labels=['Horizontal Position', 'Vertical Position', 'Spectral Fluence Before Propagation at E=' + repr(round(ec0)) + ' eV'], units=['m', 'm', 'J/eV/mm^2'])
+uti_plot2d1d(arI0vsXY, plotMeshI0vsX, plotMeshI0vsY, labels=['Horizontal Position', 'Vertical Position', 'Spectral Fluence Before Propagation at E=' + str(round(ec0)) + ' eV'], units=['m', 'm', 'J/eV/mm^2'])
 
 if(arF0vsXY != None):
     uti_plot2d1d(arF0vsXY, plotMeshI0vsX, plotMeshI0vsY, x=0, y=0, labels=['Horizontal Position', 'Vertical Position', 'Fluence Before Propagation'], units=['m', 'm', 'J/mm^2'])
@@ -400,7 +400,7 @@ if(meshI1vsE != None):
 
 plotMeshI1vsX = [meshI1vsXY.xStart, meshI1vsXY.xFin, meshI1vsXY.nx]
 plotMeshI1vsY = [meshI1vsXY.yStart, meshI1vsXY.yFin, meshI1vsXY.ny]
-uti_plot2d1d(arI1vsXY, plotMeshI1vsX, plotMeshI1vsY, labels=['Horizontal Position', 'Vertical Position', 'Spectral Fluence After Propagation at E=' + repr(round(ec1)) + ' eV'], units=['m', 'm', 'J/eV/mm^2'])
+uti_plot2d1d(arI1vsXY, plotMeshI1vsX, plotMeshI1vsY, labels=['Horizontal Position', 'Vertical Position', 'Spectral Fluence After Propagation at E=' + str(round(ec1)) + ' eV'], units=['m', 'm', 'J/eV/mm^2'])
 
 if(arF1vsXY != None):
     uti_plot2d1d(arF1vsXY, plotMeshI1vsX, plotMeshI1vsY, x=0, y=0, labels=['Horizontal Position', 'Vertical Position', 'Fluence After Propagation'], units=['m', 'm', 'J/mm^2'])
@@ -413,7 +413,7 @@ if(meshP1vsT != None):
 if(meshP1vsXY != None):
     plotMeshP1vsX = [meshP1vsXY.xStart, meshP1vsXY.xFin, meshP1vsXY.nx]
     plotMeshP1vsY = [meshP1vsXY.yStart, meshP1vsXY.yFin, meshP1vsXY.ny]
-    uti_plot2d1d(arP1vsXY, plotMeshP1vsX, plotMeshP1vsY, x=0, y=0, labels=['Horizontal Position', 'Vertical Position', 'Power Density After Propagation at t= ' + repr(round(tc1*1.e+15)) + ' fs'], units=['m', 'm', 'W/mm^2'])
+    uti_plot2d1d(arP1vsXY, plotMeshP1vsX, plotMeshP1vsY, x=0, y=0, labels=['Horizontal Position', 'Vertical Position', 'Power Density After Propagation at t= ' + str(round(tc1*1.e+15)) + ' fs'], units=['m', 'm', 'W/mm^2'])
 
 #TEST
 #plotMeshI2vsE = [meshI2vsE.eStart, meshI2vsE.eFin, meshI2vsE.ne]

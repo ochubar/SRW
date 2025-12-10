@@ -151,7 +151,7 @@ def write_ascii_data_cols(_file_path, _cols, _str_sep, _str_head=None, _i_col_st
         curLine = ''
         for j in range(_i_col_start, iColEndP1):
             curElem = ' '
-            if(i < len(_cols[j])): curElem = repr(_cols[j][i])
+            if(i < len(_cols[j])): curElem = str(_cols[j][i])
             curLine += curElem
             if(j < iColEnd): curLine += strSep
         if(i < nLinesM1): curLine += '\n'
@@ -209,7 +209,7 @@ def write_ascii_data_rows(_file_path, _rows, _str_sep, _str_head=None, _i_col_st
         curLine = ''
         curDataRow = _rows[i]
         for j in range(_i_col_start, iColEndP1):
-            curElem = repr(curDataRow[j])
+            curElem = str(curDataRow[j])
             curLine += curElem
             if(j < iColEnd): curLine += strSep
         if(i < iRowEnd): curLine += '\n'

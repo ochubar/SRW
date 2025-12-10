@@ -75,13 +75,13 @@ def AuxSaveTrajData(traj, filePath):
         ctStep = (traj.ctEnd - traj.ctStart)/(traj.np - 1)
     ct = traj.ctStart
     for i in range(traj.np):
-        resStr = str(ct) + '\t' + repr(traj.arX[i]) + '\t' + repr(traj.arXp[i]) + '\t' + repr(traj.arY[i]) + '\t' + repr(traj.arYp[i]) + '\t' + repr(traj.arZ[i]) + '\t' + repr(traj.arZp[i])
+        resStr = str(ct) + '\t' + str(traj.arX[i]) + '\t' + str(traj.arXp[i]) + '\t' + str(traj.arY[i]) + '\t' + str(traj.arYp[i]) + '\t' + str(traj.arZ[i]) + '\t' + str(traj.arZp[i])
         if(hasattr(traj, 'arBx')):
-            resStr += '\t' + repr(traj.arBx[i])
+            resStr += '\t' + str(traj.arBx[i])
         if(hasattr(traj, 'arBy')):
-            resStr += '\t' + repr(traj.arBy[i])
+            resStr += '\t' + str(traj.arBy[i])
         if(hasattr(traj, 'arBz')):
-            resStr += '\t' + repr(traj.arBz[i])
+            resStr += '\t' + str(traj.arBz[i])
         f.write(resStr + '\n')        
         ct += ctStep
     f.close()
@@ -91,17 +91,17 @@ def AuxSaveTrajData(traj, filePath):
 #def AuxSaveIntData(arI, mesh, filePath):
 #    f = open(filePath, 'w')
 #    f.write('#C-aligned Intensity (inner loop is vs photon energy, outer loop vs vertical position)\n')
-#    f.write('#' + repr(mesh.eStart) + ' #Initial Photon Energy [eV]\n')
-#    f.write('#' + repr(mesh.eFin) + ' #Final Photon Energy [eV]\n')
-#    f.write('#' + repr(mesh.ne) + ' #Number of points vs Photon Energy\n')
-#    f.write('#' + repr(mesh.xStart) + ' #Initial Horizontal Position [m]\n')
-#    f.write('#' + repr(mesh.xFin) + ' #Final Horizontal Position [m]\n')
-#    f.write('#' + repr(mesh.nx) + ' #Number of points vs Horizontal Position\n')
-#    f.write('#' + repr(mesh.yStart) + ' #Initial Vertical Position [m]\n')
-#    f.write('#' + repr(mesh.yFin) + ' #Final Vertical Position [m]\n')
-#    f.write('#' + repr(mesh.ny) + ' #Number of points vs Vertical Position\n')
+#    f.write('#' + str(mesh.eStart) + ' #Initial Photon Energy [eV]\n')
+#    f.write('#' + str(mesh.eFin) + ' #Final Photon Energy [eV]\n')
+#    f.write('#' + str(mesh.ne) + ' #Number of points vs Photon Energy\n')
+#    f.write('#' + str(mesh.xStart) + ' #Initial Horizontal Position [m]\n')
+#    f.write('#' + str(mesh.xFin) + ' #Final Horizontal Position [m]\n')
+#    f.write('#' + str(mesh.nx) + ' #Number of points vs Horizontal Position\n')
+#    f.write('#' + str(mesh.yStart) + ' #Initial Vertical Position [m]\n')
+#    f.write('#' + str(mesh.yFin) + ' #Final Vertical Position [m]\n')
+#    f.write('#' + str(mesh.ny) + ' #Number of points vs Vertical Position\n')
 #    for i in range(mesh.ne*mesh.nx*mesh.ny): #write all data into one column using "C-alignment" as a "flat" 1D array
-#        f.write(' ' + repr(arI[i]) + '\n')
+#        f.write(' ' + str(arI[i]) + '\n')
 #    f.close()
 
 #**********************Defining Magnetic Field:
