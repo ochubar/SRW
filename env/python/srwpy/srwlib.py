@@ -259,15 +259,15 @@ class SRWLMagFld3D(SRWLMagFld):
     def save_ascii(self, _file_path, _xc=0, _yc=0, _zc=0):
         """Auxiliary function to write tabulated Arbitrary 3D Magnetic Field data to ASCII file"""
         sHead = '#Bx [T], By [T], Bz [T] on 3D mesh: inmost loop vs X (horizontal transverse position), outmost loop vs Z (longitudinal position)\n'
-        sHead += '#' + repr(-0.5*self.rx + _xc) + ' #initial X position [m]\n'
-        sHead += '#' + repr(0. if(self.nx <= 1) else self.rx/(self.nx - 1)) + ' #step of X [m]\n'
-        sHead += '#' + repr(self.nx) + ' #number of points vs X\n'
-        sHead += '#' + repr(-0.5*self.ry + _yc) + ' #initial Y position [m]\n'
-        sHead += '#' + repr(0. if(self.ny <= 1) else self.ry/(self.ny - 1)) + ' #step of Y [m]\n'
-        sHead += '#' + repr(self.ny) + ' #number of points vs Y\n'
-        sHead += '#' + repr(-0.5*self.rz + _zc) + ' #initial Z position [m]\n'
-        sHead += '#' + repr(0. if(self.nz <= 1) else self.rz/(self.nz - 1)) + ' #step of Z [m]\n'
-        sHead += '#' + repr(self.nz) + ' #number of points vs Z\n'
+        sHead += '#' + str(-0.5*self.rx + _xc) + ' #initial X position [m]\n'
+        sHead += '#' + str(0. if(self.nx <= 1) else self.rx/(self.nx - 1)) + ' #step of X [m]\n'
+        sHead += '#' + str(self.nx) + ' #number of points vs X\n'
+        sHead += '#' + str(-0.5*self.ry + _yc) + ' #initial Y position [m]\n'
+        sHead += '#' + str(0. if(self.ny <= 1) else self.ry/(self.ny - 1)) + ' #step of Y [m]\n'
+        sHead += '#' + str(self.ny) + ' #number of points vs Y\n'
+        sHead += '#' + str(-0.5*self.rz + _zc) + ' #initial Z position [m]\n'
+        sHead += '#' + str(0. if(self.nz <= 1) else self.rz/(self.nz - 1)) + ' #step of Z [m]\n'
+        sHead += '#' + str(self.nz) + ' #number of points vs Z\n'
         arColsWr = [self.arBx, self.arBy, self.arBz]
         #print(self.nx, self.rx, self.ny, self.ry, self.nz, self.rz)
         srwl_uti_write_data_cols(_file_path, arColsWr, '\t', sHead)
@@ -694,13 +694,13 @@ class SRWLPrtTrj(object):
             ctStep = (self.ctEnd - self.ctStart)/(self.np - 1)
         ct = self.ctStart
         for i in range(self.np):
-            resStr = str(ct) + '\t' + repr(self.arX[i]) + '\t' + repr(self.arXp[i]) + '\t' + repr(self.arY[i]) + '\t' + repr(self.arYp[i]) + '\t' + repr(self.arZ[i]) + '\t' + repr(self.arZp[i])
+            resStr = str(ct) + '\t' + str(self.arX[i]) + '\t' + str(self.arXp[i]) + '\t' + str(self.arY[i]) + '\t' + str(self.arYp[i]) + '\t' + str(self.arZ[i]) + '\t' + str(self.arZp[i])
             if(hasattr(self, 'arBx')):
-                resStr += '\t' + repr(self.arBx[i])
+                resStr += '\t' + str(self.arBx[i])
             if(hasattr(self, 'arBy')):
-                resStr += '\t' + repr(self.arBy[i])
+                resStr += '\t' + str(self.arBy[i])
             if(hasattr(self, 'arBz')):
-                resStr += '\t' + repr(self.arBz[i])
+                resStr += '\t' + str(self.arBz[i])
             f.write(resStr + '\n')        
             ct += ctStep
         f.close()
@@ -2191,7 +2191,7 @@ class SRWLStokes(object):
                             nameCore = _fname[:indLastDot]
                             sExt = _fname[indLastDot:len_fname] #extension with '.'
                         for i in range(6):
-                            fnPol = nameCore + '_' + repr(i) + sExt
+                            fnPol = nameCore + '_' + str(i) + sExt
                             srwl_uti_save_intens_ascii(arI[i], self.mesh, fnPol, 0, ['Photon Energy', 'Horizontal Position', 'Vertical Position', sValName], _arUnits=['eV', 'm', 'm', sValUnitName]) #OC27122023
                             #srwl_uti_save_intens_ascii(arI[i], stk.mesh, fnPol, 0, ['Photon Energy', 'Horizontal Position', 'Vertical Position', sValName], _arUnits=['eV', 'm', 'm', sValUnitName])
         return arI
@@ -6835,34 +6835,34 @@ def srwl_uti_save_intens_ascii(_ar_intens, _mesh, _file_path, _n_stokes=1, _arLa
     #print(sUnitEnt) #DEBUG
     
     f.write('#' + sUnitEnt + ' (C-aligned, inner loop is vs ' + _arLabels[0] + ', outer loop vs ' + _arLabels[2] + ')\n')
-    f.write('#' + repr(_mesh.eStart) + ' #Initial ' + arLabelUnit[0] + '\n')
-    f.write('#' + repr(_mesh.eFin) + ' #Final ' + arLabelUnit[0] + '\n')
-    f.write('#' + repr(_mesh.ne) + ' #Number of points vs ' + _arLabels[0] + '\n')
-    f.write('#' + repr(_mesh.xStart) + ' #Initial ' + arLabelUnit[1] + '\n')
-    f.write('#' + repr(_mesh.xFin) + ' #Final ' + arLabelUnit[1] + '\n')
-    f.write('#' + repr(_mesh.nx) + ' #Number of points vs ' + _arLabels[1] + '\n')
-    f.write('#' + repr(_mesh.yStart) + ' #Initial ' + arLabelUnit[2] + '\n')
-    f.write('#' + repr(_mesh.yFin) + ' #Final ' + arLabelUnit[2] + '\n')
-    f.write('#' + repr(_mesh.ny) + ' #Number of points vs ' + _arLabels[2] + '\n')
+    f.write('#' + str(_mesh.eStart) + ' #Initial ' + arLabelUnit[0] + '\n')
+    f.write('#' + str(_mesh.eFin) + ' #Final ' + arLabelUnit[0] + '\n')
+    f.write('#' + str(_mesh.ne) + ' #Number of points vs ' + _arLabels[0] + '\n')
+    f.write('#' + str(_mesh.xStart) + ' #Initial ' + arLabelUnit[1] + '\n')
+    f.write('#' + str(_mesh.xFin) + ' #Final ' + arLabelUnit[1] + '\n')
+    f.write('#' + str(_mesh.nx) + ' #Number of points vs ' + _arLabels[1] + '\n')
+    f.write('#' + str(_mesh.yStart) + ' #Initial ' + arLabelUnit[2] + '\n')
+    f.write('#' + str(_mesh.yFin) + ' #Final ' + arLabelUnit[2] + '\n')
+    f.write('#' + str(_mesh.ny) + ' #Number of points vs ' + _arLabels[2] + '\n')
 
     #strOut =  '#' + sUnitEnt + ' (C-aligned, inner loop is vs ' + _arLabels[0] + ', outer loop vs ' + _arLabels[2] + ')\n'
-    #strOut += '#' + repr(_mesh.eStart) + ' #Initial ' + arLabelUnit[0] + '\n'
-    #strOut += '#' + repr(_mesh.eFin) + ' #Final ' + arLabelUnit[0] + '\n'
-    #strOut += '#' + repr(_mesh.ne) + ' #Number of points vs ' + _arLabels[0] + '\n'
-    #strOut += '#' + repr(_mesh.xStart) + ' #Initial ' + arLabelUnit[1] + '\n'
-    #strOut += '#' + repr(_mesh.xFin) + ' #Final ' + arLabelUnit[1] + '\n'
-    #strOut += '#' + repr(_mesh.nx) + ' #Number of points vs ' + _arLabels[1] + '\n'
-    #strOut += '#' + repr(_mesh.yStart) + ' #Initial ' + arLabelUnit[2] + '\n'
-    #strOut += '#' + repr(_mesh.yFin) + ' #Final ' + arLabelUnit[2] + '\n'
-    #strOut += '#' + repr(_mesh.ny) + ' #Number of points vs ' + _arLabels[2] + '\n'
+    #strOut += '#' + str(_mesh.eStart) + ' #Initial ' + arLabelUnit[0] + '\n'
+    #strOut += '#' + str(_mesh.eFin) + ' #Final ' + arLabelUnit[0] + '\n'
+    #strOut += '#' + str(_mesh.ne) + ' #Number of points vs ' + _arLabels[0] + '\n'
+    #strOut += '#' + str(_mesh.xStart) + ' #Initial ' + arLabelUnit[1] + '\n'
+    #strOut += '#' + str(_mesh.xFin) + ' #Final ' + arLabelUnit[1] + '\n'
+    #strOut += '#' + str(_mesh.nx) + ' #Number of points vs ' + _arLabels[1] + '\n'
+    #strOut += '#' + str(_mesh.yStart) + ' #Initial ' + arLabelUnit[2] + '\n'
+    #strOut += '#' + str(_mesh.yFin) + ' #Final ' + arLabelUnit[2] + '\n'
+    #strOut += '#' + str(_mesh.ny) + ' #Number of points vs ' + _arLabels[2] + '\n'
             
     nComp = 1
     if _n_stokes > 0:
-        f.write('#' + repr(_n_stokes) + ' #Number of components\n')
+        f.write('#' + str(_n_stokes) + ' #Number of components\n')
         #DEBUG
-        #print('#' + repr(_n_stokes) + ' #Number of components\n')
+        #print('#' + str(_n_stokes) + ' #Number of components\n')
         
-        #strOut += '#' + repr(_n_stokes) + ' #Number of components\n'
+        #strOut += '#' + str(_n_stokes) + ' #Number of components\n'
         nComp = _n_stokes
     nRadPt = _mesh.ne*_mesh.nx*_mesh.ny
     if(_mutual > 0): nRadPt *= nRadPt
@@ -6878,8 +6878,8 @@ def srwl_uti_save_intens_ascii(_ar_intens, _mesh, _file_path, _n_stokes=1, _arLa
     #END DEBUG
 
     for i in range(nVal): #write all data into one column using "C-alignment" as a "flat" 1D array
-        f.write(' ' + repr(_ar_intens[i]) + '\n')
-        #strOut += ' ' + repr(_ar_intens[i]) + '\n'
+        f.write(' ' + str(_ar_intens[i]) + '\n')
+        #strOut += ' ' + str(_ar_intens[i]) + '\n'
         #DEBUG
         #if(_ar_intens[i] != 0.): print('i=', i, ' Non-zero Int. value:', _ar_intens[i])
         #if(i > 450000): break
@@ -7236,19 +7236,19 @@ def srwl_uti_save_intens_hdf5_exp(_ar_intens, _mesh, _file_path, _exp_type='XPCS
 #     f = open(_file_path + '-ascii.dat', 'w')
     
 #     f.write('#' + sUnitEnt + ' (C-aligned, inner loop is vs ' + arLabels[0] + ', outer loop vs ' + arLabels[2] + ')\n')
-#     f.write('#' + repr(eStart) + ' #Initial ' + arLabelUnit[0] + '\n')
-#     f.write('#' + repr(eFin) + ' #Final ' + arLabelUnit[0] + '\n')
-#     f.write('#' + repr(ne) + ' #Number of points vs ' + arLabels[0] + '\n')
-#     f.write('#' + repr(xStart) + ' #Initial ' + arLabelUnit[1] + '\n')
-#     f.write('#' + repr(xFin) + ' #Final ' + arLabelUnit[1] + '\n')
-#     f.write('#' + repr(nx) + ' #Number of points vs ' + arLabels[1] + '\n')
-#     f.write('#' + repr(yStart) + ' #Initial ' + arLabelUnit[2] + '\n')
-#     f.write('#' + repr(yFin) + ' #Final ' + arLabelUnit[2] + '\n')
-#     f.write('#' + repr(ny) + ' #Number of points vs ' + arLabels[2] + '\n')
+#     f.write('#' + str(eStart) + ' #Initial ' + arLabelUnit[0] + '\n')
+#     f.write('#' + str(eFin) + ' #Final ' + arLabelUnit[0] + '\n')
+#     f.write('#' + str(ne) + ' #Number of points vs ' + arLabels[0] + '\n')
+#     f.write('#' + str(xStart) + ' #Initial ' + arLabelUnit[1] + '\n')
+#     f.write('#' + str(xFin) + ' #Final ' + arLabelUnit[1] + '\n')
+#     f.write('#' + str(nx) + ' #Number of points vs ' + arLabels[1] + '\n')
+#     f.write('#' + str(yStart) + ' #Initial ' + arLabelUnit[2] + '\n')
+#     f.write('#' + str(yFin) + ' #Final ' + arLabelUnit[2] + '\n')
+#     f.write('#' + str(ny) + ' #Number of points vs ' + arLabels[2] + '\n')
             
 #     nComp = 1
 #     if n_stokes > 0:
-#         f.write('#' + repr(n_stokes) + ' #Number of components\n')
+#         f.write('#' + str(n_stokes) + ' #Number of components\n')
 #         nComp = n_stokes
 #     nRadPt = ne*nx*ny
 #     if(mutual > 0): nRadPt *= nRadPt
@@ -7257,7 +7257,7 @@ def srwl_uti_save_intens_hdf5_exp(_ar_intens, _mesh, _file_path, _exp_type='XPCS
 #     if(cmplx != 0): nVal *= 2 #OC06052018
 
 #     for ii in range(nVal): #write all data into one column using "C-alignment" as a "flat" 1D array
-#         f.write(' ' + repr(intensity_data[ii]) + '\n')
+#         f.write(' ' + str(intensity_data[ii]) + '\n')
 
 #     f.close()
 
@@ -7732,7 +7732,7 @@ def srwl_uti_write_data_cols(_file_path, _cols, _str_sep, _str_head=None, _i_col
         curLine = ''
         for j in range(_i_col_start, iColEndP1):
             curElem = ' '
-            if(i < len(_cols[j])): curElem = repr(_cols[j][i])
+            if(i < len(_cols[j])): curElem = str(_cols[j][i])
             curLine += curElem
             if(j < iColEnd): curLine += strSep
         if(i < nLinesM1): curLine += '\n'
@@ -7837,7 +7837,7 @@ def srwl_uti_save_stat_wfr_emit_prop_multi_e_init(num_of_proc, num_part_avg_proc
     timestamp = '{:%Y-%m-%d_%H-%M-%S}'.format(datetime.datetime.now()) 
     #log_file = 'srwl_stat_wfr_emit_prop_multi_e_{}'.format(timestamp)
     log_file = 'srwl_stat_wfr_emit_prop_multi_e_' #OC02032021
-    if(_i_gr is not None): log_file += repr(_i_gr) #OC02032021
+    if(_i_gr is not None): log_file += str(_i_gr) #OC02032021
     log_file += '{}' #OC02032021
     log_file = log_file.format(timestamp) #OC02032021
 
@@ -8048,7 +8048,7 @@ def srwl_wfr_prop_drifts(_wfr, _dz, _nz, _pp, _do3d=False, _nx=-1, _ny=-1, _rx=0
     for iz in range(0, nzp1):
 
         if(iz > 0):
-            print('Propagation (step # ' + repr(iz) + ') ... ', end='')
+            print('Propagation (step # ' + str(iz) + ') ... ', end='')
             t0 = time.time();
             srwl.PropagElecField(_wfr, cntDrift)
             print('completed (lasted', round(time.time() - t0, 6), 's)')
@@ -8312,8 +8312,8 @@ def srwl_wfr_csd_avg(_fp_core, _fp_ext, _fi_st, _fi_en, _csd0=None, _awfr=None, 
     awfr = _awfr #OC10102021
     for j in range(fi_st, _fi_en+1):
 
-        curFP = _fp_core + '_' + repr(j) + _fp_ext
-        #curFP = _fp_core + repr(j) + _fp_ext
+        curFP = _fp_core + '_' + str(j) + _fp_ext
+        #curFP = _fp_core + str(j) + _fp_ext
         curFP = srwl_wfr_fn(curFP, 3) #adds suffix "_mi" before extension
 
         #DEBUG
@@ -8832,7 +8832,7 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
             #END DEBUG
 
             fp_cm = srwl_wfr_fn(_file_path, _type=7, _form='hdf5') #OC28062021
-            _file_path = fpCore + '_' + repr(iGr) + fpExt #OC28062021: to change this (the input file name should not be changed!)
+            _file_path = fpCore + '_' + str(iGr) + fpExt #OC28062021: to change this (the input file name should not be changed!)
 
     else: #if not ((_char == 6) or (_char == 61) or (_char == 7)): #OC28042022
         if(_n_mpi > 1): raise Exception("Calculation with more than one \"group\" of MPI processes is is not supported for this radiation characteristic.")
@@ -10547,7 +10547,7 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
                         #END DEBUG
                         #DEBUG
                         #print('Saving intensity of propagated wavefront #', i)
-                        #srwl_uti_save_intens_ascii(workStokes.arS, workStokes.mesh, _file_path + '_' + repr(i) + '.dat', 1, _mutual = doMutual)
+                        #srwl_uti_save_intens_ascii(workStokes.arS, workStokes.mesh, _file_path + '_' + str(i) + '.dat', 1, _mutual = doMutual)
                         #sys.exit()
                         #END DEBUG
 
@@ -11560,7 +11560,7 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
                 # #for j in range(_n_mpi):
 
                 #     #if(j > 0): #OC25042021 (commented-out)
-                #     curFP = fpCore + '_' + repr(j) + fpExt
+                #     curFP = fpCore + '_' + str(j) + fpExt
                 #     curFP = srwl_wfr_fn(curFP, 3) #adds suffix "_mi" before extension
 
                 #     resPartMI = srwl_uti_read_intens(_file_path=curFP, _form=_file_form)

@@ -1463,7 +1463,7 @@ class SRWLBeamline(object):
     #                         nameCore = _fname[:indLastDot]
     #                         sExt = _fname[indLastDot:len_fname] #extension with '.'
     #                     for i in range(6):
-    #                         fnPol = nameCore + '_' + repr(i) + sExt
+    #                         fnPol = nameCore + '_' + str(i) + sExt
     #                         srwl_uti_save_intens_ascii(arI[i], stk.mesh, fnPol, 0, ['Photon Energy', 'Horizontal Position', 'Vertical Position', sValName], _arUnits=['eV', 'm', 'm', sValUnitName])
     #     return arI
 
@@ -2026,7 +2026,7 @@ class SRWLBeamline(object):
                 for i in range(nInd):
                     curRadData = radView[i]
                     if((len(curRadData) > 6) and (curRadData[6] is not None)):
-                        curIntFileName = intNameCore + '_intermed_' + repr(curRadData[0]) + '.' + sExt
+                        curIntFileName = intNameCore + '_intermed_' + str(curRadData[0]) + '.' + sExt
                         #DEBUG
                         #print(curIntFileName)
                         #END DEBUG
@@ -3922,7 +3922,7 @@ class SRWLBeamline(object):
                                 [curMesh.yStart, curMesh.yFin, curMesh.ny],
                                 0, #0.5*(curMesh.xStart + curMesh.xFin),
                                 0, #0.5*(curMesh.yStart + curMesh.yFin),
-                                ['Horizontal Position', 'Vertical Position', sValLabel + ' After Elem. #' + repr(curIntData[0])],
+                                ['Horizontal Position', 'Vertical Position', sValLabel + ' After Elem. #' + str(curIntData[0])],
                                 ['m', 'm', sValUnit],
                                 True)
                             

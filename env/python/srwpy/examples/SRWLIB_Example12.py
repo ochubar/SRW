@@ -311,7 +311,7 @@ def calcSE(_e_beam, _mag, _mesh, _bl, _sr_meth=1, _sr_prec=0.01, _sr_samp_fact=1
   sys.stdout.write('   Simulating Electric Field Wavefront Propagation ... '); sys.stdout.flush()
   t0 = time.time()
   srwl.PropagElecField(wfr, _bl)
-  sys.stdout.write('done\n   lasted '+repr(round(time.time() - t0))+' s\n')
+  sys.stdout.write('done\n   lasted '+str(round(time.time() - t0))+' s\n')
   mesh1 = deepcopy(wfr.mesh)  
   sys.stdout.write('   Extracting Intensity from the Propagated Electric Field  ... '); sys.stdout.flush()
   arI1 = array('f', [0]*mesh1.nx*mesh1.ny) #"flat" 2D array to take intensity data
@@ -382,7 +382,7 @@ if __name__=="__main__":
   e_beam = setElecBeam(-1.9)
   beamline = setBeamline(opt.en, opt.noptel)
 
-  fileNameSuf = opt.fnsuf+'_'+repr(enPhExact)+"eV.dat"
+  fileNameSuf = opt.fnsuf+'_'+str(enPhExact)+"eV.dat"
 
   if(opt.melec <= 1):
     calcSE(e_beam, mag, mesh, beamline, _sr_samp_fact=opt.isamp, _fnsuf=fileNameSuf)
