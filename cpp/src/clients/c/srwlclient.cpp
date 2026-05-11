@@ -609,7 +609,7 @@ int SRWLIB_Example03(const char* strFolder)
 	double zEndInteg = 0; //longitudinal position to finish integration (effective if > zStartInteg)
 	int npTraj = 20000;
 	double sampFactNxNyForProp = 0; //sampling factor for adjusting nx, ny (effective if > 0)
-	double arPrecPar[] = {meth, relPrec, zStartInteg, zEndInteg, npTraj, 0, sampFactNxNyForProp};
+	double arPrecPar[] = {double(meth), relPrec, zStartInteg, zEndInteg, double(npTraj), 0, sampFactNxNyForProp};
 
 	//***********Wavefronts
 	SRWLWfr wfr1; //For spectrum vs photon energy
@@ -789,7 +789,7 @@ int SRWLIB_Example04(const char* strFolder)
 	double zEndInteg = 0; //longitudinal position to finish integration (effective if > zStartInteg)
 	int npTraj = 20000;
 	double sampFactNxNyForProp = 1; //sampling factor for adjusting nx, ny (effective if > 0)
-	double arPrecPar[] = {meth, relPrec, zStartInteg, zEndInteg, npTraj, 0, sampFactNxNyForProp};
+	double arPrecPar[] = {double(meth), relPrec, zStartInteg, zEndInteg, double(npTraj), 0, sampFactNxNyForProp};
 
 	//***********Initial Wavefront
 	SRWLWfr wfr; //For spectrum vs photon energy
@@ -1014,8 +1014,7 @@ int SRWLIB_Example05(const char* strFolder)
 	double zStartInteg = 0; //-129.029 #part.z - 0.1 #longitudinal position to start integration (effective if < zEndInteg)
 	double zEndInteg = 0; //129.029 #part.z + 5.3 #longitudinal position to finish integration (effective if > zStartInteg)
 	double sampFactNxNyForProp = 0; //sampling factor for adjusting nx, ny (effective if > 0)
-	double arPrecPar[] = {meth, relPrec, zStartInteg, zEndInteg, partTraj.np, 0, sampFactNxNyForProp};
-
+	double arPrecPar[] = {double(meth), relPrec, zStartInteg, zEndInteg, double(partTraj.np), 0, sampFactNxNyForProp};
 	//**********************Wavefront
 	SRWLWfr wfr1; //For spectrum vs photon energy
 	wfr1.mesh.ne = 5000; //Numbers of points vs Photon Energy, Horizontal and Vertical Positions

@@ -173,6 +173,8 @@ srTCompositeOptElem::srTCompositeOptElem(const SRWLOptC& opt)
 
 			else if(strcmp(sType, "crystal") == 0) pOptElem = new srTOptCryst(*((SRWLOptCryst*)(*t_arOpt)));
 			else if(strcmp(sType, "container") == 0) pOptElem = new srTCompositeOptElem(*((SRWLOptC*)(*t_arOpt)));
+			else if(strcmp(sType, "interferometer") == 0) pOptElem = new srTOptInterferometer(*((SRWLOptI*)(*t_arOpt))); //OC01102025
+
 			else throw UNKNOWN_OPTICAL_ELEMENT;
 		}
 		if(pOptElem != 0)
@@ -196,18 +198,44 @@ srTCompositeOptElem::srTCompositeOptElem(const SRWLOptC& opt)
 				propRes.propAllowUnderSamp((int)(t_pr[3]));
 				propRes.useOtherSideFFT((int)(t_pr[4]));
 				propRes.pxm = t_pr[5];
-				propRes.pxd = t_pr[6];
-				propRes.pzm = t_pr[7];
-				propRes.pzd = t_pr[8];
-				if(curNumPropPar > 9) propRes.ShiftTypeBeforeRes = (char)t_pr[9];
-				if(curNumPropPar > 10) propRes.xCenShift = t_pr[10];
-				if(curNumPropPar > 11) propRes.zCenShift = t_pr[11];
+				if(propRes.pxm > 0.) //OC17102025
+				{
+					propRes.pxd = t_pr[6];
+					propRes.pzm = t_pr[7];
+					propRes.pzd = t_pr[8];
+					if(curNumPropPar > 9) propRes.ShiftTypeBeforeRes = (char)t_pr[9];
+					if(curNumPropPar > 10) propRes.xCenShift = t_pr[10];
+					if(curNumPropPar > 11) propRes.zCenShift = t_pr[11];
+
+					propRes.eStart = propRes.eStep = propRes.xStart = propRes.xStep = propRes.zStart = propRes.zStep = 0.; //OC17102025
+					propRes.ne = propRes.nx = propRes.nz = 0; //OC17102025
+				}
+				else //OC17102025
+				{
+					propRes.nx = (long)(t_pr[8]);
+					propRes.xStart = t_pr[6];
+					propRes.xStep = (propRes.nx <= 1)? 0. : (t_pr[7] - propRes.xStart)/(propRes.nx - 1);
+					propRes.nz = (long)(t_pr[11]);
+					propRes.zStart = t_pr[9];
+					propRes.zStep = (propRes.nz <= 1)? 0. : (t_pr[10] - propRes.zStart)/(propRes.nz - 1);
+					//In Python interface, this option is used for specifying resize to a given mesh, e.g.
+					//['op_FinMesh_pp', 'f',  [0, 0, 1.0, 0, 0, -1, -0.0147, 0.0144, 960, -0.0158, 0.01458, 972, 0.0, 0.0, 0.0, 0.0, 0.0, 0., 0., 0., 0.], 'final post-propagation resize parameters to a given mesh'], #OC30092025 (changed/simplified optical component names)
+
+					propRes.eStart = propRes.eStep = 0.;
+					propRes.ne = 0;
+				}
 
 				if(curNumPropPar > 12) propRes.vLxOut = t_pr[12]; //Default coordinates of the output Optical Axis vector
 				if(curNumPropPar > 13) propRes.vLyOut = t_pr[13];
 				if(curNumPropPar > 14) propRes.vLzOut = t_pr[14];
 				if(curNumPropPar > 15) propRes.vHxOut = t_pr[15]; //Default coordinates of the Horizontal Base vector of the output frame
 				if(curNumPropPar > 16) propRes.vHyOut = t_pr[16];
+
+				//OC01102025
+				if(curNumPropPar > 17) propRes.Rx = t_pr[17];
+				if(curNumPropPar > 18) propRes.xc = t_pr[18];
+				if(curNumPropPar > 19) propRes.Rz = t_pr[19];
+				if(curNumPropPar > 20) propRes.zc = t_pr[20];
 			}
 
 			GenOptElemPropResizeVect.push_back(propRes); //define instructions for propagation/resizing
@@ -309,9 +337,56 @@ int srTCompositeOptElem::PropagateRadiationGuided(srTSRWRadStructAccessData& wfr
 			precFact = curPropResizeInst.PropAutoPrec;
 			analTreatment = curPropResizeInst.propAllowUnderSamp();
 
-			//TO IMPLEMENT: eventual shift of wavefront before resizing!!!
+			//TO IMPLEMENT: eventual shift of wavefront before resizing!!!?
 
-			if((::fabs(curPropResizeInst.pxd - 1.) > tolRes) || (::fabs(curPropResizeInst.pxm - 1.) > tolRes) ||
+			//OC20102025: Distinguish when resize should be made to a precize mesh and call wfr.Resize(..) in that case
+			if((curPropResizeInst.nx > 0) && (curPropResizeInst.nz > 0))
+			{
+				SRWLRadMesh mesh;
+				mesh.nx = curPropResizeInst.nx; mesh.ny = curPropResizeInst.nz; //mesh.ne = curPropResizeInst.ne;
+				//mesh.eStart = curPropResizeInst.eStart; mesh.eFin = curPropResizeInst.eStart + (curPropResizeInst.ne - 1)*curPropResizeInst.eStep;
+				mesh.xStart = curPropResizeInst.xStart; mesh.xFin = curPropResizeInst.xStart + (curPropResizeInst.nx - 1)*curPropResizeInst.xStep;
+				mesh.yStart = curPropResizeInst.zStart; mesh.yFin = curPropResizeInst.zStart + (curPropResizeInst.nz - 1)*curPropResizeInst.zStep;
+
+				mesh.ne = wfr.ne; //keep energy mesh unchanged
+				mesh.eStart = wfr.eStart; mesh.eFin = wfr.eStart + (wfr.ne - 1)*wfr.eStep;
+					
+				double arParResizeMesh[] = {0.,1.,1.}; //default
+				arParResizeMesh[0] = (double)curPropResizeInst.useOtherSideFFT();
+
+				if(curPropResizeInst.doNotTreatSpherTerm()) arParResizeMesh[1] = 0.;
+				else
+				{
+					if(curPropResizeInst.Rx != 0.)
+					{
+						wfr.RobsX = curPropResizeInst.Rx;
+						wfr.RobsXAbsErr = 0.01*::fabs(wfr.RobsX); //to enable treatment of the quadratic phase terms at resizing
+						wfr.xc = curPropResizeInst.xc;
+					}
+					if(curPropResizeInst.Rz != 0.)
+					{
+						wfr.RobsZ = curPropResizeInst.Rz;
+						wfr.RobsZAbsErr = 0.01*::fabs(wfr.RobsZ);
+						wfr.zc = curPropResizeInst.zc;
+					}
+				}
+				//To make arParResizeMesh[2] input variable? : allow or not correction of Re and Im parts of the E-field based on intensity ratio (0- don't allow, 1- allow)
+
+#ifdef _OFFLOAD_GPU //HG191102025
+				if(CAuxGPU::GPUEnabled(pGPU) && dataOnDevice)
+				{
+					if(wfr.pBaseRadX != NULL)
+						wfr.pBaseRadX = CAuxGPU::ToHostAndFree(pGPU, wfr.pBaseRadX, 2 * wfr.ne * wfr.nx * wfr.nz);
+					if(wfr.pBaseRadZ != NULL)
+						wfr.pBaseRadZ = CAuxGPU::ToHostAndFree(pGPU, wfr.pBaseRadZ, 2 * wfr.ne * wfr.nx * wfr.nz);
+					dataOnDevice = false;
+				}
+#endif
+				wfr.Resize(mesh, arParResizeMesh);
+
+			}//OC20102025
+			else if((::fabs(curPropResizeInst.pxd - 1.) > tolRes) || (::fabs(curPropResizeInst.pxm - 1.) > tolRes) ||
+			//if((::fabs(curPropResizeInst.pxd - 1.) > tolRes) || (::fabs(curPropResizeInst.pxm - 1.) > tolRes) ||
 				//(::fabs(curPropResizeInst.pzd - 1.) > tolRes) || (::fabs(curPropResizeInst.pzm - 1.) > tolRes))
 				(::fabs(curPropResizeInst.pzd - 1.) > tolRes) || (::fabs(curPropResizeInst.pzm - 1.) > tolRes) || (curPropResizeInst.ShiftTypeBeforeRes > 0)) //OC11072019
 			{
@@ -323,7 +398,7 @@ int srTCompositeOptElem::PropagateRadiationGuided(srTSRWRadStructAccessData& wfr
 				if(CAuxGPU::GPUEnabled(pGPU)) { //OC18022024
 					dataOnDevice = true; //HG26022024 Add explanation: If GPU is enabled, the resized wavefront is already on the GPU, so mark it appropriately so that the data can be relocated if necessary for the first optical element
 				}
-#endif	
+#endif
 			}
 
 			//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
@@ -351,9 +426,11 @@ int srTCompositeOptElem::PropagateRadiationGuided(srTSRWRadStructAccessData& wfr
 				//				printf("Element does not support GPU, transferring to CPU.\r\n");
 				//#endif
 				if(wfr.pBaseRadX != NULL)
-					wfr.pBaseRadX = (float*)CAuxGPU::ToHostAndFree(pGPU, wfr.pBaseRadX, 2 * wfr.ne * wfr.nx * wfr.nz * sizeof(float));
+					//wfr.pBaseRadX = (float*)CAuxGPU::ToHostAndFree(pGPU, wfr.pBaseRadX, 2 * wfr.ne * wfr.nx * wfr.nz * sizeof(float));
+					wfr.pBaseRadX = CAuxGPU::ToHostAndFree(pGPU, wfr.pBaseRadX, 2*wfr.ne*wfr.nx*wfr.nz); //HG29092025
 				if(wfr.pBaseRadZ != NULL)
-					wfr.pBaseRadZ = (float*)CAuxGPU::ToHostAndFree(pGPU, wfr.pBaseRadZ, 2 * wfr.ne * wfr.nx * wfr.nz * sizeof(float));
+					//wfr.pBaseRadZ = (float*)CAuxGPU::ToHostAndFree(pGPU, wfr.pBaseRadZ, 2 * wfr.ne * wfr.nx * wfr.nz * sizeof(float));
+					wfr.pBaseRadZ = CAuxGPU::ToHostAndFree(pGPU, wfr.pBaseRadZ, 2*wfr.ne*wfr.nx*wfr.nz); //HG29092025
 				dataOnDevice = false;
 			}
 			//else if(!dataOnDevice && (((srTGenOptElem*)it->rep)->SupportedFeatures() & 1) == 1)
@@ -369,7 +446,8 @@ int srTCompositeOptElem::PropagateRadiationGuided(srTSRWRadStructAccessData& wfr
 
 		srTRadResizeVect auxResizeVect;
 		//if(res = ((srTGenOptElem*)(it->rep))->PropagateRadiation(&wfr, precParWfrPropag, auxResizeVect)) return res;
-		if(res = ((srTGenOptElem*)(it->rep))->PropagateRadiation(&wfr, precParWfrPropag, auxResizeVect, pvGPU)) return res; //HG30112023
+		//if(res = ((srTGenOptElem*)(it->rep))->PropagateRadiation(&wfr, precParWfrPropag, auxResizeVect, pvGPU)) return res; //HG30112023
+		if(res = ((srTGenOptElem*)(it->rep))->PropagateRadiation(&wfr, precParWfrPropag, auxResizeVect, (((srTGenOptElem*)it->rep)->GPUImplFeatures() & 1) == 0 ? 0 : pvGPU)) return res; //HG26072024 Don't pass pvGPU to propagators that don't support it
 		//maybe to use "PropagateRadiationGuided" for srTCompositeOptElem?
 
 		//OC_DEBUG
@@ -388,9 +466,12 @@ int srTCompositeOptElem::PropagateRadiationGuided(srTSRWRadStructAccessData& wfr
 				if(dataOnDevice)
 				{
 					if(wfr.pBaseRadX != NULL)
-						wfr.pBaseRadX = (float*)CAuxGPU::ToHostAndFree(pGPU, wfr.pBaseRadX, 2 * wfr.ne * wfr.nx * wfr.nz * sizeof(float));
+						//wfr.pBaseRadX = (float*)CAuxGPU::ToHostAndFree(pGPU, wfr.pBaseRadX, 2 * wfr.ne * wfr.nx * wfr.nz * sizeof(float));
+						wfr.pBaseRadX = CAuxGPU::ToHostAndFree(pGPU, wfr.pBaseRadX, 2*wfr.ne*wfr.nx*wfr.nz); //HG29092025
 					if(wfr.pBaseRadZ != NULL)
-						wfr.pBaseRadZ = (float*)CAuxGPU::ToHostAndFree(pGPU, wfr.pBaseRadZ, 2 * wfr.ne * wfr.nx * wfr.nz * sizeof(float));
+						//wfr.pBaseRadZ = (float*)CAuxGPU::ToHostAndFree(pGPU, wfr.pBaseRadZ, 2 * wfr.ne * wfr.nx * wfr.nz * sizeof(float));
+						wfr.pBaseRadZ = CAuxGPU::ToHostAndFree(pGPU, wfr.pBaseRadZ, 2*wfr.ne*wfr.nx*wfr.nz); //HG29092025
+
 					dataOnDevice = false;
 				}
 			}
@@ -414,13 +495,87 @@ int srTCompositeOptElem::PropagateRadiationGuided(srTSRWRadStructAccessData& wfr
 		//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
 		//srwlPrintTime("PropagateRadiationGuided: GenOptElemPropResizeVect",&start);
 
-		if((::fabs(postResize.pxd - 1.) > tolRes) || (::fabs(postResize.pxm - 1.) > tolRes) ||
-		   (::fabs(postResize.pzd - 1.) > tolRes) || (::fabs(postResize.pzm - 1.) > tolRes))
-			if(res = RadResizeGen(wfr, postResize)) return res;
+		//OC20102025: Distinguish when resize should be made to a precize mesh and call wfr->Resize(..) in that case
+		if((postResize.nx > 0) && (postResize.nz > 0))
+		{
+			SRWLRadMesh mesh;
+			mesh.nx = postResize.nx; mesh.ny = postResize.nz; //mesh.ne = postResize.ne;
+			//mesh.eStart = curPropResizeInst.eStart; mesh.eFin = curPropResizeInst.eStart + (curPropResizeInst.ne - 1)*curPropResizeInst.eStep;
+			mesh.xStart = postResize.xStart; mesh.xFin = postResize.xStart + (postResize.nx - 1)*postResize.xStep;
+			mesh.yStart = postResize.zStart; mesh.yFin = postResize.zStart + (postResize.nz - 1)*postResize.zStep;
 
+			mesh.ne = wfr.ne; //keep energy mesh unchanged
+			mesh.eStart = wfr.eStart; mesh.eFin = wfr.eStart + (wfr.ne - 1)*wfr.eStep;
+
+			double arParResizeMesh[] = { 0.,1.,1. }; //default
+			arParResizeMesh[0] = (double)postResize.useOtherSideFFT();
+
+			if(postResize.doNotTreatSpherTerm()) arParResizeMesh[1] = 0.;
+			else
+			{
+				if(postResize.Rx != 0.)
+				{
+					wfr.RobsX = postResize.Rx;
+					wfr.RobsXAbsErr = 0.01*::fabs(wfr.RobsX); //to enable treatment of the quadratic phase terms at resizing
+					wfr.xc = postResize.xc;
+				}
+				if(postResize.Rz != 0.)
+				{
+					wfr.RobsZ = postResize.Rz;
+					wfr.RobsZAbsErr = 0.01*::fabs(wfr.RobsZ);
+					wfr.zc = postResize.zc;
+				}
+			}
+			//To make arParResizeMesh[2] input variable? : allow or not correction of Re and Im parts of the E-field based on intensity ratio (0- don't allow, 1- allow)
+
+#ifdef _OFFLOAD_GPU //HG191102025
+			if(CAuxGPU::GPUEnabled(pGPU) && dataOnDevice)
+			{
+				if(wfr.pBaseRadX != NULL)
+					wfr.pBaseRadX = CAuxGPU::ToHostAndFree(pGPU, wfr.pBaseRadX, 2 * wfr.ne * wfr.nx * wfr.nz);
+				if(wfr.pBaseRadZ != NULL)
+					wfr.pBaseRadZ = CAuxGPU::ToHostAndFree(pGPU, wfr.pBaseRadZ, 2 * wfr.ne * wfr.nx * wfr.nz);
+				dataOnDevice = false;
+			}
+#endif
+			wfr.Resize(mesh, arParResizeMesh);
+
+		}//OC20102025
+		else if((::fabs(postResize.pxd - 1.) > tolRes) || (::fabs(postResize.pxm - 1.) > tolRes) || //OC21102025
+		//if((::fabs(postResize.pxd - 1.) > tolRes) || (::fabs(postResize.pxm - 1.) > tolRes) ||
+		   (::fabs(postResize.pzd - 1.) > tolRes) || (::fabs(postResize.pzm - 1.) > tolRes))
+			//if(res = RadResizeGen(wfr, postResize)) return res;
+		{
+			if(res = RadResizeGen(wfr, postResize, pvGPU)) return res; //HG26072024 make this resize able to use GPU
+#ifdef _OFFLOAD_GPU
+			if(CAuxGPU::GPUEnabled(pGPU)) dataOnDevice = true;
+#endif
+		}
+
+#ifdef _OFFLOAD_GPU //HG26072025 Make sure the data is returned to CPU
+		if(CAuxGPU::GPUEnabled(pGPU) && dataOnDevice)
+		{
+			if(wfr.pBaseRadX != NULL)
+				wfr.pBaseRadX = CAuxGPU::ToHostAndFree(pGPU, wfr.pBaseRadX, 2*wfr.ne*wfr.nx*wfr.nz);
+			if(wfr.pBaseRadZ != NULL)
+				wfr.pBaseRadZ = CAuxGPU::ToHostAndFree(pGPU, wfr.pBaseRadZ, 2*wfr.ne*wfr.nx*wfr.nz);
+			dataOnDevice = false;
+		}
+#endif
 		if(propIntIsNeeded) ExtractPropagatedIntensity(wfr, nInt, arID, arIM, arI, elemCount); //OC29082018
 		//if(propIntIsNeeded) ExtractPropagatedIntensity(wfr, nInt, arID, arIM, arI, elemCount, nInt - 1);
 	}
+
+#ifdef _OFFLOAD_GPU //HG26072025 Make sure the data is returned to CPU
+	if(CAuxGPU::GPUEnabled(pGPU) && dataOnDevice)
+	{
+		if(wfr.pBaseRadX != NULL)
+			wfr.pBaseRadX = CAuxGPU::ToHostAndFree(pGPU, wfr.pBaseRadX, 2*wfr.ne*wfr.nx*wfr.nz);
+		if(wfr.pBaseRadZ != NULL)
+			wfr.pBaseRadZ = CAuxGPU::ToHostAndFree(pGPU, wfr.pBaseRadZ, 2*wfr.ne*wfr.nx*wfr.nz);
+		dataOnDevice = false;
+	}
+#endif
 	return 0;
 }
 
@@ -477,6 +632,118 @@ int srTCompositeOptElem::ExtractPropagatedIntensity(srTSRWRadStructAccessData& w
 		}
 	}
 	return res;
+}
+
+//*************************************************************************
+
+srTOptInterferometer::srTOptInterferometer(const SRWLOptI& opt) //OC01102025
+{
+	void **t_arOptC = opt.arOptC;
+	if((opt.nElem <= 0) || (t_arOptC == 0)) throw UNKNOWN_OPTICAL_ELEMENT;
+
+	for(int i=0; i<opt.nElem; i++)
+	{
+		if((*t_arOptC) == 0) throw UNKNOWN_OPTICAL_ELEMENT;
+		srTGenOptElem *pOptElem = new srTCompositeOptElem(*((SRWLOptC*)(*t_arOptC)));
+
+		if(pOptElem != 0)
+		{
+			CSmartPtr<CGenObject> hObj(pOptElem);
+			GenOptCntList.push_back(hObj);
+		}
+		else throw UNKNOWN_OPTICAL_ELEMENT; //Maybe throw a better message?
+		t_arOptC++;
+	}
+
+	//m_irec = opt.irec;
+	////OC09102025: this ensures that recombination of wavefronts is always done (to be possibly changed in the future?)
+	//int nBranches = (int)GenOptCntList.size();
+	//if((m_irec < 0) && (nBranches > 0))
+	//{
+	//	m_irec = nBranches - 1;
+	//}
+
+	//OC12102025
+	for(int i=0; i<3; i++) //to increase number of parameters, if necessary
+	{
+		m_arPar[i] = opt.arPar[i];
+	}
+	int nBranches = (int)GenOptCntList.size();
+	if((m_arPar[0] < 0) && (nBranches > 0))
+	{
+		m_arPar[0] = 0; //nBranches - 1;
+	}
+
+}
+
+//*************************************************************************
+
+int srTOptInterferometer::PropagateRadiation(srTSRWRadStructAccessData* pRadAccessData, srTParPrecWfrPropag& ParPrecWfrPropag, srTRadResizeVect& ResizeBeforeAndAfterVect, void* pvGPU) 
+{//OC08102025
+	if(pRadAccessData == 0) return 0;
+	int nBranches = (int)GenOptCntList.size();
+	if(nBranches < 1) return 0; //nothing to do
+
+	//If number of branches > 1, duplicate wavefront for each branch, except for the "reference" one, indicated by irec parameter
+	//For each branch do PropagateRadiationGuided and keep resulting wavefronts
+	//If wavefront recombination is necessary, sum up electric fields from all branches with interpolation, if necessary
+	//then delete wavefronts of all the branches except the reference one
+
+	int result = 0;
+	if(nBranches < 2)
+	{//Only one branch - just propagate
+		if(result = ((srTCompositeOptElem*)(GenOptCntList.begin()->rep))->PropagateRadiationGuided(*pRadAccessData, 0, 0, 0, 0, pvGPU)) return result;
+	}
+
+	//Copy initial wavefront (for local use only, for branches other than the "main" one)
+	srTSRWRadStructAccessData origRadAccessData(pRadAccessData); //OC11121025
+	//srTSRWRadStructAccessData* pOrigRadAccessData = new srTSRWRadStructAccessData(pRadAccessData);
+	//if(pOrigRadAccessData == 0) return MEMORY_ALLOCATION_FAILURE;
+
+	//First, propagate the "main" branch (m_irec)
+	int irec = (int)m_arPar[0]; //OC12102025
+	srTCompositeOptElem *pMainBranch = (srTCompositeOptElem*)(std::next(GenOptCntList.begin(), irec))->rep;
+	//srTCompositeOptElem *pMainBranch = (srTCompositeOptElem*)(std::next(GenOptCntList.begin(), m_irec))->rep;
+	if(result = pMainBranch->PropagateRadiationGuided(*pRadAccessData, 0, 0, 0, 0, pvGPU))
+	{
+		//if(pOrigRadAccessData != 0) delete pOrigRadAccessData; //OC11121025 (commented-out)
+		return result;
+	}
+
+	int branchInd = -1;
+	for(srTGenOptElemHndlList::iterator iter = GenOptCntList.begin(); iter != GenOptCntList.end(); ++iter)
+	{
+		branchInd++;
+		if(branchInd == irec) continue; //OC12102025
+		//if(branchInd == m_irec) continue;
+
+		srTSRWRadStructAccessData curRadAccessData(&origRadAccessData); //OC11122025
+		//srTSRWRadStructAccessData* pCurRadAccessData = new srTSRWRadStructAccessData(pOrigRadAccessData);
+		//if(pCurRadAccessData == 0)
+		//{
+		//	if(pOrigRadAccessData != 0) delete pOrigRadAccessData;
+		//	return MEMORY_ALLOCATION_FAILURE;
+		//}
+
+		//Propagate wavefront through the current branch
+		if(result = ((srTCompositeOptElem*)((*iter).rep))->PropagateRadiationGuided(curRadAccessData, 0, 0, 0, 0, pvGPU)) //OC11122025
+		//if(result = ((srTCompositeOptElem*)((*iter).rep))->PropagateRadiationGuided(*pCurRadAccessData, 0, 0, 0, 0, pvGPU))
+		{
+			//if(pOrigRadAccessData != 0) delete pOrigRadAccessData;
+			//if(pCurRadAccessData != 0) delete pCurRadAccessData;
+			return result;
+		}
+
+		//Add current wavefront to the "main" one
+		pRadAccessData->AddElFieldData(curRadAccessData, m_arPar+1); //OC11122025
+		//pRadAccessData->AddElFieldData(*pCurRadAccessData, m_arPar+1); //OC12102025
+		//pRadAccessData->AddElFieldDataViaResize(*pCurRadAccessData);
+
+		//if(pCurRadAccessData != 0) delete pCurRadAccessData; //OC11122025 (commented-out)
+	}
+
+	//if(pOrigRadAccessData != 0) delete pOrigRadAccessData; //OC11122025 (commented-out)
+	return 0;
 }
 
 //*************************************************************************

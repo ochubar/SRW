@@ -4662,6 +4662,13 @@ void srTSRWRadStructAccessData::ResizeCoreXZ(SRWLRadMesh& oldMesh, float* pOldRa
 		if(arPar[2] == 0.) allowReAndImCorrFromI = false;
 	}
 
+	//OC10102025 (setting member-variables from "old" wavefront data at input - this is required because TreatQuadPhaseTerm works with the member-variables only)
+	float *pCurBaseRadX = pBaseRadX;
+	float *pCurBaseRadZ = pBaseRadZ;
+	double xStartCur = xStart, xStepCur = xStep;
+	double zStartCur = zStart, zStepCur = zStep;
+	long nxCur = nx, nzCur = nz;
+
 	if(allowTreatQuadPhaseTerm && QuadPhaseTermCanBeTreated())
 	{
 		//NewRadAccessData.WfrQuadTermCanBeTreatedAtResizeX = OldRadAccessData.WfrQuadTermCanBeTreatedAtResizeX;
@@ -4670,7 +4677,24 @@ void srTSRWRadStructAccessData::ResizeCoreXZ(SRWLRadMesh& oldMesh, float* pOldRa
 		//TreatStronglyOscillatingTerm(OldRadAccessData, 'r', PolComp);
 		if(!TreatPolCompZ) polComp = 'x';
 		else if(!TreatPolCompX) polComp = 'z';
+
+		//OC10102025 (setting member-variables from "old" wavefront data at input - this is required because TreatQuadPhaseTerm works with the member-variables only)
+		pBaseRadX = pOldRadX;
+		pBaseRadZ = pOldRadZ;
+		xStep= xStepOld; xStart = xStartOld;
+		zStep= zStepOld; zStart = zStartOld;
+		nx = oldMesh.nx;
+		nz = oldMesh.ny;
+
 		TreatQuadPhaseTerm('r', polComp);
+
+		//OC10102025 (re-setting member-variables back)
+		pBaseRadX = pCurBaseRadX;
+		pBaseRadZ = pCurBaseRadZ;
+		xStart = xStartCur; xStep = xStepCur;
+		zStart = zStartCur; zStep = zStepCur;
+		nx = nxCur;
+		nz = nzCur;
 
 		//NewRadAccessData.wfrReffX = OldRadAccessData.wfrReffX;
 		//NewRadAccessData.wfrReffZ = OldRadAccessData.wfrReffZ;
@@ -4786,9 +4810,10 @@ void srTSRWRadStructAccessData::ResizeCoreXZ(SRWLRadMesh& oldMesh, float* pOldRa
 
 				ixcOld_mi_ixStOld = ixcOld - ixStOld;
 
+				UseLowOrderInterp_PolCompX = false; UseLowOrderInterp_PolCompZ = false; //OC14102025 (to avoid warning)
 				if((izStOld != izStOldPrev) || (ixStOld != ixStOldPrev))
 				{
-					UseLowOrderInterp_PolCompX = false; UseLowOrderInterp_PolCompZ = false;
+					//UseLowOrderInterp_PolCompX = false; UseLowOrderInterp_PolCompZ = false;
 
 					long long TotOffsetOld = izStOld*PerZ_Old + ixStOld*PerX + two_ie;
 					//long long TotOffsetOld = izStOld*PerZ_Old + ixStOld*PerX_Old + two_ie;
@@ -4883,22 +4908,34 @@ void srTSRWRadStructAccessData::ResizeCoreXZ(SRWLRadMesh& oldMesh, float* pOldRa
 		//double eStep, eStart, xStep, xStart, zStep, zStart;
 		//long ne, nx, nz;
 
+		//OC10102025 (storing current values of member-variables)
+		pCurBaseRadX = pBaseRadX;
+		pCurBaseRadZ = pBaseRadZ;
+		xStartCur = xStart; xStepCur = xStep;
+		zStartCur = zStart; zStepCur = zStep;
+		nxCur = nx; nzCur = nz;
+
 		pBaseRadX = pNewRadX;
 		pBaseRadZ = pNewRadZ;
 		xStep= xStepNew; xStart = xStartNew;
 		zStep= zStepNew; zStart = zStartNew;
-		nx = nxNew; 
-		nz = nzNew;
+		nx = nxNew; nz = nzNew;
 
 		TreatQuadPhaseTerm('a', polComp);
 
 		//Setting back the member variables to their original values
-		pBaseRadX = pOldRadX;
-		pBaseRadZ = pOldRadZ;
-		xStep = xStepOld; xStart = xStartOld;
-		zStep = zStepOld; zStart = zStartOld;
-		nx = oldMesh.nx; 
-		nz = oldMesh.ny;
+		//pBaseRadX = pOldRadX;
+		//pBaseRadZ = pOldRadZ;
+		//xStep = xStepOld; xStart = xStartOld;
+		//zStep = zStepOld; zStart = zStartOld;
+		//nx = oldMesh.nx; 
+		//nz = oldMesh.ny;
+		//OC10102025 (re-setting member-variables back)
+		pBaseRadX = pCurBaseRadX;
+		pBaseRadZ = pCurBaseRadZ;
+		xStart = xStartCur; xStep = xStepCur;
+		zStart = zStartCur; zStep = zStepCur;
+		nx = nxCur; nz = nzCur;
 	}
 }
 
@@ -5148,6 +5185,497 @@ void srTSRWRadStructAccessData::ResizeCoreE(SRWLRadMesh& oldMesh, float* pOldRad
 		pBaseRadZ = pOldRadZ;
 		eStep = eStepOld; eStart = eStartOld;
 		ne = oldMesh.ne;
+	}
+}
+
+//*************************************************************************
+
+void srTSRWRadStructAccessData::AddElFieldDataWithInterpXZ(srTSRWRadStructAccessData& radData, double* arPar)
+{//OC10102025
+ //This function is similar to ResizeCoreXZ; it addes El. Field data from radData to "this" object rada, interpolating radData over X and Z and treating its Quad. Phase Term if possible
+	float *pAddRadX = radData.pBaseRadX, *pAddRadZ = radData.pBaseRadZ;
+	if(((pBaseRadX == 0) && (pBaseRadZ == 0)) || ((pAddRadX == 0) && (pAddRadZ == 0))) return;
+
+	bool TreatPolCompX = ((pBaseRadX != 0) && (pAddRadX != 0));
+	bool TreatPolCompZ = ((pBaseRadZ != 0) && (pAddRadZ != 0));
+	if((!TreatPolCompX) && (!TreatPolCompZ)) return;
+	char polComp = 0; //will be set only if necessary
+
+	long nxAdd = radData.nx, nzAdd = radData.nz, neAdd = radData.ne;
+	long nxAdd_mi_1 = nxAdd - 1, nzAdd_mi_1 = nzAdd - 1;
+	long nxAdd_mi_2 = nxAdd_mi_1 - 1, nzAdd_mi_2 = nzAdd_mi_1 - 1;
+
+	double xStartAdd = radData.xStart, xStepAdd = radData.xStep;
+	double zStartAdd = radData.zStart, zStepAdd = radData.zStep;
+
+	long nx_mi_1 = nx - 1;
+	long nz_mi_1 = nz - 1;
+	long nx_mi_2 = nx_mi_1 - 1;
+	long nz_mi_2 = nz_mi_1 - 1;
+
+	double xStepInvAdd = ((nxAdd <= 1) || (xStepAdd == 0.))? 0. : 1./xStepAdd;
+	double zStepInvAdd = ((nzAdd <= 1) || (zStepAdd == 0.))? 0. : 1./zStepAdd;
+
+	double relTol = 1.e-06;
+	double xTol = relTol*xStepAdd;
+	double zTol = relTol*zStepAdd;
+
+	double xFin = xStart + nx_mi_1*xStep, zFin = zStart + nz_mi_1*zStep;
+	double xFinAdd = xStartAdd + nxAdd_mi_1*xStepAdd, zFinAdd = zStartAdd + nzAdd_mi_1*zStepAdd;
+
+	//The following was corrected (reversed as compared to ResizeXZ), because the loop has to be made over "this" object mesh!
+	long ixStart = 0;
+	if(xStart < xStartAdd)
+	//if(xStartAdd < xStart)
+	{
+		ixStart = (long)((xStartAdd - xStart)/xStep - 1.e-13);
+		//ixStart = (long)((xStart - xStartAdd)/xStepAdd - 1.e-13);
+		if(xStart + (ixStart + 0.1)*xStep < xStartAdd) ixStart++;
+		//if(xStartAdd + (ixStart + 0.1)*xStepAdd < xStart) ixStart++;
+		if(ixStart < 0) ixStart = 0;
+	}
+	long ixFin = nx_mi_1;
+	//long ixFin = nxAdd_mi_1;
+	if(xFinAdd < xFin)
+	//if(xFin < xFinAdd)
+	{
+		ixFin = (long)((xFinAdd - xStart)/xStep + 1.e-13);
+		//ixFin = (long)((xFin - xStartAdd)/xStepAdd + 1.e-13);
+		if(ixFin >= nx) ixFin = nx_mi_1;
+		//if(ixFin >= nxAdd) ixFin = nxAdd_mi_1;
+	}
+	long izStart = 0;
+	if(zStart < zStartAdd)
+	//if(zStartAdd < zStart)
+	{
+		izStart = (long)((zStartAdd - zStart)/zStep - 1.e-13);
+		//izStart = (long)((zStart - zStartAdd)/zStepAdd - 1.e-13);
+		if(zStart + (izStart + 0.1)*zStep < zStartAdd) izStart++;
+		//if(zStartAdd + (izStart + 0.1)*zStepAdd < zStart) izStart++;
+		if(izStart < 0) izStart = 0;
+	}
+	long izFin = nz_mi_1;
+	//long izFin = nzAdd_mi_1;
+	if(zFinAdd < zFin)
+	//if(zFin < zFinAdd)
+	{
+		izFin = (long)((zFinAdd - zStart)/zStep + 1.e-13);
+		//izFin = (long)((zFin - zStartAdd)/zStepAdd + 1.e-13);
+		if(izFin >= nz) izFin = nz_mi_1;
+		//if(izFin >= nzAdd) izFin = nzAdd_mi_1;
+	}
+
+	bool OldNewMeshesDontIntersect = false;
+	if((ixStart == 0) && (ixFin == 0))
+	{
+		if((xStart < xStartAdd) && (xFin < xStartAdd) && (xStart < xFinAdd) && (xFin < xFinAdd)) OldNewMeshesDontIntersect = true;
+		//if((xStartAdd < xStart) && (xFinAdd < xStart) && (xStartAdd < xFin) && (xFinAdd < xFin)) OldNewMeshesDontIntersect = true;
+		if(!OldNewMeshesDontIntersect)
+		{
+			if((xStart > xStartAdd) && (xFin > xStartAdd) && (xStart > xFinAdd) && (xFin > xFinAdd)) OldNewMeshesDontIntersect = true;
+			//if((xStartAdd > xStart) && (xFinAdd > xStart) && (xStartAdd > xFin) && (xFinAdd > xFin)) OldNewMeshesDontIntersect = true;
+		}
+	}
+	if((izStart == 0) && (izFin == 0))
+	{
+		if(!OldNewMeshesDontIntersect)
+		{
+			if((zStart < zStartAdd) && (zFin < zStartAdd) && (zStart < zFinAdd) && (zFin < zFinAdd)) OldNewMeshesDontIntersect = true;
+			//if((zStartAdd < zStart) && (zFinAdd < zStart) && (zStartAdd < zFin) && (zFinAdd < zFin)) OldNewMeshesDontIntersect = true;
+		}
+		if(!OldNewMeshesDontIntersect)
+		{
+			if((zStart > zStartAdd) && (zFin > zStartAdd) && (zStart > zFinAdd) && (zFin > zFinAdd)) OldNewMeshesDontIntersect = true;
+			//if((zStartAdd > zStart) && (zFinAdd > zStart) && (zStartAdd > zFin) && (zFinAdd > zFin)) OldNewMeshesDontIntersect = true;
+		}
+	}
+	if(OldNewMeshesDontIntersect) return;
+
+	bool WaveFrontTermWasTreated = false;
+	bool allowReAndImCorrFromI = true;
+	bool allowTreatQuadPhaseTerm = true;
+	if(arPar != 0)
+	{
+		if(arPar[0] == 0.) allowTreatQuadPhaseTerm = false;
+		//if(arPar[1] == 0.) allowTreatQuadPhaseTerm = false;
+		if(arPar[1] == 0.) allowReAndImCorrFromI = false;
+		//if(arPar[2] == 0.) allowReAndImCorrFromI = false;
+	}
+
+	//If allowed, Quad. Phase Term should be subtracted in radData before interpolation; but after the interpolation, the values found have to be corrected by the Quad. Phase Terms reconstructed, and added to "this" object data
+	const double Pi = 3.14159265358979;
+	const double Const = Pi*1.E+06/1.23984186; // Assumes m and eV
+	double constRx=0, constRz=0;
+
+	if(allowTreatQuadPhaseTerm && radData.QuadPhaseTermCanBeTreated())
+	{
+		if(!TreatPolCompZ) polComp = 'x';
+		else if(!TreatPolCompX) polComp = 'z';
+
+		radData.TreatQuadPhaseTerm('r', polComp);
+		WaveFrontTermWasTreated = true;
+
+		if(radData.WfrQuadTermCanBeTreatedAtResizeX) constRx = (radData.Pres == 0)? Const/radData.RobsX : -Const*radData.RobsX;
+		if(radData.WfrQuadTermCanBeTreatedAtResizeZ) constRz = (radData.Pres == 0)? Const/radData.RobsZ : -Const*radData.RobsZ;
+		//constRx, constRz are set for adding back the Quad. Phase Terms after interpolation
+	}
+
+	bool wfrNeedsToBeTreatedX = WaveFrontTermWasTreated && radData.WfrQuadTermCanBeTreatedAtResizeX;
+	bool wfrNeedsToBeTreatedZ = WaveFrontTermWasTreated && radData.WfrQuadTermCanBeTreatedAtResizeZ;
+
+	long long PerX = ((long long)ne) << 1;
+	long long PerZ = PerX*nx;
+	long long izPerZ, ixPerX_p_Two_ie;
+
+	long long PerZ_Add = PerX*nxAdd;
+	long long two_ie;
+
+	bool UseLowOrderInterp_PolCompX, UseLowOrderInterp_PolCompZ;
+	//bool FieldShouldBeZeroedDueToX, FieldShouldBeZeroedDueToZ;
+
+	float *pEX0 = 0, *pEZ0 = 0;
+	if(TreatPolCompX) pEX0 = pBaseRadX;
+	if(TreatPolCompZ) pEZ0 = pBaseRadZ;
+
+	float *pEX_StartForX, *pEZ_StartForX;
+	float *pEX, *pEZ;
+
+	double xAbs, xRel, zAbs, zRel, x_mi_xc, z_mi_zc;
+	long ixcAdd, ixStAdd, ixcAdd_mi_ixStAdd;
+	long izcAdd, izStAdd, izcAdd_mi_izStAdd;
+	long ixStAddPrev = -1000, izStAddPrev = -1000;
+
+	srTInterpolAux01 InterpolAux01;
+	srTInterpolAux02 InterpolAux02[4], InterpolAux02I[2];
+	srTInterpolAuxF AuxF[4], AuxFI[2];
+	float BufF[4], BufFI[2];
+
+	double ePh, constRxE, constRzE, phase, phaseAddZ, reE_Add, imE_Add, reE_Aux, imE_Aux, cosPh, sinPh;
+
+	for(long ie=0; ie<ne; ie++) //Loop over "this" mesh points
+	{
+		two_ie = ((long long)ie) << 1;
+
+		ePh = eStart + ie*eStep;
+
+		if(radData.PresT == 1)
+		{
+			ePh = avgPhotEn; //??
+		}
+
+		constRxE = constRx*ePh;
+		constRzE = constRz*ePh;
+
+		if(radData.Pres == 1)
+		{
+			double lambda_m = 1.239842e-06/ePh;
+			if(PhotEnergyUnit == 1) lambda_m *= 0.001; // if keV
+
+			double lambda_me2 = lambda_m*lambda_m;
+			constRxE *= lambda_me2;
+			constRzE *= lambda_me2;
+		}
+
+		for(long iz=izStart; iz<=izFin; iz++)
+		{
+			zAbs = zStart + iz*zStep;
+
+			//FieldShouldBeZeroedDueToZ = false;
+			//if((zAbs < zWfrMin - zTol) || (zAbs > zWfrMax + zTol)) FieldShouldBeZeroedDueToZ = true;
+
+			izcAdd = (long)((zAbs - zStartAdd)*zStepInvAdd + 1.E-06);
+			//izcOld = (long)((zAbs - zStartOld)*zStepInvOld + 1.E-06);
+
+			zRel = zAbs - (zStartAdd + izcAdd*zStepAdd);
+			if(izcAdd == nzAdd_mi_1) { izStAdd = izcAdd - 3; zRel += 2.*zStepAdd; }
+			else if(izcAdd == nzAdd_mi_2) { izStAdd = izcAdd - 2; zRel += zStepAdd; }
+			else if(izcAdd == 0) { izStAdd = izcAdd; zRel -= zStepAdd; }
+			else izStAdd = izcAdd - 1;
+
+			zRel *= zStepInvAdd;
+
+			izcAdd_mi_izStAdd = izcAdd - izStAdd;
+			//izcOld_mi_izStOld = izcOld - izStOld;
+			izPerZ = iz*PerZ;
+			//izPerZ_New = iz*PerZ_New;
+
+			pEX_StartForX = 0; pEZ_StartForX = 0;
+			if(TreatPolCompX) pEX_StartForX = pEX0 + izPerZ;
+			if(TreatPolCompZ) pEZ_StartForX = pEZ0 + izPerZ;
+
+			phaseAddZ = 0.;
+			if(wfrNeedsToBeTreatedZ)
+			{
+				z_mi_zc = zAbs - radData.zc;
+				phaseAddZ = constRzE*z_mi_zc*z_mi_zc;
+			}
+
+			for(long ix=ixStart; ix<=ixFin; ix++)
+			{
+				ixPerX_p_Two_ie = ix*PerX + two_ie;
+
+				pEX = 0; pEZ = 0;
+				if(TreatPolCompX) pEX = pEX_StartForX + ixPerX_p_Two_ie;
+				if(TreatPolCompZ) pEZ = pEZ_StartForX + ixPerX_p_Two_ie;
+
+				xAbs = xStart + ix*xStep;
+
+				//FieldShouldBeZeroedDueToX = false;
+				//if((xAbs < xWfrMin - xTol) || (xAbs > xWfrMax + xTol)) FieldShouldBeZeroedDueToX = true;
+
+				//if(FieldShouldBeZeroedDueToX || FieldShouldBeZeroedDueToZ)
+				//{
+				//	if(TreatPolCompX)
+				//	{
+				//		*pEX = 0.; *(pEX+1) = 0.;
+				//	}
+				//	if(TreatPolCompZ)
+				//	{
+				//		*pEZ = 0.; *(pEZ+1) = 0.;
+				//	}
+				//	continue;
+				//}
+
+				ixcAdd = (long)((xAbs - xStartAdd)*xStepInvAdd + 1.E-06);
+				xRel = xAbs - (xStartAdd + ixcAdd*xStepAdd);
+
+				if(ixcAdd == nxAdd_mi_1) { ixStAdd = ixcAdd - 3; xRel += 2.*xStepAdd; }
+				else if(ixcAdd == nxAdd_mi_2) { ixStAdd = ixcAdd - 2; xRel += xStepAdd; }
+				else if(ixcAdd == 0) { ixStAdd = ixcAdd; xRel -= xStepAdd; }
+				else ixStAdd = ixcAdd - 1;
+
+				xRel *= xStepInvAdd;
+				ixcAdd_mi_ixStAdd = ixcAdd - ixStAdd;
+
+				phase = phaseAddZ;
+				if(wfrNeedsToBeTreatedX)
+				{
+					x_mi_xc = xAbs - radData.xc;
+					phase += constRxE*x_mi_xc*x_mi_xc;
+				}
+
+				UseLowOrderInterp_PolCompX = false; UseLowOrderInterp_PolCompZ = false;
+				if((izStAdd != izStAddPrev) || (ixStAdd != ixStAddPrev))
+				{
+					//UseLowOrderInterp_PolCompX = false; UseLowOrderInterp_PolCompZ = false;
+					long long TotOffsetAdd = izStAdd*PerZ_Add + ixStAdd*PerX + two_ie;
+
+					if(TreatPolCompX)
+					{
+						float *pExSt_Add = pAddRadX + TotOffsetAdd;
+						srTGenOptElem::GetCellDataForInterpol(pExSt_Add, PerX, PerZ_Add, AuxF);
+						srTGenOptElem::SetupCellDataI(AuxF, AuxFI);
+						UseLowOrderInterp_PolCompX = srTGenOptElem::CheckForLowOrderInterp(AuxF, AuxFI, ixcAdd_mi_ixStAdd, izcAdd_mi_izStAdd, &InterpolAux01, InterpolAux02, InterpolAux02I);
+
+						if(!UseLowOrderInterp_PolCompX)
+						{
+							for(int i=0; i<2; i++)
+							{
+								srTGenOptElem::SetupInterpolAux02(AuxF + i, &InterpolAux01, InterpolAux02 + i);
+							}
+							srTGenOptElem::SetupInterpolAux02(AuxFI, &InterpolAux01, InterpolAux02I);
+						}
+					}
+					if(TreatPolCompZ)
+					{
+						float* pEzSt_Add = pAddRadZ + TotOffsetAdd;
+						srTGenOptElem::GetCellDataForInterpol(pEzSt_Add, PerX, PerZ_Add, AuxF+2);
+						srTGenOptElem::SetupCellDataI(AuxF+2, AuxFI+1);
+						UseLowOrderInterp_PolCompZ = srTGenOptElem::CheckForLowOrderInterp(AuxF+2, AuxFI+1, ixcAdd_mi_ixStAdd, izcAdd_mi_izStAdd, &InterpolAux01, InterpolAux02+2, InterpolAux02I+1);
+
+						if(!UseLowOrderInterp_PolCompZ)
+						{
+							for(int i=0; i<2; i++)
+							{
+								srTGenOptElem::SetupInterpolAux02(AuxF+2+i, &InterpolAux01, InterpolAux02+2+i);
+							}
+							srTGenOptElem::SetupInterpolAux02(AuxFI+1, &InterpolAux01, InterpolAux02I+1);
+						}
+					}
+					ixStAddPrev = ixStAdd; izStAddPrev = izStAdd;
+				}
+				if(TreatPolCompX)
+				{
+					if(UseLowOrderInterp_PolCompX)
+					{
+						srTGenOptElem::InterpolF_LowOrder(InterpolAux02, xRel, zRel, BufF, 0);
+						srTGenOptElem::InterpolFI_LowOrder(InterpolAux02I, xRel, zRel, BufFI, 0);
+					}
+					else
+					{
+						srTGenOptElem::InterpolF(InterpolAux02, xRel, zRel, BufF, 0);
+						srTGenOptElem::InterpolFI(InterpolAux02I, xRel, zRel, BufFI, 0);
+					}
+					(*BufFI) *= AuxFI->fNorm;
+					if(allowReAndImCorrFromI) srTGenOptElem::ImproveReAndIm(BufF, BufFI);
+
+					//Here we have to restore Quad. Phase Terms (if necessary) an then add *BufF, *(BufF+1) to *pEX, *(pEX+1)
+					reE_Add = (double)(*BufF); imE_Add = (double)(*(BufF+1));
+					if(WaveFrontTermWasTreated)
+					{
+						CosAndSin(phase, cosPh, sinPh);
+						reE_Aux = reE_Add*cosPh - imE_Add*sinPh;
+						imE_Aux = reE_Add*sinPh + imE_Add*cosPh;
+						reE_Add = reE_Aux; imE_Add = imE_Aux;
+					}
+					*pEX += (float)reE_Add;
+					*(pEX+1) += (float)imE_Add;
+					//*pEX_New = *BufF;
+					//*(pEX_New+1) = *(BufF+1);
+				}
+				if(TreatPolCompZ)
+				{
+					if(UseLowOrderInterp_PolCompZ)
+					{
+						srTGenOptElem::InterpolF_LowOrder(InterpolAux02, xRel, zRel, BufF, 2);
+						if(allowReAndImCorrFromI) srTGenOptElem::InterpolFI_LowOrder(InterpolAux02I, xRel, zRel, BufFI, 1);
+					}
+					else
+					{
+						srTGenOptElem::InterpolF(InterpolAux02, xRel, zRel, BufF, 2);
+						if(allowReAndImCorrFromI) srTGenOptElem::InterpolFI(InterpolAux02I, xRel, zRel, BufFI, 1);
+					}
+					(*(BufFI+1)) *= (AuxFI+1)->fNorm;
+					if(allowReAndImCorrFromI) srTGenOptElem::ImproveReAndIm(BufF+2, BufFI+1);
+
+					//Here we have to restore Quad. Phase Terms (if necessary) an then add *BufF, *(BufF+1) to *pEZ, *(pEZ+1)
+					reE_Add = (double)(*(BufF+2)); imE_Add = (double)(*(BufF+3));
+					if(WaveFrontTermWasTreated)
+					{
+						CosAndSin(phase, cosPh, sinPh);
+						reE_Aux = reE_Add*cosPh - imE_Add*sinPh;
+						imE_Aux = reE_Add*sinPh + imE_Add*cosPh;
+						reE_Add = reE_Aux; imE_Add = imE_Aux;
+					}
+					*pEZ += (float)reE_Add;
+					*(pEZ+1) += (float)imE_Add;
+					//*pEZ_New = *(BufF+2);
+					//*(pEZ_New+1) = *(BufF+3);
+				}
+			}
+		}
+	}
+	if(WaveFrontTermWasTreated)
+	{//Treatment of the Quad. Phase Term has to be done on radData; adding it back
+		radData.TreatQuadPhaseTerm('a', polComp);
+	}
+}
+
+//*************************************************************************
+
+void srTSRWRadStructAccessData::AddElFieldData(srTSRWRadStructAccessData& radData, double* arPar) //OC12102025
+//void srTSRWRadStructAccessData::AddElFieldData(srTSRWRadStructAccessData& radData)
+{//OC09102025 //This doen't modify radData
+
+	bool RadXisDefined = (pBaseRadX != 0) && (radData.pBaseRadX != 0);
+	bool RadZisDefined = (pBaseRadZ != 0) && (radData.pBaseRadZ != 0);
+	if((!RadXisDefined) && (!RadZisDefined)) return;
+
+	bool eMeshIsSame = (ne == radData.ne) && (eStart == radData.eStart) && (eStep == radData.eStep);
+	bool xMeshIsSame = (nx == radData.nx) && (xStart == radData.xStart) && (xStep == radData.xStep);
+	bool zMeshIsSame = (nz == radData.nz) && (zStart == radData.zStart) && (zStep == radData.zStep);
+
+	if(eMeshIsSame && xMeshIsSame && zMeshIsSame)
+	{
+		if(RadXisDefined)
+		{
+			float *tEx = pBaseRadX;
+			float *tExAdd = radData.pBaseRadX;
+			for(int iz=0; iz<nz; iz++)
+			{
+				for(int ix=0; ix<nx; ix++)
+				{
+					for(int ie=0; ie<ne; ie++)
+					{
+						*(tEx++) += *(tExAdd++); *(tEx++) += *(tExAdd++);
+					}
+				}
+			}
+		}
+		if(RadZisDefined)
+		{
+			float *tEz = pBaseRadZ;
+			float *tEzAdd = radData.pBaseRadZ;
+			for(int iz=0; iz<nz; iz++)
+			{
+				for(int ix=0; ix<nx; ix++)
+				{
+					for(int ie=0; ie<ne; ie++)
+					{
+						*(tEz++) += *(tEzAdd++); *(tEz++) += *(tEzAdd++);
+					}
+				}
+			}
+		}
+	}
+	else if(eMeshIsSame)
+	{//Interpolate only over X and Z, using a function similar to ResizeCoreXZ
+		//To be implemented, using 2D interpolation functions from class CGenMathInterp
+		//like Interp2dBiLinRec(double xt, double yt, double* arF), Interp2dBiQuad5Rec(double xt, double yt, double* arF), Interp2dBiCubic12pRel(double xt, double yt, double* arF)
+		//"Treat quadratic phase term" can be done on the whole wavefront data that has to be added prior to interpolation (subtracted, interpolated, then added back)
+
+		AddElFieldDataWithInterpXZ(radData, arPar);
+	}
+	else
+	{
+		throw SUMMING_UP_WAVEFRONTS_ON_DIFF_PHOT_ENERGY_MESH_IS_NOT_IMPLEMENTED;
+	}
+}
+
+//*************************************************************************
+
+void srTSRWRadStructAccessData::AddElFieldDataViaResize(srTSRWRadStructAccessData& radData)
+{//OC09102025 //This may modify radData!
+
+	bool RadXisDefined = (pBaseRadX != 0) && (radData.pBaseRadX != 0);
+	bool RadZisDefined = (pBaseRadZ != 0) && (radData.pBaseRadZ != 0);
+	if((!RadXisDefined) && (!RadZisDefined)) return;
+
+	bool eMeshIsSame = (ne == radData.ne) && (eStart == radData.eStart) && (eStep == radData.eStep);
+	bool xMeshIsSame = (nx == radData.nx) && (xStart == radData.xStart) && (xStep == radData.xStep);
+	bool zMeshIsSame = (nz == radData.nz) && (zStart == radData.zStart) && (zStep == radData.zStep);
+
+	if(!(eMeshIsSame && xMeshIsSame && zMeshIsSame))
+	{
+		//Interpolation of radData to this mesh
+		SRWLRadMesh mesh;
+		mesh.eStart = eStart; mesh.eFin = (ne <= 1)? eStart : eStart + eStep*(ne - 1); mesh.ne = ne;
+		mesh.xStart = xStart; mesh.xFin = (nx <= 1)? xStart : xStart + xStep*(nx - 1); mesh.nx = nx;
+		mesh.yStart = zStart; mesh.yFin = (nz <= 1)? zStart : zStart + zStep*(nz - 1); mesh.ny = nz;
+		mesh.zStart = yStart;
+		double arParResize[] = { 0, 1, 1 }; //don't use FFT, use Quad Phase Term treatment if possible and correct Re and Im from I (make this input variable?)
+		radData.Resize(mesh, arParResize);
+	}
+
+	if(RadXisDefined)
+	{
+		float *tEx = pBaseRadX;
+		float *tExAdd = radData.pBaseRadX;
+		for(int iz=0; iz<nz; iz++)
+		{
+			for(int ix=0; ix<nx; ix++)
+			{
+				for(int ie=0; ie<ne; ie++)
+				{
+					*(tEx++) += *(tExAdd++); *(tEx++) += *(tExAdd++);
+				}
+			}
+		}
+	}
+	if(RadZisDefined)
+	{
+		float *tEz = pBaseRadZ;
+		float *tEzAdd = radData.pBaseRadZ;
+		for(int iz=0; iz<nz; iz++)
+		{
+			for(int ix=0; ix<nx; ix++)
+			{
+				for(int ie=0; ie<ne; ie++)
+				{
+					*(tEz++) += *(tEzAdd++); *(tEz++) += *(tEzAdd++);
+				}
+			}
+		}
 	}
 }
 

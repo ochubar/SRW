@@ -2,7 +2,7 @@
 #############################################################################
 # SRWLIB Example#14: Simulating propagation of a Gaussian X-ray beam through a simple optical scheme
 # containing C(400) dual-crystal monochromator
-# v 0.02
+# v 0.03
 #############################################################################
 
 from __future__ import print_function #Python 2.7 compatibility
@@ -25,7 +25,12 @@ import time
 
 print('SRWLIB Python Example # 14:')
 print('!!!!!Under testing!!!!!')
-print('Simulating propagation of a Gaussian X-ray beam through a simple optical scheme containing C(400) dual-crystal monochromator')
+print('Simulating propagation of a Gaussian X-ray beam through a simple optical scheme containing C(400) dual-crystal monochromator.')
+print('This example can use GPU for accelerating calculations; to try, set tryUsingGPU = 1 in the code below')
+
+#**********************Execution Instructions
+tryUsingGPU = 0 #Set to 1 if GPU should be used, 0 otherwise
+if(tryUsingGPU): sys.stdout.write('   ... Trying to use GPU ... \n'); sys.stdout.flush()
 
 #**********************Auxiliary Functions
 def ExtractAndSavePulseData(_wfr, _fn_prefix, _ec=0, _xc=0, _yc=0):
@@ -54,7 +59,8 @@ def ExtractAndSavePulseData(_wfr, _fn_prefix, _ec=0, _xc=0, _yc=0):
 
         #Vs Photon Energy or Time, Integrated over X&Y
         arIIvsT = array('f', [0]*mesh0.ne) #array to take 1D data
-        srwl.CalcIntFromElecField(arIIvsT, _wfr, 6, 2, 0, _ec, _xc, _yc) #extracts power vs t or spec. energy vs e
+        srwl.CalcIntFromElecField(arIIvsT, _wfr, 6, 2, 0, _ec, _xc, _yc, None, None, tryUsingGPU) #extracts power vs t or spec. energy vs e
+        #srwl.CalcIntFromElecField(arIIvsT, _wfr, 6, 2, 0, _ec, _xc, _yc) #extracts power vs t or spec. energy vs e #HG10122025
         meshIvsT = deepcopy(mesh0)
         meshIvsT.nx = 1; meshIvsT.xStart = _xc; meshIvsT.xFin = _xc
         meshIvsT.ny = 1; meshIvsT.yStart = _yc; meshIvsT.yFin = _yc
@@ -63,7 +69,8 @@ def ExtractAndSavePulseData(_wfr, _fn_prefix, _ec=0, _xc=0, _yc=0):
                                    _arUnits=[sFirstDepUnit, 'm', 'm', sResUnit])
         #Vs Photon Energy or Time, Cut
         arIvsT = array('f', [0]*mesh0.ne) #array to take 1D data
-        srwl.CalcIntFromElecField(arIvsT, _wfr, 6, 0, 0, _ec, _xc, _yc) #extracts power density vs t or spec. fluence vs e
+        srwl.CalcIntFromElecField(arIvsT, _wfr, 6, 0, 0, _ec, _xc, _yc, None, None, tryUsingGPU) #extracts power density vs t or spec. fluence vs e
+        #srwl.CalcIntFromElecField(arIvsT, _wfr, 6, 0, 0, _ec, _xc, _yc) #extracts power density vs t or spec. fluence vs e #HG10122025
         #srwl.CalcIntFromElecField(arIvsT, _wfr, 0, 5, 0, _ec, _xc, _yc) #extracts Re(Ex) vs t or vs e
         #srwl.CalcIntFromElecField(arIvsT, _wfr, 0, 6, 0, _ec, _xc, _yc) #extracts Im(Ex) vs t or vs e
         
@@ -73,7 +80,8 @@ def ExtractAndSavePulseData(_wfr, _fn_prefix, _ec=0, _xc=0, _yc=0):
         if(_wfr.presFT == 0):
             #Fluence vs X&Y (calculate it only in Frequency domain, because it is the same in both domains)
             arFvsXY = array('f', [0]*mesh0.nx*mesh0.ny) #array to take 2D data
-            srwl.CalcIntFromElecField(arFvsXY, _wfr, 6, 7, 3, _ec, _xc, _yc)
+            srwl.CalcIntFromElecField(arFvsXY, _wfr, 6, 7, 3, _ec, _xc, _yc, None, None, tryUsingGPU)
+            #srwl.CalcIntFromElecField(arFvsXY, _wfr, 6, 7, 3, _ec, _xc, _yc) #HG10122025
             meshIvsXY = deepcopy(mesh0)
             meshIvsXY.ne = 1; meshIvsXY.eStart = _ec; meshIvsXY.eFin = _ec
             srwl_uti_save_intens_ascii(arFvsXY, meshIvsXY, _fn_prefix + '_fluence_xy.dat',
@@ -81,7 +89,8 @@ def ExtractAndSavePulseData(_wfr, _fn_prefix, _ec=0, _xc=0, _yc=0):
                                        _arUnits=[sFirstDepUnit, 'm', 'm', 'J/mm^2'])
     #Vs X&Y
     arIvsXY = array('f', [0]*mesh0.nx*mesh0.ny) #"flat" array to take 2D data
-    srwl.CalcIntFromElecField(arIvsXY, _wfr, 6, 0, 3, _ec, _xc, _yc) #extracts intensity
+    srwl.CalcIntFromElecField(arIvsXY, _wfr, 6, 0, 3, _ec, _xc, _yc, None, None, tryUsingGPU) #extracts intensity
+    #srwl.CalcIntFromElecField(arIvsXY, _wfr, 6, 0, 3, _ec, _xc, _yc) #extracts intensity #HG10122025
     #srwl.CalcIntFromElecField(arIvsXY, _wfr, 0, 5, 3, _ec, _xc, _yc) #extracts Re(Ex)
     #srwl.CalcIntFromElecField(arIvsXY, _wfr, 0, 6, 3, _ec, _xc, _yc) #extracts Im(Ex)
     
@@ -318,7 +327,8 @@ else:
     print('   Starting propagation of monochromatic wavefront')
 print('   Propagating wavefront ... ', end='')
 t0 = time.time()
-srwl.PropagElecField(wfr, optBL)
+srwl.PropagElecField(wfr, optBL, None, tryUsingGPU)
+#srwl.PropagElecField(wfr, optBL) #HG10122025
 print('done in', round(time.time() - t0), 's')
 
 ec1 = wfr.avgPhotEn #Photon energy for spectral fluence cut [eV]

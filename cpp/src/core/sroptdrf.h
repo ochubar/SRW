@@ -165,7 +165,8 @@ public:
 		//OC01102019 (restored)
 		//if(MethNo == 0) result = PropagateRadiationMeth_0(pRadAccessData);
 		if(MethNo == 0) result = PropagateRadiationMeth_0(pRadAccessData, pvGPU); //HG01122023
-		else if(MethNo == 1) result = PropagateRadiationMeth_1(pRadAccessData);
+		//else if(MethNo == 1) result = PropagateRadiationMeth_1(pRadAccessData);
+		else if(MethNo == 1) result = PropagateRadiationMeth_1(pRadAccessData, pvGPU); //HG26072024
 		else if(MethNo == 2) result = PropagateRadiationMeth_2(pRadAccessData, ParPrecWfrPropag, ResizeBeforeAndAfterVect);
 		
 		//if(ParPrecWfrPropag.AnalTreatment == 1)
@@ -188,7 +189,8 @@ public:
 		//OC01102019 (restored)
 		//if(result = PropagateRadiationSimple(pRadAccessData)) return result;
 		if(result = PropagateRadiationSimple(pRadAccessData, pvGPU)) return result; //HG01122023
-		if(result = PropagateRadMoments(pRadAccessData, 0)) return result;
+		//if(result = PropagateRadMoments(pRadAccessData, 0)) return result;
+		if(result = PropagateRadMoments(pRadAccessData, 0, pvGPU)) return result; //HG27072024
 		if(result = PropagateWaveFrontRadius(pRadAccessData)) return result;
 		if(result = Propagate4x4PropMatr(pRadAccessData)) return result;
 		return 0;
@@ -213,12 +215,14 @@ public:
 			pRadAccessData->SetNonZeroWavefrontLimitsToFullRange();
 			//return srTGenOptElem::PropagateRadiationMeth_0(pRadAccessData, pBuf); //OC06092019
 			//OC01102019 (restored)
-			return srTGenOptElem::PropagateRadiationMeth_0(pRadAccessData);
+			//return srTGenOptElem::PropagateRadiationMeth_0(pRadAccessData);
+			return srTGenOptElem::PropagateRadiationMeth_0(pRadAccessData, pvGPU); //HG26072024
 			//return srTGenOptElem::PropagateRadiationMeth_0(pRadAccessData); //since (LocalPropMode == 1) and (LocalPropMode == 2) - propagation to/from waist introduces some dispersion and can potentially modify mesh
 		}
 	}
 
-	int PropagateRadiationMeth_1(srTSRWRadStructAccessData*);
+	//int PropagateRadiationMeth_1(srTSRWRadStructAccessData*);
+	int PropagateRadiationMeth_1(srTSRWRadStructAccessData*, void* =0); //HG26072024
 
 	char ChooseLocalPropMode(srTSRWRadStructAccessData* pRadAccessData, srTParPrecWfrPropag& ParPrecWfrPropag, char& AnalTreatMode) //OC06092019
 	//void ChooseLocalPropMode(srTSRWRadStructAccessData* pRadAccessData, srTParPrecWfrPropag& ParPrecWfrPropag)
@@ -476,6 +480,12 @@ public:
 	void SetupPropBufVars_PropToWaist(srTSRWRadStructAccessData* pRadAccessData, srTDriftPropBufVars* pBufVars) //OC29082019
 	//void SetupPropBufVars_PropToWaist(srTSRWRadStructAccessData* pRadAccessData)
 	{// Compute any buf. vars for Stat. Phase propagation in PropStatPhaseBufVars
+
+		//OC04012026
+		bool WfrIsVsX = pRadAccessData->nx > 1;
+		bool WfrIsVsZ = pRadAccessData->nz > 1;
+		bool WfrIsVsXZ = WfrIsVsX && WfrIsVsZ;
+
 		//PropBufVars.InvLength = 1./Length;
 		//double Pi_d_LambdaM = pRadAccessData->eStart*2.53384080189E+06;
 		//PropBufVars.Pi_d_LambdaM_d_Length = Pi_d_LambdaM*(PropBufVars.InvLength);
@@ -492,19 +502,48 @@ public:
 		double Pi_d_LambdaM = pRadAccessData->eStart*2.53384080189E+06;
 		pBufVars->Pi_d_LambdaM_d_Length = Pi_d_LambdaM*(pBufVars->InvLength);
 		pBufVars->InvLength_d_Lambda = (pBufVars->InvLength)*(pRadAccessData->eStart)*806546.577258;
-		pBufVars->xc = pRadAccessData->xc;
-		pBufVars->zc = pRadAccessData->zc;
-		pBufVars->ExtraConstPhase = Pi_d_LambdaM*(pRadAccessData->xc*pRadAccessData->xc/pRadAccessData->RobsX + pRadAccessData->zc*pRadAccessData->zc/pRadAccessData->RobsZ);
+
+		if(!WfrIsVsXZ) pBufVars->InvLength_d_Lambda = sqrt(pBufVars->InvLength_d_Lambda); //OC10012026 (to test!)
+
+		pBufVars->xc = pRadAccessData->xc; //to correct for !WfrIsVsX?
+		pBufVars->zc = pRadAccessData->zc; //to correct for !WfrIsVsX?
+
+		//OC04012026
+		if(WfrIsVsXZ) pBufVars->ExtraConstPhase = Pi_d_LambdaM*(pRadAccessData->xc*pRadAccessData->xc/pRadAccessData->RobsX + pRadAccessData->zc*pRadAccessData->zc/pRadAccessData->RobsZ);
+		else
+		{
+			if(WfrIsVsX) pBufVars->ExtraConstPhase = Pi_d_LambdaM*(pRadAccessData->xc*pRadAccessData->xc/pRadAccessData->RobsX);
+			else if(WfrIsVsZ) pBufVars->ExtraConstPhase = Pi_d_LambdaM*(pRadAccessData->zc*pRadAccessData->zc/pRadAccessData->RobsZ);
+			else pBufVars->ExtraConstPhase = 0.;
+		}
+		//pBufVars->ExtraConstPhase = Pi_d_LambdaM*(pRadAccessData->xc*pRadAccessData->xc/pRadAccessData->RobsX + pRadAccessData->zc*pRadAccessData->zc/pRadAccessData->RobsZ);
 		double TwoPi_d_LambdaM = 2.*Pi_d_LambdaM;
-		pBufVars->TwoPiXc_d_LambdaMRx = TwoPi_d_LambdaM*pRadAccessData->xc/pRadAccessData->RobsX;
-		pBufVars->TwoPiZc_d_LambdaMRz = TwoPi_d_LambdaM*pRadAccessData->zc/pRadAccessData->RobsZ;
+
+		//OC04012026 (added conditions)
+		if(WfrIsVsX) pBufVars->TwoPiXc_d_LambdaMRx = TwoPi_d_LambdaM*pRadAccessData->xc/pRadAccessData->RobsX;
+		else pBufVars->TwoPiXc_d_LambdaMRx = 0.;
+		//pBufVars->TwoPiXc_d_LambdaMRx = TwoPi_d_LambdaM*pRadAccessData->xc/pRadAccessData->RobsX;
+		if(WfrIsVsZ) pBufVars->TwoPiZc_d_LambdaMRz = TwoPi_d_LambdaM*pRadAccessData->zc/pRadAccessData->RobsZ;
+		else pBufVars->TwoPiZc_d_LambdaMRz = 0.;
+		//pBufVars->TwoPiZc_d_LambdaMRz = TwoPi_d_LambdaM*pRadAccessData->zc/pRadAccessData->RobsZ;
 
 		// Continue for more buf vars
 	}
 
 	void SetupPropBufVars_PropToWaistBeyondParax(srTSRWRadStructAccessData* pRadAccessData, srTDriftPropBufVars* pBufVars) //OC10112019
 	{
-		pBufVars->sqrtAbsRxRz = sqrt(::fabs((pRadAccessData->RobsX)*(pRadAccessData->RobsZ)));
+		//OC12012026
+		bool WfrIsVsX = pRadAccessData->nx > 1;
+		bool WfrIsVsZ = pRadAccessData->nz > 1;
+		bool WfrIsVsXZ = WfrIsVsX && WfrIsVsZ;
+
+		//OC12012026 (added conditions)
+		if(WfrIsVsXZ) pBufVars->sqrtAbsRxRz = sqrt(::fabs((pRadAccessData->RobsX)*(pRadAccessData->RobsZ)));
+		else
+		{
+			if(WfrIsVsX) pBufVars->sqrtAbsRxRz = sqrt(::fabs(pRadAccessData->RobsX)); //To check!
+			else pBufVars->sqrtAbsRxRz = sqrt(::fabs(pRadAccessData->RobsZ)); //To check!
+		}
 
 		int sgnRx = (pRadAccessData->RobsX >= 0)? 1 : -1;
 		int sgnRz = (pRadAccessData->RobsZ >= 0)? 1 : -1;
@@ -522,6 +561,12 @@ public:
 	void SetupPropBufVars_PropFromWaist(srTSRWRadStructAccessData* pRadAccessData, srTDriftPropBufVars* pBufVars) //OC30082019
 	//void SetupPropBufVars_PropFromWaist(srTSRWRadStructAccessData* pRadAccessData)
 	{// Compute any buf. vars for Stat. Phase propagation in PropStatPhaseBufVars
+
+		//OC13012026
+		bool WfrIsVsX = pRadAccessData->nx > 1;
+		bool WfrIsVsZ = pRadAccessData->nz > 1;
+		bool WfrIsVsXZ = WfrIsVsX && WfrIsVsZ;
+
 		pBufVars->InvLength = 1./Length; //OC30082019
 		//PropBufVars.InvLength = 1./Length;
 		double Pi_d_LambdaM = pRadAccessData->eStart*2.53384080189E+06;
@@ -530,6 +575,8 @@ public:
 		//OC30082019
 		pBufVars->Pi_d_LambdaM_d_Length = Pi_d_LambdaM*(pBufVars->InvLength);
 		pBufVars->InvLength_d_Lambda = (pBufVars->InvLength)*(pRadAccessData->eStart)*806546.577258;
+
+		if(!WfrIsVsXZ) pBufVars->InvLength_d_Lambda = sqrt(pBufVars->InvLength_d_Lambda); //OC13012026 (to test!)
 
 		//PropBufVars.xc = pRadAccessData->xc;
 		//PropBufVars.zc = pRadAccessData->zc;
@@ -543,10 +590,12 @@ public:
 		// Continue for more buf vars
 	}
 
-	void SetupPropBufVars_AnalytTreatQuadPhaseTerm(srTSRWRadStructAccessData* pRadAccessData, srTDriftPropBufVars* pBufVars); //OC29082019
+	//void SetupPropBufVars_AnalytTreatQuadPhaseTerm(srTSRWRadStructAccessData* pRadAccessData, srTDriftPropBufVars* pBufVars); //OC29082019
+	void SetupPropBufVars_AnalytTreatQuadPhaseTerm(srTSRWRadStructAccessData* pRadAccessData, srTDriftPropBufVars* pBufVars, void* =0); //HG27072024
 	//void SetupPropBufVars_AnalytTreatQuadPhaseTerm(srTSRWRadStructAccessData* pRadAccessData);
 	void EstimateTrueWfrRadAndMaxLeff_AnalytTreatQuadPhaseTerm(srTSRWRadStructAccessData* pRadAccessData, double& trueRx, double& trueRz, double& Lx_eff_max, double& Lz_eff_max);
-	void EstimateWfrRadToSub_AnalytTreatQuadPhaseTerm(srTSRWRadStructAccessData* pRadAccessData, double& effRx, double& effRz);
+	//void EstimateWfrRadToSub_AnalytTreatQuadPhaseTerm(srTSRWRadStructAccessData* pRadAccessData, double& effRx, double& effRz);
+	void EstimateWfrRadToSub_AnalytTreatQuadPhaseTerm(srTSRWRadStructAccessData* pRadAccessData, double& effRx, double& effRz, void* =0); //HG27072024
 	void EstimateWfrRadToSub2_AnalytTreatQuadPhaseTerm(srTSRWRadStructAccessData* pRadAccessData, double& effRx, double& effRz);
 
 	void SetupPropBufVars_PropToWaist(srTRadSect1D* pSect1D, srTDriftPropBufVars* pBufVars) //OC06092019
@@ -572,7 +621,8 @@ public:
 		pOutRadAccessData->AuxLong1 = 1;
 		return 0;
 	}
-	int TuneRadForPropMeth_1(srTSRWRadStructAccessData*, srTRadResize&);
+	//int TuneRadForPropMeth_1(srTSRWRadStructAccessData*, srTRadResize&);
+	int TuneRadForPropMeth_1(srTSRWRadStructAccessData*, srTRadResize&, void* =0); //HG26072024
 
 //	void RadPointModifier(srTEXZ& EXZ, srTEFieldPtrs& EPtrs, void* pBuf=0) //OC29082019
 //	//void RadPointModifier(srTEXZ& EXZ, srTEFieldPtrs& EPtrs)
@@ -587,9 +637,11 @@ public:
 #ifdef _OFFLOAD_GPU //HG01122023
 	//int RadPointModifierParallel(srTSRWRadStructAccessData* pRadAccessData, void* pBufVars=0, long pBufVarsSz=0, TGPUUsageArg* pGPU=0) override;
 	//int RadPointModifierParallel(srTSRWRadStructAccessData* pRadAccessData, void* pBufVars = 0, long pBufVarsSz = 0, double* pGPU = 0) override; //HG07022024
-	int RadPointModifierParallel(srTSRWRadStructAccessData* pRadAccessData, void* pBufVars = 0, long pBufVarsSz = 0, TGPUUsageArg* pGPU=0) override; //OC1802024
+	//int RadPointModifierParallel(srTSRWRadStructAccessData* pRadAccessData, void* pBufVars = 0, long pBufVarsSz = 0, TGPUUsageArg* pGPU=0) override; //OC1802024
+	int TraverseRadZXEParallel(srTSRWRadStructAccessData* pRadAccessData, void* pBufVars = 0, long pBufVarsSz = 0, TGPUUsageArg* pGPU=0) override; //HG14042026
 #endif
-#ifdef __CUDACC__ //HG06022024 Automatically defined by nvcc when compiling CUDA code.
+//#ifdef __CUDACC__ //HG06022024 Automatically defined by nvcc when compiling CUDA code.
+#ifdef __CUDA_ARCH__
 	GPU_PORTABLE void RadPointModifierPortable(srTEXZ& EXZ, srTEFieldPtrs& EPtrs, void* pBuf = 0)
 #else
 	void RadPointModifier(srTEXZ& EXZ, srTEFieldPtrs& EPtrs, void* pBuf = 0) //OC29082019
@@ -964,7 +1016,8 @@ public:
 		}
 	}
 
-	int PropagateRadMoments(srTSRWRadStructAccessData* pRadAccessData, srTMomentsRatios* MomRatArray)
+	//int PropagateRadMoments(srTSRWRadStructAccessData* pRadAccessData, srTMomentsRatios* MomRatArray)
+	int PropagateRadMoments(srTSRWRadStructAccessData* pRadAccessData, srTMomentsRatios* MomRatArray, void* pvGPU=0) //HG27072024
 	{
 		//float aStr0[] = { 1., (float)Length };
 		//float aStr1[] = { 0., 1. };

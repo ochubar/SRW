@@ -72,6 +72,7 @@ static const char strEr_BadRadMesh[] = "Incorrect Radiation Mesh structure";
 static const char strEr_BadWfr[] = "Incorrect Wavefront structure";
 static const char strEr_BadStokes[] = "Incorrect Stokes parameters structure";
 static const char strEr_BadOptC[] = "Incorrect Optical Element Container structure";
+static const char strEr_BadOptI[] = "Incorrect Optical Element Interferometer structure";
 static const char strEr_BadOptD[] = "Incorrect Optical Drift structure";
 static const char strEr_BadOptA[] = "Incorrect Optical Aperture / Obstacle structure";
 static const char strEr_BadOptL[] = "Incorrect Optical Lens structure";
@@ -2006,6 +2007,16 @@ void ParseSructSRWLOptT(SRWLOptT* pOpt, PyObject* oOpt, vector<Py_buffer>* pvBuf
 	//if(!PyNumber_Check(o_tmp)) throw strEr_BadOptT;
 	//pOpt->y = PyFloat_AsDouble(o_tmp);
 	//Py_DECREF(o_tmp);
+
+	//Treating eventual switch indicating if this transmission element is sensitive to polarization
+	pOpt->polBase = 0; //OC07022025
+	o_tmp = PyObject_GetAttrString(oOpt, "polBase");
+	if(o_tmp != 0)
+	{
+		if(!PyNumber_Check(o_tmp)) throw strEr_BadOptT;
+		pOpt->polBase = (char)PyLong_AsLong(o_tmp);
+		Py_DECREF(o_tmp);
+	}
 }
 
 /************************************************************************//**
@@ -2142,6 +2153,19 @@ void ParseSructSRWLOptMir(SRWLOptMir* pOpt, PyObject* oOpt, vector<Py_buffer>* p
 	pOpt->extOut = PyFloat_AsDouble(o_tmp);
 	Py_DECREF(o_tmp);
 
+	//OC19062025 (do we need more backwards-compatibility here?)
+	o_tmp = PyObject_GetAttrString(oOpt, "cenOfstTang");
+	if(o_tmp == 0) throw strEr_BadOptMir;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptMir;
+	pOpt->cenOfstTang = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "cenOfstSag");
+	if(o_tmp == 0) throw strEr_BadOptMir;
+	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptMir;
+	pOpt->cenOfstSag = PyFloat_AsDouble(o_tmp);
+	Py_DECREF(o_tmp);
+
 	o_tmp = PyObject_GetAttrString(oOpt, "nvx");
 	if(o_tmp == 0) throw strEr_BadOptMir;
 	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptMir;
@@ -2195,6 +2219,15 @@ void ParseSructSRWLOptMir(SRWLOptMir* pOpt, PyObject* oOpt, vector<Py_buffer>* p
 	if(!PyNumber_Check(o_tmp)) throw strEr_BadOptMir;
 	pOpt->Fy = PyFloat_AsDouble(o_tmp);
 	Py_DECREF(o_tmp);
+
+	pOpt->isConvex = 0;
+	o_tmp = PyObject_GetAttrString(oOpt, "isConvex"); //OC22012025
+	if(o_tmp != 0)
+	{
+		if(!PyNumber_Check(o_tmp)) throw strEr_BadOptMir;
+		pOpt->isConvex = (char)PyLong_AsLong(o_tmp);
+		Py_DECREF(o_tmp);
+	}
 }
 
 /************************************************************************//**
@@ -2611,6 +2644,13 @@ void ParseSructSRWLOptCryst(SRWLOptCryst* pOpt, PyObject* oOpt)
 }
 
 /************************************************************************//**
+ * Parses PyObject* to SRWLOptI*
+ * ATTENTION: allocates void **arC
+ * vector<Py_buffer>& vBuf is required to store and release all buffers after the execution
+ ***************************************************************************/
+void ParseSructSRWLOptI(SRWLOptI*, PyObject*, vector<Py_buffer>*); //forward declaration //OC25092025
+
+/************************************************************************//**
  * Parses PyObject* to SRWLOptC*
  * ATTENTION: allocates void **arOpt and its elements and char **arOptTypes and double **arProp
  * vector<Py_buffer>& vBuf is required to store and release all buffers after the execution
@@ -2760,6 +2800,12 @@ void ParseSructSRWLOptC(SRWLOptC* pOpt, PyObject* oOpt, vector<Py_buffer>* pvBuf
 			strcpy(sOptType, "crystal\0");
 			ParseSructSRWLOptCryst((SRWLOptCryst*)pOptElem, o);
 		}
+		else if(strcmp(sTypeName, "SRWLOptI") == 0) //OC25092025
+		{
+			pOptElem = new SRWLOptI();
+			strcpy(sOptType, "interferometer\0");
+			ParseSructSRWLOptI((SRWLOptI*)pOptElem, o, pvBuf);
+		}
 
 		//to add more optical elements here
 		if(pOptElem != 0) 
@@ -2774,6 +2820,66 @@ void ParseSructSRWLOptC(SRWLOptC* pOpt, PyObject* oOpt, vector<Py_buffer>* pvBuf
 		}
 	}
 	Py_DECREF(o_List);
+}
+
+/************************************************************************//**
+ * Parses PyObject* to SRWLOptI*
+ * ATTENTION: allocates void **arC
+ * vector<Py_buffer>& vBuf is required to store and release all buffers after the execution
+ ***************************************************************************/
+void ParseSructSRWLOptI(SRWLOptI* pOpt, PyObject* oOpt, vector<Py_buffer>* pvBuf) //throw(...) 
+{//OC27092025
+	if((pOpt == 0) || (oOpt == 0)) throw strEr_NoObj;
+	PyObject *o_tmp = 0;
+
+	//o_tmp = PyObject_GetAttrString(oOpt, "irec");
+	//if(o_tmp == 0) throw strEr_BadOptMir;
+	//if(!PyNumber_Check(o_tmp)) throw strEr_BadOptMir;
+	//pOpt->irec = (int)PyLong_AsLong(o_tmp);
+	//Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "arOptC");
+	if(o_tmp == 0) throw strEr_BadOptI;
+	if(!PyList_Check(o_tmp)) throw strEr_BadOptI;
+	PyObject *o_List = o_tmp;
+	int nElem = (int)PyList_Size(o_List);
+	if(nElem <=  0) throw strEr_NoObj;
+
+	pOpt->arOptC = new void*[nElem];
+	pOpt->nElem = 0; //in case if there will be reading error
+	for(int i=0; i<nElem; i++)
+	{
+		PyObject *o = PyList_GetItem(o_List, (Py_ssize_t)i);
+
+		char sTypeName[1025];
+		CopyPyClassNameToC(o, sTypeName, 1024);
+
+		void *pOptElem=0;
+		if(strcmp(sTypeName, "SRWLOptC") == 0)
+		{
+			pOptElem = new SRWLOptC();
+			//strcpy(sOptType, "container\0");
+			ParseSructSRWLOptC((SRWLOptC*)pOptElem, o, pvBuf);
+
+			if(pOptElem != 0)
+			{
+				pOpt->arOptC[i] = pOptElem;
+				(pOpt->nElem)++; //in case if there will be reading error
+			}
+		}
+	}
+	Py_DECREF(o_List);
+
+	//OC10102025
+	double arPrecPar[] = { 0,1,1 }; //to increase if necessary (length should be equal to max. number of params)
+	double *pPrecPar = arPrecPar;
+	int nPrecPar = 3;
+	o_tmp = PyObject_GetAttrString(oOpt, "arPar");
+	if(o_tmp == 0) throw strEr_BadOptI;
+	CopyPyListElemsToNumArray(o_tmp, 'd', pPrecPar, nPrecPar);
+	for(int i=0; i<3; i++) pOpt->arPar[i] = arPrecPar[i];
+	//pOpt->arPar = pPrecPar;
+	Py_DECREF(o_tmp);
 }
 
 /************************************************************************//**
@@ -3515,11 +3621,12 @@ void ParseDeviceParam(PyObject* oDev, double* &parGPUParam) //HG10202021 Convert
 		if(PyLong_Check(oDev)) {
 			parGPUParam = new double[2]; //HG08022024
 			parGPUParam[0] = 1; //OC: The number of parameters?
-#if PY_MAJOR_VERSION >=3 && PY_MINOR_VERSION >= 13 //HG16062025
-			parGPUParam[1] = (double)PyLong_AsInt(oDev);
-#else
-			parGPUParam[1] = (double)_PyLong_AsInt(oDev);
-#endif
+			parGPUParam[1] = (double)PyLong_AsLong(oDev); //OC10122025
+//#if PY_MAJOR_VERSION >=3 && PY_MINOR_VERSION >= 13 //HG16062025
+//			parGPUParam[1] = (double)PyLong_AsInt(oDev);
+//#else
+//			parGPUParam[1] = (double)_PyLong_AsInt(oDev);
+//#endif
 			return;
 		}
 	}
@@ -5254,7 +5361,7 @@ static PyObject* srwlpy_PropagElecField(PyObject *self, PyObject *args)
 		//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
 		//srwlPrintTime(":srwlpy_PropagElecField : ParseSructSRWLWfr", &start);
 
-		ParseSructSRWLOptC(&optCnt, oOptCnt, &vBuf);
+		ParseSructSRWLOptC(&optCnt, oOptCnt, &vBuf); //Here optical elements are "translated" from Py representation to intermediate C representation
 
 		//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
 		//srwlPrintTime(":srwlpy_PropagElecField :ParseSructSRWLOptC", &start);

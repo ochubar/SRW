@@ -385,8 +385,23 @@ struct SRWLStructOpticsTransmission {
 	char extTr; /* 0- transmission outside the grid/mesh is zero; 1- it is same as on boundary */
 	double Fx, Fy; /* estimated focal lengths [m] */
 	//double x, y; /* transverse coordinates of center [m] */
+
+	char polBase; /* 0- no polarization to use(i.e.use same transmission for hor. and vert.electric field), 1- linear hor. / vert., 2- linear 45 deg. / 135 deg., 3- circular left / right) #OC07022025 */
 };
 typedef struct SRWLStructOpticsTransmission SRWLOptT;
+
+/** //OC08052025
+ * Material Characteristic (not an optical element): 
+ * Reflectivity ("reflectivity" type)
+ */
+struct SRWLStructOpticsReflectivity {
+	double *arRefl; /* complex C-aligned data array (of 2*2*ne*nang length) storing compex transmission coefficient as function of component (sigma, pi), photon energy, grazing angle */
+	int reflNumComp, reflNumPhEn, reflNumAng; /* numbers of reflectivity data points vs component (1 or 2), photon energy, grazing angle */
+	double reflPhEnStart, reflPhEnFin; /* initial and final photon energy values for which the reflectivity coefficient is specified */
+	double reflAngStart, reflAngFin; /* initial and final grazing angle values for which the reflectivity coefficient is specified */
+	char reflPhEnScaleType[4], reflAngScaleType[4]; /* photon energy and angle sampling type (1 for linear, 2 for logarithmic) */
+};
+typedef struct SRWLStructOpticsReflectivity SRWLOptR;
 
 /**
  * Optical Element:
@@ -405,15 +420,27 @@ struct SRWLStructOpticsMirror {
 	double extIn; /* optical element extent on the input side, i.e. distance between the input plane and the optical center (positive, in [m]) to be used at wavefront propagation manipulations; if 0, this extent will be calculated internally from optical element parameters */
 	double extOut; /* optical element extent on the output side, i.e. distance between the optical center and the output plane (positive, in [m]) to be used at wavefront propagation manipulations; if 0, this extent will be calculated internally from optical element parameters */
 
-	double *arRefl; /* complex C-aligned data array (of 2*2*nx*ny length) storing compex transmission coefficient as function of component (sigma, pi), photon energy, grazing angle */ 
+	/* //OC19062025*/
+	double cenOfstTang; /* offset of the "optical" center of the mirror in the tangential direction [m] (positive if the "shoulder" of the mirror from the side of incident beam is larger than from the side of reflected beam, assuming usual orientation) */
+	double cenOfstSag; /* offset of the "optical" center of the mirror in the sagital direction [m] */
+
+	/* to be removed? */
+	double *arRefl; /* complex C-aligned data array (of 2*2*ne*nang length) storing compex transmission coefficient as function of component (sigma, pi), photon energy, grazing angle */ 
 	int reflNumComp, reflNumPhEn, reflNumAng; /* numbers of reflectivity data points vs component (1 or 2), photon energy, grazing angle */
 	double reflPhEnStart, reflPhEnFin; /* initial and final photon energy values for which the reflectivity coefficient is specified */
 	double reflAngStart, reflAngFin; /* initial and final grazing angle values for which the reflectivity coefficient is specified */
 	char reflPhEnScaleType[4], reflAngScaleType[4]; /* photon energy and angle sampling type (1 for linear, 2 for logarithmic) */
 
+	/*//OC08052025*/
+	SRWLOptR *arReflObj; /* array of reflectivity objects to be used for describing the reflectivity of the mirror */
+	int nReflObj; /* number of reflectivity objects to be used for describing the reflectivity of the mirror */
+	int *arReflDist; /* array (of npt*nps length) of indexes of the reflectivity objects from arReflObj, describing distribution of the reflectivity over the mirror surface area */
+
 	double nvx, nvy, nvz; /* horizontal, vertical and longitudinal coordinates of central normal vector in the frame of incident beam */
 	double tvx, tvy; /* horizontal and vertical coordinates of central tangential vector in the frame of incident beam */
 	double x, y; /* transverse coordinates of center [m] */
+
+	char isConvex; /* use the convex or concave side TW06112024, OC22012025 */
 };
 typedef struct SRWLStructOpticsMirror SRWLOptMir;
 
@@ -523,13 +550,26 @@ typedef struct SRWLStructOpticsCrystal SRWLOptCryst;
 struct SRWLStructOpticsContainer {
 	void **arOpt; /* array of pointers to optical elements */
 	char **arOptTypes; /* array of types of optical elements (C strings) in arOpt array */
-	int nElem; /* number of magnetic field elements in arMagFld array */
+	int nElem; /* number of optical elements in arOpt array */
 	double **arProp; /* array of arrays of propagation parameters to be used for individual optical elements */
 	char *arPropN; /* array of numbers of propagation parameters for each optical element */
 	int nProp; /* number of propagation instructions (length of arProp array); 
 			      can be nProp <= (nElem + 1); if nProp == (nElem + 1), last resizing is applied after the propagation */
 };
 typedef struct SRWLStructOpticsContainer SRWLOptC;
+
+/**
+ * Optical Element:
+ * Interferometer ("interferometer" type)
+ */
+struct SRWLStructOpticsInterferometer {
+	void **arOptC; /* array of pointers to optical containers */
+	int nElem; /* number of optical containers in arOptC array */
+	double arPar[3]; /* array of propagation precision parameters: arPar[0] is index of the container (from arOptC) from which the propagated wavefront mesh parameters will be taken at the wavefront recombination (if <0, no wavefront recombination is assumed), arPar[1] means allow or not treatment of quadratic phase terms (0- don't allow, 1- allow), arPar[2] means allow or not correction of Re and Im parts of the E-field based on intensity ratio (0- don't allow, 1- allow)  */
+	//double *arPar; /* array of propagation precision parameters: arPar[0] is index of the container (from arOptC) from which the propagated wavefront mesh parameters will be taken at the wavefront recombination (if <0, no wavefront recombination is assumed), arPar[1] means allow or not treatment of quadratic phase terms (0- don't allow, 1- allow), arPar[2] means allow or not correction of Re and Im parts of the E-field based on intensity ratio (0- don't allow, 1- allow)  */
+	//int irec; /* index of the container (from arOptC) from which the propagated wavefront mesh parameters will be taken at the wavefront recombination (if <0, no wavefront recombination is assumed) */
+};
+typedef struct SRWLStructOpticsInterferometer SRWLOptI;
 
 /************************************************************************//**
  * Main SRW C API

@@ -296,7 +296,8 @@ int CGenMathFFT2D::Make2DFFT(CGenMathFFT2DInfo& FFT2DInfo, fftwf_plan* pPrecreat
 //int CGenMathFFT2D::Make2DFFT(CGenMathFFT2DInfo& FFT2DInfo, fftwf_plan* pPrecreatedPlan2DFFT, fftw_plan* pdPrecreatedPlan2DFFT, gpuUsageArg *pGpuUsage) //HG18072022
 //int CGenMathFFT2D::Make2DFFT(CGenMathFFT2DInfo& FFT2DInfo, fftwf_plan* pPrecreatedPlan2DFFT)
 #else
-int CGenMathFFT2D::Make2DFFT(CGenMathFFT2DInfo& FFT2DInfo, fftwnd_plan* pPrecreatedPlan2DFFT) //OC27102018
+int CGenMathFFT2D::Make2DFFT(CGenMathFFT2DInfo& FFT2DInfo, fftwnd_plan* pPrecreatedPlan2DFFT, void* pvGPU) //HG29092025
+//int CGenMathFFT2D::Make2DFFT(CGenMathFFT2DInfo& FFT2DInfo, fftwnd_plan* pPrecreatedPlan2DFFT) //OC27102018
 #endif
 {// Assumes Nx, Ny even !
 	const double RelShiftTol = 1.E-06;
@@ -390,13 +391,15 @@ int CGenMathFFT2D::Make2DFFT(CGenMathFFT2DInfo& FFT2DInfo, fftwnd_plan* pPrecrea
 	{
 		if(FFT2DInfo.pData != 0) 
 		{
-			DataToFFT = (fftwf_complex*)CAuxGPU::ToDevice(pGPU, FFT2DInfo.pData, FFT2DInfo.Nx * FFT2DInfo.Ny * FFT2DInfo.howMany * 2 * sizeof(float)); //OC19022024
+			DataToFFT = (fftwf_complex*)CAuxGPU::ToDevice(pGPU, FFT2DInfo.pData, FFT2DInfo.Nx * FFT2DInfo.Ny * FFT2DInfo.howMany * 2); //HG01052025
+			//DataToFFT = (fftwf_complex*)CAuxGPU::ToDevice(pGPU, FFT2DInfo.pData, FFT2DInfo.Nx * FFT2DInfo.Ny * FFT2DInfo.howMany * 2 * sizeof(float)); //OC19022024
 			//DataToFFT = (fftwf_complex*)CAuxGPU::ToDevice((TGPUUsageArg*)pvGPU, FFT2DInfo.pData, FFT2DInfo.Nx * FFT2DInfo.Ny * FFT2DInfo.howMany * 2 * sizeof(float)); //OC06092023
 			//DataToFFT = (fftwf_complex*)AuxGPU::ToDevice(pGpuUsage, FFT2DInfo.pData, FFT2DInfo.Nx * FFT2DInfo.Ny * FFT2DInfo.howMany * 2 * sizeof(float));
 		}
 		else if(FFT2DInfo.pdData != 0) 
 		{
-			dDataToFFT = (fftw_complex*)CAuxGPU::ToDevice(pGPU, FFT2DInfo.pdData, FFT2DInfo.Nx * FFT2DInfo.Ny * FFT2DInfo.howMany * 2 * sizeof(double)); //OC19022024
+			dDataToFFT = (fftw_complex*)CAuxGPU::ToDevice(pGPU, FFT2DInfo.pdData, FFT2DInfo.Nx * FFT2DInfo.Ny * FFT2DInfo.howMany * 2); //HG01052025
+			//dDataToFFT = (fftw_complex*)CAuxGPU::ToDevice(pGPU, FFT2DInfo.pdData, FFT2DInfo.Nx * FFT2DInfo.Ny * FFT2DInfo.howMany * 2 * sizeof(double)); //OC19022024
 			//dDataToFFT = (fftw_complex*)CAuxGPU::ToDevice((TGPUUsageArg*)pvGPU, FFT2DInfo.pdData, FFT2DInfo.Nx * FFT2DInfo.Ny * FFT2DInfo.howMany * 2 * sizeof(double)); //OC06092023
 			//dDataToFFT = (fftw_complex*)CAuxGPU::ToDevice(pGpuUsage, FFT2DInfo.pdData, FFT2DInfo.Nx * FFT2DInfo.Ny * FFT2DInfo.howMany * 2 * sizeof(double));
 		}
@@ -454,32 +457,44 @@ int CGenMathFFT2D::Make2DFFT(CGenMathFFT2DInfo& FFT2DInfo, fftwnd_plan* pPrecrea
 			//GPU_COND(pGpuUsage, {
 			//TGPUUsageArg *pGPU = (TGPUUsageArg*)pvGPU; //OC19022024 (commented-out)
 			if(DataToFFT != 0) {
-				m_ArrayShiftX = (float*)CAuxGPU::ToDevice(pGPU, m_ArrayShiftX, (Nx << 1) * sizeof(float), false); //OC06092023
-				m_ArrayShiftY = (float*)CAuxGPU::ToDevice(pGPU, m_ArrayShiftY, (Ny << 1) * sizeof(float), false);
-				CAuxGPU::EnsureDeviceMemoryReady(pGPU, m_ArrayShiftX);
-				CAuxGPU::EnsureDeviceMemoryReady(pGPU, m_ArrayShiftY);
+				m_ArrayShiftX = CAuxGPU::ToDevice(pGPU, m_ArrayShiftX, (Nx << 1), CAuxGPU::DISCARD_HOST); //OC06092023 //HG23102025
+				m_ArrayShiftY = CAuxGPU::ToDevice(pGPU, m_ArrayShiftY, (Ny << 1), CAuxGPU::DISCARD_HOST);
+				CAuxGPU::EnsureDeviceMemoryReady(pGPU, m_ArrayShiftX, m_ArrayShiftY);
+				//m_ArrayShiftX = (float*)CAuxGPU::ToDevice(pGPU, m_ArrayShiftX, (Nx << 1) * sizeof(float), false); //OC06092023
+				//m_ArrayShiftY = (float*)CAuxGPU::ToDevice(pGPU, m_ArrayShiftY, (Ny << 1) * sizeof(float), false);
+				//CAuxGPU::EnsureDeviceMemoryReady(pGPU, m_ArrayShiftX);
+				//CAuxGPU::EnsureDeviceMemoryReady(pGPU, m_ArrayShiftY);
 				//m_ArrayShiftX = (float*)CAuxGPU::ToDevice(pGpuUsage, m_ArrayShiftX, (Nx << 1) * sizeof(float), false);
 				//m_ArrayShiftY = (float*)CAuxGPU::ToDevice(pGpuUsage, m_ArrayShiftY, (Ny << 1) * sizeof(float), false);	
 				//CAuxGPU::EnsureDeviceMemoryReady(pGpuUsage, m_ArrayShiftX);
 				//CAuxGPU::EnsureDeviceMemoryReady(pGpuUsage, m_ArrayShiftY);
 				TreatShifts2D_GPU((float*)DataToFFT, Nx, Ny, NeedsShiftBeforeX, NeedsShiftBeforeY, m_ArrayShiftX, m_ArrayShiftY);
-				m_ArrayShiftX = (float*)CAuxGPU::ToHostAndFree(pGPU, m_ArrayShiftX, (Nx << 1) * sizeof(float), true); //OC06092023
-				m_ArrayShiftY = (float*)CAuxGPU::ToHostAndFree(pGPU, m_ArrayShiftY, (Ny << 1) * sizeof(float), true);
+				CAuxGPU::MarkUpdatedBatch(pGPU, CAuxGPU::DEVICE, m_ArrayShiftX, m_ArrayShiftY); //HG23102025
+				m_ArrayShiftX = CAuxGPU::ToHostAndFree(pGPU, m_ArrayShiftX); //OC06092023
+				m_ArrayShiftY = CAuxGPU::ToHostAndFree(pGPU, m_ArrayShiftY);
+				//m_ArrayShiftX = (float*)CAuxGPU::ToHostAndFree(pGPU, m_ArrayShiftX, (Nx << 1) * sizeof(float), true); //OC06092023
+				//m_ArrayShiftY = (float*)CAuxGPU::ToHostAndFree(pGPU, m_ArrayShiftY, (Ny << 1) * sizeof(float), true);
 				//m_ArrayShiftX = (float*)CAuxGPU::ToHostAndFree(pGpuUsage, m_ArrayShiftX, (Nx << 1) * sizeof(float), true);
 				//m_ArrayShiftY = (float*)CAuxGPU::ToHostAndFree(pGpuUsage, m_ArrayShiftY, (Ny << 1) * sizeof(float), true);
 			}
 			else if(dDataToFFT != 0) {
-				m_dArrayShiftX = (double*)CAuxGPU::ToDevice(pGPU, m_dArrayShiftX, (Nx << 1) * sizeof(double), false); //OC06092023
-				m_dArrayShiftY = (double*)CAuxGPU::ToDevice(pGPU, m_dArrayShiftY, (Ny << 1) * sizeof(double), false);
-				CAuxGPU::EnsureDeviceMemoryReady(pGPU, m_dArrayShiftX);
-				CAuxGPU::EnsureDeviceMemoryReady(pGPU, m_dArrayShiftY);
+				m_dArrayShiftX = CAuxGPU::ToDevice(pGPU, m_dArrayShiftX, (Nx << 1), CAuxGPU::DISCARD_HOST); //OC06092023 //HG23102025
+				m_dArrayShiftY = CAuxGPU::ToDevice(pGPU, m_dArrayShiftY, (Ny << 1), CAuxGPU::DISCARD_HOST);
+				CAuxGPU::EnsureDeviceMemoryReady(pGPU, m_dArrayShiftX, m_dArrayShiftY);
+				//m_dArrayShiftX = (double*)CAuxGPU::ToDevice(pGPU, m_dArrayShiftX, (Nx << 1) * sizeof(double), false); //OC06092023
+				//m_dArrayShiftY = (double*)CAuxGPU::ToDevice(pGPU, m_dArrayShiftY, (Ny << 1) * sizeof(double), false);
+				//CAuxGPU::EnsureDeviceMemoryReady(pGPU, m_dArrayShiftX);
+				//CAuxGPU::EnsureDeviceMemoryReady(pGPU, m_dArrayShiftY);
 				//m_dArrayShiftX = (double*)CAuxGPU::ToDevice(pGpuUsage, m_dArrayShiftX, (Nx << 1) * sizeof(double), false);
 				//m_dArrayShiftY = (double*)CAuxGPU::ToDevice(pGpuUsage, m_dArrayShiftY, (Ny << 1) * sizeof(double), false);
 				//CAuxGPU::EnsureDeviceMemoryReady(pGpuUsage, m_dArrayShiftX);
 				//CAuxGPU::EnsureDeviceMemoryReady(pGpuUsage, m_dArrayShiftY);
 				TreatShifts2D_GPU((double*)dDataToFFT, Nx, Ny, NeedsShiftBeforeX, NeedsShiftBeforeY, m_dArrayShiftX, m_dArrayShiftY);
-				m_dArrayShiftX = (double*)CAuxGPU::ToHostAndFree(pGPU, m_dArrayShiftX, (Nx << 1) * sizeof(double), true); //OC06092023
-				m_dArrayShiftY = (double*)CAuxGPU::ToHostAndFree(pGPU, m_dArrayShiftY, (Ny << 1) * sizeof(double), true);
+				CAuxGPU::MarkUpdatedBatch(pGPU, CAuxGPU::DEVICE, m_dArrayShiftX, m_dArrayShiftY); //HG23102025
+				m_dArrayShiftX = CAuxGPU::ToHostAndFree(pGPU, m_dArrayShiftX); //OC06092023
+				m_dArrayShiftY = CAuxGPU::ToHostAndFree(pGPU, m_dArrayShiftY);
+				//m_dArrayShiftX = (double*)CAuxGPU::ToHostAndFree(pGPU, m_dArrayShiftX, (Nx << 1) * sizeof(double), true); //OC06092023
+				//m_dArrayShiftY = (double*)CAuxGPU::ToHostAndFree(pGPU, m_dArrayShiftY, (Ny << 1) * sizeof(double), true);
 				//m_dArrayShiftX = (double*)CAuxGPU::ToHostAndFree(pGpuUsage, m_dArrayShiftX, (Nx << 1) * sizeof(double), true);
 				//m_dArrayShiftY = (double*)CAuxGPU::ToHostAndFree(pGpuUsage, m_dArrayShiftY, (Ny << 1) * sizeof(double), true);
 			}
@@ -510,19 +525,24 @@ int CGenMathFFT2D::Make2DFFT(CGenMathFFT2DInfo& FFT2DInfo, fftwnd_plan* pPrecrea
 			{
 				if(pPrecreatedPlan2DFFT == 0) 
 				{
-					if((Plan2DFFT_cu == NULL) || (!(PlanNx == Nx && PlanNy == Ny))) //OC06092023 //HG04122023
+					if((Plan2DFFT_cu == 0) || (!(PlanNx == Nx && PlanNy == Ny))) //HG09122025
+					//if((Plan2DFFT_cu == NULL) || (!(PlanNx == Nx && PlanNy == Ny))) //OC06092023 //HG04122023
 					//if((Plan2DFFT_cu == NULL) || (!(PlanNx == Nx && PlanNy == Ny && HowMany == FFT2DInfo.howMany))) //OC06092023
 					//if (Plan2DFFT_cu == NULL | !(PlanNx == Nx && PlanNy == Ny && HowMany == FFT2DInfo.howMany)) 
 					{
-						if(Plan2DFFT_cu != NULL)
+						if(Plan2DFFT_cu != 0) //HG09122025
+						//if(Plan2DFFT_cu != NULL)
 						{
 							cufftDestroy(Plan2DFFT_cu);
-							Plan2DFFT_cu = NULL;
+							Plan2DFFT_cu = 0; //HG09122025
+							//Plan2DFFT_cu = NULL;
 						}
 
 						PlanNx = Nx;
 						PlanNy = Ny;
-						int plan_shape[2]; plan_shape[0] = Nx; plan_shape[1] = Ny;
+						int plan_shape[2]; plan_shape[0] = Ny; plan_shape[1] = Nx; 
+						//HG03122025
+						//int plan_shape[2]; plan_shape[0] = Nx; plan_shape[1] = Ny;
 						cufftPlanMany(&Plan2DFFT_cu, 2, plan_shape, NULL, 0, 0, NULL, 0, 0, CUFFT_C2C, 1); //HG04122023
 						//cufftPlanMany(&Plan2DFFT_cu, 2, plan_shape, NULL, 0, 0, NULL, 0, 0, CUFFT_C2C, FFT2DInfo.howMany);
 						//cufftPlan2d(&Plan2DFFT_cu, Nx, Ny, CUFFT_C2C);
@@ -539,20 +559,26 @@ int CGenMathFFT2D::Make2DFFT(CGenMathFFT2DInfo& FFT2DInfo, fftwnd_plan* pPrecrea
 			{
 				if(pdPrecreatedPlan2DFFT == 0)
 				{
-					if((dPlan2DFFT_cu == NULL) || (!(dPlanNx == Nx && dPlanNy == Ny))) //OC06092023 //HG04122023
+					if((dPlan2DFFT_cu == 0) || (!(dPlanNx == Nx && dPlanNy == Ny))) //HG09122025
+					//if((dPlan2DFFT_cu == NULL) || (!(dPlanNx == Nx && dPlanNy == Ny))) //OC06092023 //HG04122023
 					//if((dPlan2DFFT_cu == NULL) || (!(dPlanNx == Nx && dPlanNy == Ny && dHowMany == FFT2DInfo.howMany))) //OC06092023
 					//if (dPlan2DFFT_cu == NULL | !(dPlanNx == Nx && dPlanNy == Ny && dHowMany == FFT2DInfo.howMany)) 
 					{
-						if(dPlan2DFFT_cu != NULL)
+						if(dPlan2DFFT_cu != 0) //HG09122025
+						//if(dPlan2DFFT_cu != NULL)
 						{
 							cufftDestroy(dPlan2DFFT_cu);
-							dPlan2DFFT_cu = NULL;
+							dPlan2DFFT_cu = 0; //HG09122025
+							//dPlan2DFFT_cu = NULL;
 						}
 
 						dPlanNx = Nx;
 						dPlanNy = Ny;
-						int plan_shape[2]; plan_shape[0] = Nx; plan_shape[1] = Ny;
-						cufftPlanMany(&Plan2DFFT_cu, 2, plan_shape, 0, 0, 0, 0, 0, 0, CUFFT_Z2Z, 1); //HG04122023
+						int plan_shape[2]; plan_shape[0] = Ny; plan_shape[1] = Nx;
+						cufftPlanMany(&dPlan2DFFT_cu, 2, plan_shape, 0, 0, 0, 0, 0, 0, CUFFT_Z2Z, 1); //HG04122023
+						//HG03122025
+						//int plan_shape[2]; plan_shape[0] = Nx; plan_shape[1] = Ny;
+						//cufftPlanMany(&Plan2DFFT_cu, 2, plan_shape, 0, 0, 0, 0, 0, 0, CUFFT_Z2Z, 1); //HG04122023
 						//cufftPlanMany(&Plan2DFFT_cu, 2, plan_shape, 0, 0, 0, 0, 0, 0, CUFFT_Z2Z, FFT2DInfo.howMany);
 						//cufftPlan2d(&dPlan2DFFT_cu, Nx, Ny, CUFFT_Z2Z);
 					}
@@ -628,17 +654,26 @@ int CGenMathFFT2D::Make2DFFT(CGenMathFFT2DInfo& FFT2DInfo, fftwnd_plan* pPrecrea
 		{
 			if(DataToFFT != 0)
 			{
-				RepairSignAfter2DFFT(DataToFFT);
-				RotateDataAfter2DFFT(DataToFFT);
+				//RepairSignAfter2DFFT(DataToFFT);
+				//RotateDataAfter2DFFT(DataToFFT);
+				//RepairSignAndRotateDataAfter2DFFT((float*)DataToFFT, Nx, Ny, Mult);
+#ifdef _FFTW3 //HG09122025
+				RepairSignAndRotateDataAfter2DFFT((float*)DataToFFT, Nx, Ny, Mult);
+#else
+				RepairSignAndRotateDataAfter2DFFT(DataToFFT, Nx, Ny, Mult); //HG09122025
+#endif
 			}
 
 #ifdef _FFTW3 //OC27022019
 			else if(dDataToFFT != 0)
 			{
-				RepairSignAfter2DFFT(dDataToFFT);
-				RotateDataAfter2DFFT(dDataToFFT);
+				//RepairSignAfter2DFFT(dDataToFFT);
+				//RotateDataAfter2DFFT(dDataToFFT);
+				//HG03122025
+				RepairSignAndRotateDataAfter2DFFT((double*)dDataToFFT, Nx, Ny, Mult);
 			}
 #endif
+			alreadyNormalized = true;
 		}
 	}
 	else
@@ -652,19 +687,24 @@ int CGenMathFFT2D::Make2DFFT(CGenMathFFT2DInfo& FFT2DInfo, fftwnd_plan* pPrecrea
 			if(DataToFFT != 0)
 			{
 				if(pPrecreatedPlan2DFFT == 0) {
-					if((Plan2DFFT_cu == NULL) || (!(PlanNx == Nx && PlanNy == Ny))) //OC06092023 //HG04122023
+					if((Plan2DFFT_cu == 0) || (!(PlanNx == Nx && PlanNy == Ny))) //HG09122025
+					//if((Plan2DFFT_cu == NULL) || (!(PlanNx == Nx && PlanNy == Ny))) //OC06092023 //HG04122023
 					//if((Plan2DFFT_cu == NULL) || (!(PlanNx == Nx && PlanNy == Ny && HowMany == FFT2DInfo.howMany))) //OC06092023
 					//if (Plan2DFFT_cu == NULL | !(PlanNx == Nx && PlanNy == Ny && HowMany == FFT2DInfo.howMany)) 
 					{
-						if(Plan2DFFT_cu != NULL) {
+						if(Plan2DFFT_cu != 0) { //HG09122025}
+						//if(Plan2DFFT_cu != NULL) {
 							cufftDestroy(Plan2DFFT_cu);
-							Plan2DFFT_cu = NULL;
+							Plan2DFFT_cu = 0; //HG09122025
+							//Plan2DFFT_cu = NULL;
 						}
 
 						PlanNx = Nx;
 						PlanNy = Ny;
 						//HowMany = FFT2DInfo.howMany; //HG04122023 (Commented out)
-						int plan_shape[2]; plan_shape[0] = Nx; plan_shape[1] = Ny;
+						int plan_shape[2]; plan_shape[0] = Ny; plan_shape[1] = Nx;
+						//NG03122025
+						//int plan_shape[2]; plan_shape[0] = Nx; plan_shape[1] = Ny;
 						cufftPlanMany(&Plan2DFFT_cu, 2, plan_shape, NULL, 0, 0, NULL, 0, 0, CUFFT_C2C, 1); //HG04122023
 						//cufftPlanMany(&Plan2DFFT_cu, 2, plan_shape, NULL, 0, 0, NULL, 0, 0, CUFFT_C2C, FFT2DInfo.howMany);
 						//cufftPlan2d(&Plan2DFFT_cu, Nx, Ny, CUFFT_C2C);
@@ -682,19 +722,24 @@ int CGenMathFFT2D::Make2DFFT(CGenMathFFT2DInfo& FFT2DInfo, fftwnd_plan* pPrecrea
 			else if(dDataToFFT != 0)
 			{
 				if(pdPrecreatedPlan2DFFT == 0) {
-					if((dPlan2DFFT_cu == NULL) || (!(dPlanNx == Nx && dPlanNy == Ny))) //OC06092023 //HG04122023
+					if((dPlan2DFFT_cu == 0) || (!(dPlanNx == Nx && dPlanNy == Ny))) //HG09122025
+					//if((dPlan2DFFT_cu == NULL) || (!(dPlanNx == Nx && dPlanNy == Ny))) //OC06092023 //HG04122023
 					//if((dPlan2DFFT_cu == NULL) || (!(dPlanNx == Nx && dPlanNy == Ny && dHowMany == FFT2DInfo.howMany))) //OC06092023
 					//if (dPlan2DFFT_cu == NULL | !(dPlanNx == Nx && dPlanNy == Ny && dHowMany == FFT2DInfo.howMany)) 
 					{
-						if(dPlan2DFFT_cu != NULL) {
+						if(dPlan2DFFT_cu != 0) { //HG09122025
+						//if(dPlan2DFFT_cu != NULL) {
 							cufftDestroy(dPlan2DFFT_cu);
-							dPlan2DFFT_cu = NULL;
+							dPlan2DFFT_cu = 0; //HG09122025
+							//dPlan2DFFT_cu = NULL;
 						}
 
 						dPlanNx = Nx;
 						dPlanNy = Ny;
 						//dHowMany = FFT2DInfo.howMany; //HG04122023 (Commented out)
-						int plan_shape[2]; plan_shape[0] = Nx; plan_shape[1] = Ny;
+						int plan_shape[2]; plan_shape[0] = Ny; plan_shape[1] = Nx;
+						//HG03122025
+						//int plan_shape[2]; plan_shape[0] = Nx; plan_shape[1] = Ny;
 						cufftPlanMany(&Plan2DFFT_cu, 2, plan_shape, NULL, 0, 0, NULL, 0, 0, CUFFT_Z2Z, FFT2DInfo.howMany);
 						//cufftPlan2d(&dPlan2DFFT_cu, Nx, Ny, CUFFT_Z2Z);
 					}
@@ -799,34 +844,50 @@ int CGenMathFFT2D::Make2DFFT(CGenMathFFT2DInfo& FFT2DInfo, fftwnd_plan* pPrecrea
 		{
 			//TGPUUsageArg *pGPU = (TGPUUsageArg*)pvGPU; //OC19022024 (commented-out)
 			if(DataToFFT != 0) {
-				m_ArrayShiftX = (float*)CAuxGPU::ToDevice(pGPU, m_ArrayShiftX, (Nx << 1) * sizeof(float), false); //OC06092023
-				m_ArrayShiftY = (float*)CAuxGPU::ToDevice(pGPU, m_ArrayShiftY, (Ny << 1) * sizeof(float), false);
-				CAuxGPU::EnsureDeviceMemoryReady(pGPU, m_ArrayShiftX);
-				CAuxGPU::EnsureDeviceMemoryReady(pGPU, m_ArrayShiftY);
+				m_ArrayShiftX = CAuxGPU::ToDevice(pGPU, m_ArrayShiftX, (Nx << 1), CAuxGPU::DISCARD_HOST); //OC06092023 //HG23102025
+				m_ArrayShiftY = CAuxGPU::ToDevice(pGPU, m_ArrayShiftY, (Ny << 1), CAuxGPU::DISCARD_HOST);
+				CAuxGPU::EnsureDeviceMemoryReady(pGPU, m_ArrayShiftX, m_ArrayShiftY);
+				//HG03122025
+				//m_ArrayShiftX = (float*)CAuxGPU::ToDevice(pGPU, m_ArrayShiftX, (Nx << 1) * sizeof(float), false); //OC06092023
+				//m_ArrayShiftY = (float*)CAuxGPU::ToDevice(pGPU, m_ArrayShiftY, (Ny << 1) * sizeof(float), false);
+				//CAuxGPU::EnsureDeviceMemoryReady(pGPU, m_ArrayShiftX);
+				//CAuxGPU::EnsureDeviceMemoryReady(pGPU, m_ArrayShiftY);
 				//m_ArrayShiftX = (float*)CAuxGPU::ToDevice(pGpuUsage, m_ArrayShiftX, (Nx << 1) * sizeof(float), false);
 				//m_ArrayShiftY = (float*)CAuxGPU::ToDevice(pGpuUsage, m_ArrayShiftY, (Ny << 1) * sizeof(float), false);
 				//CAuxGPU::EnsureDeviceMemoryReady(pGpuUsage, m_ArrayShiftX);
 				//CAuxGPU::EnsureDeviceMemoryReady(pGpuUsage, m_ArrayShiftY);
 				//TreatShifts2D_GPU((float*)DataToFFT, Nx, Ny, FFT2DInfo.howMany, NeedsShiftAfterX, NeedsShiftAfterY, m_ArrayShiftX, m_ArrayShiftY);
 				TreatShifts2D_GPU((float*)DataToFFT, Nx, Ny, NeedsShiftAfterX, NeedsShiftAfterY, m_ArrayShiftX, m_ArrayShiftY); //HG04122023
-				m_ArrayShiftX = (float*)CAuxGPU::ToHostAndFree(pGPU, m_ArrayShiftX, (Nx << 1) * sizeof(float), true); //OC06092023
-				m_ArrayShiftY = (float*)CAuxGPU::ToHostAndFree(pGPU, m_ArrayShiftY, (Ny << 1) * sizeof(float), true);
+				CAuxGPU::MarkUpdatedBatch(pGPU, CAuxGPU::DEVICE, m_ArrayShiftX, m_ArrayShiftY); //HG23102025
+				m_ArrayShiftX = CAuxGPU::ToHostAndFree(pGPU, m_ArrayShiftX); //OC06092023
+				m_ArrayShiftY = CAuxGPU::ToHostAndFree(pGPU, m_ArrayShiftY);
+				//HG03122025
+				//m_ArrayShiftX = (float*)CAuxGPU::ToHostAndFree(pGPU, m_ArrayShiftX, (Nx << 1) * sizeof(float), true); //OC06092023
+				//m_ArrayShiftY = (float*)CAuxGPU::ToHostAndFree(pGPU, m_ArrayShiftY, (Ny << 1) * sizeof(float), true);
 				//m_ArrayShiftX = (float*)CAuxGPU::ToHostAndFree(pGpuUsage, m_ArrayShiftX, (Nx << 1) * sizeof(float), true);
 				//m_ArrayShiftY = (float*)CAuxGPU::ToHostAndFree(pGpuUsage, m_ArrayShiftY, (Ny << 1) * sizeof(float), true);
 			}
 			else if(dDataToFFT != 0) {
-				m_dArrayShiftX = (double*)CAuxGPU::ToDevice(pGPU, m_dArrayShiftX, (Nx << 1) * sizeof(double), false); //OC06092023
-				m_dArrayShiftY = (double*)CAuxGPU::ToDevice(pGPU, m_dArrayShiftY, (Ny << 1) * sizeof(double), false);
-				CAuxGPU::EnsureDeviceMemoryReady(pGPU, m_dArrayShiftX);
-				CAuxGPU::EnsureDeviceMemoryReady(pGPU, m_dArrayShiftY);
+				m_dArrayShiftX = CAuxGPU::ToDevice(pGPU, m_dArrayShiftX, (Nx << 1), CAuxGPU::DISCARD_HOST); //OC06092023 //HG23102025
+				m_dArrayShiftY = CAuxGPU::ToDevice(pGPU, m_dArrayShiftY, (Ny << 1), CAuxGPU::DISCARD_HOST);
+				CAuxGPU::EnsureDeviceMemoryReady(pGPU, m_dArrayShiftX, m_dArrayShiftY);
+				//HG03122025
+				//m_dArrayShiftX = (double*)CAuxGPU::ToDevice(pGPU, m_dArrayShiftX, (Nx << 1) * sizeof(double), false); //OC06092023
+				//m_dArrayShiftY = (double*)CAuxGPU::ToDevice(pGPU, m_dArrayShiftY, (Ny << 1) * sizeof(double), false);
+				//CAuxGPU::EnsureDeviceMemoryReady(pGPU, m_dArrayShiftX);
+				//CAuxGPU::EnsureDeviceMemoryReady(pGPU, m_dArrayShiftY);
 				//m_dArrayShiftX = (double*)CAuxGPU::ToDevice(pGpuUsage, m_dArrayShiftX, (Nx << 1) * sizeof(double), false);	
 				//m_dArrayShiftY = (double*)CAuxGPU::ToDevice(pGpuUsage, m_dArrayShiftY, (Ny << 1) * sizeof(double), false);
 				//CAuxGPU::EnsureDeviceMemoryReady(pGpuUsage, m_dArrayShiftX);
 				//CAuxGPU::EnsureDeviceMemoryReady(pGpuUsage, m_dArrayShiftY);
 				//TreatShifts2D_GPU((double*)dDataToFFT, Nx, Ny, FFT2DInfo.howMany, NeedsShiftAfterX, NeedsShiftAfterY, m_dArrayShiftX, m_dArrayShiftY);
 				TreatShifts2D_GPU((double*)dDataToFFT, Nx, Ny, NeedsShiftAfterX, NeedsShiftAfterY, m_dArrayShiftX, m_dArrayShiftY); //HG04122023
-				m_dArrayShiftX = (double*)CAuxGPU::ToHostAndFree(pGPU, m_dArrayShiftX, (Nx << 1) * sizeof(double), true); //OC06092023
-				m_dArrayShiftY = (double*)CAuxGPU::ToHostAndFree(pGPU, m_dArrayShiftY, (Ny << 1) * sizeof(double), true);
+				CAuxGPU::MarkUpdatedBatch(pGPU, CAuxGPU::DEVICE, m_dArrayShiftX, m_dArrayShiftY); //HG23102025
+				m_dArrayShiftX = CAuxGPU::ToHostAndFree(pGPU, m_dArrayShiftX); //OC06092023
+				m_dArrayShiftY = CAuxGPU::ToHostAndFree(pGPU, m_dArrayShiftY);
+				//HG03122025
+				//m_dArrayShiftX = (double*)CAuxGPU::ToHostAndFree(pGPU, m_dArrayShiftX, (Nx << 1) * sizeof(double), true); //OC06092023
+				//m_dArrayShiftY = (double*)CAuxGPU::ToHostAndFree(pGPU, m_dArrayShiftY, (Ny << 1) * sizeof(double), true);
 				//m_dArrayShiftX = (double*)CAuxGPU::ToHostAndFree(pGpuUsage, m_dArrayShiftX, (Nx << 1) * sizeof(double), true);
 				//m_dArrayShiftY = (double*)CAuxGPU::ToHostAndFree(pGpuUsage, m_dArrayShiftY, (Ny << 1) * sizeof(double), true);
 			}
@@ -854,13 +915,17 @@ int CGenMathFFT2D::Make2DFFT(CGenMathFFT2DInfo& FFT2DInfo, fftwnd_plan* pPrecrea
 	{
 		if(FFT2DInfo.pData != 0) 
 		{
-			CAuxGPU::MarkUpdated(pGPU, DataToFFT, true, false); //OC19022024
+			CAuxGPU::MarkUpdated(pGPU, DataToFFT, CAuxGPU::DEVICE); //OC19022024
+			//HG03122025
+			//CAuxGPU::MarkUpdated(pGPU, DataToFFT, true, false); //OC19022024
 			//CAuxGPU::MarkUpdated((TGPUUsageArg*)pvGPU, DataToFFT, true, false); //OC06092023
 			//CAuxGPU::MarkUpdated(pGpuUsage, DataToFFT, true, false);
 		}
 		else if(FFT2DInfo.pdData != 0) 
 		{
-			CAuxGPU::MarkUpdated(pGPU, dDataToFFT, true, false); //OC19022024
+			CAuxGPU::MarkUpdated(pGPU, dDataToFFT, CAuxGPU::DEVICE); //OC19022024
+			//HG03122025
+			//CAuxGPU::MarkUpdated(pGPU, dDataToFFT, true, false); //OC19022024
 			//CAuxGPU::MarkUpdated((TGPUUsageArg*)pvGPU, dDataToFFT, true, false); //OC06092023
 			//CAuxGPU::MarkUpdated(pGpuUsage, dDataToFFT, true, false);
 		}
@@ -936,22 +1001,22 @@ int CGenMathFFT1D::Make1DFFT(CGenMathFFT1DInfo& FFT1DInfo, void* pvGPU) //OC0509
 			m_ArrayShiftX = new float[Nx << 1];
 			if(m_ArrayShiftX == 0) return MEMORY_ALLOCATION_FAILURE;
 
-#ifdef _OFFLOAD_GPU //OC05092023 (check for memory leak / misuse!)
-			m_ArrayShiftX = (float*)CAuxGPU::ToDevice(pGPU, m_ArrayShiftX, (Nx << 1) * sizeof(float), true); //OC19022024
+//#ifdef _OFFLOAD_GPU //OC05092023 (check for memory leak / misuse!) //OC03122025 (commented-out)
+			//m_ArrayShiftX = (float*)CAuxGPU::ToDevice(pGPU, m_ArrayShiftX, (Nx << 1) * sizeof(float), true); //OC19022024 //HG23102025 (commented-out)
 			//m_ArrayShiftX = (float*)CAuxGPU::ToDevice((TGPUUsageArg*)pvGPU, m_ArrayShiftX, (Nx << 1) * sizeof(float), true);
 			//m_ArrayShiftX = (float*)CAuxGPU::ToDevice(pGpuUsage, m_ArrayShiftX, (Nx << 1) * sizeof(float), true); //HG20012022
-#endif
+//#endif //OC03122025 (commented-out)
 		}
 		else if(FFT1DInfo.pdInData != 0)
 		{
 			m_dArrayShiftX = new double[Nx << 1];
 			if(m_dArrayShiftX == 0) return MEMORY_ALLOCATION_FAILURE;
 
-#ifdef _OFFLOAD_GPU //OC05092023 
-			m_dArrayShiftX = (double*)CAuxGPU::ToDevice(pGPU, m_dArrayShiftX, (Nx << 1) * sizeof(double), true); //OC19022024
+//#ifdef _OFFLOAD_GPU //OC05092023 //OC03122025 (commented-out)
+			//m_dArrayShiftX = (double*)CAuxGPU::ToDevice(pGPU, m_dArrayShiftX, (Nx << 1) * sizeof(double), true); //OC19022024 //HG23102025 (commented-out)
 			//m_dArrayShiftX = (double*)CAuxGPU::ToDevice((TGPUUsageArg*)pvGPU, m_dArrayShiftX, (Nx << 1) * sizeof(double), true);
 			//m_dArrayShiftX = (double*)CAuxGPU::ToDevice(pGpuUsage, m_dArrayShiftX, (Nx << 1) * sizeof(double), true); //HG20012022
-#endif
+//#endif //OC03122025 (commented-out)
 		}
 	}
 
@@ -981,8 +1046,13 @@ int CGenMathFFT1D::Make1DFFT(CGenMathFFT1DInfo& FFT1DInfo, void* pvGPU) //OC0509
 	{
 		if((FFT1DInfo.pInData != 0) && (FFT1DInfo.pOutData != 0))
 		{
-			DataToFFT = (fftwf_complex*)CAuxGPU::ToDevice(pGPU, FFT1DInfo.pInData, FFT1DInfo.Nx * FFT1DInfo.HowMany * 2 * sizeof(float)); //OC19022024
-			OutDataFFT = (fftwf_complex*)CAuxGPU::ToDevice(pGPU, FFT1DInfo.pOutData, FFT1DInfo.Nx * FFT1DInfo.HowMany * 2 * sizeof(float), true);
+			//DataToFFT = (fftwf_complex*)CAuxGPU::ToDevice(pGPU, FFT1DInfo.pInData, FFT1DInfo.Nx * FFT1DInfo.HowMany * 2 * sizeof(float)); //OC19022024
+			//HG03122025
+			DataToFFT = (fftwf_complex*)CAuxGPU::ToDevice(pGPU, FFT1DInfo.pInData, FFT1DInfo.Nx * FFT1DInfo.HowMany * 2); //OC19022024
+			if(FFT1DInfo.pInData != FFT1DInfo.pOutData) OutDataFFT = (fftwf_complex*)CAuxGPU::ToDevice(pGPU, FFT1DInfo.pOutData, FFT1DInfo.Nx * FFT1DInfo.HowMany * 2, CAuxGPU::DONT_COPY);
+			else OutDataFFT = DataToFFT;
+			//OutDataFFT = (fftwf_complex*)CAuxGPU::ToDevice(pGPU, FFT1DInfo.pOutData, FFT1DInfo.Nx * FFT1DInfo.HowMany * 2, CAuxGPU::DONT_COPY); //HG29092025
+			//OutDataFFT = (fftwf_complex*)CAuxGPU::ToDevice(pGPU, FFT1DInfo.pOutData, FFT1DInfo.Nx * FFT1DInfo.HowMany * 2 * sizeof(float), true);
 			//DataToFFT = (fftwf_complex*)CAuxGPU::ToDevice((TGPUUsageArg*)pvGPU, FFT1DInfo.pInData, FFT1DInfo.Nx * FFT1DInfo.HowMany * 2 * sizeof(float)); //OC06092023
 			//OutDataFFT = (fftwf_complex*)CAuxGPU::ToDevice((TGPUUsageArg*)pvGPU, FFT1DInfo.pOutData, FFT1DInfo.Nx * FFT1DInfo.HowMany * 2 * sizeof(float), true);
 			//DataToFFT = (fftwf_complex*)CAuxGPU::ToDevice(pGpuUsage, FFT1DInfo.pInData, FFT1DInfo.Nx * FFT1DInfo.HowMany * 2 * sizeof(float));
@@ -990,8 +1060,13 @@ int CGenMathFFT1D::Make1DFFT(CGenMathFFT1DInfo& FFT1DInfo, void* pvGPU) //OC0509
 		}
 		else if((FFT1DInfo.pdInData != 0) && (FFT1DInfo.pdOutData != 0))
 		{
-			dDataToFFT = (fftw_complex*)CAuxGPU::ToDevice(pGPU, FFT1DInfo.pdInData, FFT1DInfo.Nx * FFT1DInfo.HowMany * 2 * sizeof(double)); //OC19022024
-			dOutDataFFT = (fftw_complex*)CAuxGPU::ToDevice(pGPU, FFT1DInfo.pdOutData, FFT1DInfo.Nx * FFT1DInfo.HowMany * 2 * sizeof(double), true);
+			dDataToFFT = (fftw_complex*)CAuxGPU::ToDevice(pGPU, FFT1DInfo.pdInData, FFT1DInfo.Nx * FFT1DInfo.HowMany * 2); //OC19022024
+			if(FFT1DInfo.pdInData != FFT1DInfo.pdOutData) dOutDataFFT = (fftw_complex*)CAuxGPU::ToDevice(pGPU, FFT1DInfo.pdOutData, FFT1DInfo.Nx * FFT1DInfo.HowMany * 2, CAuxGPU::DONT_COPY);
+			else dOutDataFFT = dDataToFFT;
+			//HG03122025
+			//dDataToFFT = (fftw_complex*)CAuxGPU::ToDevice(pGPU, FFT1DInfo.pdInData, FFT1DInfo.Nx * FFT1DInfo.HowMany * 2 * sizeof(double)); //OC19022024
+			//dOutDataFFT = (fftw_complex*)CAuxGPU::ToDevice(pGPU, FFT1DInfo.pdOutData, FFT1DInfo.Nx * FFT1DInfo.HowMany * 2 * sizeof(double), true);
+			//dOutDataFFT = (fftw_complex*)CAuxGPU::ToDevice(pGPU, FFT1DInfo.pdOutData, FFT1DInfo.Nx * FFT1DInfo.HowMany * 2, CAuxGPU::DONT_COPY); //HG29092025
 			//dDataToFFT = (fftw_complex*)CAuxGPU::ToDevice((TGPUUsageArg*)pvGPU, FFT1DInfo.pdInData, FFT1DInfo.Nx * FFT1DInfo.HowMany * 2 * sizeof(double)); //OC06092023
 			//dOutDataFFT = (fftw_complex*)CAuxGPU::ToDevice((TGPUUsageArg*)pvGPU, FFT1DInfo.pdOutData, FFT1DInfo.Nx * FFT1DInfo.HowMany * 2 * sizeof(double), true);
 			//dDataToFFT = (fftw_complex*)CAuxGPU::ToDevice(pGpuUsage, FFT1DInfo.pdInData, FFT1DInfo.Nx * FFT1DInfo.HowMany * 2 * sizeof(double));
@@ -1039,8 +1114,11 @@ int CGenMathFFT1D::Make1DFFT(CGenMathFFT1DInfo& FFT1DInfo, void* pvGPU) //OC0509
 	}
 
 #ifdef _OFFLOAD_GPU //OC06092023 (to avoid #include "auxgpu.h" for CPU)
-	if(DataToFFT != 0) CAuxGPU::EnsureDeviceMemoryReady(pGPU, DataToFFT); //OC19022024
-	else if(dDataToFFT != 0) CAuxGPU::EnsureDeviceMemoryReady(pGPU, dDataToFFT);
+	if(DataToFFT != 0) CAuxGPU::EnsureDeviceMemoryReady(pGPU, DataToFFT, OutDataFFT); //OC19022024
+	else if(dDataToFFT != 0) CAuxGPU::EnsureDeviceMemoryReady(pGPU, dDataToFFT, dOutDataFFT);
+	//HG03122025
+	//if(DataToFFT != 0) CAuxGPU::EnsureDeviceMemoryReady(pGPU, DataToFFT); //OC19022024
+	//else if(dDataToFFT != 0) CAuxGPU::EnsureDeviceMemoryReady(pGPU, dDataToFFT);
 	//if(DataToFFT != 0) CAuxGPU::EnsureDeviceMemoryReady((TGPUUsageArg*)pvGPU, DataToFFT);
 	//else if(dDataToFFT != 0) CAuxGPU::EnsureDeviceMemoryReady((TGPUUsageArg*)pvGPU, dDataToFFT);
 	//if(DataToFFT != 0) CAuxGPU::EnsureDeviceMemoryReady(pGpuUsage, DataToFFT);
@@ -1056,11 +1134,33 @@ int CGenMathFFT1D::Make1DFFT(CGenMathFFT1DInfo& FFT1DInfo, void* pvGPU) //OC0509
 		//GPU_COND(pvGPU, 
 		//GPU_COND(pGpuUsage, //HG20012022
 		{
-			if(m_ArrayShiftX != 0) FillArrayShift_GPU(t0SignMult * x0_Before, FFT1DInfo.xStep, Nx, m_ArrayShiftX);
-			else if(m_dArrayShiftX != 0) FillArrayShift_GPU(t0SignMult * x0_Before, FFT1DInfo.xStep, Nx, m_dArrayShiftX);
+			//if(m_ArrayShiftX != 0) FillArrayShift_GPU(t0SignMult * x0_Before, FFT1DInfo.xStep, Nx, m_ArrayShiftX);
+			//else if(m_dArrayShiftX != 0) FillArrayShift_GPU(t0SignMult * x0_Before, FFT1DInfo.xStep, Nx, m_dArrayShiftX);
+			if(m_ArrayShiftX != 0) { //HG29092025
+				m_ArrayShiftX = CAuxGPU::ToDevice(pGPU, m_ArrayShiftX, (Nx << 1), CAuxGPU::DONT_COPY | CAuxGPU::DISCARD_HOST);
+				CAuxGPU::EnsureDeviceMemoryReady(pGPU, m_ArrayShiftX);
+				FillArrayShift_GPU(t0SignMult * x0_Before, FFT1DInfo.xStep, Nx, m_ArrayShiftX);
+				CAuxGPU::MarkUpdated(pGPU, m_ArrayShiftX, CAuxGPU::DEVICE);
+			}
+			else if(m_dArrayShiftX != 0) {
+				m_dArrayShiftX = CAuxGPU::ToDevice(pGPU, m_dArrayShiftX, (Nx << 1), CAuxGPU::DONT_COPY | CAuxGPU::DISCARD_HOST);
+				CAuxGPU::EnsureDeviceMemoryReady(pGPU, m_dArrayShiftX);
+				FillArrayShift_GPU(t0SignMult * x0_Before, FFT1DInfo.xStep, Nx, m_dArrayShiftX);
+				CAuxGPU::MarkUpdated(pGPU, m_dArrayShiftX, CAuxGPU::DEVICE);
+			}
 
-			if(DataToFFT != 0) TreatShift_GPU((float*)DataToFFT, FFT1DInfo.HowMany, Nx, m_ArrayShiftX);
-			else if(dDataToFFT != 0) TreatShift_GPU((double*)dDataToFFT, FFT1DInfo.HowMany, Nx, m_dArrayShiftX);
+			//if(DataToFFT != 0) TreatShift_GPU((float*)DataToFFT, FFT1DInfo.HowMany, Nx, m_ArrayShiftX);
+			//else if(dDataToFFT != 0) TreatShift_GPU((double*)dDataToFFT, FFT1DInfo.HowMany, Nx, m_dArrayShiftX);
+			if(DataToFFT != 0) //HG23102025
+			{
+				TreatShift_GPU((float*)DataToFFT, FFT1DInfo.HowMany, Nx, m_ArrayShiftX);
+				CAuxGPU::MarkUpdated(pGPU, m_ArrayShiftX, CAuxGPU::DEVICE);
+			}
+			else if(dDataToFFT != 0)
+			{
+				TreatShift_GPU((double*)dDataToFFT, FFT1DInfo.HowMany, Nx, m_dArrayShiftX);
+				CAuxGPU::MarkUpdated(pGPU, m_dArrayShiftX, CAuxGPU::DEVICE);
+			}
 		}//)
 		else 
 #endif
@@ -1098,10 +1198,12 @@ int CGenMathFFT1D::Make1DFFT(CGenMathFFT1DInfo& FFT1DInfo, void* pvGPU) //OC0509
 			{
 				if(PlanLen != Nx) {
 					PlanLen = Nx;
-					if(Plan1DFFT_cu != NULL)
+					if(Plan1DFFT_cu != 0) //HG09122025
+					//if(Plan1DFFT_cu != NULL)
 					{
 						cufftDestroy(Plan1DFFT_cu);
-						Plan1DFFT_cu = NULL;
+						Plan1DFFT_cu = 0; //HG09122025
+						//Plan1DFFT_cu = NULL;
 					}
 					cufftPlanMany(&Plan1DFFT_cu, 1, arN, NULL, 1, Nx, NULL, 1, Nx, CUFFT_C2C, FFT1DInfo.HowMany);
 				}
@@ -1111,10 +1213,12 @@ int CGenMathFFT1D::Make1DFFT(CGenMathFFT1DInfo& FFT1DInfo, void* pvGPU) //OC0509
 			else if(dDataToFFT != 0) //OC02022019
 			{
 				if(dPlanLen != Nx) {
-					if(dPlan1DFFT_cu != NULL)
+					if(dPlan1DFFT_cu != 0) //HG09122025
+					//if(dPlan1DFFT_cu != NULL)
 					{
 						cufftDestroy(dPlan1DFFT_cu);
-						dPlan1DFFT_cu = NULL;
+						dPlan1DFFT_cu = 0; //HG09122025
+						//dPlan1DFFT_cu = NULL;
 					}
 					dPlanLen = Nx;
 					cufftPlanMany(&dPlan1DFFT_cu, 1, arN, NULL, 1, Nx, NULL, 1, Nx, CUFFT_Z2Z, FFT1DInfo.HowMany);
@@ -1243,10 +1347,12 @@ int CGenMathFFT1D::Make1DFFT(CGenMathFFT1DInfo& FFT1DInfo, void* pvGPU) //OC0509
 				if(PlanLen != Nx) {
 					PlanLen = Nx;
 					HowMany = FFT1DInfo.HowMany;
-					if(Plan1DFFT_cu != NULL)
+					if(Plan1DFFT_cu != 0) //HG09122025
+					//if(Plan1DFFT_cu != NULL)
 					{
 						cufftDestroy(Plan1DFFT_cu);
-						Plan1DFFT_cu = NULL;
+						Plan1DFFT_cu = 0; //HG09122025
+						//Plan1DFFT_cu = NULL;
 					}
 					cufftPlanMany(&Plan1DFFT_cu, 1, arN, NULL, 1, Nx, NULL, 1, Nx, CUFFT_C2C, FFT1DInfo.HowMany);
 				}
@@ -1262,10 +1368,12 @@ int CGenMathFFT1D::Make1DFFT(CGenMathFFT1DInfo& FFT1DInfo, void* pvGPU) //OC0509
 				{
 					dPlanLen = Nx;
 					dHowMany = FFT1DInfo.HowMany;
-					if(dPlan1DFFT_cu != NULL)
+					if(dPlan1DFFT_cu != 0) //HG09122025
+					//if(dPlan1DFFT_cu != NULL)
 					{
 						cufftDestroy(dPlan1DFFT_cu);
-						dPlan1DFFT_cu = NULL;
+						dPlan1DFFT_cu = 0; //HG09122025
+						//dPlan1DFFT_cu = NULL;
 					}
 					cufftPlanMany(&dPlan1DFFT_cu, 1, arN, NULL, 1, Nx, NULL, 1, Nx, CUFFT_Z2Z, FFT1DInfo.HowMany);
 				}
@@ -1388,11 +1496,32 @@ int CGenMathFFT1D::Make1DFFT(CGenMathFFT1DInfo& FFT1DInfo, void* pvGPU) //OC0509
 		//GPU_COND(pvGPU, 
 		//GPU_COND(pGpuUsage, 
 		{
-			if(m_ArrayShiftX != 0) FillArrayShift_GPU(t0SignMult * x0_After, FFT1DInfo.xStepTr, Nx, m_ArrayShiftX); //OC02022019
-			else if(m_dArrayShiftX != 0) FillArrayShift_GPU(t0SignMult * x0_After, FFT1DInfo.xStepTr, Nx, m_dArrayShiftX);
+			//if(m_ArrayShiftX != 0) FillArrayShift_GPU(t0SignMult * x0_After, FFT1DInfo.xStepTr, Nx, m_ArrayShiftX); //OC02022019
+			//else if(m_dArrayShiftX != 0) FillArrayShift_GPU(t0SignMult * x0_After, FFT1DInfo.xStepTr, Nx, m_dArrayShiftX);
+			if(m_ArrayShiftX != 0) { //HG29092025
+				m_ArrayShiftX = CAuxGPU::ToDevice(pGPU, m_ArrayShiftX, (Nx << 1), CAuxGPU::DONT_COPY | CAuxGPU::DISCARD_HOST);
+				CAuxGPU::EnsureDeviceMemoryReady(pGPU, m_ArrayShiftX);
+				FillArrayShift_GPU(t0SignMult * x0_After, FFT1DInfo.xStepTr, Nx, m_ArrayShiftX);
+				CAuxGPU::MarkUpdated(pGPU, m_ArrayShiftX, CAuxGPU::DEVICE);
+			}
+			else if(m_dArrayShiftX != 0) {
+				m_dArrayShiftX = CAuxGPU::ToDevice(pGPU, m_dArrayShiftX, (Nx << 1), CAuxGPU::DONT_COPY | CAuxGPU::DISCARD_HOST);
+				CAuxGPU::EnsureDeviceMemoryReady(pGPU, m_dArrayShiftX);
+				FillArrayShift_GPU(t0SignMult * x0_After, FFT1DInfo.xStepTr, Nx, m_dArrayShiftX);
+				CAuxGPU::MarkUpdated(pGPU, m_dArrayShiftX, CAuxGPU::DEVICE);
+			}
 
-			if(OutDataFFT != 0) TreatShift_GPU((float*)OutDataFFT, FFT1DInfo.HowMany, Nx, m_ArrayShiftX);
-			else if(dOutDataFFT != 0) TreatShift_GPU((double*)dOutDataFFT, FFT1DInfo.HowMany, Nx, m_dArrayShiftX);
+			//if(OutDataFFT != 0) TreatShift_GPU((float*)OutDataFFT, FFT1DInfo.HowMany, Nx, m_ArrayShiftX);
+			//else if(dOutDataFFT != 0) TreatShift_GPU((double*)dOutDataFFT, FFT1DInfo.HowMany, Nx, m_dArrayShiftX);
+			if(OutDataFFT != 0) //HG23102025
+			{
+				TreatShift_GPU((float*)OutDataFFT, FFT1DInfo.HowMany, Nx, m_ArrayShiftX);
+				CAuxGPU::MarkUpdated(pGPU, m_ArrayShiftX, CAuxGPU::DEVICE);
+			}
+			else if(dOutDataFFT != 0) {
+				TreatShift_GPU((double*)dOutDataFFT, FFT1DInfo.HowMany, Nx, m_dArrayShiftX);
+				CAuxGPU::MarkUpdated(pGPU, m_dArrayShiftX, CAuxGPU::DEVICE);
+			}
 		}//)
 		else 
 #endif
@@ -1422,13 +1551,17 @@ int CGenMathFFT1D::Make1DFFT(CGenMathFFT1DInfo& FFT1DInfo, void* pvGPU) //OC0509
 	{
 		if((FFT1DInfo.pInData != 0) && (FFT1DInfo.pOutData != 0))
 		{
-			CAuxGPU::MarkUpdated(pGPU, OutDataFFT, true, false); //OC19022024
+			CAuxGPU::MarkUpdated(pGPU, OutDataFFT, CAuxGPU::DEVICE); //OC19022024
+			//HG03122025
+			//CAuxGPU::MarkUpdated(pGPU, OutDataFFT, true, false); //OC19022024
 			//CAuxGPU::MarkUpdated((TGPUUsageArg*)pvGPU, OutDataFFT, true, false); //OC06092023
 			//CAuxGPU::MarkUpdated(pGpuUsage, OutDataFFT, true, false);
 		}
 		else if((FFT1DInfo.pdInData != 0) && (FFT1DInfo.pdOutData != 0))
 		{
-			CAuxGPU::MarkUpdated(pGPU, dOutDataFFT, true, false); //OC19022024
+			CAuxGPU::MarkUpdated(pGPU, dOutDataFFT, CAuxGPU::DEVICE); //OC19022024
+			//HG03122025
+			//CAuxGPU::MarkUpdated(pGPU, dOutDataFFT, true, false); //OC19022024
 			//CAuxGPU::MarkUpdated((TGPUUsageArg*)pvGPU, dOutDataFFT, true, false); //OC06092023
 			//CAuxGPU::MarkUpdated(pGpuUsage, dOutDataFFT, true, false);
 		}
@@ -1462,7 +1595,9 @@ int CGenMathFFT1D::Make1DFFT(CGenMathFFT1DInfo& FFT1DInfo, void* pvGPU) //OC0509
 	if(m_ArrayShiftX != 0)
 	{
 #ifdef _OFFLOAD_GPU //OC06092023 (to avoid #include "auxgpu.h" for CPU)
-		m_ArrayShiftX = (float*)CAuxGPU::ToHostAndFree(pGPU, m_ArrayShiftX, (Nx << 1) * sizeof(float), true); //OC19022024
+		m_ArrayShiftX = (float*)CAuxGPU::ToHostAndFree(pGPU, m_ArrayShiftX); //OC19022024
+		//HG03122025
+		//m_ArrayShiftX = (float*)CAuxGPU::ToHostAndFree(pGPU, m_ArrayShiftX, (Nx << 1) * sizeof(float), true); //OC19022024
 		//m_ArrayShiftX = (float*)CAuxGPU::ToHostAndFree((TGPUUsageArg*)pvGPU, m_ArrayShiftX, (Nx << 1) * sizeof(float), true); //OC06092023
 		//m_ArrayShiftX = (float*)CAuxGPU::ToHostAndFree(pGpuUsage, m_ArrayShiftX, (Nx << 1) * sizeof(float), true);
 #endif
@@ -1471,7 +1606,9 @@ int CGenMathFFT1D::Make1DFFT(CGenMathFFT1DInfo& FFT1DInfo, void* pvGPU) //OC0509
 	if(m_dArrayShiftX != 0)
 	{
 #ifdef _OFFLOAD_GPU //OC06092023 (to avoid #include "auxgpu.h" for CPU)
-		m_dArrayShiftX = (double*)CAuxGPU::ToHostAndFree(pGPU, m_dArrayShiftX, (Nx << 1) * sizeof(double), true); //OC19022024
+		m_dArrayShiftX = (double*)CAuxGPU::ToHostAndFree(pGPU, m_dArrayShiftX); //OC19022024
+		//HG03122025
+		//m_dArrayShiftX = (double*)CAuxGPU::ToHostAndFree(pGPU, m_dArrayShiftX, (Nx << 1) * sizeof(double), true); //OC19022024
 		//m_dArrayShiftX = (double*)CAuxGPU::ToHostAndFree((TGPUUsageArg*)pvGPU, m_dArrayShiftX, (Nx << 1) * sizeof(double), true); //OC06092023
 		//m_dArrayShiftX = (double*)CAuxGPU::ToHostAndFree(pGpuUsage, m_dArrayShiftX, (Nx << 1) * sizeof(double), true);
 #endif

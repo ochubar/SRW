@@ -1,6 +1,6 @@
 #############################################################################
 # SRWLIB Example#9: Simulating propagation of a Gaussian X-ray beam through a Beamline containing Imperfect Mirrors
-# v 0.04
+# v 0.05
 #############################################################################
 
 from __future__ import print_function #Python 2.7 compatibility
@@ -21,6 +21,7 @@ import time
 
 print('SRWLIB Python Example # 9:')
 print('Simulating propagation of a Coherent Gaussian X-ray beam through a Beamline containing Imperfect Mirrors')
+print('This example can use GPU for accelerating calculations; to try, set tryUsingGPU = 1 in the code below')
 
 #**********************Input Parameters and Structures
 #***********Folder and Data File Names
@@ -33,6 +34,9 @@ strIntInitOutFileName01 = 'ex09_res_int_in.dat' #initial wavefront intensity dis
 strPhaseInitOutFileName01 = 'ex09_res_phase_in.dat' #initial wavefront phase output file name
 strIntPropOutFileName01 = 'ex09_res_int_prop.dat' #propagated wavefront intensity distribution output file name
 strPhasePropOutFileName01 = 'ex09_res_phase_prop.dat' #propagated wavefront phase output file name
+
+#***********Execution Instructions
+tryUsingGPU = 0 #Set to 1 if GPU should be used, 0 otherwise
 
 #***********Gaussian Beam Source
 GsnBm = SRWLGsnBm() #Gaussian Beam structure (just parameters)
@@ -207,40 +211,51 @@ optBL = SRWLOptC([opApM1,    opTrErM1,  opDrM1_VFM, opApKB, opVFM,  opTrErVFM, o
 srwl.CalcElecFieldGaussian(wfr, GsnBm, arPrecPar)
 mesh0 = deepcopy(wfr.mesh)
 arI0 = array('f', [0]*mesh0.nx*mesh0.ny) #"flat" array to take 2D intensity data
-srwl.CalcIntFromElecField(arI0, wfr, 6, 0, 3, mesh0.eStart, 0, 0) #extracts intensity
+
+if(tryUsingGPU): print('   ... Trying to use GPU ... ', end='\n')
+srwl.CalcIntFromElecField(arI0, wfr, 6, 0, 3, mesh0.eStart, 0, 0, None, None, tryUsingGPU) #extracts intensity
+#srwl.CalcIntFromElecField(arI0, wfr, 6, 0, 3, mesh0.eStart, 0, 0) #extracts intensity #HG10122025
 srwl_uti_save_intens_ascii(arI0, mesh0, os.path.join(os.getcwd(), strDataFolderName, strIntInitOutFileName01), 0,
                            ['Photon Energy', 'Horizontal Position', 'Vertical Position', 'Spectral Fluence'], _arUnits=['eV', 'm', 'm', 'J/eV/mm^2'])
 
 arI0x = array('f', [0]*mesh0.nx) #array to take 1D intensity data (for plotting)
-srwl.CalcIntFromElecField(arI0x, wfr, 6, 0, 1, mesh0.eStart, 0, 0) #extracts intensity
+srwl.CalcIntFromElecField(arI0x, wfr, 6, 0, 1, mesh0.eStart, 0, 0, None, None, tryUsingGPU) #extracts intensity
+#srwl.CalcIntFromElecField(arI0x, wfr, 6, 0, 1, mesh0.eStart, 0, 0) #extracts intensity #HG10122025
 arI0y = array('f', [0]*mesh0.ny) #array to take 1D intensity data
-srwl.CalcIntFromElecField(arI0y, wfr, 6, 0, 2, mesh0.eStart, 0, 0) #extracts intensity
+srwl.CalcIntFromElecField(arI0y, wfr, 6, 0, 2, mesh0.eStart, 0, 0, None, None, tryUsingGPU) #extracts intensity
+#srwl.CalcIntFromElecField(arI0y, wfr, 6, 0, 2, mesh0.eStart, 0, 0) #extracts intensity #HG10122025
 
 arP0 = array('d', [0]*mesh0.nx*mesh0.ny) #"flat" array to take 2D phase data (note it should be 'd')
-srwl.CalcIntFromElecField(arP0, wfr, 6, 4, 3, mesh0.eStart, 0, 0) #extracts radiation phase
+srwl.CalcIntFromElecField(arP0, wfr, 6, 4, 3, mesh0.eStart, 0, 0, None, None, tryUsingGPU) #extracts radiation phase
+#srwl.CalcIntFromElecField(arP0, wfr, 6, 4, 3, mesh0.eStart, 0, 0) #extracts radiation phase #HG10122025
 srwl_uti_save_intens_ascii(arP0, mesh0, os.path.join(os.getcwd(), strDataFolderName, strPhaseInitOutFileName01), 0,
                            ['Photon Energy', 'Horizontal Position', 'Vertical Position', 'Phase'], _arUnits=['eV', 'm', 'm', 'rad'])
 
 #***********Wavefront Propagation
 print('   Propagating wavefront ... ', end='')
-t0 = time.time();
-srwl.PropagElecField(wfr, optBL)
+t0 = time.time()
+srwl.PropagElecField(wfr, optBL, None, tryUsingGPU)
+#srwl.PropagElecField(wfr, optBL) #HG10122025
 print('done in', round(time.time() - t0), 's')
 
 print('   Saving propagated wavefront intensity and phase to files ... ', end='')
 mesh1 = deepcopy(wfr.mesh)
 arI1 = array('f', [0]*mesh1.nx*mesh1.ny) #"flat" array to take 2D intensity data
-srwl.CalcIntFromElecField(arI1, wfr, 6, 0, 3, mesh1.eStart, 0, 0) #extracts intensity
+srwl.CalcIntFromElecField(arI1, wfr, 6, 0, 3, mesh1.eStart, 0, 0, None, None, tryUsingGPU) #extracts intensity
+#srwl.CalcIntFromElecField(arI1, wfr, 6, 0, 3, mesh1.eStart, 0, 0) #extracts intensity #HG10122025
 srwl_uti_save_intens_ascii(arI1, mesh1, os.path.join(os.getcwd(), strDataFolderName, strIntPropOutFileName01), 0,
                            ['Photon Energy', 'Horizontal Position', 'Vertical Position', 'Spectral Fluence'], _arUnits=['eV', 'm', 'm', 'J/eV/mm^2'])
 
 arI1x = array('f', [0]*mesh1.nx) #array to take 1D intensity data (for plotting)
-srwl.CalcIntFromElecField(arI1x, wfr, 6, 0, 1, mesh1.eStart, 0, 0) #extracts intensity
+srwl.CalcIntFromElecField(arI1x, wfr, 6, 0, 1, mesh1.eStart, 0, 0, None, None, tryUsingGPU) #extracts intensity
+#srwl.CalcIntFromElecField(arI1x, wfr, 6, 0, 1, mesh1.eStart, 0, 0) #extracts intensity #HG10122025
 arI1y = array('f', [0]*mesh1.ny) #array to take 1D intensity data
-srwl.CalcIntFromElecField(arI1y, wfr, 6, 0, 2, mesh1.eStart, 0, 0) #extracts intensity
+srwl.CalcIntFromElecField(arI1y, wfr, 6, 0, 2, mesh1.eStart, 0, 0, None, None, tryUsingGPU) #extracts intensity
+#srwl.CalcIntFromElecField(arI1y, wfr, 6, 0, 2, mesh1.eStart, 0, 0) #extracts intensity #HG10122025
 
 arP1 = array('d', [0]*mesh1.nx*mesh1.ny) #"flat" array to take 2D phase data (note it should be 'd')
-srwl.CalcIntFromElecField(arP1, wfr, 6, 4, 3, mesh1.eStart, 0, 0) #extracts radiation phase
+srwl.CalcIntFromElecField(arP1, wfr, 6, 4, 3, mesh1.eStart, 0, 0, None, None, tryUsingGPU) #extracts radiation phase
+#srwl.CalcIntFromElecField(arP1, wfr, 6, 4, 3, mesh1.eStart, 0, 0) #extracts radiation phase #HG10122025
 srwl_uti_save_intens_ascii(arP1, mesh1, os.path.join(os.getcwd(), strDataFolderName, strPhasePropOutFileName01), 0,
                            ['Photon Energy', 'Horizontal Position', 'Vertical Position', 'Phase'], _arUnits=['eV', 'm', 'm', 'rad'])
 print('done')

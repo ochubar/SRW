@@ -196,16 +196,19 @@ int srTDriftSpace::PropagateElecBeamMoments(srTEbmDat* pEbm)
 
 //*************************************************************************
 
-int srTDriftSpace::TuneRadForPropMeth_1(srTSRWRadStructAccessData* pRadAccessData, srTRadResize& PostResize)
+//int srTDriftSpace::TuneRadForPropMeth_1(srTSRWRadStructAccessData* pRadAccessData, srTRadResize& PostResize)
+int srTDriftSpace::TuneRadForPropMeth_1(srTSRWRadStructAccessData* pRadAccessData, srTRadResize& PostResize, void* pvGPU) //HG26072024
 {
 	srTMomentsRatios* MomRatArray = new srTMomentsRatios[pRadAccessData->ne];
 	if(MomRatArray == 0) return MEMORY_ALLOCATION_FAILURE;
 
 	int result;
 	if(pRadAccessData->Pres != 0) // Go to spatial...
-		if(result = SetRadRepres(pRadAccessData, 0)) return result;
+		if(result = SetRadRepres(pRadAccessData, 0, 0, 0, pvGPU)) return result; //HG26072024
+		//if(result = SetRadRepres(pRadAccessData, 0)) return result;
 
-	if(result = PropagateRadMoments(pRadAccessData, MomRatArray)) return result;
+	//if(result = PropagateRadMoments(pRadAccessData, MomRatArray)) return result;
+	if(result = PropagateRadMoments(pRadAccessData, MomRatArray, pvGPU)) return result; //HG26072024
 	
 	srTMomentsRatios* tMomRatArray = MomRatArray;
 
@@ -251,7 +254,8 @@ int srTDriftSpace::TuneRadForPropMeth_1(srTSRWRadStructAccessData* pRadAccessDat
 	char zResizeNeeded = (pzMax - 1. > ResizeTol);
 	if(xResizeNeeded) RadResize.pxm = DiffractionFactor*pxMax;
 	if(zResizeNeeded) RadResize.pzm = DiffractionFactor*pzMax;
-	if(xResizeNeeded || zResizeNeeded) if(result = RadResizeGen(*pRadAccessData, RadResize)) return result;
+	//if(xResizeNeeded || zResizeNeeded) if(result = RadResizeGen(*pRadAccessData, RadResize)) return result;
+	if(xResizeNeeded || zResizeNeeded) if(result = RadResizeGen(*pRadAccessData, RadResize, pvGPU)) return result; //HG26072024
 
 	PostResize.pxm = PostResize.pzm = PostResize.pxd = PostResize.pzd = 1.;
 
@@ -281,7 +285,8 @@ int srTDriftSpace::TuneRadForPropMeth_1(srTSRWRadStructAccessData* pRadAccessDat
 
 //*************************************************************************
 
-int srTDriftSpace::PropagateRadiationMeth_1(srTSRWRadStructAccessData* pRadAccessData)
+//int srTDriftSpace::PropagateRadiationMeth_1(srTSRWRadStructAccessData* pRadAccessData)
+int srTDriftSpace::PropagateRadiationMeth_1(srTSRWRadStructAccessData* pRadAccessData, void* pvGPU) //HG26072024
 {
 	int result;
 	srTRadResize PostResize;
@@ -299,22 +304,28 @@ int srTDriftSpace::PropagateRadiationMeth_1(srTSRWRadStructAccessData* pRadAcces
 	//float *NewMxxArr = 0, *NewMzzArr = 0;
 	double *NewMxxArr = 0, *NewMzzArr = 0;
 
-	if(result = TuneRadForPropMeth_1(pRadAccessData, PostResize)) return result;
+	//if(result = TuneRadForPropMeth_1(pRadAccessData, PostResize)) return result;
+	if(result = TuneRadForPropMeth_1(pRadAccessData, PostResize, pvGPU)) return result; //HG26072024
 	if(result = PropagateWaveFrontRadius(pRadAccessData)) return result;
 
-	if(pRadAccessData->Pres != 1) if(result = SetRadRepres(pRadAccessData, 1)) return result;
-	if(result = TraverseRadZXE(pRadAccessData)) return result;
-	if(result = SetRadRepres(pRadAccessData, 0)) return result;
+	//if(pRadAccessData->Pres != 1) if(result = SetRadRepres(pRadAccessData, 1)) return result;
+	//if(result = TraverseRadZXE(pRadAccessData)) return result;
+	//if(result = SetRadRepres(pRadAccessData, 0)) return result;
+	if(pRadAccessData->Pres != 1) if(result = SetRadRepres(pRadAccessData, 1, 0, 0, pvGPU)) return result; //HG26072024
+	if(result = TraverseRadZXE(pRadAccessData, 0, 0, pvGPU)) return result;
+	if(result = SetRadRepres(pRadAccessData, 0, 0, 0, pvGPU)) return result;
 
 	//const double ResizeTol = 0.15;
 	if((PostResize.pxm != -1) && (PostResize.pzm != -1))
 	{
 		char PostResizeNeeded = (::fabs(PostResize.pxm - 1.) || ::fabs(PostResize.pzm - 1.));
-		if(PostResizeNeeded) if(result = RadResizeGen(*pRadAccessData, PostResize)) return result;
+		//if(PostResizeNeeded) if(result = RadResizeGen(*pRadAccessData, PostResize)) return result;
+		if(PostResizeNeeded) if(result = RadResizeGen(*pRadAccessData, PostResize, pvGPU)) return result; //HG26072024
 	}
 	else
 	{
-		if(result = ComputeRadMoments(pRadAccessData)) return result;
+		//if(result = ComputeRadMoments(pRadAccessData)) return result;
+		if(result = ComputeRadMoments(pRadAccessData, pvGPU)) return result; //HG26072024
 
 		//NewMxxArr = new float[pRadAccessData->ne];
 		NewMxxArr = new double[pRadAccessData->ne]; //OC130311
@@ -334,7 +345,8 @@ int srTDriftSpace::PropagateRadiationMeth_1(srTSRWRadStructAccessData* pRadAcces
 		PostResize.pzm = sqrt(pzmMaxE2);
 		char PostResizeNeeded = (::fabs(PostResize.pxm - 1.) || ::fabs(PostResize.pzm - 1.));
 
-		if(PostResizeNeeded) if(result = RadResizeGen(*pRadAccessData, PostResize)) return result;
+		//if(PostResizeNeeded) if(result = RadResizeGen(*pRadAccessData, PostResize)) return result;
+		if(PostResizeNeeded) if(result = RadResizeGen(*pRadAccessData, PostResize, pvGPU)) return result; //HG26072024
 	}
 
 	if(result = Propagate4x4PropMatr(pRadAccessData)) return result;
@@ -387,74 +399,185 @@ int srTDriftSpace::PropagateRadiationSimple_PropToWaist(srTSRWRadStructAccessDat
 	//if(result = TraverseRadZXE(pRadAccessData)) return result;
 	//END DEBUG
 
-	double InvLambda_m = pRadAccessData->eStart*806546.577258;
-	double InvLambda_m_d_Length = InvLambda_m/Length;
-	double LambdaM_Length = 1./InvLambda_m_d_Length;
+	//OC05012026 (moved down)
+	//double InvLambda_m = pRadAccessData->eStart*806546.577258;
+	//double InvLambda_m_d_Length = InvLambda_m/Length;
+	//double LambdaM_Length = 1./InvLambda_m_d_Length;
 
 	CGenMathFFT2DInfo FFT2DInfo;
-	FFT2DInfo.xStep = pRadAccessData->xStep;
-	FFT2DInfo.yStep = pRadAccessData->zStep;
-	FFT2DInfo.xStart = pRadAccessData->xStart;
-	FFT2DInfo.yStart = pRadAccessData->zStart;
-	FFT2DInfo.Nx = pRadAccessData->nx;
-	FFT2DInfo.Ny = pRadAccessData->nz;
-	FFT2DInfo.Dir = 1;
-	FFT2DInfo.UseGivenStartTrValues = 0;
+	CGenMathFFT1DInfo FFT1DInfo; //OC05012026
+	
+	srTDataPtrsForWfrEdgeCorr DataPtrsForWfrEdgeCorr; //OC05012026 (moved from below)
+	srTDataPtrsForWfrEdgeCorr1D DataPtrsForWfrEdgeCorr1D;
+
+	bool WfrIsVsX = pRadAccessData->nx > 1; //OC05012026
+	bool WfrIsVsZ = pRadAccessData->nz > 1;
+	bool WfrIsVsXZ = WfrIsVsX && WfrIsVsZ;
+
+	if(WfrIsVsXZ) //OC04012026 (added condition)
+	{
+		//OC05012026 (moved from below)
+		if(result = SetupWfrEdgeCorrData(pRadAccessData, pRadAccessData->pBaseRadX, pRadAccessData->pBaseRadZ, DataPtrsForWfrEdgeCorr, pvGPU)) return result; //HG30112023
+
+		FFT2DInfo.xStep = pRadAccessData->xStep;
+		FFT2DInfo.yStep = pRadAccessData->zStep;
+		FFT2DInfo.xStart = pRadAccessData->xStart;
+		FFT2DInfo.yStart = pRadAccessData->zStart;
+		FFT2DInfo.Nx = pRadAccessData->nx;
+		FFT2DInfo.Ny = pRadAccessData->nz;
+		FFT2DInfo.Dir = 1;
+		FFT2DInfo.UseGivenStartTrValues = 0;
+	}
+	else
+	{ //OC04012026
+		char vs_x_or_z = WfrIsVsX? 'x' : 'z';
+		srTRadSect1D radSect1D(pRadAccessData->pBaseRadX, pRadAccessData->pBaseRadZ, vs_x_or_z, 0, pRadAccessData);
+
+		if(result = SetupWfrEdgeCorrData1D(&radSect1D, pRadAccessData->pBaseRadX, pRadAccessData->pBaseRadZ, DataPtrsForWfrEdgeCorr1D)) return result; //OC05012026
+
+		FFT1DInfo.Dir = 1;
+		FFT1DInfo.UseGivenStartTrValue = 0;
+
+		if(WfrIsVsX)
+		{
+			FFT1DInfo.xStep = pRadAccessData->xStep;
+			FFT1DInfo.xStart = pRadAccessData->xStart;
+			FFT1DInfo.Nx = pRadAccessData->nx;
+		}
+		else
+		{
+			FFT1DInfo.xStep = pRadAccessData->zStep;
+			FFT1DInfo.xStart = pRadAccessData->zStart;
+			FFT1DInfo.Nx = pRadAccessData->nz;
+		}
+	}
 
 	CGenMathFFT2D FFT2D;
+	CGenMathFFT1D FFT1D; //OC05012026
 
-	//To remove this?
-	srTDataPtrsForWfrEdgeCorr DataPtrsForWfrEdgeCorr;
-	if(result = SetupWfrEdgeCorrData(pRadAccessData, pRadAccessData->pBaseRadX, pRadAccessData->pBaseRadZ, DataPtrsForWfrEdgeCorr, pvGPU)) return result; //HG30112023
-	//if(result = SetupWfrEdgeCorrData(pRadAccessData, pRadAccessData->pBaseRadX, pRadAccessData->pBaseRadZ, DataPtrsForWfrEdgeCorr)) return result;
+	//OC05012026 (moved up)
+	//srTDataPtrsForWfrEdgeCorr DataPtrsForWfrEdgeCorr;
+	//if(result = SetupWfrEdgeCorrData(pRadAccessData, pRadAccessData->pBaseRadX, pRadAccessData->pBaseRadZ, DataPtrsForWfrEdgeCorr, pvGPU)) return result; //HG30112023
+	////if(result = SetupWfrEdgeCorrData(pRadAccessData, pRadAccessData->pBaseRadX, pRadAccessData->pBaseRadZ, DataPtrsForWfrEdgeCorr)) return result;
 
-#if !defined(_FFTW3) && defined(_WITH_OMP) //OC29082019
-	//OC04062020
-	fftwnd_plan *pPlan2DFFT = (m_frwPlan2DFFT != 0)? &m_frwPlan2DFFT : 0;
-	FFT2DInfo.pData = pRadAccessData->pBaseRadX;
-	if(result = FFT2D.Make2DFFT(FFT2DInfo, pPlan2DFFT)) return result;
-	FFT2DInfo.pData = pRadAccessData->pBaseRadZ;
-	if(result = FFT2D.Make2DFFT(FFT2DInfo, pPlan2DFFT)) return result;
-
-	//OC04062020 (commented-out)
-	//if(m_frwPlan2DFFT != 0)
-	//{
-	//	FFT2DInfo.pData = pRadAccessData->pBaseRadX;
-	//	if(result = FFT2D.Make2DFFT(FFT2DInfo, &m_frwPlan2DFFT)) return result;
-	//	FFT2DInfo.pData = pRadAccessData->pBaseRadZ;
-	//	if(result = FFT2D.Make2DFFT(FFT2DInfo, &m_frwPlan2DFFT)) return result;
-	//}
+	if(WfrIsVsXZ) //OC06012026 (added condition)
+	{
+#if !defined(_FFTW3) //OC23022025 (trying to compile for Igor Pro)
+		//#if !defined(_FFTW3) && defined(_WITH_OMP) //OC29082019
+#ifdef _WITH_OMP //OC23022025 (trying to compile for Igor Pro)
+		//OC04062020
+		fftwnd_plan *pPlan2DFFT = (m_frwPlan2DFFT != 0)? &m_frwPlan2DFFT : 0;
 #else
-//OCTEST01102019: commented-out the above (to see if this will fix problem of TD calcs)
-	FFT2DInfo.pData = pRadAccessData->pBaseRadX;
-	//if(result = FFT2D.Make2DFFT(FFT2DInfo)) return result;
-	if(result = FFT2D.Make2DFFT(FFT2DInfo, 0, 0, pvGPU)) return result; //HG30112023
-	FFT2DInfo.pData = pRadAccessData->pBaseRadZ;
-	//if(result = FFT2D.Make2DFFT(FFT2DInfo)) return result;
-	if(result = FFT2D.Make2DFFT(FFT2DInfo, 0, 0, pvGPU)) return result; //HG30112023
+		fftwnd_plan *pPlan2DFFT = 0;
 #endif
+		FFT2DInfo.pData = pRadAccessData->pBaseRadX;
+		if(result = FFT2D.Make2DFFT(FFT2DInfo, pPlan2DFFT)) return result;
+		FFT2DInfo.pData = pRadAccessData->pBaseRadZ;
+		if(result = FFT2D.Make2DFFT(FFT2DInfo, pPlan2DFFT)) return result;
+
+		//OC04062020 (commented-out)
+		//if(m_frwPlan2DFFT != 0)
+		//{
+		//	FFT2DInfo.pData = pRadAccessData->pBaseRadX;
+		//	if(result = FFT2D.Make2DFFT(FFT2DInfo, &m_frwPlan2DFFT)) return result;
+		//	FFT2DInfo.pData = pRadAccessData->pBaseRadZ;
+		//	if(result = FFT2D.Make2DFFT(FFT2DInfo, &m_frwPlan2DFFT)) return result;
+		//}
+#else
+		//OCTEST01102019: commented-out the above (to see if this will fix problem of TD calcs)
+		FFT2DInfo.pData = pRadAccessData->pBaseRadX;
+		//if(result = FFT2D.Make2DFFT(FFT2DInfo)) return result;
+		if(result = FFT2D.Make2DFFT(FFT2DInfo, 0, 0, pvGPU)) return result; //HG30112023
+		FFT2DInfo.pData = pRadAccessData->pBaseRadZ;
+		//if(result = FFT2D.Make2DFFT(FFT2DInfo)) return result;
+		if(result = FFT2D.Make2DFFT(FFT2DInfo, 0, 0, pvGPU)) return result; //HG30112023
+#endif
+	}
+	else
+	{ //OC06012026
+		FFT1DInfo.pInData = pRadAccessData->pBaseRadX;
+		FFT1DInfo.pOutData = FFT1DInfo.pInData; //OC06012026 (to make 1D FFT in place - to re-check if this is correct)
+#ifdef _FFTW3
+		if(result = FFT1D.Make1DFFT(FFT1DInfo, pvGPU)) return result;
+#else
+		if(result = FFT1D.Make1DFFT(FFT1DInfo)) return result;
+#endif
+
+		FFT1DInfo.pInData = pRadAccessData->pBaseRadZ;
+		FFT1DInfo.pOutData = FFT1DInfo.pInData; //OC06012026 (to make 1D FFT in place - to re-check if this is correct)
+#ifdef _FFTW3
+		if(result = FFT1D.Make1DFFT(FFT1DInfo, pvGPU)) return result;
+#else
+		if(result = FFT1D.Make1DFFT(FFT1DInfo)) return result;
+#endif
+	}
 
 	//FFT2DInfo.pData = pRadAccessData->pBaseRadX;
 	//if(result = FFT2D.Make2DFFT(FFT2DInfo)) return result;
 	//FFT2DInfo.pData = pRadAccessData->pBaseRadZ;
 	//if(result = FFT2D.Make2DFFT(FFT2DInfo)) return result;
 
-	//To remove this?
-	if(DataPtrsForWfrEdgeCorr.WasSetup)
+	if(WfrIsVsXZ) //OC05012026 (added condition)
 	{
-		//MakeWfrEdgeCorrection(pRadAccessData, pRadAccessData->pBaseRadX, pRadAccessData->pBaseRadZ, DataPtrsForWfrEdgeCorr);
-		MakeWfrEdgeCorrection(pRadAccessData, pRadAccessData->pBaseRadX, pRadAccessData->pBaseRadZ, DataPtrsForWfrEdgeCorr, pvGPU); //HG30112023
-		DataPtrsForWfrEdgeCorr.DisposeData();
+		//To remove this?
+		if(DataPtrsForWfrEdgeCorr.WasSetup)
+		{
+			//MakeWfrEdgeCorrection(pRadAccessData, pRadAccessData->pBaseRadX, pRadAccessData->pBaseRadZ, DataPtrsForWfrEdgeCorr);
+			MakeWfrEdgeCorrection(pRadAccessData, pRadAccessData->pBaseRadX, pRadAccessData->pBaseRadZ, DataPtrsForWfrEdgeCorr, pvGPU);
+			DataPtrsForWfrEdgeCorr.DisposeData();
+		}
+	}
+	else
+	{ //OC05012026
+		//To remove this?
+		if(DataPtrsForWfrEdgeCorr1D.WasSetup)
+		{
+			srTRadSect1D radSect1D(pRadAccessData->pBaseRadX, pRadAccessData->pBaseRadZ, WfrIsVsX? 'x' : 'z', 0, pRadAccessData);
+			MakeWfrEdgeCorrection1D(&radSect1D, pRadAccessData->pBaseRadX, pRadAccessData->pBaseRadZ, DataPtrsForWfrEdgeCorr1D);
+			DataPtrsForWfrEdgeCorr1D.DisposeData();
+		}
 	}
 
-	double qxCen = -pRadAccessData->xc*InvLambda_m/pRadAccessData->RobsX; 
-	double qzCen = -pRadAccessData->zc*InvLambda_m/pRadAccessData->RobsZ;
+	//OC05012026 (moved from above)
+	double InvLambda_m = pRadAccessData->eStart*806546.577258;
+	double InvLambda_m_d_Length = InvLambda_m/Length;
+	double LambdaM_Length = 1./InvLambda_m_d_Length;
 
-// Puting back some parameters
-	pRadAccessData->xStart = (FFT2DInfo.xStartTr + qxCen)*LambdaM_Length;
-	pRadAccessData->zStart = (FFT2DInfo.yStartTr + qzCen)*LambdaM_Length;
-	pRadAccessData->xStep = FFT2DInfo.xStepTr*LambdaM_Length;
-	pRadAccessData->zStep = FFT2DInfo.yStepTr*LambdaM_Length;
+	//OC06012026 (added conditions, moved into)
+	//double qxCen = WfrIsVsX? -pRadAccessData->xc*InvLambda_m/pRadAccessData->RobsX : 0.;
+	//double qzCen = WfrIsVsZ? -pRadAccessData->zc*InvLambda_m/pRadAccessData->RobsZ : 0.;
+	//double qxCen = -pRadAccessData->xc*InvLambda_m/pRadAccessData->RobsX; 
+	//double qzCen = -pRadAccessData->zc*InvLambda_m/pRadAccessData->RobsZ;
+
+	//Puting back some parameters
+	//pRadAccessData->xStart = (FFT2DInfo.xStartTr + qxCen)*LambdaM_Length;
+	//pRadAccessData->zStart = (FFT2DInfo.yStartTr + qzCen)*LambdaM_Length;
+
+	if(WfrIsVsXZ) //OC06012026 (added condition)
+	{
+		double qxCen = (pRadAccessData->RobsX != 0.)? -pRadAccessData->xc*InvLambda_m/pRadAccessData->RobsX : 0.;
+		double qzCen = (pRadAccessData->RobsZ != 0.)? -pRadAccessData->zc*InvLambda_m/pRadAccessData->RobsZ : 0.;
+
+		pRadAccessData->xStart = (FFT2DInfo.xStartTr + qxCen)*LambdaM_Length;
+		pRadAccessData->zStart = (FFT2DInfo.yStartTr + qzCen)*LambdaM_Length;
+		pRadAccessData->xStep = FFT2DInfo.xStepTr*LambdaM_Length;
+		pRadAccessData->zStep = FFT2DInfo.yStepTr*LambdaM_Length;
+	}
+	else
+	{ //OC06012026
+		if(WfrIsVsX)
+		{
+			double qxCen = (pRadAccessData->RobsX != 0.)? -pRadAccessData->xc*InvLambda_m/pRadAccessData->RobsX : 0.;
+			pRadAccessData->xStart = (FFT1DInfo.xStartTr + qxCen)*LambdaM_Length;
+			pRadAccessData->xStep = FFT1DInfo.xStepTr*LambdaM_Length;
+		}
+		else
+		{
+			double qzCen = (pRadAccessData->RobsZ != 0.)? -pRadAccessData->zc*InvLambda_m/pRadAccessData->RobsZ : 0.;
+			pRadAccessData->zStart = (FFT1DInfo.xStartTr + qzCen)*LambdaM_Length;
+			pRadAccessData->zStep = FFT1DInfo.xStepTr*LambdaM_Length;
+		}
+	}
 
 	//pBufVars->PassNo = 2; //OC06092019
 	//OC01102019 (restored)
@@ -469,15 +592,21 @@ int srTDriftSpace::PropagateRadiationSimple_PropToWaist(srTSRWRadStructAccessDat
 	//OC19032022
 	if(LambdaM_Length < 0)
 	{
-		pRadAccessData->MirrorFieldData(-1, -1); 
+		//pRadAccessData->MirrorFieldData(-1, -1);
+		pRadAccessData->MirrorFieldData(-1, -1, pvGPU); //HG29072024
 
-		double xEnd = pRadAccessData->xStart + (pRadAccessData->xStep)*(pRadAccessData->nx - 1);
-		pRadAccessData->xStart = xEnd;
-		pRadAccessData->xStep *= -1.;
-
-		double zEnd = pRadAccessData->zStart + (pRadAccessData->zStep)*(pRadAccessData->nz - 1);
-		pRadAccessData->zStart = zEnd;
-		pRadAccessData->zStep *= -1.;
+		if(WfrIsVsX) //OC06012026 (added condition)
+		{
+			double xEnd = pRadAccessData->xStart + (pRadAccessData->xStep)*(pRadAccessData->nx - 1);
+			pRadAccessData->xStart = xEnd;
+			pRadAccessData->xStep *= -1.;
+		}
+		if(WfrIsVsZ) //OC06012026 (added condition)
+		{
+			double zEnd = pRadAccessData->zStart + (pRadAccessData->zStep)*(pRadAccessData->nz - 1);
+			pRadAccessData->zStart = zEnd;
+			pRadAccessData->zStep *= -1.;
+		}
 	}
 
 	pRadAccessData->UnderSamplingX = 1; // Assuming successful propagation to waist
@@ -507,10 +636,18 @@ int srTDriftSpace::PropagateRadiationSimple_PropToWaistBeyondParax(srTSRWRadStru
 	//double dxGrid = pRadAccessData->xStart + 0.5*(pRadAccessData->xStep)*((pRadAccessData->nx) - 1);
 	//double dzGrid = pRadAccessData->zStart + 0.5*(pRadAccessData->zStep)*((pRadAccessData->nz) - 1);
 
+	bool WfrIsVsX = pRadAccessData->nx > 1; //OC13012026
+	bool WfrIsVsZ = pRadAccessData->nz > 1;
+	bool WfrIsVsXZ = WfrIsVsX && WfrIsVsZ;
+
 	double xcOrig = pRadAccessData->xc, zcOrig = pRadAccessData->zc;
 	double InvLambdaM = (pRadAccessData->eStart)*806546.577258;
-	double InvLambdaM_d_Rx = InvLambdaM/(pRadAccessData->RobsX);
-	double InvLambdaM_d_Rz = InvLambdaM/(pRadAccessData->RobsZ);
+
+	double InvLambdaM_d_Rx = WfrIsVsX? InvLambdaM/(pRadAccessData->RobsX) : 0.; //OC13012026
+	double InvLambdaM_d_Rz = WfrIsVsZ? InvLambdaM/(pRadAccessData->RobsZ) : 0.;
+
+	//double InvLambdaM_d_Rx = InvLambdaM/(pRadAccessData->RobsX);
+	//double InvLambdaM_d_Rz = InvLambdaM/(pRadAccessData->RobsZ);
 	pRadAccessData->xStep *= InvLambdaM_d_Rx;
 	pRadAccessData->zStep *= InvLambdaM_d_Rz;
 	pRadAccessData->xStart = (pRadAccessData->xStart - xcOrig)*InvLambdaM_d_Rx;
@@ -523,48 +660,97 @@ int srTDriftSpace::PropagateRadiationSimple_PropToWaistBeyondParax(srTSRWRadStru
 	if(result = TraverseRadZXE(pRadAccessData, &BufVars, sizeof(srTDriftPropBufVars), pvGPU)) return result; //HG30112023
 
 	CGenMathFFT2DInfo FFT2DInfo;
-	FFT2DInfo.xStep = pRadAccessData->xStep;
-	FFT2DInfo.yStep = pRadAccessData->zStep;
-	FFT2DInfo.xStart = pRadAccessData->xStart;
-	FFT2DInfo.yStart = pRadAccessData->zStart;
-	FFT2DInfo.Nx = pRadAccessData->nx;
-	FFT2DInfo.Ny = pRadAccessData->nz;
-	FFT2DInfo.Dir = -1;
-	FFT2DInfo.UseGivenStartTrValues = 0;
+	CGenMathFFT1DInfo FFT1DInfo; //OC13012026
+
+	if(WfrIsVsXZ) //OC13012026 (added condition)
+	{
+		FFT2DInfo.xStep = pRadAccessData->xStep;
+		FFT2DInfo.yStep = pRadAccessData->zStep;
+		FFT2DInfo.xStart = pRadAccessData->xStart;
+		FFT2DInfo.yStart = pRadAccessData->zStart;
+		FFT2DInfo.Nx = pRadAccessData->nx;
+		FFT2DInfo.Ny = pRadAccessData->nz;
+		FFT2DInfo.Dir = -1;
+		FFT2DInfo.UseGivenStartTrValues = 0;
+	}
+	else
+	{ //OC13012026
+		FFT1DInfo.Dir = -1;
+		FFT1DInfo.UseGivenStartTrValue = 0;
+
+		if(WfrIsVsX)
+		{
+			FFT1DInfo.xStep = pRadAccessData->xStep;
+			FFT1DInfo.xStart = pRadAccessData->xStart;
+			FFT1DInfo.Nx = pRadAccessData->nx;
+		}
+		else
+		{
+			FFT1DInfo.xStep = pRadAccessData->zStep;
+			FFT1DInfo.xStart = pRadAccessData->zStart;
+			FFT1DInfo.Nx = pRadAccessData->nz;
+		}
+	}
 
 	CGenMathFFT2D FFT2D;
+	CGenMathFFT1D FFT1D; //OC13012026
 
 	//To remove this?
 	//OCTEST (removing)
 	//srTDataPtrsForWfrEdgeCorr DataPtrsForWfrEdgeCorr;
 	//if(result = SetupWfrEdgeCorrData(pRadAccessData, pRadAccessData->pBaseRadX, pRadAccessData->pBaseRadZ, DataPtrsForWfrEdgeCorr)) return result;
 
-#if !defined(_FFTW3) && defined(_WITH_OMP) //OC29082019
+	if(WfrIsVsXZ) //OC13012026 (added condition)
+	{
+#ifndef _FFTW3 //OC23022025 (trying to compile for Igor Pro)
+		//#if !defined(_FFTW3) && defined(_WITH_OMP) //OC29082019
+#ifdef _WITH_OMP //OC23022025 (trying to compile for Igor Pro)
 	//OC04062020
-	fftwnd_plan *pPlan2DFFT = (m_frwPlan2DFFT != 0)? &m_frwPlan2DFFT : 0;
-	FFT2DInfo.pData = pRadAccessData->pBaseRadX;
-	if(result = FFT2D.Make2DFFT(FFT2DInfo, pPlan2DFFT)) return result;
-	FFT2DInfo.pData = pRadAccessData->pBaseRadZ;
-	if(result = FFT2D.Make2DFFT(FFT2DInfo, pPlan2DFFT)) return result;
-	
-	//OC04062020 (commented-out)
-	//if(m_frwPlan2DFFT != 0)
-	//{
-	//	FFT2DInfo.pData = pRadAccessData->pBaseRadX;
-	//	if(result = FFT2D.Make2DFFT(FFT2DInfo, &m_frwPlan2DFFT)) return result;
-	//	FFT2DInfo.pData = pRadAccessData->pBaseRadZ;
-	//	if(result = FFT2D.Make2DFFT(FFT2DInfo, &m_frwPlan2DFFT)) return result;
-	//}
+		fftwnd_plan *pPlan2DFFT = (m_frwPlan2DFFT != 0)? &m_frwPlan2DFFT : 0;
 #else
-//OCTEST01102019: commented-out the above (to see if this will fix problem of TD calcs)
-	FFT2DInfo.pData = pRadAccessData->pBaseRadX;
-	//if(result = FFT2D.Make2DFFT(FFT2DInfo)) return result;
-	if(result = FFT2D.Make2DFFT(FFT2DInfo, 0, 0, pvGPU)) return result; //HG30112023
-	FFT2DInfo.pData = pRadAccessData->pBaseRadZ;
-	//if(result = FFT2D.Make2DFFT(FFT2DInfo)) return result;
-	if(result = FFT2D.Make2DFFT(FFT2DInfo, 0, 0, pvGPU)) return result; //HG30112023
+		fftwnd_plan *pPlan2DFFT = 0;
+#endif
+		FFT2DInfo.pData = pRadAccessData->pBaseRadX;
+		if(result = FFT2D.Make2DFFT(FFT2DInfo, pPlan2DFFT)) return result;
+		FFT2DInfo.pData = pRadAccessData->pBaseRadZ;
+		if(result = FFT2D.Make2DFFT(FFT2DInfo, pPlan2DFFT)) return result;
+
+		//OC04062020 (commented-out)
+		//if(m_frwPlan2DFFT != 0)
+		//{
+		//	FFT2DInfo.pData = pRadAccessData->pBaseRadX;
+		//	if(result = FFT2D.Make2DFFT(FFT2DInfo, &m_frwPlan2DFFT)) return result;
+		//	FFT2DInfo.pData = pRadAccessData->pBaseRadZ;
+		//	if(result = FFT2D.Make2DFFT(FFT2DInfo, &m_frwPlan2DFFT)) return result;
+		//}
+#else
+		//OCTEST01102019: commented-out the above (to see if this will fix problem of TD calcs)
+		FFT2DInfo.pData = pRadAccessData->pBaseRadX;
+		//if(result = FFT2D.Make2DFFT(FFT2DInfo)) return result;
+		if(result = FFT2D.Make2DFFT(FFT2DInfo, 0, 0, pvGPU)) return result; //HG30112023
+		FFT2DInfo.pData = pRadAccessData->pBaseRadZ;
+		//if(result = FFT2D.Make2DFFT(FFT2DInfo)) return result;
+		if(result = FFT2D.Make2DFFT(FFT2DInfo, 0, 0, pvGPU)) return result; //HG30112023
+#endif
+	}
+	else
+	{ //OC13012026 (requires tests!)
+		FFT1DInfo.pInData = pRadAccessData->pBaseRadX;
+		FFT1DInfo.pOutData = FFT1DInfo.pInData; //OC06012026 (to make 1D FFT in place - to re-check if this is correct)
+#ifdef _FFTW3
+		if(result = FFT1D.Make1DFFT(FFT1DInfo, pvGPU)) return result;
+#else
+		if(result = FFT1D.Make1DFFT(FFT1DInfo)) return result;
 #endif
 
+		FFT1DInfo.pInData = pRadAccessData->pBaseRadZ;
+		FFT1DInfo.pOutData = FFT1DInfo.pInData; //OC13012026 (to make 1D FFT in place - to re-check if this is correct)
+#ifdef _FFTW3
+		if(result = FFT1D.Make1DFFT(FFT1DInfo, pvGPU)) return result;
+#else
+		if(result = FFT1D.Make1DFFT(FFT1DInfo)) return result;
+#endif
+	}
 	//To remove this?
 	//OCTEST (removing)
 	//if(DataPtrsForWfrEdgeCorr.WasSetup)
@@ -575,34 +761,92 @@ int srTDriftSpace::PropagateRadiationSimple_PropToWaistBeyondParax(srTSRWRadStru
 
 	//Perform Electric Field data mirroring, if necessary
 	int sx=1, sz=1;
-	double xStartNew = FFT2DInfo.xStartTr + xcOrig;
-	//double xStartNew = FFT2DInfo.xStartTr + dxGrid; //OC18062020
-	double xStepNew = FFT2DInfo.xStepTr;
-	double zStartNew = FFT2DInfo.yStartTr + zcOrig;
-	//double zStartNew = FFT2DInfo.yStartTr + dzGrid; //OC18062020
-	double zStepNew = FFT2DInfo.yStepTr;
-	if(FFT2DInfo.xStepTr < 0)
-	{
-		sx = -1;
-		xStartNew = -FFT2DInfo.xStartTr + xcOrig; //????
-		//xStartNew = -FFT2DInfo.xStartTr + dxGrid; //OC18062020
-		xStepNew = -FFT2DInfo.xStepTr;
-	}
-	if(FFT2DInfo.yStepTr < 0)
-	{
-		sz = -1;
-		zStartNew = -FFT2DInfo.yStartTr + zcOrig; //????
-		//zStartNew = -FFT2DInfo.yStartTr + dzGrid; //OC18062020
-		zStepNew = -FFT2DInfo.yStepTr;
-	}
-	if((sx < 0) || (sz < 0)) pRadAccessData->MirrorFieldData(sx, sz);
 
-	//Updating mesh parameters
-	pRadAccessData->xStart = xStartNew;
-	pRadAccessData->zStart = zStartNew;
-	pRadAccessData->xStep = xStepNew;
-	pRadAccessData->zStep = zStepNew;
+	if(WfrIsVsXZ) //OC13012026 (added condition)
+	{
+		double xStartNew = FFT2DInfo.xStartTr + xcOrig;
+		//double xStartNew = FFT2DInfo.xStartTr + dxGrid; //OC18062020
+		double xStepNew = FFT2DInfo.xStepTr;
+		double zStartNew = FFT2DInfo.yStartTr + zcOrig;
+		//double zStartNew = FFT2DInfo.yStartTr + dzGrid; //OC18062020
+		double zStepNew = FFT2DInfo.yStepTr;
+		if(FFT2DInfo.xStepTr < 0)
+		{
+			sx = -1;
+			xStartNew = -FFT2DInfo.xStartTr + xcOrig; //????
+			//xStartNew = -FFT2DInfo.xStartTr + dxGrid; //OC18062020
+			xStepNew = -FFT2DInfo.xStepTr;
+		}
+		if(FFT2DInfo.yStepTr < 0)
+		{
+			sz = -1;
+			zStartNew = -FFT2DInfo.yStartTr + zcOrig; //????
+			//zStartNew = -FFT2DInfo.yStartTr + dzGrid; //OC18062020
+			zStepNew = -FFT2DInfo.yStepTr;
+		}
+		if((sx < 0) || (sz < 0)) pRadAccessData->MirrorFieldData(sx, sz);
 
+		//Updating mesh parameters
+		pRadAccessData->xStart = xStartNew;
+		pRadAccessData->zStart = zStartNew;
+		pRadAccessData->xStep = xStepNew;
+		pRadAccessData->zStep = zStepNew;
+	}
+	else
+	{ //OC13012026
+		if(WfrIsVsX)
+		{
+			double xStartNew = FFT1DInfo.xStartTr + xcOrig;
+			double xStepNew = FFT1DInfo.xStepTr;
+			//double zStartNew = FFT2DInfo.yStartTr + zcOrig;
+			//double zStepNew = FFT2DInfo.yStepTr;
+			if(FFT1DInfo.xStepTr < 0)
+			{
+				sx = -1;
+				xStartNew = -FFT1DInfo.xStartTr + xcOrig; //????
+				xStepNew = -FFT1DInfo.xStepTr;
+			}
+			//if(FFT2DInfo.yStepTr < 0)
+			//{
+			//	sz = -1;
+			//	zStartNew = -FFT2DInfo.yStartTr + zcOrig; //????
+			//	zStepNew = -FFT2DInfo.yStepTr;
+			//}
+			if((sx < 0) || (sz < 0)) pRadAccessData->MirrorFieldData(sx, sz);
+
+			//Updating mesh parameters
+			pRadAccessData->xStart = xStartNew;
+			//pRadAccessData->zStart = zStartNew;
+			pRadAccessData->xStep = xStepNew;
+			//pRadAccessData->zStep = zStepNew;
+		}
+		else
+		{
+			//double xStartNew = FFT1DInfo.xStartTr + xcOrig;
+			//double xStepNew = FFT1DInfo.xStepTr;
+			double zStartNew = FFT1DInfo.xStartTr + zcOrig;
+			double zStepNew = FFT1DInfo.xStepTr;
+			//if(FFT1DInfo.xStepTr < 0)
+			//{
+			//	sx = -1;
+			//	xStartNew = -FFT1DInfo.xStartTr + xcOrig; //????
+			//	xStepNew = -FFT1DInfo.xStepTr;
+			//}
+			if(FFT1DInfo.xStepTr < 0)
+			{
+				sz = -1;
+				zStartNew = -FFT1DInfo.xStartTr + zcOrig; //????
+				zStepNew = -FFT1DInfo.xStepTr;
+			}
+			if((sx < 0) || (sz < 0)) pRadAccessData->MirrorFieldData(sx, sz);
+
+			//Updating mesh parameters
+			//pRadAccessData->xStart = xStartNew;
+			pRadAccessData->zStart = zStartNew;
+			//pRadAccessData->xStep = xStepNew;
+			pRadAccessData->zStep = zStepNew;
+		}
+	}
 	return 0;
 }
 
@@ -637,27 +881,65 @@ int srTDriftSpace::PropagateRadiationSimple_PropFromWaist(srTSRWRadStructAccessD
 	//pBufVars->PassNo = 1;
 	//if(result = TraverseRadZXE(pRadAccessData, pBufVars)) return result;
 
-	double InvLambda_m = pRadAccessData->eStart*806546.577258;
-	double InvLambda_m_d_Length = InvLambda_m/Length;
-	double LambdaM_Length = 1./InvLambda_m_d_Length;
+	//OC13012026 (moved below)
+	//double InvLambda_m = pRadAccessData->eStart*806546.577258;
+	//double InvLambda_m_d_Length = InvLambda_m/Length;
+	//double LambdaM_Length = 1./InvLambda_m_d_Length;
 
 	CGenMathFFT2DInfo FFT2DInfo;
-	FFT2DInfo.xStep = pRadAccessData->xStep;
-	FFT2DInfo.yStep = pRadAccessData->zStep;
-	FFT2DInfo.xStart = pRadAccessData->xStart;
-	FFT2DInfo.yStart = pRadAccessData->zStart;
-	FFT2DInfo.Nx = pRadAccessData->nx;
-	FFT2DInfo.Ny = pRadAccessData->nz;
-	FFT2DInfo.Dir = 1;
-	FFT2DInfo.UseGivenStartTrValues = 0;
+	CGenMathFFT1DInfo FFT1DInfo; //OC13012026
 
-	//OCTEST (commented-out "edge correction")
-	//OC01102019 (uncommented)
-	srTDataPtrsForWfrEdgeCorr DataPtrsForWfrEdgeCorr;
-	//if(result = SetupWfrEdgeCorrData(pRadAccessData, pRadAccessData->pBaseRadX, pRadAccessData->pBaseRadZ, DataPtrsForWfrEdgeCorr)) return result;
-	if(result = SetupWfrEdgeCorrData(pRadAccessData, pRadAccessData->pBaseRadX, pRadAccessData->pBaseRadZ, DataPtrsForWfrEdgeCorr, pvGPU)) return result; //HG30112023
+	srTDataPtrsForWfrEdgeCorr DataPtrsForWfrEdgeCorr; //OC13012026 (moved from below)
+	srTDataPtrsForWfrEdgeCorr1D DataPtrsForWfrEdgeCorr1D;
+
+	bool WfrIsVsX = pRadAccessData->nx > 1; //OC13012026
+	bool WfrIsVsZ = pRadAccessData->nz > 1;
+	bool WfrIsVsXZ = WfrIsVsX && WfrIsVsZ;
+
+	if(WfrIsVsXZ) //OC13012026 (added condition)
+	{
+		//OC13012026 (moved from below)
+		if(result = SetupWfrEdgeCorrData(pRadAccessData, pRadAccessData->pBaseRadX, pRadAccessData->pBaseRadZ, DataPtrsForWfrEdgeCorr, pvGPU)) return result; //HG30112023
+
+		FFT2DInfo.xStep = pRadAccessData->xStep;
+		FFT2DInfo.yStep = pRadAccessData->zStep;
+		FFT2DInfo.xStart = pRadAccessData->xStart;
+		FFT2DInfo.yStart = pRadAccessData->zStart;
+		FFT2DInfo.Nx = pRadAccessData->nx;
+		FFT2DInfo.Ny = pRadAccessData->nz;
+		FFT2DInfo.Dir = 1;
+		FFT2DInfo.UseGivenStartTrValues = 0;
+
+		//OCTEST (commented-out "edge correction")
+		//OC01102019 (uncommented)
+		//srTDataPtrsForWfrEdgeCorr DataPtrsForWfrEdgeCorr; //OC13012026 (moved up)
+		//if(result = SetupWfrEdgeCorrData(pRadAccessData, pRadAccessData->pBaseRadX, pRadAccessData->pBaseRadZ, DataPtrsForWfrEdgeCorr, pvGPU)) return result; //HG30112023
+	}
+	else
+	{ //OC13012026
+		char vs_x_or_z = WfrIsVsX? 'x' : 'z';
+		srTRadSect1D radSect1D(pRadAccessData->pBaseRadX, pRadAccessData->pBaseRadZ, vs_x_or_z, 0, pRadAccessData);
+		if(result = SetupWfrEdgeCorrData1D(&radSect1D, pRadAccessData->pBaseRadX, pRadAccessData->pBaseRadZ, DataPtrsForWfrEdgeCorr1D)) return result; //OC13012026
+
+		FFT2DInfo.Dir = 1;
+		FFT2DInfo.UseGivenStartTrValues = 0;
+
+		if(WfrIsVsX)
+		{
+			FFT1DInfo.xStep = pRadAccessData->xStep;
+			FFT1DInfo.xStart = pRadAccessData->xStart;
+			FFT1DInfo.Nx = pRadAccessData->nx;
+		}
+		else
+		{
+			FFT1DInfo.xStep = pRadAccessData->zStep;
+			FFT1DInfo.xStart = pRadAccessData->zStart;
+			FFT1DInfo.Nx = pRadAccessData->nz;
+		}
+	}
 
 	CGenMathFFT2D FFT2D;
+	CGenMathFFT1D FFT1D; //OC13012026
 
 	//OC01102019 (commented-out)
 	//FFT2DInfo.pData = pRadAccessData->pBaseRadX;
@@ -665,45 +947,99 @@ int srTDriftSpace::PropagateRadiationSimple_PropFromWaist(srTSRWRadStructAccessD
 	//FFT2DInfo.pData = pRadAccessData->pBaseRadZ;
 	//if(result = FFT2D.Make2DFFT(FFT2DInfo)) return result;
 
-#if (!defined(_FFTW3)) && defined(_WITH_OMP) //OC01102019
-	//OC04062020
-	fftwnd_plan *pPlan2DFFT = (m_frwPlan2DFFT != 0)? &m_frwPlan2DFFT : 0;
-	FFT2DInfo.pData = pRadAccessData->pBaseRadX;
-	if(result = FFT2D.Make2DFFT(FFT2DInfo, pPlan2DFFT)) return result;
-	FFT2DInfo.pData = pRadAccessData->pBaseRadZ;
-	if(result = FFT2D.Make2DFFT(FFT2DInfo, pPlan2DFFT)) return result;
-
-	//OC04062020 (commented-out)
-	//if(m_frwPlan2DFFT != 0)
-	//{
-	//	FFT2DInfo.pData = pRadAccessData->pBaseRadX;
-	//	if(result = FFT2D.Make2DFFT(FFT2DInfo, &m_frwPlan2DFFT)) return result;
-	//	FFT2DInfo.pData = pRadAccessData->pBaseRadZ;
-	//	if(result = FFT2D.Make2DFFT(FFT2DInfo, &m_frwPlan2DFFT)) return result;
-	//}
+	if(WfrIsVsXZ) //OC06012026 (added condition)
+	{
+#ifndef _FFTW3 //OC23022025 (trying to compile for Igor Pro)
+		//#if (!defined(_FFTW3)) && defined(_WITH_OMP) //OC01102019
+			//OC04062020
+#ifdef _WITH_OMP //OC23022025 (trying to compile for Igor Pro)
+		fftwnd_plan *pPlan2DFFT = (m_frwPlan2DFFT != 0)? &m_frwPlan2DFFT : 0;
 #else
-	FFT2DInfo.pData = pRadAccessData->pBaseRadX;
-	//if(result = FFT2D.Make2DFFT(FFT2DInfo)) return result;
-	if(result = FFT2D.Make2DFFT(FFT2DInfo, 0, 0, pvGPU)) return result; //HG30112023
-	FFT2DInfo.pData = pRadAccessData->pBaseRadZ;
-	//if(result = FFT2D.Make2DFFT(FFT2DInfo)) return result;
-	if(result = FFT2D.Make2DFFT(FFT2DInfo, 0, 0, pvGPU)) return result; //HG30112023
+		fftwnd_plan *pPlan2DFFT = 0;
+#endif
+		FFT2DInfo.pData = pRadAccessData->pBaseRadX;
+		if(result = FFT2D.Make2DFFT(FFT2DInfo, pPlan2DFFT)) return result;
+		FFT2DInfo.pData = pRadAccessData->pBaseRadZ;
+		if(result = FFT2D.Make2DFFT(FFT2DInfo, pPlan2DFFT)) return result;
+
+		//OC04062020 (commented-out)
+		//if(m_frwPlan2DFFT != 0)
+		//{
+		//	FFT2DInfo.pData = pRadAccessData->pBaseRadX;
+		//	if(result = FFT2D.Make2DFFT(FFT2DInfo, &m_frwPlan2DFFT)) return result;
+		//	FFT2DInfo.pData = pRadAccessData->pBaseRadZ;
+		//	if(result = FFT2D.Make2DFFT(FFT2DInfo, &m_frwPlan2DFFT)) return result;
+		//}
+#else
+		FFT2DInfo.pData = pRadAccessData->pBaseRadX;
+		//if(result = FFT2D.Make2DFFT(FFT2DInfo)) return result;
+		if(result = FFT2D.Make2DFFT(FFT2DInfo, 0, 0, pvGPU)) return result; //HG30112023
+		FFT2DInfo.pData = pRadAccessData->pBaseRadZ;
+		//if(result = FFT2D.Make2DFFT(FFT2DInfo)) return result;
+		if(result = FFT2D.Make2DFFT(FFT2DInfo, 0, 0, pvGPU)) return result; //HG30112023
 #endif
 
-	//OCTEST (commented-out "edge correction")
-	//OC01102019 (uncommented)
-	if(DataPtrsForWfrEdgeCorr.WasSetup)
-	{
-		//MakeWfrEdgeCorrection(pRadAccessData, pRadAccessData->pBaseRadX, pRadAccessData->pBaseRadZ, DataPtrsForWfrEdgeCorr);
-		MakeWfrEdgeCorrection(pRadAccessData, pRadAccessData->pBaseRadX, pRadAccessData->pBaseRadZ, DataPtrsForWfrEdgeCorr, pvGPU); //HG30112023
-		DataPtrsForWfrEdgeCorr.DisposeData();
+		//OCTEST (commented-out "edge correction")
+		//OC01102019 (uncommented)
+		if(DataPtrsForWfrEdgeCorr.WasSetup)
+		{
+			//MakeWfrEdgeCorrection(pRadAccessData, pRadAccessData->pBaseRadX, pRadAccessData->pBaseRadZ, DataPtrsForWfrEdgeCorr);
+			MakeWfrEdgeCorrection(pRadAccessData, pRadAccessData->pBaseRadX, pRadAccessData->pBaseRadZ, DataPtrsForWfrEdgeCorr, pvGPU); //HG30112023
+			DataPtrsForWfrEdgeCorr.DisposeData();
+		}
+	}
+	else
+	{ //OC13012026
+		FFT1DInfo.pInData = pRadAccessData->pBaseRadX;
+		FFT1DInfo.pOutData = FFT1DInfo.pInData; //OC13012026 (to make 1D FFT in place - to re-check if this is correct)
+#ifdef _FFTW3
+		if(result = FFT1D.Make1DFFT(FFT1DInfo, pvGPU)) return result;
+#else
+		if(result = FFT1D.Make1DFFT(FFT1DInfo)) return result;
+#endif
+
+		FFT1DInfo.pInData = pRadAccessData->pBaseRadZ;
+		FFT1DInfo.pOutData = FFT1DInfo.pInData; //OC06012026 (to make 1D FFT in place - to re-check if this is correct)
+#ifdef _FFTW3
+		if(result = FFT1D.Make1DFFT(FFT1DInfo, pvGPU)) return result;
+#else
+		if(result = FFT1D.Make1DFFT(FFT1DInfo)) return result;
+#endif
+
+		if(DataPtrsForWfrEdgeCorr1D.WasSetup)
+		{
+			srTRadSect1D radSect1D(pRadAccessData->pBaseRadX, pRadAccessData->pBaseRadZ, WfrIsVsX? 'x' : 'z', 0, pRadAccessData);
+			MakeWfrEdgeCorrection1D(&radSect1D, pRadAccessData->pBaseRadX, pRadAccessData->pBaseRadZ, DataPtrsForWfrEdgeCorr1D);
+			DataPtrsForWfrEdgeCorr1D.DisposeData();
+		}
 	}
 
-	//Re-scaling
-	pRadAccessData->xStart = (FFT2DInfo.xStartTr)*LambdaM_Length;
-	pRadAccessData->zStart = (FFT2DInfo.yStartTr)*LambdaM_Length;
-	pRadAccessData->xStep = FFT2DInfo.xStepTr*LambdaM_Length;
-	pRadAccessData->zStep = FFT2DInfo.yStepTr*LambdaM_Length;
+	//OC13012026 (moved from above)
+	double InvLambda_m = pRadAccessData->eStart*806546.577258;
+	double InvLambda_m_d_Length = InvLambda_m/Length;
+	double LambdaM_Length = 1./InvLambda_m_d_Length;
+
+	if(WfrIsVsXZ) //OC13012026 (added condition)
+	{
+		//Re-scaling
+		pRadAccessData->xStart = (FFT2DInfo.xStartTr)*LambdaM_Length;
+		pRadAccessData->zStart = (FFT2DInfo.yStartTr)*LambdaM_Length;
+		pRadAccessData->xStep = FFT2DInfo.xStepTr*LambdaM_Length;
+		pRadAccessData->zStep = FFT2DInfo.yStepTr*LambdaM_Length;
+	}
+	else
+	{ //OC13012026
+		if(WfrIsVsX)
+		{
+			pRadAccessData->xStart = (FFT1DInfo.xStartTr)*LambdaM_Length;
+			pRadAccessData->xStep = FFT1DInfo.xStepTr*LambdaM_Length;
+		}
+		else
+		{
+			pRadAccessData->zStart = (FFT1DInfo.xStartTr)*LambdaM_Length;
+			pRadAccessData->zStep = FFT1DInfo.xStepTr*LambdaM_Length;
+		}
+	}
 
 	//PropBufVars.PassNo = 2;
 	//if(result = TraverseRadZXE(pRadAccessData)) return result;
@@ -735,7 +1071,8 @@ int srTDriftSpace::PropagateRadiationSimple_AnalytTreatQuadPhaseTerm(srTSRWRadSt
 	//if(pBufVars == 0) pBufVars = &BufVars; //OC06092019
 
 	//OC01102019 (restored)
-	SetupPropBufVars_AnalytTreatQuadPhaseTerm(pRadAccessData, &BufVars);
+	SetupPropBufVars_AnalytTreatQuadPhaseTerm(pRadAccessData, &BufVars, pvGPU); //HG27072024
+	//SetupPropBufVars_AnalytTreatQuadPhaseTerm(pRadAccessData, &BufVars);
 	//SetupPropBufVars_AnalytTreatQuadPhaseTerm(pRadAccessData, pBufVars); //OC06092019
 	//SetupPropBufVars_AnalytTreatQuadPhaseTerm(pRadAccessData);
 
@@ -853,7 +1190,8 @@ int srTDriftSpace::PropagateRadiationSimple_AnalytTreatQuadPhaseTerm(srTSRWRadSt
 	//pRadAccessData->MirrorFieldData(sign(kx), sign(kz));
 	//pRadAccessData->MirrorFieldData((int)sign(pBufVars->kx_AnalytTreatQuadPhaseTerm), (int)sign(pBufVars->kz_AnalytTreatQuadPhaseTerm)); //OC06092019
 	//OC01102019 (restored)
-	pRadAccessData->MirrorFieldData((int)sign(BufVars.kx_AnalytTreatQuadPhaseTerm), (int)sign(BufVars.kz_AnalytTreatQuadPhaseTerm)); //OC30082019
+	//pRadAccessData->MirrorFieldData((int)sign(BufVars.kx_AnalytTreatQuadPhaseTerm), (int)sign(BufVars.kz_AnalytTreatQuadPhaseTerm)); //OC30082019
+	pRadAccessData->MirrorFieldData((int)sign(BufVars.kx_AnalytTreatQuadPhaseTerm), (int)sign(BufVars.kz_AnalytTreatQuadPhaseTerm), pvGPU); //HG26072024
 	//pRadAccessData->MirrorFieldData((int)sign(PropBufVars.kx_AnalytTreatQuadPhaseTerm), (int)sign(PropBufVars.kz_AnalytTreatQuadPhaseTerm));
 
 	//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
@@ -886,7 +1224,8 @@ int srTDriftSpace::PropagateRadiationSimple_AnalytTreatQuadPhaseTerm(srTSRWRadSt
 
 //*************************************************************************
 
-void srTDriftSpace::SetupPropBufVars_AnalytTreatQuadPhaseTerm(srTSRWRadStructAccessData* pRadAccessData, srTDriftPropBufVars* pBufVars) //OC30082019
+void srTDriftSpace::SetupPropBufVars_AnalytTreatQuadPhaseTerm(srTSRWRadStructAccessData* pRadAccessData, srTDriftPropBufVars* pBufVars, void* pvGPU) //HG27072024
+//void srTDriftSpace::SetupPropBufVars_AnalytTreatQuadPhaseTerm(srTSRWRadStructAccessData* pRadAccessData, srTDriftPropBufVars* pBufVars) //OC30082019
 //void srTDriftSpace::SetupPropBufVars_AnalytTreatQuadPhaseTerm(srTSRWRadStructAccessData* pRadAccessData)
 {// Compute any necessary buf. vars
 
@@ -926,6 +1265,11 @@ void srTDriftSpace::SetupPropBufVars_AnalytTreatQuadPhaseTerm(srTSRWRadStructAcc
 	double trueRx = pRadAccessData->RobsX;
 	double trueRz = pRadAccessData->RobsZ;
 
+	//OC03012026
+	bool WfrIsVsX = pRadAccessData->nx > 1;
+	bool WfrIsVsZ = pRadAccessData->nz > 1;
+	bool WfrIsVsXZ = WfrIsVsX && WfrIsVsZ;
+
 	//if(pRadAccessData->ne > 1) PropBufVars.UseExactRxRzForAnalytTreatQuadPhaseTerm = true;
 	//OC120412 (commented-out)
 	//OC180813 (uncommented)
@@ -940,7 +1284,8 @@ void srTDriftSpace::SetupPropBufVars_AnalytTreatQuadPhaseTerm(srTSRWRadStructAcc
 		if(AnalytTreatSubType == 1) //OC01102019
 		//if(PropBufVars.AnalytTreatSubType == 1) 
 		{
-			EstimateWfrRadToSub_AnalytTreatQuadPhaseTerm(pRadAccessData, trueRx, trueRz);
+			//EstimateWfrRadToSub_AnalytTreatQuadPhaseTerm(pRadAccessData, trueRx, trueRz);
+			EstimateWfrRadToSub_AnalytTreatQuadPhaseTerm(pRadAccessData, trueRx, trueRz, pvGPU); //HG27072024
 
 			//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
 			//srwlPrintTime(":SetupPropBufVars_AnalytTreatQuadPhaseTerm:EstimateWfrRadToSub_AnalytTreatQuadPhaseTerm",&start);
@@ -957,6 +1302,10 @@ void srTDriftSpace::SetupPropBufVars_AnalytTreatQuadPhaseTerm(srTSRWRadStructAcc
 		}
 	}
 
+	//OC03012026 (maybe not necessary?)
+	if(!WfrIsVsX) trueRx = infLarge; //pRadAccessData->RobsX;
+	if(!WfrIsVsZ) trueRz = infLarge; //pRadAccessData->RobsZ;
+
 	//if(pRadAccessData->RobsX != 0) 
 	if(trueRx != 0) 
 	{
@@ -965,6 +1314,12 @@ void srTDriftSpace::SetupPropBufVars_AnalytTreatQuadPhaseTerm(srTSRWRadStructAcc
 		//PropBufVars.Pi_d_LambdaM_d_Rx = Pi_d_LambdaM*PropBufVars.invRx;
 		//OC30082019
 		pBufVars->invRx = 1./trueRx;
+
+		if(!WfrIsVsX) //OC03012026 
+		{
+			pBufVars->invRx = 0.;
+		}
+
 		pBufVars->Pi_d_LambdaM_d_Rx = Pi_d_LambdaM*(pBufVars->invRx);
 
 		//PropBufVars.kx_AnalytTreatQuadPhaseTerm = (pRadAccessData->RobsX + Length)/pRadAccessData->RobsX;
@@ -1004,6 +1359,12 @@ void srTDriftSpace::SetupPropBufVars_AnalytTreatQuadPhaseTerm(srTSRWRadStructAcc
 		//PropBufVars.Pi_d_LambdaM_d_Rz = Pi_d_LambdaM*PropBufVars.invRz;
 		//OC30082019
 		pBufVars->invRz = 1./trueRz;
+
+		if(!WfrIsVsZ) //OC03012026 
+		{
+			pBufVars->invRz = 0.;
+		}
+
 		pBufVars->Pi_d_LambdaM_d_Rz = Pi_d_LambdaM*(pBufVars->invRz);
 
 		////PropBufVars.kz_AnalytTreatQuadPhaseTerm = (pRadAccessData->RobsZ + Length)/pRadAccessData->RobsZ;
@@ -1120,7 +1481,8 @@ void srTDriftSpace::EstimateWfrRadToSub2_AnalytTreatQuadPhaseTerm(srTSRWRadStruc
 
 //*************************************************************************
 
-void srTDriftSpace::EstimateWfrRadToSub_AnalytTreatQuadPhaseTerm(srTSRWRadStructAccessData* pRadAccessData, double& effRx, double& effRz)
+void srTDriftSpace::EstimateWfrRadToSub_AnalytTreatQuadPhaseTerm(srTSRWRadStructAccessData* pRadAccessData, double& effRx, double& effRz, void* pvGPU) //HG27072024
+//void srTDriftSpace::EstimateWfrRadToSub_AnalytTreatQuadPhaseTerm(srTSRWRadStructAccessData* pRadAccessData, double& effRx, double& effRz)
 {
 	if(pRadAccessData == 0) return;
 
@@ -1151,6 +1513,11 @@ void srTDriftSpace::EstimateWfrRadToSub_AnalytTreatQuadPhaseTerm(srTSRWRadStruct
 		//offsetMom = numStatMom*ieCen;
 	}
 
+	//OC02012026
+	bool WfrIsVsX = pRadAccessData->nx > 1;
+	bool WfrIsVsZ = pRadAccessData->nz > 1;
+	bool WfrIsVsXZ = WfrIsVsX && WfrIsVsZ;
+
 	//srTMomentsPtrs MomX(pRadAccessData->pMomX + offsetMom), MomZ(pRadAccessData->pMomZ + offsetMom);
 	srTMomentsPtrs MomX(pRadAccessData->pMomX, ieCen), MomZ(pRadAccessData->pMomZ, ieCen);
 
@@ -1166,70 +1533,159 @@ void srTDriftSpace::EstimateWfrRadToSub_AnalytTreatQuadPhaseTerm(srTSRWRadStruct
 	//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
 	//srwlPrintTime(":EstimateWfrRadToSub_AnalytTreatQuadPhaseTerm:setup",&start);
 
-	if((*(MomX.pTotPhot) == 0) && (*(MomZ.pTotPhot) == 0)) ComputeRadMoments(pRadAccessData); //OC14092011
+	char TreatExOrEz = 'x'; //OC14012026
+
+	if(WfrIsVsXZ) //OC14012026 (added condition)
+	{
+		//if((*(MomX.pTotPhot) == 0) && (*(MomZ.pTotPhot) == 0)) ComputeRadMoments(pRadAccessData); //OC14092011
+		if((*(MomX.pTotPhot) == 0) && (*(MomZ.pTotPhot) == 0)) ComputeRadMoments(pRadAccessData, pvGPU); //HG27072024
+		//Consider changing the condition
+		TreatExOrEz = (*(MomX.pTotPhot) >= *(MomZ.pTotPhot))? 'x' : 'z';
+	}
+	else
+	{
+		if(WfrIsVsX)
+		{
+			if((*(MomX.pXPXP) == 0) && (*(MomZ.pXPXP) == 0)) ComputeRadMoments(pRadAccessData, pvGPU);
+			if((*(MomX.pXPXP) == 0) && (*(MomZ.pXPXP) != 0.)) TreatExOrEz = 'z';
+		}
+		else
+		{
+			if((*(MomX.pZPZP) == 0) && (*(MomZ.pZPZP) == 0)) ComputeRadMoments(pRadAccessData, pvGPU);
+			if((*(MomX.pZPZP) == 0) && (*(MomZ.pZPZP) != 0.)) TreatExOrEz = 'z';
+		}
+	}
 
 	//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
 	//srwlPrintTime(":EstimateWfrRadToSub_AnalytTreatQuadPhaseTerm:ComputeRadMoments 1",&start);
 
-	char TreatExOrEz = (*(MomX.pTotPhot) >= *(MomZ.pTotPhot))? 'x' : 'z';
+	//char TreatExOrEz = (*(MomX.pTotPhot) >= *(MomZ.pTotPhot))? 'x' : 'z'; //OC13012026 (commented-out)
+	//if((*(MomX.pTotPhot) == 0.) && (*(MomZ.pTotPhot) == 0.)) //OC02012026
+	//{
+	//	if((MomX.SqrtMxpxp == 0) && (MomX.SqrtMzpzp != 0)) TreatExOrEz = 'z';
+	//}
 
-	if(TreatExOrEz == 'x')
+	if(WfrIsVsXZ) //OC02012026
 	{
-		if((!MomX.precCenMomIsOK) || (MomX.SqrtMxpxp == 0) || (MomX.SqrtMzpzp == 0))
-		//if((!MomX.precCenMomIsOK) || (MomX.SqrtMxpxp == 0) || (MomX.SqrtMzpzp == 0) || ((abs_s1X <= pRadAccessData->RobsXAbsErr) && (!pRadAccessData->MomWereCalcNum)))
-		{//OC13112010: uncommented
-			ComputeRadMoments(pRadAccessData);
+		if(TreatExOrEz == 'x')
+		{
+			if((!MomX.precCenMomIsOK) || (MomX.SqrtMxpxp == 0) || (MomX.SqrtMzpzp == 0))
+				//if((!MomX.precCenMomIsOK) || (MomX.SqrtMxpxp == 0) || (MomX.SqrtMzpzp == 0) || ((abs_s1X <= pRadAccessData->RobsXAbsErr) && (!pRadAccessData->MomWereCalcNum)))
+			{//OC13112010: uncommented
+				//ComputeRadMoments(pRadAccessData);
+				ComputeRadMoments(pRadAccessData, pvGPU); //HG27072024
 
-			//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
-			//srwlPrintTime(":EstimateWfrRadToSub_AnalytTreatQuadPhaseTerm:ComputeRadMoments 2",&start);
+				//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
+				//srwlPrintTime(":EstimateWfrRadToSub_AnalytTreatQuadPhaseTerm:ComputeRadMoments 2",&start);
 
-			MomX.ComputeCentralMoments();
+				MomX.ComputeCentralMoments();
 
-			//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
-			//srwlPrintTime(":EstimateWfrRadToSub_AnalytTreatQuadPhaseTerm:ComputeCentralMoments 1",&start);
+				//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
+				//srwlPrintTime(":EstimateWfrRadToSub_AnalytTreatQuadPhaseTerm:ComputeCentralMoments 1",&start);
+			}
+			//SigX = MomX.SqrtMxx;
+			SigXp = MomX.SqrtMxpxp;
+			//SigZ = MomX.SqrtMzz;
+			SigZp = MomX.SqrtMzpzp;
 		}
-		//SigX = MomX.SqrtMxx;
-		SigXp = MomX.SqrtMxpxp;
-		//SigZ = MomX.SqrtMzz;
-		SigZp = MomX.SqrtMzpzp;
+		else
+		{
+			if((!MomZ.precCenMomIsOK) || (MomZ.SqrtMxpxp == 0) || (MomZ.SqrtMzpzp == 0))
+				//if((!MomZ.precCenMomIsOK) || (MomZ.SqrtMxpxp == 0) || (MomZ.SqrtMzpzp == 0) || ((abs_s1Z <= pRadAccessData->RobsZAbsErr) && (!pRadAccessData->MomWereCalcNum)))
+			{//OC13112010: uncommented
+				//ComputeRadMoments(pRadAccessData);
+				ComputeRadMoments(pRadAccessData, pvGPU); //HG27072024
+
+				//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
+				//srwlPrintTime(":EstimateWfrRadToSub_AnalytTreatQuadPhaseTerm:ComputeRadMoments 3",&start);
+
+				MomZ.ComputeCentralMoments();
+
+				//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
+				//srwlPrintTime(":EstimateWfrRadToSub_AnalytTreatQuadPhaseTerm:ComputeCentralMoments 2",&start);
+			}
+			//SigX = MomZ.SqrtMxx;
+			SigXp = MomZ.SqrtMxpxp;
+			//SigZ = MomZ.SqrtMzz;
+			SigZp = MomZ.SqrtMzpzp;
+		}
 	}
 	else
-	{
-		if((!MomZ.precCenMomIsOK) || (MomZ.SqrtMxpxp == 0) || (MomZ.SqrtMzpzp == 0))
-		//if((!MomZ.precCenMomIsOK) || (MomZ.SqrtMxpxp == 0) || (MomZ.SqrtMzpzp == 0) || ((abs_s1Z <= pRadAccessData->RobsZAbsErr) && (!pRadAccessData->MomWereCalcNum)))
-		{//OC13112010: uncommented
-			ComputeRadMoments(pRadAccessData);
-
-			//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
-			//srwlPrintTime(":EstimateWfrRadToSub_AnalytTreatQuadPhaseTerm:ComputeRadMoments 3",&start);
-
-			MomZ.ComputeCentralMoments();
-
-			//Added by S.Yakubov (for profiling?) at parallelizing SRW via OpenMP:
-			//srwlPrintTime(":EstimateWfrRadToSub_AnalytTreatQuadPhaseTerm:ComputeCentralMoments 2",&start);
+	{//OC02012026
+		if(WfrIsVsX)
+		{
+			if(TreatExOrEz == 'x')
+			{
+				if((!MomX.precCenMomIsOK) || (MomX.SqrtMxpxp == 0))
+				{
+					ComputeRadMoments(pRadAccessData, pvGPU);
+					MomX.ComputeCentralMoments();
+				}
+				SigXp = MomX.SqrtMxpxp;
+			}
+			else
+			{
+				if((!MomZ.precCenMomIsOK) || (MomZ.SqrtMxpxp == 0))
+				{
+					ComputeRadMoments(pRadAccessData, pvGPU);
+					MomZ.ComputeCentralMoments();
+				}
+				SigXp = MomZ.SqrtMxpxp;
+			}
 		}
-		//SigX = MomZ.SqrtMxx;
-		SigXp = MomZ.SqrtMxpxp;
-		//SigZ = MomZ.SqrtMzz;
-		SigZp = MomZ.SqrtMzpzp;
+		else
+		{
+			if(TreatExOrEz == 'x')
+			{
+				if((!MomX.precCenMomIsOK) || (MomX.SqrtMzpzp == 0))
+				{
+					ComputeRadMoments(pRadAccessData, pvGPU);
+					MomX.ComputeCentralMoments();
+				}
+				SigZp = MomX.SqrtMzpzp;
+			}
+			else
+			{
+				if((!MomZ.precCenMomIsOK) || (MomZ.SqrtMzpzp == 0))
+				{
+					ComputeRadMoments(pRadAccessData, pvGPU);
+					MomZ.ComputeCentralMoments();
+				}
+				SigZp = MomZ.SqrtMzpzp;
+			}
+		}
 	}
 
-	if((SigXp == 0) || (SigZp == 0))
-	//if((SigX == 0) || (SigZ == 0))
+	//OC02012026
+	if(SigXp == 0)
 	{
 		effRx = pRadAccessData->RobsX;
 		if(effRx == 0) effRx = infLarge;
+	}
+	if(SigZp == 0)
+	{
 		effRz = pRadAccessData->RobsZ;
 		if(effRz == 0) effRz = infLarge;
-		return;
 	}
+	if((SigXp == 0) && (SigZp == 0)) return;
+
+	//if((SigXp == 0) || (SigZp == 0))
+	////if((SigX == 0) || (SigZ == 0))
+	//{
+	//	effRx = pRadAccessData->RobsX;
+	//	if(effRx == 0) effRx = infLarge;
+	//	effRz = pRadAccessData->RobsZ;
+	//	if(effRz == 0) effRz = infLarge;
+	//	return;
+	//}
 
 	double lambM = 1.239842E-06/photEn0;
 
 	double apSigXp = coefAngRange*SigXp; //apparent RMS angular divergence
 	double apSigZp = coefAngRange*SigZp; //apparent RMS angular divergence
-	double sminX = lambM/(fourPi*apSigXp*apSigXp);
-	double sminZ = lambM/(fourPi*apSigZp*apSigZp);
+	//OC02012026 (commented-out)
+	//double sminX = lambM/(fourPi*apSigXp*apSigXp);
+	//double sminZ = lambM/(fourPi*apSigZp*apSigZp);
 
 	//double apSigX = SigX*coefCoordRange; //apparent RMS angular divergence
 	//double apSigZ = SigZ*coefCoordRange; //apparent RMS angular divergence
@@ -1252,13 +1708,39 @@ void srTDriftSpace::EstimateWfrRadToSub_AnalytTreatQuadPhaseTerm(srTSRWRadStruct
 	//}
 	//else sminZ = half_abs_s1Z;
 
-	double RminX = 2*sminX, RminZ = 2*sminZ;
-
-	if(abs_s1X < sminX)
+	//double RminX = 2*sminX, RminZ = 2*sminZ; //OC02012026 (commented-out)
+	if(SigXp > 0.) //OC02012026
 	{
-		if(abs_s2X < sminX)
+		double sminX = lambM/(fourPi*apSigXp*apSigXp);
+		double RminX = 2*sminX;
+		if(abs_s1X < sminX)
 		{
-			if(abs_s1X < abs_s2X)
+			if(abs_s2X < sminX)
+			{
+				if(abs_s1X < abs_s2X)
+				{
+					if(Length > 0)
+					{
+						effRx = RminX;
+					}
+					else
+					{
+						effRx = -RminX;
+					}
+				}
+				else
+				{
+					if(Length > 0)
+					{
+						effRx = -RminX - Length;
+					}
+					else
+					{
+						effRx = RminX - Length;
+					}
+				}
+			}
+			else
 			{
 				if(Length > 0)
 				{
@@ -1269,9 +1751,20 @@ void srTDriftSpace::EstimateWfrRadToSub_AnalytTreatQuadPhaseTerm(srTSRWRadStruct
 					effRx = -RminX;
 				}
 			}
-			else
+		}
+		else
+		{
+			effRx = s1X + sminX*sminX/s1X;
+			//effRx = s1X;
+			double effRx_p_Length = effRx + Length;
+
+			//double minRminX = 0.003*(::fabs(effRx));
+			double minRminX = 0.007*(::fabs(effRx)); //OC260709
+			if(RminX < minRminX) RminX = minRminX;
+
+			if(::fabs(effRx_p_Length) < RminX)
 			{
-				if(Length > 0)
+				if(effRx_p_Length < 0)
 				{
 					effRx = -RminX - Length;
 				}
@@ -1281,46 +1774,39 @@ void srTDriftSpace::EstimateWfrRadToSub_AnalytTreatQuadPhaseTerm(srTSRWRadStruct
 				}
 			}
 		}
-		else
+	}
+	if(SigZp > 0.) //OC02012026
+	{
+		double sminZ = lambM/(fourPi*apSigZp*apSigZp);
+		double RminZ = 2*sminZ;
+		if(abs_s1Z < sminZ)
 		{
-			if(Length > 0)
+			if(abs_s2Z < sminZ)
 			{
-				effRx = RminX;
+				if(abs_s1Z < abs_s2Z)
+				{
+					if(Length > 0)
+					{
+						effRz = RminZ;
+					}
+					else
+					{
+						effRz = -RminZ;
+					}
+				}
+				else
+				{
+					if(Length > 0)
+					{
+						effRz = -RminZ - Length;
+					}
+					else
+					{
+						effRz = RminZ - Length;
+					}
+				}
 			}
 			else
-			{
-				effRx = -RminX;
-			}
-		}
-	}
-	else
-	{
-		effRx = s1X + sminX*sminX/s1X;
-		//effRx = s1X;
-		double effRx_p_Length = effRx + Length;
-
-		//double minRminX = 0.003*(::fabs(effRx));
-		double minRminX = 0.007*(::fabs(effRx)); //OC260709
-		if(RminX < minRminX) RminX = minRminX;
-
-		if(::fabs(effRx_p_Length) < RminX)
-		{
-			if(effRx_p_Length < 0)
-			{
-				effRx = -RminX - Length;
-			}
-			else
-			{
-				effRx = RminX - Length;
-			}
-		}
-	}
-
-	if(abs_s1Z < sminZ)
-	{
-		if(abs_s2Z < sminZ)
-		{
-			if(abs_s1Z < abs_s2Z)
 			{
 				if(Length > 0)
 				{
@@ -1331,9 +1817,20 @@ void srTDriftSpace::EstimateWfrRadToSub_AnalytTreatQuadPhaseTerm(srTSRWRadStruct
 					effRz = -RminZ;
 				}
 			}
-			else
+		}
+		else
+		{
+			effRz = s1Z + sminZ*sminZ/s1Z;
+			//effRz = s1Z;
+			double effRz_p_Length = effRz + Length;
+
+			//double minRminZ = 0.003*(::fabs(effRz));
+			double minRminZ = 0.007*(::fabs(effRz)); //OC260709
+			if(RminZ < minRminZ) RminZ = minRminZ;
+
+			if(::fabs(effRz_p_Length) < RminZ)
 			{
-				if(Length > 0)
+				if(effRz_p_Length < 0)
 				{
 					effRz = -RminZ - Length;
 				}
@@ -1341,39 +1838,6 @@ void srTDriftSpace::EstimateWfrRadToSub_AnalytTreatQuadPhaseTerm(srTSRWRadStruct
 				{
 					effRz = RminZ - Length;
 				}
-			}
-		}
-		else
-		{
-			if(Length > 0)
-			{
-				effRz = RminZ;
-			}
-			else
-			{
-				effRz = -RminZ;
-			}
-		}
-	}
-	else
-	{
-		effRz = s1Z + sminZ*sminZ/s1Z;
-		//effRz = s1Z;
-		double effRz_p_Length = effRz + Length;
-
-		//double minRminZ = 0.003*(::fabs(effRz));
-		double minRminZ = 0.007*(::fabs(effRz)); //OC260709
-		if(RminZ < minRminZ) RminZ = minRminZ;
-
-		if(::fabs(effRz_p_Length) < RminZ)
-		{
-			if(effRz_p_Length < 0)
-			{
-				effRz = -RminZ - Length;
-			}
-			else
-			{
-				effRz = RminZ - Length;
 			}
 		}
 	}

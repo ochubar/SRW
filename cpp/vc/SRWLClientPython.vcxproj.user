@@ -38,6 +38,14 @@
     <LocalDebuggerDebuggerType>Auto</LocalDebuggerDebuggerType>
     <LocalDebuggerAttach>false</LocalDebuggerAttach>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug_Py3_12|x64'">
+    <LocalDebuggerCommand>C:\SoftwareDevelopments\Python312_x64\python.exe</LocalDebuggerCommand>
+    <LocalDebuggerCommandArguments>SRWLIB_Example12_gpu_bad.py</LocalDebuggerCommandArguments>
+    <LocalDebuggerWorkingDirectory>..\..\env\python\srwpy\examples</LocalDebuggerWorkingDirectory>
+    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+    <LocalDebuggerDebuggerType>Auto</LocalDebuggerDebuggerType>
+    <LocalDebuggerAttach>false</LocalDebuggerAttach>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug_Py3_7|x64'">
     <LocalDebuggerCommand>..\..\Python37_x64\python.exe</LocalDebuggerCommand>
     <LocalDebuggerCommandArguments>SRWLIB_Example04_test_mi4d_resize_mesh.py</LocalDebuggerCommandArguments>
@@ -87,6 +95,12 @@
     </LocalDebuggerCommandArguments>
     <LocalDebuggerWorkingDirectory>..\..\env_old\work\srw_python</LocalDebuggerWorkingDirectory>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release_Py3_12|x64'">
+    <LocalDebuggerCommand>C:\SoftwareDevelopments\Python311_x64\python.exe</LocalDebuggerCommand>
+    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+    <LocalDebuggerCommandArguments />
+    <LocalDebuggerWorkingDirectory>..\..\env_old\work\srw_python</LocalDebuggerWorkingDirectory>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug_Py2x|x64'">
     <LocalDebuggerCommand>C:\SoftwareDevelopments\Python27_x64\python.exe</LocalDebuggerCommand>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
@@ -112,6 +126,12 @@
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug_Py3_11|Win32'">
+    <LocalDebuggerCommand>python</LocalDebuggerCommand>
+    <LocalDebuggerCommandArguments>test_hdf5_convert.py</LocalDebuggerCommandArguments>
+    <LocalDebuggerWorkingDirectory>..\..\env\work\srw_python</LocalDebuggerWorkingDirectory>
+    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug_Py3_12|Win32'">
     <LocalDebuggerCommand>python</LocalDebuggerCommand>
     <LocalDebuggerCommandArguments>test_hdf5_convert.py</LocalDebuggerCommandArguments>
     <LocalDebuggerWorkingDirectory>..\..\env\work\srw_python</LocalDebuggerWorkingDirectory>

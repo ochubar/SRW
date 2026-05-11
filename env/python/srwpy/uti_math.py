@@ -766,7 +766,7 @@ def get_dist_uni(_min, _max): #RAC30032020
 #****************************************************************************
 #def get_dist_norm(_min, _max, _scale=1.0): #OC24052020
 def get_dist_norm(_min, _max, _scale=1.0, _size=None): #RAC30032020
-    '''Select point using a normal (Gaussian) distribution
+    r'''Select point using a normal (Gaussian) distribution
 
     :param _min: minimum possible value.
     :param _max: maximum possible value.

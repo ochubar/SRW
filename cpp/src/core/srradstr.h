@@ -281,6 +281,11 @@ public:
 	void ResizeCoreXZ(SRWLRadMesh& oldMesh, float* pOldRadX, float* pOldRadZ, SRWLRadMesh& newMesh, float* pNewRadX, float* pNewRadZ, double* arPar); //OC31012020
 	void ResizeCoreE(SRWLRadMesh& oldMesh, float* pOldRadX, float* pOldRadZ, SRWLRadMesh& newMesh, float* pNewRadX, float* pNewRadZ, double* arPar); //OC02022020
 
+	void AddElFieldData(srTSRWRadStructAccessData& radData, double* arPar); //OC12102025
+	//void AddElFieldData(srTSRWRadStructAccessData& radData); //OC09102025 (this version uses interpolation without Resize, if necessary)
+	void AddElFieldDataWithInterpXZ(srTSRWRadStructAccessData& radData, double* arPar); //OC12102025 (this version uses interpolation over X and Z)
+	void AddElFieldDataViaResize(srTSRWRadStructAccessData& radData); //OC09102025
+
 	void SetupSrwWfrAuxData()
 	{
 		if(pWfrAuxData == 0) return;
@@ -721,7 +726,8 @@ public:
 	}
 	//Interp4pRel(tSt00++, tSt10++, tSt01++, tSt11++, xr, zr);
 
-	void CosAndSin(double x, float& Cos, float& Sin)
+	void CosAndSin(double x, double& Cos, double& Sin)
+	//void CosAndSin(double x, float& Cos, float& Sin)
 	{
 		const double TwoPI = 6.2831853071796;
 		const double ThreePIdTwo = 4.7123889803847;
@@ -739,8 +745,10 @@ public:
 		else if(x > HalfPI) { x -= PI; ChangeSign = 1;}
 
 		double xe2 = x*x;
-		Cos = float(1. + xe2*(a2c + xe2*(a4c + xe2*(a6c + xe2*(a8c + xe2*a10c)))));
-		Sin = float(x*(1. + xe2*(a3s + xe2*(a5s + xe2*(a7s + xe2*(a9s + xe2*a11s))))));
+		Cos = 1. + xe2*(a2c + xe2*(a4c + xe2*(a6c + xe2*(a8c + xe2*a10c))));
+		Sin = x*(1. + xe2*(a3s + xe2*(a5s + xe2*(a7s + xe2*(a9s + xe2*a11s)))));
+		//Cos = float(1. + xe2*(a2c + xe2*(a4c + xe2*(a6c + xe2*(a8c + xe2*a10c)))));
+		//Sin = float(x*(1. + xe2*(a3s + xe2*(a5s + xe2*(a7s + xe2*(a9s + xe2*a11s))))));
 		if(ChangeSign) { Cos = -Cos; Sin = -Sin;}
 	}
 
@@ -751,13 +759,16 @@ public:
 		double TwoPiX = TwoPi*x;
 		double q = qStart;
 		float *tCmpData = pCmpData;
+		double Co, Si; //OC14102025
+
 		//for(long i=0; i<AmOfPt; i++)
 		for(long long i=0; i<AmOfPt; i++)
 		{
 			double Arg = TwoPiX*q;
-			float Co, Si;
+			//float Co, Si; //OC14102025 (commented out)
 			CosAndSin(Arg, Co, Si);
-			*(tCmpData++) = Co; *(tCmpData++) = -Si;
+			*(tCmpData++) = (float)Co; *(tCmpData++) = -(float)Si;
+			//*(tCmpData++) = Co; *(tCmpData++) = -Si;
 			q += qStep;
 		}
 	}
@@ -850,18 +861,26 @@ public:
 		//double Const = Pi*1.E+06/1.239854; // Assumes m and eV
 		const double Const = Pi*1.E+06/1.23984186; // Assumes m and eV
 
+		//OC12012026
+		bool WfrIsVsX = nx > 1;
+		bool WfrIsVsZ = nz > 1;
+
 		//double ConstRx = (Pres == 0)? Const/RobsX : -Const*RobsX;
 		//double ConstRz = (Pres == 0)? Const/RobsZ : -Const*RobsZ;
 		double ConstRx=0, ConstRz=0; //OC17122019
-		if(WfrQuadTermCanBeTreatedAtResizeX) ConstRx = (Pres == 0)? Const/RobsX : -Const*RobsX; //OC17122019
-		if(WfrQuadTermCanBeTreatedAtResizeZ) ConstRz = (Pres == 0)? Const/RobsZ : -Const*RobsZ;
+
+		if(WfrIsVsX && WfrQuadTermCanBeTreatedAtResizeX) ConstRx = (Pres == 0)? Const/RobsX : -Const*RobsX; //OC12012026
+		if(WfrIsVsZ && WfrQuadTermCanBeTreatedAtResizeZ) ConstRz = (Pres == 0)? Const/RobsZ : -Const*RobsZ;
+		//if(WfrQuadTermCanBeTreatedAtResizeX) ConstRx = (Pres == 0)? Const/RobsX : -Const*RobsX; //OC17122019
+		//if(WfrQuadTermCanBeTreatedAtResizeZ) ConstRz = (Pres == 0)? Const/RobsZ : -Const*RobsZ;
 
 		if(AddOrRem == 'r') { ConstRx = -ConstRx; ConstRz = -ConstRz;}
 
 		double ConstRxE, ConstRzE;
 		double ePh = eStart, x, z, zE2;
 		double Phase;
-		float CosPh, SinPh;
+		double CosPh, SinPh; //OC14102025
+		//float CosPh, SinPh;
 
 		float *pEX0 = 0, *pEZ0 = 0;
 		if(TreatPolCompX) pEX0 = pBaseRadX;
@@ -869,7 +888,7 @@ public:
 
 		//long PerX = ne << 1;
 		//long PerZ = PerX*nx;
-		long long PerX = ne << 1;
+		long long PerX = ((long long)ne) << 1;
 		long long PerZ = PerX*nx;
 
 		//int ieStart=0, ieBefEnd=ne;
@@ -907,7 +926,8 @@ public:
 
 			zE2 = z*z;
 			double PhaseAddZ = 0.;
-			if(WfrQuadTermCanBeTreatedAtResizeZ) PhaseAddZ = ConstRzE*zE2;
+			if(WfrIsVsZ && WfrQuadTermCanBeTreatedAtResizeZ) PhaseAddZ = ConstRzE*zE2; //OC12012026
+			//if(WfrQuadTermCanBeTreatedAtResizeZ) PhaseAddZ = ConstRzE*zE2;
 
 			for(int iz=0; iz<nz; iz++)
 			{
@@ -925,7 +945,8 @@ public:
 
 					//Phase = ConstRxE*x*x + ConstRzE*zE2;
 					Phase = PhaseAddZ;
-					if(WfrQuadTermCanBeTreatedAtResizeX) Phase += ConstRxE*x*x;
+					if(WfrIsVsX && WfrQuadTermCanBeTreatedAtResizeX) Phase += ConstRxE*x*x; //OC12012026
+					//if(WfrQuadTermCanBeTreatedAtResizeX) Phase += ConstRxE*x*x;
 
 					CosAndSin(Phase, CosPh, SinPh);
 
@@ -951,7 +972,8 @@ public:
 				z += zStep;
 				zE2 = z*z;
 				PhaseAddZ = 0.;
-				if(WfrQuadTermCanBeTreatedAtResizeZ) PhaseAddZ = ConstRzE*zE2;
+				if(WfrIsVsZ && WfrQuadTermCanBeTreatedAtResizeZ) PhaseAddZ = ConstRzE*zE2; //OC12012026
+				//if(WfrQuadTermCanBeTreatedAtResizeZ) PhaseAddZ = ConstRzE*zE2;
 			}
 			ePh += eStep;
 		}

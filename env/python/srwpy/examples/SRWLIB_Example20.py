@@ -31,7 +31,7 @@ except:
 #*********************************Story
 help_str='''SRWLIB Python Example # 20:
 Calculating 4D cross-spectral density (CSD) of partially-coherent undulator radiation, performing its coherent mode decomposition
-(CMD) and simulating the propagation of the coherent modes through a high-resolution microscopy beamline. The electron beam,
+(CMD) and simulating propagation of the coherent modes through a high-resolution microscopy beamline. The electron beam,
 undulator, and optical layout parameters are defined in the list below (see comments next to the corresponding parameters).
 !!!!!Under testing!!!!!
 

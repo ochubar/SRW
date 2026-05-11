@@ -208,13 +208,17 @@ def AuxSaveTrajData(traj, filePath):
         ctStep = (traj.ctEnd - traj.ctStart)/(traj.np - 1)
     ct = traj.ctStart
     for i in range(traj.np):
-        resStr = str(ct) + '\t' + repr(traj.arX[i]) + '\t' + repr(traj.arXp[i]) + '\t' + repr(traj.arY[i]) + '\t' + repr(traj.arYp[i]) + '\t' + repr(traj.arZ[i]) + '\t' + repr(traj.arZp[i])
+        resStr = str(ct) + '\t' + str(traj.arX[i]) + '\t' + str(traj.arXp[i]) + '\t' + str(traj.arY[i]) + '\t' + str(traj.arYp[i]) + '\t' + str(traj.arZ[i]) + '\t' + str(traj.arZp[i]) #RN10122025
+        #resStr = str(ct) + '\t' + repr(traj.arX[i]) + '\t' + repr(traj.arXp[i]) + '\t' + repr(traj.arY[i]) + '\t' + repr(traj.arYp[i]) + '\t' + repr(traj.arZ[i]) + '\t' + repr(traj.arZp[i])
         if(hasattr(traj, 'arBx')):
-            resStr += '\t' + repr(traj.arBx[i])
+            resStr += '\t' + str(traj.arBx[i]) #RN10122025
+            #resStr += '\t' + repr(traj.arBx[i])
         if(hasattr(traj, 'arBy')):
-            resStr += '\t' + repr(traj.arBy[i])
+            resStr += '\t' + str(traj.arBy[i]) #RN10122025
+            #resStr += '\t' + repr(traj.arBy[i])
         if(hasattr(traj, 'arBz')):
-            resStr += '\t' + repr(traj.arBz[i])
+            resStr += '\t' + str(traj.arBz[i]) #RN10122025
+            #resStr += '\t' + repr(traj.arBz[i])
         f.write(resStr + '\n')        
         ct += ctStep
     f.close()

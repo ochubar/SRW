@@ -22,8 +22,10 @@
 #include "sroptdrf.h"
 
 //Implementation of the RadPointModifier's GPU function for the srTDriftSpace class
-int srTDriftSpace::RadPointModifierParallel(srTSRWRadStructAccessData* pRadAccessData, void* pBufVars, long pBufVarsSz, TGPUUsageArg *pGPU) 
+//int srTDriftSpace::RadPointModifierParallel(srTSRWRadStructAccessData* pRadAccessData, void* pBufVars, long pBufVarsSz, TGPUUsageArg *pGPU) 
+int srTDriftSpace::TraverseRadZXEParallel(srTSRWRadStructAccessData* pRadAccessData, void* pBufVars, long pBufVarsSz, TGPUUsageArg *pGPU) //HG14042026
 { 
-    return RadPointModifierParallelImpl<srTDriftSpace>(pRadAccessData, pBufVars, pBufVarsSz, this, pGPU); 
+    //return RadPointModifierParallelImpl<srTDriftSpace>(pRadAccessData, pBufVars, pBufVarsSz, this, pGPU); 
+    return TraverseRadZXEParallelImpl<srTDriftSpace>(pRadAccessData, pBufVars, pBufVarsSz, this, pGPU); //HG14042026
 } //HG03092022
 #endif

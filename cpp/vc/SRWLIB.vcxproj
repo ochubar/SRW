@@ -650,6 +650,9 @@
       <Command>
       </Command>
     </PostBuildEvent>
+    <CudaCompile>
+      <CodeGeneration>compute_80,sm_80</CodeGeneration>
+    </CudaCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug_omp|x64'">
     <Midl>
@@ -1030,6 +1033,9 @@
       <Command>
       </Command>
     </PostBuildEvent>
+    <CudaCompile>
+      <CodeGeneration>compute_80,sm_80</CodeGeneration>
+    </CudaCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release_omp|x64'">
     <Midl>
@@ -1130,7 +1136,11 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\src\core\sroptcryst.cpp" />
-    <ClCompile Include="..\src\ext\auxgpu\auxgpu.cpp" />
+    <ClCompile Include="..\src\core\sropthck.cpp" />
+    <ClCompile Include="..\src\ext\auxgpu\auxgpu.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+      </ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="..\src\ext\auxparse\auxparse.cpp" />
     <ClCompile Include="..\src\ext\f2c_min\CLOSE.C" />
     <ClCompile Include="..\src\ext\f2c_min\DFE.C" />
@@ -1201,7 +1211,6 @@
     <ClCompile Include="..\src\core\sroptfoc.cpp" />
     <ClCompile Include="..\src\core\sroptgrat.cpp" />
     <ClCompile Include="..\src\core\sroptgtr.cpp" />
-    <ClCompile Include="..\src\core\sropthck.cpp" />
     <ClCompile Include="..\src\core\sroptmat.cpp" />
     <ClCompile Include="..\src\core\sroptpsh.cpp" />
     <ClCompile Include="..\src\core\sroptshp.cpp" />
@@ -1334,9 +1343,13 @@
     <ClInclude Include="..\src\lib\srwlib.h" />
   </ItemGroup>
   <ItemGroup>
+    <CudaCompile Include="..\src\core\srmatsta_gpu.cu" />
+    <CudaCompile Include="..\src\core\sroptapt_gpu.cu" />
     <CudaCompile Include="..\src\core\sroptdrf_gpu.cu" />
     <CudaCompile Include="..\src\core\sroptelm_gpu.cu" />
+    <CudaCompile Include="..\src\core\sroptfoc_gpu.cu" />
     <CudaCompile Include="..\src\core\sroptgtr_gpu.cu" />
+    <CudaCompile Include="..\src\core\sroptzp_gpu.cu" />
     <CudaCompile Include="..\src\core\srradmnp_gpu.cu" />
     <CudaCompile Include="..\src\core\srradstr_gpu.cu" />
     <CudaCompile Include="..\src\ext\genmath\gmfft_gpu.cu" />

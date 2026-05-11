@@ -16,6 +16,10 @@
 
 #include <math.h>
 
+#ifdef __CUDA_ARCH__
+#include "auxgpu.h"
+#endif
+
 //-------------------------------------------------------------------------
 //-------------------------------------------------------------------------
 
@@ -28,9 +32,21 @@ struct TVector3df;
 struct TVector3d {
 	double x,y,z;
 
+#ifdef __CUDA_ARCH__
+	GPU_PORTABLE
+#endif
 	TVector3d(double xx =0, double yy =0, double zz =0) { x=xx; y=yy; z=zz;}
+#ifdef __CUDA_ARCH__
+	GPU_PORTABLE
+#endif
 	TVector3d(double* dArray) { x=dArray[0]; y=dArray[1]; z=dArray[2];}
+#ifdef __CUDA_ARCH__
+	GPU_PORTABLE
+#endif
 	TVector3d(const TVector3df&);
+#ifdef __CUDA_ARCH__
+	GPU_PORTABLE
+#endif
 	TVector3d(const char* XorYorZ)
 	{
 		x = y = z = 0;
@@ -42,27 +58,54 @@ struct TVector3d {
 		}
 	}
 
+#ifdef __CUDA_ARCH__
+	GPU_PORTABLE
+#endif
 	TVector3d& operator +=(const TVector3d& AnotherVect)
 	{
 		x+=AnotherVect.x; y+=AnotherVect.y; z+=AnotherVect.z; return *this;
 	}
+#ifdef __CUDA_ARCH__
+	GPU_PORTABLE
+#endif
 	TVector3d& operator -=(const TVector3d& AnotherVect)
 	{
 		x-=AnotherVect.x; y-=AnotherVect.y; z-=AnotherVect.z; return *this;
 	}
+#ifdef __CUDA_ARCH__
+	GPU_PORTABLE
+#endif
 	TVector3d& operator *=(double a)
 	{
 		x *= a; y *= a; z *= a; return *this;
 	}
+#ifdef __CUDA_ARCH__
+	GPU_PORTABLE
+#endif
 	TVector3d& operator /=(double a)
 	{
 		x /= a; y /= a; z /= a; return *this;
 	}
 
+#ifdef __CUDA_ARCH__
+	GPU_PORTABLE
+#endif
 	inline double Abs() { return sqrt(x*x + y*y + z*z);}
+#ifdef __CUDA_ARCH__
+	GPU_PORTABLE
+#endif
 	inline double AmpE2() { return x*x + y*y + z*z;}
+#ifdef __CUDA_ARCH__
+	GPU_PORTABLE
+#endif
 	inline void Zero() { x = y = z = 0;}
+#ifdef __CUDA_ARCH__
+	GPU_PORTABLE
+#endif
 	inline bool isZero() { return (x == 0) && (y == 0) && (z == 0);}
+#ifdef __CUDA_ARCH__
+	GPU_PORTABLE
+#endif
 	inline double absMaxElem()
 	{
 		double ax = ::fabs(x), ay = ::fabs(y), az = ::fabs(z);
@@ -71,6 +114,9 @@ struct TVector3d {
 		if(res < az) res = az;
 		return res;
 	}
+#ifdef __CUDA_ARCH__
+	GPU_PORTABLE
+#endif
 	inline void Normalize()
 	{
 		if((x == 0) && (y == 0) && (z == 0)) return;
@@ -78,14 +124,41 @@ struct TVector3d {
 		x *= invNorm; y *= invNorm; z *= invNorm; 
 	}
 
+#ifdef __CUDA_ARCH__
+	GPU_PORTABLE
+#endif
 	inline friend TVector3d operator +(const TVector3d&, const TVector3d&);
+#ifdef __CUDA_ARCH__
+	GPU_PORTABLE
+#endif
 	inline friend TVector3d operator -(const TVector3d&, const TVector3d&);
+#ifdef __CUDA_ARCH__
+	GPU_PORTABLE
+#endif
 	inline friend TVector3d operator *(const double, const TVector3d&);
+#ifdef __CUDA_ARCH__
+	GPU_PORTABLE
+#endif
 	inline friend TVector3d operator *(const TVector3d&, const double);
+#ifdef __CUDA_ARCH__
+	GPU_PORTABLE
+#endif
 	inline friend TVector3d operator /(const TVector3d&, const double);
+#ifdef __CUDA_ARCH__
+	GPU_PORTABLE
+#endif
 	inline friend double operator *(const TVector3d&, const TVector3d&); // Scalar product
+#ifdef __CUDA_ARCH__
+	GPU_PORTABLE
+#endif
 	inline friend TVector3d operator ^(const TVector3d&, const TVector3d&); // Vector product
+#ifdef __CUDA_ARCH__
+	GPU_PORTABLE
+#endif
 	inline friend TVector3d operator *(const TMatrix3d&, const TVector3d&);
+#ifdef __CUDA_ARCH__
+	GPU_PORTABLE
+#endif
 	friend TVector3d operator *(const TMatrix3df&, const TVector3d&);
 	inline friend double NormAbs(const TVector3d&);
 

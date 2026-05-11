@@ -573,6 +573,12 @@ struct srTRadResize {
 	double vLxOut, vLyOut, vLzOut; //Coordinates of the output Optical Axis vector
 	double vHxOut, vHyOut; //Coordinates of the Horizontal Base vector of the output frame
 
+	double Rx, xc, Rz, zc; //OC01102025
+
+	//OC14102025 (these params are for the resizing to a precize mesh)
+	double eStart, eStep, xStart, xStep, zStart, zStep; //here z is vertical coordinate, in line with other members of this struct and in srTSRWRadStructAccessData
+	long ne, nx, nz; //to activate resize to a precise mesh, these params have to be > 0 (and this will override the usual "pem, ped, pxm, pxd, pzm, pzd" params)
+
 	srTRadResize() 
 	{
 		pem = ped = pxm = pxd = pzm = pzd = 1.;
@@ -597,6 +603,12 @@ struct srTRadResize {
 		//OC011213
 		vLxOut = vLyOut = vLzOut = 0; //Default coordinates of the output Optical Axis vector
 		vHxOut = vHyOut = 0; //Default coordinates of the Horizontal Base vector of the output frame
+
+		Rx = xc = Rz = zc = 0.; //OC01102025
+
+		//OC14102025
+		ne = nx = nz = 0; //This is important as indicator that resize to a precise mesh is not used
+		eStart = eStep = xStart = xStep = zStart = zStep = 0.;
 	}
 
 	char useOtherSideFFT(int in=-1) 
@@ -1734,6 +1746,9 @@ struct srTDataPtrsForWfrEdgeCorr {
 	float *FFTArrZStEz, *FFTArrZFiEz;
 
 	float fxStzSt[4], fxFizSt[4], fxStzFi[4], fxFizFi[4];
+#ifdef _OFFLOAD_GPU
+	long pfxStzSt[4], pfxFizSt[4], pfxStzFi[4], pfxFizFi[4]; //OC30112025 (corrected?)
+#endif
 
 	double dxSt, dxFi, dzSt, dzFi, dx, dz;
 	char WasSetup;
@@ -1764,6 +1779,9 @@ struct srTDataPtrsForWfrEdgeCorr {
 		for(int i=0; i<4; i++)
 		{
 			fxStzSt[i] = 0.; fxFizSt[i] = 0.; fxStzFi[i] = 0.; fxFizFi[i] = 0.;
+#ifdef _OFFLOAD_GPU
+			pfxStzSt[i] = -1; pfxFizSt[i] = -1; pfxStzFi[i] = -1; pfxFizFi[i] = -1; //OC30112025 (corrected?) //HG01102025
+#endif
 		}
 		WasSetup = 0;
 	}

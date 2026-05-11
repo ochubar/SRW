@@ -9,6 +9,12 @@ SRW Documentation
    usage
 
 .. toctree::
+   :maxdepth: 2
+   :caption: Knowledge
+
+   knowledge/optical_element
+
+.. toctree::
    :maxdepth: 1
    :caption: Examples Gallery
 

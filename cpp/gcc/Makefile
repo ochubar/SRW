@@ -30,7 +30,7 @@ else
 	endif
 endif
 
-#HG30112023
+# HG30112023
 CUDA_PATH ?= /usr/local/cuda
 CUDA_MATHLIBS_PATH ?= /usr/local/cuda
 NVCC = $(CUDA_PATH)/bin/nvcc
@@ -55,7 +55,7 @@ SRW_INCLUDES += $(CUDA_INCLUDES) -I$(SH_SRC_AUXGPU_DIR)
 #SRW_CFLAGS += -std=c++17 #HG01012023
 LDFLAGS += $(CUDA_LIBS) -lcudart_static -lcudadevrt -lcufft -lrt
 NVCFLAGS = -O3 -arch=sm_80 -dlto -rdc=true
-CUDA_OBJ=gmfft_gpu.o srradstr_gpu.o sroptelm_gpu.o sroptdrf_gpu.o sroptgtr_gpu.o srradmnp_gpu.o
+CUDA_OBJ=gmfft_gpu.o srradstr_gpu.o sroptelm_gpu.o sroptapt_gpu.o sroptdrf_gpu.o sroptfoc_gpu.o sroptgtr_gpu.o sroptzp_gpu.o srradmnp_gpu.o srmatsta_gpu.o
 else
 ifeq ($(MODE), 0)
 SRW_CFLAGS+= -D_FFTW3 

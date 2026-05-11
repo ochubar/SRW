@@ -1,8 +1,8 @@
 #############################################################################
 # SRWLIB Example#19: Simulating Coherent X-ray (Gaussian beam) Scattering from ensemble
 # of 3D Nano-Particles modifying their positions due to Brownian motion
-# Authors: H. Goel (SBU/ECE), O.C. (BNL/NSLS-II)
-# v 0.03
+# Authors: H. Goel (SBU/BNL), O.C. (BNL)
+# v 0.04
 #############################################################################
 
 from __future__ import print_function #Python 2.7 compatibility
@@ -34,7 +34,8 @@ except:
     print('NumPy can not be loaded. You may need to install numpy, otherwise some functionality of this example will not be available. If you are using pip, you can use the following command to install it: \npip install numpy')
 
 print('SRWLIB Python Example # 19:')
-print('Simulating Coherent X-ray (Gaussian beam) Scattering from ensemble of 3D particles modifying their positions due to Brownian motion')
+print('Simulating Coherent X-ray (Gaussian beam) Scattering from ensemble of 3D particles modifying their positions due to Brownian motion.')
+print('This example can use GPU for accelerating calculations; to try, set tryUsingGPU = 1 in the code below.')
 
 #***********Folder and Data File Names
 strDataFolderName = 'data_example_19' #Data sub-folder name
@@ -44,6 +45,9 @@ strSampOptPathDifOutFileName = 'ex19_smp_opt_path_dif_%d.dat' #optical path diff
 strIntInitOutFileName = 'ex19_res_int_in.dat' #initial wavefront intensity distribution output file name
 strIntPropOutFileName = 'ex19_res_int_prop_%d.dat' #propagated wavefront intensity distribution output file name
 strIntPropOutFileNameDet = 'ex19_res_int_det.h5' #intensity distribution regisgtered by detector output file name
+
+#***********Execution Instructions
+tryUsingGPU = 0 #Set to 1 if GPU should be used, 0 otherwise
 
 #***********Gaussian Beam Source
 GsnBm = SRWLGsnBm() #Gaussian Beam structure (just parameters)
@@ -96,7 +100,11 @@ wfr.partBeam.partStatMom1.yp = GsnBm.yp
 srwl.CalcElecFieldGaussian(wfr, GsnBm, arPrecPar)
 mesh0 = deepcopy(wfr.mesh)
 arI0 = array('f', [0]*mesh0.nx*mesh0.ny) #"flat" array to take 2D intensity data
-srwl.CalcIntFromElecField(arI0, wfr, 6, 0, 3, mesh0.eStart, 0, 0) #Extract intensity
+
+if(tryUsingGPU): print('   ... Trying to use GPU ... \n', end='')
+
+srwl.CalcIntFromElecField(arI0, wfr, 6, 0, 3, mesh0.eStart, 0, 0, None, None, tryUsingGPU) #Extract intensity
+#srwl.CalcIntFromElecField(arI0, wfr, 6, 0, 3, mesh0.eStart, 0, 0) #Extract intensity #HG10122025
 srwl_uti_save_intens_ascii( #Save Intensity of to a file
     arI0, mesh0, os.path.join(os.getcwd(), strDataFolderName, strIntInitOutFileName), 0,
     ['Photon Energy', 'Horizontal Position', 'Vertical Position', 'Intensity'], _arUnits=['eV', 'm', 'm', 'ph/s/.1%bw/mm^2'])
@@ -214,14 +222,16 @@ for it in range(len(listObjBrownian)):
 
     print('   Propagating Wavefront ... ', end='')
     t = time.time()
-    srwl.PropagElecField(wfrP, opBL)
+    srwl.PropagElecField(wfrP, opBL, None, tryUsingGPU)
+    #srwl.PropagElecField(wfrP, opBL) #HG10122025
     print('done in', round(time.time() - t), 's')
 
     print('   Extracting, Projecting the Propagated Wavefront Intensity on Detector and Saving it to file ... ', end='')
     t = time.time()
     mesh1 = deepcopy(wfrP.mesh)
     arI1 = array('f', [0]*mesh1.nx*mesh1.ny) #"flat" array to take 2D intensity data
-    srwl.CalcIntFromElecField(arI1, wfrP, 6, 0, 3, mesh1.eStart, 0, 0) #extracts intensity
+    srwl.CalcIntFromElecField(arI1, wfrP, 6, 0, 3, mesh1.eStart, 0, 0, None, None, tryUsingGPU) #extracts intensity
+    #srwl.CalcIntFromElecField(arI1, wfrP, 6, 0, 3, mesh1.eStart, 0, 0) #extracts intensity #HG10122025
 
     stkDet = det.treat_int(arI1, _mesh = mesh1) #"Projecting" intensity on detector (by interpolation)
     mesh1 = stkDet.mesh

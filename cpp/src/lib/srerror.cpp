@@ -95,7 +95,7 @@ CErrWarn::CErrWarn()
 
 	error.push_back("This function requires wave of type Complex 2 x 64 bit.\0");
 	error.push_back("Propagation can not be performed correctly due to severe memory limitation.\0");
-	error.push_back("For correct propagation, number of points of should be larger than 1 both in horizontal and vertical direction.\0");
+	error.push_back("For correct propagation, number of points should be larger than 1 both in horizontal and vertical direction.\0");
 	error.push_back("With this method, the propagation can not be done for several photon energies at once.\0");
 
 	error.push_back("For this material, the density value should be specified.\0");
@@ -247,14 +247,17 @@ CErrWarn::CErrWarn()
 	error.push_back("Mutual intensity can not be extracted for these input parameters.\0"); //#189
 	error.push_back("Incorrect input parameters for calculation of statistical characteristics of intensity.\0"); //#190
 	error.push_back("Incorrect input parameters for processing intensity distributions.\0"); //#191
-	error.push_back("Incorrect paraboloidal mirror parameters: focal length, grazing angle and sagital radius should be positive, and use case should be \'f\' for focusing and \'c\' for collimating.\0"); //#192
-	
+
+	error.push_back("Incorrect paraboloidal mirror parameters: focal length, grazing angle and sagital radius should be positive, and use case should be \'f\' for focusing and \'c\' for collimating.\0"); //#192	
 	error.push_back("Wavefront resizing can not be performed for these parameters (however, it may be possible to perform such resizing sequentially).\0"); //#193
 	error.push_back("Wavefront processing can not be performed with these parameters.\0"); //#194
-
 	error.push_back("Inconsistent parameters were supplied to (mutual) intensity processing function.\0"); //#195
 
 	error.push_back("Incorrect hyperboloidal mirror parameters: p, q, grazing angle and sagital radius should be positive.\0"); //#196
+
+	error.push_back("Summing up wavefronts on different photon energy meshes is not implemented.\0"); //#197
+	error.push_back("For wavefront propagation to work, number of points should be larger than 1 either in horizontal or in vertical or in both directions.\0"); //#198
+	error.push_back("Inconsistent (2D?) resize parameters were submitted for 1D wavefront.\0"); //#199
 
 //};
 
@@ -290,6 +293,7 @@ CErrWarn::CErrWarn()
 #else
 	warning.push_back("GPU usage is requested, but GPU offloading is not compiled in. Computation will be performed on CPU."); //#define GPU_COMPUTATION_FAILED 26 + SRW_WARNINGS_OFFSET
 #endif
+	warning.push_back("Wavefront propagation is simulated in 1D, because 1D initial wavefront was submitted."); //#define PROPAGATION_1D 27 + SRW_WARNINGS_OFFSET
 
 //};
 }

@@ -21,8 +21,14 @@ extern srTYield srYield;
 
 int srTGenOptElem::CheckRadStructForPropagation(srTSRWRadStructAccessData* pRad)
 {
-	if((pRad->nx <= 1) || (pRad->nz <= 1)) return CAN_NOT_PROPAGATE_1D_RAD;
+	if((pRad->nx <= 1) && (pRad->nz <= 1)) return CAN_NOT_PROPAGATE_0D_RAD; //OC27122025
+	//if((pRad->nx <= 1) || (pRad->nz <= 1)) return CAN_NOT_PROPAGATE_1D_RAD;
 	//if(pRad->ne > 1) return CAN_NOT_PROPAGATE_SEVERAL_PHOTON_ENERGIES; // To remove
+
+	if((pRad->nx <= 1) || (pRad->nz <= 1))
+	{
+		CErrWarn::AddWarningMessage(&gVectWarnNos, PROPAGATION_1D); //OC27122025
+	}
 
 	return 0;
 }

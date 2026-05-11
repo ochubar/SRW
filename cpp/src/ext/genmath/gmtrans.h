@@ -16,6 +16,10 @@
 
 #include "gmvect.h"
 
+#ifdef _OFFLOAD_GPU //HG01102025
+#include "auxgpu.h"
+#endif
+
 //-------------------------------------------------------------------------
 //-------------------------------------------------------------------------
 
@@ -65,6 +69,9 @@ public:
 	virtual TVector3d TrBiPoint(const TVector3d& P) { return M*P;}
 	virtual TVector3d TrVectField(const TVector3d& B) { return s*(M*B);}
 	virtual TVector3d TrVectPoten(const TVector3d& A) { return /* s*detM*(M_inv*A); */ s*detM*(M*A);}
+#ifdef _OFFLOAD_GPU //HG01102025
+	GPU_PORTABLE
+#endif
 	virtual TVector3d TrPoint_inv(const TVector3d& P) { return M_inv*(P-V);}
 	virtual TVector3d TrBiPoint_inv(const TVector3d& P) { return M_inv*P;}
 	virtual TVector3d TrVectField_inv(const TVector3d& B) { return s*(M_inv*B);}
@@ -233,6 +240,9 @@ public:
 	TVector3d TrBiPoint(const TVector3d& P) { return P;}
 	TVector3d TrVectField(const TVector3d& B) { return B;}
 	TVector3d TrVectPoten(const TVector3d& A) { return A;}
+#ifdef _OFFLOAD_GPU //HG01102025
+	GPU_PORTABLE
+#endif
 	TVector3d TrPoint_inv(const TVector3d& P) { return P;}
 	TVector3d TrBiPoint_inv(const TVector3d& P) { return P;}
 	TVector3d TrVectField_inv(const TVector3d& B) { return B;}

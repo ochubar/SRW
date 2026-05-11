@@ -52,6 +52,22 @@ int srTGenOptElem::PropagateRadiationMeth_0(srTSRWRadStructAccessData* pRadAcces
 
 	int result=0;
 
+#ifdef _OFFLOAD_GPU
+	TGPUUsageArg parGPU(pvGPU); //HG31072024 Try to pin the wavefront data instead of uploading to save GPU memory for the actual propagation
+	bool large_memory = false;
+	if(CAuxGPU::GPUEnabled(&parGPU))
+	{
+		if(pRadAccessData->ne * pRadAccessData->nx * pRadAccessData->nz * 2 * sizeof(float) > 4ull * 1024 * 1024 * 1024)
+		{
+			large_memory = true;
+			pRadAccessData->pBaseRadX = CAuxGPU::ToHostAndFree(&parGPU, pRadAccessData->pBaseRadX, 2*pRadAccessData->ne*pRadAccessData->nx*pRadAccessData->nz);
+			pRadAccessData->pBaseRadZ = CAuxGPU::ToHostAndFree(&parGPU, pRadAccessData->pBaseRadZ, 2*pRadAccessData->ne*pRadAccessData->nx*pRadAccessData->nz);
+			CAuxGPU::ToDevice(&parGPU, pRadAccessData->pBaseRadX, 2*pRadAccessData->ne*pRadAccessData->nx*pRadAccessData->nz, CAuxGPU::PIN_ON_HOST);
+			CAuxGPU::ToDevice(&parGPU, pRadAccessData->pBaseRadZ, 2*pRadAccessData->ne*pRadAccessData->nx*pRadAccessData->nz, CAuxGPU::PIN_ON_HOST);
+		}
+	}
+#endif
+
 #ifndef _WITH_OMP //OC31102018
 
 	srTSRWRadStructAccessData *pRadDataSingleE = 0, *pPrevRadDataSingleE = 0;
@@ -61,13 +77,15 @@ int srTGenOptElem::PropagateRadiationMeth_0(srTSRWRadStructAccessData* pRadAcces
 	}
 	else
 	{
-		if(result = SetupNewRadStructFromSliceConstE(pRadAccessData, -1, pRadDataSingleE)) return result;
+		//if(result = SetupNewRadStructFromSliceConstE(pRadAccessData, -1, pRadDataSingleE)) return result;
+		if(result = SetupNewRadStructFromSliceConstE(pRadAccessData, -1, pRadDataSingleE, pvGPU)) return result; //HG26072024
 		//allocates new pRadDataSingleE !
 	}
 
 	if(!m_PropWfrInPlace)
 	{
-		if(result = SetupNewRadStructFromSliceConstE(pRadAccessData, -1, pPrevRadDataSingleE)) return result;
+		//if(result = SetupNewRadStructFromSliceConstE(pRadAccessData, -1, pPrevRadDataSingleE)) return result;
+		if(result = SetupNewRadStructFromSliceConstE(pRadAccessData, -1, pPrevRadDataSingleE, pvGPU)) return result; //HG26072024
 	}
 
 	//separate processing of wavefront radius is necessary
@@ -86,7 +104,8 @@ int srTGenOptElem::PropagateRadiationMeth_0(srTSRWRadStructAccessData* pRadAcces
 	{
 		if(pRadDataSingleE != pRadAccessData)
 		{
-			if(result = ExtractRadSliceConstE(pRadAccessData, ie, pRadDataSingleE->pBaseRadX, pRadDataSingleE->pBaseRadZ)) return result;
+			//if(result = ExtractRadSliceConstE(pRadAccessData, ie, pRadDataSingleE->pBaseRadX, pRadDataSingleE->pBaseRadZ)) return result;
+			if(result = ExtractRadSliceConstE(pRadAccessData, ie, pRadDataSingleE->pBaseRadX, pRadDataSingleE->pBaseRadZ, false, pvGPU)) return result; //HG26072024
 			pRadDataSingleE->eStart = pRadAccessData->eStart + ie*pRadAccessData->eStep;
 			long OffsetMom = AmOfMoments*ie;
 			pRadDataSingleE->pMomX = pRadAccessData->pMomX + OffsetMom;
@@ -113,7 +132,8 @@ int srTGenOptElem::PropagateRadiationMeth_0(srTSRWRadStructAccessData* pRadAcces
 		}
 		if(pPrevRadDataSingleE != 0)
 		{
-			if(result = ExtractRadSliceConstE(pRadAccessData, ie, pPrevRadDataSingleE->pBaseRadX, pPrevRadDataSingleE->pBaseRadZ, true)) return result; //OC120908
+			//if(result = ExtractRadSliceConstE(pRadAccessData, ie, pPrevRadDataSingleE->pBaseRadX, pPrevRadDataSingleE->pBaseRadZ, true)) return result; //OC120908
+			if(result = ExtractRadSliceConstE(pRadAccessData, ie, pPrevRadDataSingleE->pBaseRadX, pPrevRadDataSingleE->pBaseRadZ, true, pvGPU)) return result; //HG26072024
 			pPrevRadDataSingleE->eStart = pRadDataSingleE->eStart;
 			pPrevRadDataSingleE->pMomX = pRadDataSingleE->pMomX;
 			pPrevRadDataSingleE->pMomZ = pRadDataSingleE->pMomZ;
@@ -142,8 +162,8 @@ int srTGenOptElem::PropagateRadiationMeth_0(srTSRWRadStructAccessData* pRadAcces
 			//if(result = UpdateGenRadStructSliceConstE_Meth_0(pRadDataSingleE, ie, pRadAccessData)) return result;
 			//HG23072024 (fix of a crash at propagation "from waist"):
 			//OC: does "ie < (neOrig - 1)" cast to 0 or 1 only (never 2)?
-			if(result = UpdateGenRadStructSliceConstE_Meth_0(pRadDataSingleE, ie, pRadAccessData, ie < (neOrig - 1))) return result; //Updating slice data is required even if it is re-interpolated later
-
+			//if(result = UpdateGenRadStructSliceConstE_Meth_0(pRadDataSingleE, ie, pRadAccessData, ie < (neOrig - 1))) return result; //Updating slice data is required even if it is re-interpolated later
+			if(result = UpdateGenRadStructSliceConstE_Meth_0(pRadDataSingleE, ie, pRadAccessData, ie < (neOrig - 1), pvGPU)) return result; //Updating slice data is required even if it is re-interpolated later //HG26072024
 			//if(result = UpdateGenRadStructSliceConstE_Meth_0(pRadDataSingleE, ie, pRadAccessData, ie < (neOrig - 1))) return result;
 			//the above doesn't change the transverse grid parameters in *pRadAccessData
 
@@ -165,7 +185,8 @@ int srTGenOptElem::PropagateRadiationMeth_0(srTSRWRadStructAccessData* pRadAcces
 	//OCTEST (commented-out)
 	if(gridParamWereModifInSlices)
 	{//to test!
-		if(result = ReInterpolateWfrDataOnNewTransvMesh(vRadSlices, pRadDataSingleE, pRadAccessData)) return result;
+		//if(result = ReInterpolateWfrDataOnNewTransvMesh(vRadSlices, pRadDataSingleE, pRadAccessData)) return result;
+		if(result = ReInterpolateWfrDataOnNewTransvMesh(vRadSlices, pRadDataSingleE, pRadAccessData, pvGPU)) return result; //HG26072024
 	}
 	else
 	{//OC23072024
@@ -184,6 +205,14 @@ int srTGenOptElem::PropagateRadiationMeth_0(srTSRWRadStructAccessData* pRadAcces
 
 	if((pRadDataSingleE != 0) && (pRadDataSingleE != pRadAccessData)) delete pRadDataSingleE;
 	if((pPrevRadDataSingleE != 0) && (pPrevRadDataSingleE != pRadAccessData)) delete pPrevRadDataSingleE;
+
+#ifdef _OFFLOAD_GPU //HG31072024
+	if(CAuxGPU::GPUEnabled(&parGPU) && large_memory)
+	{
+		pRadAccessData->pBaseRadX = CAuxGPU::ToHostAndFree(&parGPU, pRadAccessData->pBaseRadX, 2*pRadAccessData->ne*pRadAccessData->nx*pRadAccessData->nz);
+		pRadAccessData->pBaseRadZ = CAuxGPU::ToHostAndFree(&parGPU, pRadAccessData->pBaseRadZ, 2*pRadAccessData->ne*pRadAccessData->nx*pRadAccessData->nz);
+	}
+#endif
 
 #else //OC31102018: modified by SY at parallelizing SRW via OpenMP
 //#ifdef SWITCH_OFF //OCTEST
@@ -574,7 +603,8 @@ void srTGenOptElem::FindWidestWfrMeshParam(vector<srTSRWRadStructAccessData>& vR
 
 //*************************************************************************
 
-int srTGenOptElem::ReInterpolateWfrDataOnNewTransvMesh(vector<srTSRWRadStructAccessData>& vRadSlices, srTSRWRadStructAccessData* pAuxRadSingleE, srTSRWRadStructAccessData* pRadRes)
+//int srTGenOptElem::ReInterpolateWfrDataOnNewTransvMesh(vector<srTSRWRadStructAccessData>& vRadSlices, srTSRWRadStructAccessData* pAuxRadSingleE, srTSRWRadStructAccessData* pRadRes)
+int srTGenOptElem::ReInterpolateWfrDataOnNewTransvMesh(vector<srTSRWRadStructAccessData>& vRadSlices, srTSRWRadStructAccessData* pAuxRadSingleE, srTSRWRadStructAccessData* pRadRes, void* pvGPU) //HG26072024
 {//this requires same nx, nz in all rad. structures
  //assumes that field data was allocated for pAuxRadSingleE, pRadRes;
 
@@ -604,7 +634,8 @@ int srTGenOptElem::ReInterpolateWfrDataOnNewTransvMesh(vector<srTSRWRadStructAcc
 		if((radMesh.nx == pRadRes->nx) && (::fabs(radMesh.xStart - pRadRes->xStart) < xAbsTol) && (::fabs(radMesh.xStep - pRadRes->xStep) < xAbsTol) &&
 		   (radMesh.nz == pRadRes->nz) && (::fabs(radMesh.zStart - pRadRes->zStart) < zAbsTol) && (::fabs(radMesh.zStep - pRadRes->zStep) < zAbsTol)) continue;
 
-		if(result = ExtractRadSliceConstE(pRadRes, ie, pOrigBufEX, pOrigBufEZ, true)) return result;
+		//if(result = ExtractRadSliceConstE(pRadRes, ie, pOrigBufEX, pOrigBufEZ, true)) return result;
+		if(result = ExtractRadSliceConstE(pRadRes, ie, pOrigBufEX, pOrigBufEZ, true, pvGPU)) return result; //HG26072024
 		*pAuxRadSingleE = radMesh;
 		pAuxRadSingleE->pBaseRadX = pOrigBufEX; pAuxRadSingleE->pBaseRadZ = pOrigBufEZ;
 		//we require transverse mesh parameters and wfr radii of curvature and their errors!
@@ -613,7 +644,8 @@ int srTGenOptElem::ReInterpolateWfrDataOnNewTransvMesh(vector<srTSRWRadStructAcc
 		pRadRes->RobsZ = radMesh.RobsZ; pRadRes->RobsZAbsErr = radMesh.RobsZAbsErr;
 		//to allow for removing / adding the quadratic phase term
 
-		if(result = ReInterpolateWfrSliceSingleE(*pAuxRadSingleE, *pRadRes, ie)) return result;
+		//if(result = ReInterpolateWfrSliceSingleE(*pAuxRadSingleE, *pRadRes, ie)) return result;
+		if(result = ReInterpolateWfrSliceSingleE(*pAuxRadSingleE, *pRadRes, ie, pvGPU)) return result; //HG26072024
 	}
 	pRadRes->RobsX = origMultiRobsX; pRadRes->RobsXAbsErr = origMultiErrRobsX;
 	pRadRes->RobsZ = origMultiRobsZ; pRadRes->RobsZAbsErr = origMultiErrRobsZ;

@@ -98,15 +98,17 @@ public:
 		DefineAttenModulConstants();
 	}
 	srTZonePlate() {}
+	int GPUImplFeatures() override { return 1;}	//HG26072024 Mark propagator as GPU supporting
 
 	//int PropagateRadiation(srTSRWRadStructAccessData* pRadAccessData, int MethNo, srTRadResizeVect& ResBeforeAndAfterVect)
 	//int PropagateRadiation(srTSRWRadStructAccessData* pRadAccessData, srTParPrecWfrPropag& ParPrecWfrPropag, srTRadResizeVect& ResBeforeAndAfterVect)
 	int PropagateRadiation(srTSRWRadStructAccessData* pRadAccessData, srTParPrecWfrPropag& ParPrecWfrPropag, srTRadResizeVect& ResBeforeAndAfterVect, void* pvGPU=0) //HG04122023
 	{
-		//if(ParPrecWfrPropag.AnalTreatment == 1)
-		//{// Treating linear terms analytically
-			pRadAccessData->CheckAndSubtractPhaseTermsLin(TransvCenPoint.x, TransvCenPoint.y);
-		//}
+		if(ParPrecWfrPropag.AnalTreatment == 1) //OC08112024 (restored condition to avoid error at propagation of ~parallel beams; note it is never used for mirrors)
+		{// Treating linear terms analytically
+			//pRadAccessData->CheckAndSubtractPhaseTermsLin(TransvCenPoint.x, TransvCenPoint.y);
+			pRadAccessData->CheckAndSubtractPhaseTermsLin(TransvCenPoint.x, TransvCenPoint.y, pvGPU); //HG26072024
+		}
 
 		char &MethNo = ParPrecWfrPropag.MethNo;
 		
@@ -117,10 +119,11 @@ public:
 		//else return PropagateRadiationMeth_2(pRadAccessData, ResBeforeAndAfterVect);
 		else result = PropagateRadiationMeth_2(pRadAccessData, ParPrecWfrPropag, ResBeforeAndAfterVect);
 
-		//if(ParPrecWfrPropag.AnalTreatment == 1)
-		//{// Treating linear terms analytically
-			if(!ParPrecWfrPropag.DoNotResetAnalTreatTermsAfterProp) pRadAccessData->CheckAndResetPhaseTermsLin();
-		//}
+		if(ParPrecWfrPropag.AnalTreatment == 1) //OC08112024 (restored condition to avoid error at propagation of ~parallel beams; note it is never used for mirrors)
+		{// Treating linear terms analytically
+			//if(!ParPrecWfrPropag.DoNotResetAnalTreatTermsAfterProp) pRadAccessData->CheckAndResetPhaseTermsLin();
+			if(!ParPrecWfrPropag.DoNotResetAnalTreatTermsAfterProp) pRadAccessData->CheckAndResetPhaseTermsLin(pvGPU); //HG27072024
+		}
 
 		return result;
 	}
@@ -145,7 +148,8 @@ public:
 		return 0;
 	}
 
-	int PropagateRadMoments(srTSRWRadStructAccessData* pRadAccessData, srTMomentsRatios* MomRatArray)
+	//int PropagateRadMoments(srTSRWRadStructAccessData* pRadAccessData, srTMomentsRatios* MomRatArray)
+	int PropagateRadMoments(srTSRWRadStructAccessData* pRadAccessData, srTMomentsRatios* MomRatArray, void* pvGPU=0) //HG27072024
 	{
 		//OC10032024
 		double eHalfRange = 0.;
@@ -156,7 +160,8 @@ public:
 
 		SetupFocalDistForPhotonEnergy(pRadAccessData->eStart + eHalfRange); //OC10032024
 		//SetupFocalDistForPhotonEnergy(pRadAccessData->eStart);
-		return srTFocusingElem::PropagateRadMoments(pRadAccessData, MomRatArray);
+		//return srTFocusingElem::PropagateRadMoments(pRadAccessData, MomRatArray);
+		return srTFocusingElem::PropagateRadMoments(pRadAccessData, MomRatArray, pvGPU); //HG27072024
 	}
 
 	void SetupFocalDistForPhotonEnergy(double ePh)
@@ -170,7 +175,16 @@ public:
 		FocDistZ = FocDistX;
 	}
 
+#ifdef _OFFLOAD_GPU //HG26072024
+	//int RadPointModifierParallel(srTSRWRadStructAccessData* pRadAccessData, void* pBufVars = 0, long pBufVarsSz = 0, TGPUUsageArg* pGPU = 0) override;
+	int TraverseRadZXEParallel(srTSRWRadStructAccessData* pRadAccessData, void* pBufVars = 0, long pBufVarsSz = 0, TGPUUsageArg* pGPU = 0) override; //HG14042026
+#endif
+	//#ifdef __CUDACC__ //HG30072024 Commented out
+#ifdef __CUDA_ARCH__
+	GPU_PORTABLE void RadPointModifierPortable(srTEXZ& EXZ, srTEFieldPtrs& EPtrs, void* pBuf = 0)
+#else
 	void RadPointModifier(srTEXZ& EXZ, srTEFieldPtrs& EPtrs, void* pBufVars=0) //OC29082019
+#endif
 	//void RadPointModifier(srTEXZ& EXZ, srTEFieldPtrs& EPtrs)
 	{// e in eV; Length in m !!!
 	 // Operates on Coord. side !!!
@@ -326,7 +340,10 @@ public:
 			//double AmpAtten = exp(-0.5*Thickness/AttenLen);
 			//double AmpAtten = exp(-0.5*CurHeight/AttenLen);
 			AmpAtten = exp(-0.5*(CurHeight/AttenLen + CurHeightComplem/AttenLenComplem));
-			OptPathDiff = CurHeight/AttenLen + CurHeightComplem/AttenLenComplem;
+
+			//OptPathDiff = CurHeight/AttenLen + CurHeightComplem/AttenLenComplem;
+			//OC09122025 BUG TO FIX (above)? Check against 2D case!!!
+			OptPathDiff = RefrDelta*CurHeight + RefrDeltaComplem*CurHeightComplem; //OC09122025
 		}
 
 		double k_inv_m = EXZ.e*(5.067681604e+06);
@@ -359,7 +376,8 @@ public:
 		double RefrDeltaComplem = RefrDelta2; //, RefrDeltaCenComplem = RefrDelta2;
 
 		double CurHeight = Thickness, HeightCen = Thickness;
-		double CurHeightComplem = 0, HeightCenComplem = 0;
+		double CurHeightComplem = 0; //, HeightCenComplem = 0; //OC09122025
+		//double CurHeightComplem = 0, HeightCenComplem = 0;
 
         if(re2 > RnMaxe2) 
 		{
@@ -420,4 +438,3 @@ public:
 //*************************************************************************
 
 #endif
-

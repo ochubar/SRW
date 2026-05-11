@@ -15,17 +15,20 @@
 
 //*************************************************************************
 
-int srTFocusingElem::TuneRadForPropMeth_1(srTSRWRadStructAccessData* pRadAccessData, srTRadResize& PostResize)
+//int srTFocusingElem::TuneRadForPropMeth_1(srTSRWRadStructAccessData* pRadAccessData, srTRadResize& PostResize)
+int srTFocusingElem::TuneRadForPropMeth_1(srTSRWRadStructAccessData* pRadAccessData, srTRadResize& PostResize, void* pvGPU) //HG12082025
 {
   	srTMomentsRatios* MomRatArray = new srTMomentsRatios[pRadAccessData->ne];
 	if(MomRatArray == 0) return MEMORY_ALLOCATION_FAILURE;
 
 	int result;
 	if(pRadAccessData->Pres != 0) // Go to spatial...
-		if(result = SetRadRepres(pRadAccessData, 0)) return result;
+		//if(result = SetRadRepres(pRadAccessData, 0)) return result;
+		if(result = SetRadRepres(pRadAccessData, 0, 0, 0, pvGPU)) return result; //HG01082025
 
-	if(result = PropagateRadMoments(pRadAccessData, MomRatArray)) return result;
-	
+	//if(result = PropagateRadMoments(pRadAccessData, MomRatArray)) return result;
+	if(result = PropagateRadMoments(pRadAccessData, MomRatArray, pvGPU)) return result; //HG01082025
+
 	srTMomentsRatios* tMomRatArray = MomRatArray;
 
 	//float pxMaxMomX = (float)(1.e-23), pxMinMomX = (float)(1.e+23), pzMaxMomX = (float)(1.e-23), pzMinMomX = (float)(1.e+23);
@@ -72,8 +75,9 @@ int srTFocusingElem::TuneRadForPropMeth_1(srTSRWRadStructAccessData* pRadAccessD
 	char zResizeNeeded = (pzdTot - 1. > ResizeTol);
 	if(xResizeNeeded) RadResize.pxd = pxdTot;
 	if(zResizeNeeded) RadResize.pzd = pzdTot;
-	if(xResizeNeeded || zResizeNeeded) if(result = RadResizeGen(*pRadAccessData, RadResize)) return result;
-	
+	//if(xResizeNeeded || zResizeNeeded) if(result = RadResizeGen(*pRadAccessData, RadResize)) return result;
+	if(xResizeNeeded || zResizeNeeded) if(result = RadResizeGen(*pRadAccessData, RadResize, pvGPU)) return result; //HG01082025
+
 	PostResize.pxm = PostResize.pzm = PostResize.pxd = PostResize.pzd = 1.;
 	char xPostResizeNeeded = (1.- ResizeTol > pxdTot);
 	char zPostResizeNeeded = (1.- ResizeTol > pzdTot);

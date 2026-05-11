@@ -51,7 +51,11 @@ public:
 	int FindIntensityLimits1D(srTWaveAccessData& InWaveData, double RelPowLevel, srTWaveAccessData& OutSpotInfo);
 	int FindIntensityLimits2D(srTWaveAccessData& InWaveData, double RelPowLevel, srTWaveAccessData& OutSpotInfo);
 	//int FindIntensityLimitsInds(srTSRWRadStructAccessData&, int ie, double RelPow, int* IndLims);
-	int FindIntensityLimitsInds(CHGenObj&, int ie, double RelPow, int* IndLims);
+	//int FindIntensityLimitsInds(CHGenObj&, int ie, double RelPow, int* IndLims);
+	int FindIntensityLimitsInds(CHGenObj&, int ie, double RelPow, int* IndLims, void* pvGPU=0); //HG01052025
+#ifdef _OFFLOAD_GPU //HG01052025
+	int FindIntensityLimitsInds_GPU(CHGenObj&, int ie, double RelPow, int* IndLims, void* pvGPU=0);
+#endif
 
 	//void FindMax1D(float* p0, long LenArr, double& MaxVal, long& iMax);
 	//void FindMax1D(DOUBLE* p0, long LenArr, double& MaxVal, long& iMax);

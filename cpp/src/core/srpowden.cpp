@@ -98,6 +98,19 @@ void srTRadIntPowerDensity::ComputePowerDensity(srTEbmDat* pElecBeam, srTMagElem
 	//srTTrjDat* pTrjDat = new srTTrjDat(pElecBeam, pMagElem);
 	//if(res = pTrjDat->ComputeInterpolatingStructure()) throw res;
 
+	//OC25072025 (moved here from ComputeTotalPowerDensityDistr to avoid crash)
+	//MagFieldIsConstG = TrjHndl.rep->MagFieldIsConstant();
+	//srTGenTrjHndl hGenTrjLoc = TrjHndl;
+	//if(MagFieldIsConstG && (IntPowDenPrec.Method == 1)) // Const. Magnetic Field and Near Field comp. method
+	//{
+	//	char Periodicity = 1; // non-periodic
+	//	if(res = hGenTrjLoc.rep->ConvertToArbTrjDat(Periodicity, DistrInfoDat, TrjHndl)) return;
+	//	MagFieldIsConstG = 0;
+	//}
+
+	//OC25072025 (moved here from ComputeTotalPowerDensityDistr)
+	DistrInfoDat.AssumeAllPhotonEnergies = 1; // for correct determination of the integration limits
+
 	srTGenTrjDat* pGenTrjDat = srTGenTrjDat::CreateAndSetupNewTrjDat(pElecBeam, pMagElem);
 	srTGenTrjHndl hGenTrj(pGenTrjDat);
 	TrjHndl = hGenTrj;
@@ -136,11 +149,19 @@ int srTRadIntPowerDensity::ComputeTotalPowerDensityDistr(srTPowDensStructAccessD
 
 	MagFieldIsConstG = TrjHndl.rep->MagFieldIsConstant();
 
+	//OC25072025 (moved from here to ComputePowerDensity to avoid crash)
 	srTGenTrjHndl hGenTrjLoc = TrjHndl;
 	if(MagFieldIsConstG && (IntPowDenPrec.Method == 1)) // Const. Magnetic Field and Near Field comp. method
 	{
 		char Periodicity = 1; // non-periodic
 		if(result = hGenTrjLoc.rep->ConvertToArbTrjDat(Periodicity, DistrInfoDat, TrjHndl)) return result;
+
+		//SetupTrjDat(pOut);
+		//int res = 0;
+		//if(result = TrjHndl.rep->ComputeInterpolatingStructure()) throw res;
+
+		//TrjHndl.rep->CreateAndSetupNewTrjDat(pElecBeam, pMagElem);
+
 		MagFieldIsConstG = 0;
 	}
 	if(MagFieldIsConstG) SetupNativeRotation();
@@ -159,7 +180,8 @@ int srTRadIntPowerDensity::ComputeTotalPowerDensityDistr(srTPowDensStructAccessD
 	//if(result = TrjHndl.rep->ShowLimitsAndInitInteg(DistrInfoDat, LongIntTypeG, sIntegStartG, sIntegFinG, AmOfPerG)) return result;
 	if(result = TrjHndl.rep->ShowLimitsAndInitInteg(DistrInfoDat, LongIntTypeG, sIntegStartG, sIntegFinG, AmOfPerG, false)) return result; //OC030412 don't calculate interpolating structure since it was already calculated outside
 
-	if(IntPowDenPrec.UseSpecIntLim)
+	if(IntPowDenPrec.UseSpecIntLim > 0) //OC24072025
+	//if(IntPowDenPrec.UseSpecIntLim)
 	{
 		if(sIntegStartG < IntPowDenPrec.sStart) sIntegStartG = IntPowDenPrec.sStart;
 		if(sIntegFinG > IntPowDenPrec.sFin) sIntegFinG = IntPowDenPrec.sFin;

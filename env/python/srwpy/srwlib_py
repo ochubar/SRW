@@ -8754,13 +8754,7 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
     :param _mag: Magnetic Field container (magFldCnt type) or Coherent Gaussian beam (SRWLGsnBm type) or Point Source (SRWLPtSrc type) or list of Coherent Modes (of SRWLWfr type each)
     :param _mesh: mesh vs photon energy, horizontal and vertical positions (SRWLRadMesh type) on which initial SR should be calculated
     :param _sr_meth: SR Electric Field calculation method to be used: 0- "manual", 1- "auto-undulator", 2- "auto-wiggler"
-    :param _sr_rel_prec: either one float number specifying relative precision for SR Electric Field calculation (usually 0.01 is OK, the smaller the more accurate), 
-        or list of 5 numbers specifying: 
-        [0]- relative precision for SR Electric Field calculation, 
-        [1]- initial longitudinal position for SR calculation (effective if < _sr_rel_prec[2]),
-        [2]- final longitudinal position for SR calculation (effective if > _sr_rel_prec[1]),
-        [3]- number of points for trajectory calculation,
-        [4]- switch specifying whether to use "terminating terms" (i.e. asymptotic expansions at zStartInteg and zEndInteg) or not (1 or 0 respectively)
+    :param _sr_rel_prec: relative precision for SR Electric Field calculation (usually 0.01 is OK, the smaller the more accurate)
     :param _n_part_tot: total number of "macro-electrons" to be used in the calculation
     :param _n_part_avg_proc: number of "macro-electrons" to be used in calculation at each "slave" before sending Stokes data to "master" (effective if the calculation is run via MPI)
     :param _n_save_per: periodicity of saving intermediate average Stokes data to file by master process
@@ -8815,16 +8809,6 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
     #if((_det is not None) and ((doMutual > 0) and (_char != 6))): raise Exception("Detector processing is not supported for mutual intensity") #OC02022021
     #if((_det is not None) and (doMutual > 0)): raise Exception("Detector processing is not supported for mutual intensity") #OC30052017
 
-    #OC07052026
-    arPrecParSR = None
-    #Determine if _sr_rel_prec is a single number or a list of parameters:
-    if isinstance(_sr_rel_prec, (float)):
-        arPrecParSR = [_sr_meth, _sr_rel_prec, 0, 0, 50000, 1, _sr_samp_fact] #to add npTraj, useTermin ([4], [5]) terms as input parameters
-    elif isinstance(_sr_rel_prec, (list, tuple)):
-        if(len(_sr_rel_prec) < 5): raise Exception("Incorrect number of precision parameters for SR calculation (should be 5)")
-        arPrecParSR = [_sr_meth, _sr_rel_prec[0], _sr_rel_prec[1], _sr_rel_prec[2], _sr_rel_prec[3], _sr_rel_prec[4], _sr_samp_fact] 
-    else: raise Exception("Incorrect type of precision parameters for SR calculation (should be either single number or list of parameters)")
-    
     #DEBUG
     #print('_mesh.xStart=', _mesh.xStart, '_mesh.xFin=', _mesh.xFin, '_mesh.yStart=', _mesh.yStart, '_mesh.yFin=', _mesh.yFin) #DEBUG
     #print('_sr_samp_fact:', _sr_samp_fact) #DEBUG
@@ -9128,8 +9112,7 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
     #wfr.partBeam = deepcopy(_e_beam)
 
     #arPrecParSR = [_sr_meth, _sr_rel_prec, 0, 0, 50000, 0, _sr_samp_fact] #to add npTraj, useTermin ([4], [5]) terms as input parameters
-    #arPrecParSR = [_sr_meth, _sr_rel_prec, 0, 0, 50000, 1, _sr_samp_fact] #to add npTraj, useTermin ([4], [5]) terms as input parameters
-    #OC07052026 (commented-out the above and moved this to the beginning of the function, to determine the type of _sr_rel_prec first)
+    arPrecParSR = [_sr_meth, _sr_rel_prec, 0, 0, 50000, 1, _sr_samp_fact] #to add npTraj, useTermin ([4], [5]) terms as input parameters
 
     #meshRes = SRWLRadMesh(_mesh.eStart, _mesh.eFin, _mesh.ne, _mesh.xStart, _mesh.xFin, _mesh.nx, _mesh.yStart, _mesh.yFin, _mesh.ny, _mesh.zStart) if not doPropCM else None #OC04112020
     meshRes = SRWLRadMesh(_mesh.eStart, _mesh.eFin, _mesh.ne, _mesh.xStart, _mesh.xFin, _mesh.nx, _mesh.yStart, _mesh.yFin, _mesh.ny, _mesh.zStart) #OC15112020 #OC30052017 (uncommented) #to ensure correct final mesh if _opt_bl is None
@@ -10416,20 +10399,6 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
                         #    subcomm.Barrier()
                         #    print(f"Rank {rank} passed barrier")
                         #END DEBUG
-                        
-                        #if(rank > 1): #OC22042026 (introducing radom sleep time to test / bypass CUDA memory access issue on Windows) - this did not help, so commenting-out for now
-                        #    if(i == 0):
-                        #        if(tryUsingGPUforWfr > 0):
-                        #            maxWaitTimeS = 5. #to tune(?)
-                        #            
-                        #            #rndWaitTimeS = random.uniform(0, maxWaitTimeS)
-                        #            rndWaitTimeS = (maxWaitTimeS/(nProc - 2))*(rank - 1) #to have a more deterministic behavior
-                        #            time.sleep(rndWaitTimeS) #Trying to mitigate a potential issue at simultaneous access to GPU by different processes
-                        #            
-                        #            #DEBUG
-                        #            print('Rank #', rank, 'waking up after', rndWaitTimeS, 's')
-                        #            sys.stdout.flush()
-                        #            #END DEBUG
                         
                         srwl.PropagElecField(wfr, _opt_bl, None, tryUsingGPUforWfr) #propagate Electric Field emitted by the electron #OC05042026
                         #srwl.PropagElecField(wfr, _opt_bl) #propagate Electric Field emitted by the electron

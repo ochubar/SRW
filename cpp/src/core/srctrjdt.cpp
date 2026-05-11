@@ -65,6 +65,11 @@ int srTConstTrjDat::ConvertToArbTrjDat(char Periodicity, srTWfrSmp& DistrInfoDat
 		(tFunDerZ++)->dfds = 0.;
 	}
 
+	//OC24072025
+	//SetupTrjDat(pOut);
+	int res = 0;
+	if(res = pNewTrjDat->ComputeInterpolatingStructure()) return res;
+
 	TrjHndl = srTGenTrjHndl(pNewTrjDat);
 	return 0;
 }
@@ -73,7 +78,10 @@ int srTConstTrjDat::ConvertToArbTrjDat(char Periodicity, srTWfrSmp& DistrInfoDat
 
 void srTConstTrjDat::DetermineIntegLimitsForArbTrj(srTWfrSmp& DistrInfoDat, double& sStart, double& sEnd)
 {
-	const int AmOfSafetyInterv = 10; // To steer
+	//const int AmOfSafetyInterv = 10; // To steer
+	//OC25072025
+	double AmOfSafetyInterv = 10.; // To steer
+
 	const double RelTolNotRotate = 1.E-05; // To steer
 
 	TVector3d uLab(MagConst.Bx, 0., MagConst.Bz);
@@ -84,6 +92,7 @@ void srTConstTrjDat::DetermineIntegLimitsForArbTrj(srTWfrSmp& DistrInfoDat, doub
 	if(DistrInfoDat.AssumeAllPhotonEnergies)
 	{
         ds = Rmag*sqrt(EbmDat.GammaEm2);
+		AmOfSafetyInterv *= 3.; //OC25072025 //To steer, since the integration is over all photon energies
 	}
 	else
 	{

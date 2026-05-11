@@ -130,7 +130,8 @@ public:
 	//virtual int PropagateRadiation(srTSRWRadStructAccessData*, srTParPrecWfrPropag&, srTRadResizeVect&) { return 0;}
 	virtual int PropagateRadiation(srTSRWRadStructAccessData*, srTParPrecWfrPropag&, srTRadResizeVect&, void* pvGPU=0) { return 0;} //HG01122023
 
-	virtual int PropagateRadMoments(srTSRWRadStructAccessData*, srTMomentsRatios*) { return 0;}
+	virtual int PropagateRadMoments(srTSRWRadStructAccessData*, srTMomentsRatios*, void* =0) { return 0;} //HG27072024
+	//virtual int PropagateRadMoments(srTSRWRadStructAccessData*, srTMomentsRatios*) { return 0;}
 	virtual int PropagateWaveFrontRadius(srTSRWRadStructAccessData*) { return 0;}
 	virtual int PropagateWaveFrontRadius1D(srTRadSect1D*) { return 0;}
 	virtual int Propagate4x4PropMatr(srTSRWRadStructAccessData*) { return 0;}
@@ -150,7 +151,8 @@ public:
 	virtual int ResolutionShouldBeAdjustedAtPropag() { return 1;}
 
 #ifdef _OFFLOAD_GPU //HG01122023
-	virtual int RadPointModifierParallel(srTSRWRadStructAccessData* pRadAccessData, void* pBufVars=0, long pBufVarsSz=0, TGPUUsageArg* pvGPU=0) { return -1; }
+	//virtual int RadPointModifierParallel(srTSRWRadStructAccessData* pRadAccessData, void* pBufVars=0, long pBufVarsSz=0, TGPUUsageArg* pvGPU=0) { return -1; }
+	virtual int TraverseRadZXEParallel(srTSRWRadStructAccessData* pRadAccessData, void* pBufVars=0, long pBufVarsSz=0, TGPUUsageArg* pvGPU=0) { return -1; } //HG14042026
 #endif
 	virtual void RadPointModifier(srTEXZ&, srTEFieldPtrs&, void* pBufVars=0) {} //OC29082019
 	//virtual void RadPointModifier(srTEXZ&, srTEFieldPtrs&) {}
@@ -200,9 +202,14 @@ public:
 	virtual int PropagateRadiationMeth_0(srTSRWRadStructAccessData* pRadAccessData, void* pvGPU=0); //moved from derived classes: loops over E, calls derived PropagateRadiationSingleE_Meth_0 //HG01122023
 
 	void FindWidestWfrMeshParam(vector<srTSRWRadStructAccessData>& vRadSlices, srTSRWRadStructAccessData* pRad, bool keepConstNumPoints);
-	int ReInterpolateWfrDataOnNewTransvMesh(vector<srTSRWRadStructAccessData>& vRadSlices, srTSRWRadStructAccessData* pAuxRadSingleE, srTSRWRadStructAccessData* pRadRes);
-	int ReInterpolateWfrSliceSingleE(srTSRWRadStructAccessData& oldRadSingleE, srTSRWRadStructAccessData& newRadMultiE, int ie);
-	
+	//int ReInterpolateWfrDataOnNewTransvMesh(vector<srTSRWRadStructAccessData>& vRadSlices, srTSRWRadStructAccessData* pAuxRadSingleE, srTSRWRadStructAccessData* pRadRes);
+	int ReInterpolateWfrDataOnNewTransvMesh(vector<srTSRWRadStructAccessData>& vRadSlices, srTSRWRadStructAccessData* pAuxRadSingleE, srTSRWRadStructAccessData* pRadRes, void* pvGPU=0); //HG26072024	
+	//int ReInterpolateWfrSliceSingleE(srTSRWRadStructAccessData& oldRadSingleE, srTSRWRadStructAccessData& newRadMultiE, int ie);
+	int ReInterpolateWfrSliceSingleE(srTSRWRadStructAccessData& oldRadSingleE, srTSRWRadStructAccessData& newRadMultiE, int ie, void* pvGPU=0); //HG26072024
+#ifdef _OFFLOAD_GPU //HG27072024
+	int ReInterpolateWfrSliceSingleE_GPU(srTSRWRadStructAccessData& oldRadSingleE, srTSRWRadStructAccessData& newRadMultiE, int ie, TGPUUsageArg* parGPU=0);
+#endif
+
 	int SetupCharacteristicSections1D(srTSRWRadStructAccessData*, srTRadSect1D*);
 	//int DefinePropagScenario(srTSRWRadStructAccessData*, srTPredictedPropagData1D*, srTPropagScenario1D*);
 	//int DefinePropagScenario1D(srTRadSect1D&, srTPredictedPropagData1D&, srTPropagScenario1D&);
@@ -257,18 +264,43 @@ public:
 	int TraverseRad1D(srTRadSect1D*, void* pBufVars=0); //OC29082019
 	//int TraverseRad1D(srTRadSect1D*);
 
-	int ExtractRadSliceConstE(srTSRWRadStructAccessData*, long, float*&, float*&, bool forceCopyField=false); //OC120908
-	int SetupRadSliceConstE(srTSRWRadStructAccessData*, long, float*, float*);
-	inline void SetupRadXorZSectFromSliceConstE(float*, float*, long, long, char, long, float*, float*);
+	//int ExtractRadSliceConstE(srTSRWRadStructAccessData*, long, float*&, float*&, bool forceCopyField=false); //OC120908
+	int ExtractRadSliceConstE(srTSRWRadStructAccessData*, long, float*&, float*&, bool forceCopyField=false, void* pvGPU=0); //OC120908 //HG26072024
+	//int SetupRadSliceConstE(srTSRWRadStructAccessData*, long, float*, float*);
+	int SetupRadSliceConstE(srTSRWRadStructAccessData*, long, float*, float*, void* =0); //HG27072024
+
+#ifdef _OFFLOAD_GPU //OC30112025 (moved neighboring *_GPU functions to one #ifdef) //HG27072024
+	int SetupRadSliceConstE_GPU(srTSRWRadStructAccessData*, long, float*, float*, TGPUUsageArg* =0);
+	void SetupRadXorZSectFromSliceConstE_GPU(float*, float*, long, long, char, long, float*, float*, TGPUUsageArg* pGPU=0); //HG27072024
+	int ExtractRadSliceConstE_GPU(srTSRWRadStructAccessData*, long, float*, float*, TGPUUsageArg* pGPU=0);
+	int UpdateGenRadStructSliceConstE_Meth_0_GPU(srTSRWRadStructAccessData*, int, srTSRWRadStructAccessData*, TGPUUsageArg* pGPU=0);
+	void MakeWfrEdgeCorrection_GPU(srTSRWRadStructAccessData* RadAccessData, float* pDataEx, float* pDataEz, srTDataPtrsForWfrEdgeCorr& DataPtrs, TGPUUsageArg* pGPU); //HG13012024 Remove 'srTGenOptElem::' at the beginning of the function name to comply with the C++ standard
+	void ComputeRadMoments_GPU(srTSRWRadStructAccessData* pSRWRadStructAccessData, int ie, double* SumsZ, int* IndLims, TGPUUsageArg* pGPU);
+	int RadResizeCore_GPU(srTSRWRadStructAccessData&, srTSRWRadStructAccessData&, char =0, TGPUUsageArg* =0);
+	int RadResizeCore_OnlyLargerRange_GPU(srTSRWRadStructAccessData& OldRadAccessData, srTSRWRadStructAccessData& NewRadAccessData, char PolComp, TGPUUsageArg* pGPU =0); //HG26072024
+	int RadResizeCore_OnlyLargerRangeE_GPU(srTSRWRadStructAccessData& OldRadAccessData, srTSRWRadStructAccessData& NewRadAccessData, char PolComp, TGPUUsageArg* pGPU =0); //HG26072024
+#endif
+
+	//inline void SetupRadXorZSectFromSliceConstE(float*, float*, long, long, char, long, float*, float*);
+	inline void SetupRadXorZSectFromSliceConstE(float*, float*, long, long, char, long, float*, float*, void* pvGPU=0); //HG27072024
+//#ifdef _OFFLOAD_GPU //HG27072024
+//	void SetupRadXorZSectFromSliceConstE_GPU(float*, float*, long, long, char, long, float*, float*, TGPUUsageArg* pGPU=0); //HG27072024
+//#endif
+//#ifdef _OFFLOAD_GPU //HG26072024
+//	int ExtractRadSliceConstE_GPU(srTSRWRadStructAccessData*, long, float*, float*, TGPUUsageArg* pGPU=0);
+//	int UpdateGenRadStructSliceConstE_Meth_0_GPU(srTSRWRadStructAccessData*, int, srTSRWRadStructAccessData*, TGPUUsageArg* pGPU=0);
+//#endif
 
 	int ExtractRadSectVsXorZ(srTSRWRadStructAccessData*, long, long, char, float*, float*);
 	int SetupSectionArraysVsXandZ(srTSRWRadStructAccessData*, srTRadSect1D&, srTRadSect1D&);
 
-	int SetupNewRadStructFromSliceConstE(srTSRWRadStructAccessData* pRadAccessData, long, srTSRWRadStructAccessData*& pRadDataSingleE);
+	//int SetupNewRadStructFromSliceConstE(srTSRWRadStructAccessData* pRadAccessData, long, srTSRWRadStructAccessData*& pRadDataSingleE);
+	int SetupNewRadStructFromSliceConstE(srTSRWRadStructAccessData* pRadAccessData, long, srTSRWRadStructAccessData*& pRadDataSingleE, void* pvGPU=0); //HG26072024
 	//int UpdateGenRadStructFromSlicesConstE(srTSRWRadStructAccessData*, srTSRWRadStructAccessData*);
 	//int UpdateGenRadStructSliceConstE_Meth_0(srTSRWRadStructAccessData*, int, srTSRWRadStructAccessData*);
 	//OC28102018: modified by S.Yakubov to adopt the code for OpenMP parallelization
-	int UpdateGenRadStructSliceConstE_Meth_0(srTSRWRadStructAccessData*, int, srTSRWRadStructAccessData*, int update_mode=0);
+	//int UpdateGenRadStructSliceConstE_Meth_0(srTSRWRadStructAccessData*, int, srTSRWRadStructAccessData*, int update_mode=0);
+	int UpdateGenRadStructSliceConstE_Meth_0(srTSRWRadStructAccessData*, int, srTSRWRadStructAccessData*, int update_mode=0, void* pvGPU=0); //HG26072024
 
 	int UpdateGenRadStructSliceConstE_Meth_2(srTSRWRadStructAccessData*, int, srTSRWRadStructAccessData*);
 	int RemoveSliceConstE_FromGenRadStruct(srTSRWRadStructAccessData*, long);
@@ -284,26 +316,39 @@ public:
 	inline void SetupExpCorrArray(float*, long long, double, double, double);
 	void MakeWfrEdgeCorrection(srTSRWRadStructAccessData*, float*, float*, srTDataPtrsForWfrEdgeCorr&, void* pvGPU=0); //HG01122023
 	//void MakeWfrEdgeCorrection(srTSRWRadStructAccessData*, float*, float*, srTDataPtrsForWfrEdgeCorr&);
-#ifdef _OFFLOAD_GPU //HG01122023
-	void MakeWfrEdgeCorrection_GPU(srTSRWRadStructAccessData* RadAccessData, float* pDataEx, float* pDataEz, srTDataPtrsForWfrEdgeCorr& DataPtrs, TGPUUsageArg* pGPU); //HG13012024 Remove 'srTGenOptElem::' at the beginning of the function name to comply with the C++ standard
-#endif
+
+//#ifdef _OFFLOAD_GPU //HG01122023
+//	void MakeWfrEdgeCorrection_GPU(srTSRWRadStructAccessData* RadAccessData, float* pDataEx, float* pDataEz, srTDataPtrsForWfrEdgeCorr& DataPtrs, TGPUUsageArg* pGPU); //HG13012024 Remove 'srTGenOptElem::' at the beginning of the function name to comply with the C++ standard
+//	void ComputeRadMoments_GPU(srTSRWRadStructAccessData* pSRWRadStructAccessData, int ie, double* SumsZ, int* IndLims, TGPUUsageArg* pGPU);
+//	int RadResizeCore_GPU(srTSRWRadStructAccessData&, srTSRWRadStructAccessData&, char =0, TGPUUsageArg* =0);
+//	int RadResizeCore_OnlyLargerRange_GPU(srTSRWRadStructAccessData& OldRadAccessData, srTSRWRadStructAccessData& NewRadAccessData, char PolComp, TGPUUsageArg* pGPU =0); //HG26072024
+//	int RadResizeCore_OnlyLargerRangeE_GPU(srTSRWRadStructAccessData& OldRadAccessData, srTSRWRadStructAccessData& NewRadAccessData, char PolComp, TGPUUsageArg* pGPU =0); //HG26072024
+//#endif
 
 	int SetupWfrEdgeCorrData1D(srTRadSect1D*, float*, float*, srTDataPtrsForWfrEdgeCorr1D&);
 	void MakeWfrEdgeCorrection1D(srTRadSect1D*, float*, float*, srTDataPtrsForWfrEdgeCorr1D&);
 
-	int ComputeRadMoments(srTSRWRadStructAccessData*);
+	//int ComputeRadMoments(srTSRWRadStructAccessData*);
+	int ComputeRadMoments(srTSRWRadStructAccessData*, void* =0); //HG26072024
+//#ifdef _OFFLOAD_GPU //HG31072024
+//	void ComputeRadMoments_GPU(srTSRWRadStructAccessData* pSRWRadStructAccessData, int ie, double* SumsZ, int* IndLims, TGPUUsageArg* pGPU);
+//#endif
 
 	int RadResizeGen(srTSRWRadStructAccessData&, srTRadResize&, void* pvGPU=0); //HG01122023
 	//int RadResizeGen(srTSRWRadStructAccessData&, srTRadResize&);
 	int RadResizeGenE(srTSRWRadStructAccessData&, srTRadResize&);
 	int RadResizeCore(srTSRWRadStructAccessData&, srTSRWRadStructAccessData&, srTRadResize&, char =0, void* =0); //HG01122023
 	//int RadResizeCore(srTSRWRadStructAccessData&, srTSRWRadStructAccessData&, srTRadResize&, char =0);
-#ifdef _OFFLOAD_GPU //HG01122023
-	int RadResizeCore_GPU(srTSRWRadStructAccessData&, srTSRWRadStructAccessData&, char =0, TGPUUsageArg* =0);
-#endif
+//#ifdef _OFFLOAD_GPU //HG01122023
+//	int RadResizeCore_GPU(srTSRWRadStructAccessData&, srTSRWRadStructAccessData&, char =0, TGPUUsageArg* =0);
+//	int RadResizeCore_OnlyLargerRange_GPU(srTSRWRadStructAccessData& OldRadAccessData, srTSRWRadStructAccessData& NewRadAccessData, char PolComp, TGPUUsageArg* pGPU =0); //HG26072024
+//	int RadResizeCore_OnlyLargerRangeE_GPU(srTSRWRadStructAccessData& OldRadAccessData, srTSRWRadStructAccessData& NewRadAccessData, char PolComp, TGPUUsageArg* pGPU =0); //HG26072024
+//#endif
 	int RadResizeCoreE(srTSRWRadStructAccessData&, srTSRWRadStructAccessData&, srTRadResize&, char =0);
-	int RadResizeCore_OnlyLargerRange(srTSRWRadStructAccessData& OldRadAccessData, srTSRWRadStructAccessData& NewRadAccessData, srTRadResize& RadResizeStruct, char PolComp);
-	int RadResizeCore_OnlyLargerRangeE(srTSRWRadStructAccessData& OldRadAccessData, srTSRWRadStructAccessData& NewRadAccessData, srTRadResize& RadResizeStruct, char PolComp);
+	//int RadResizeCore_OnlyLargerRange(srTSRWRadStructAccessData& OldRadAccessData, srTSRWRadStructAccessData& NewRadAccessData, srTRadResize& RadResizeStruct, char PolComp);
+	//int RadResizeCore_OnlyLargerRangeE(srTSRWRadStructAccessData& OldRadAccessData, srTSRWRadStructAccessData& NewRadAccessData, srTRadResize& RadResizeStruct, char PolComp);
+	int RadResizeCore_OnlyLargerRange(srTSRWRadStructAccessData& OldRadAccessData, srTSRWRadStructAccessData& NewRadAccessData, srTRadResize& RadResizeStruct, char PolComp, void* pvGPU=0); //HG26072024
+	int RadResizeCore_OnlyLargerRangeE(srTSRWRadStructAccessData& OldRadAccessData, srTSRWRadStructAccessData& NewRadAccessData, srTRadResize& RadResizeStruct, char PolComp, void* pvGPU=0); //HG26072024
 
 	//inline void GetCellDataForInterpol(float*, long long , long long, srTInterpolAuxF*);
 #ifdef _OFFLOAD_GPU //HG01122023
@@ -398,7 +443,12 @@ public:
 #ifdef _OFFLOAD_GPU //HG04122023
 	GPU_PORTABLE
 #endif
+		inline static void CosAndSinPi(double, float&, float&);
+#ifdef _OFFLOAD_GPU //HG04122023
+	GPU_PORTABLE
+#endif
 	inline void CosAndSin(double, float&, float&);
+	inline void CosAndSin(double, double&, double&); //OC28122025
 	inline void FindLowestAndUppestPoints(TVector3d&, TVector3d*, int, int&, int&);
 	inline void ReflectVect(TVector3d& N, TVector3d& V);
 	inline void FindLineIntersectWithPlane(TVector3d* Plane, TVector3d* Line, TVector3d& IntersectP);
@@ -555,7 +605,9 @@ inline void srTGenOptElem::SetupInterpolAux02(srTInterpolAuxF* pF, srTInterpolAu
 	pA->Ax1z2 = (-2*(pF->f00 + pF->f02 - pF->f31) + 4*pF->f01 - 3*(pF->f10 + pF->f12) + 6*(pF->f11 + pF->f20 + pF->f22) - 12*pF->f21 - pF->f30 - pF->f32)*pC->cAx1z2;
 	pA->Ax1z3 = (2*(pF->f00 - pF->f03) + 6*(-pF->f01 + pF->f02 - pF->f20 + pF->f23) + 3*(pF->f10 - pF->f13 - pF->f31 + pF->f32) + 9*(pF->f12 - pF->f11) + 18*(pF->f21 - pF->f22) + pF->f30 - pF->f33)*pC->cAx1z3;
 	pA->Ax2z0 = (pF->f01 + pF->f21 - 2*pF->f11)*pC->cAx2z0;
-	pA->Ax2z1 = (2*(-pF->f00 + pF->f13 - pF->f20) - 3*(pF->f21 + pF->f01) + 6*(pF->f02 + pF->f11 + pF->f22) + 4*pF->f10 - 12*pF->f12 - pF->f23 - pF->f03)*pC->cAx2z1;
+	//pA->Ax2z1 = (2*(-pF->f00 + pF->f13 - pF->f20) - 3*(pF->f21 + pF->f01) + 6*(pF->f02 + pF->f11 + pF->f22) + 4*pF->f10 - 12*pF->f12 - pF->f23 - pF->f03)*pC->cAx2z1;
+	pA->Ax2z1 = pC->cAx2z1 * (6*(pF->f02 + pF->f11 + pF->f22) + 4*pF->f10 - 12*pF->f12 - 3*(pF->f21 + pF->f01) + 2*(-pF->f00 + pF->f13 - pF->f20) - pF->f23 - pF->f03); //HG29092025 Reorder terms for more consistent optimization/precision
+	//OC30112025: OK, though it is not clear why the reordering helps...
 	pA->Ax2z2 = (pF->f00 + pF->f02 + pF->f22 + pF->f20 - 2*(pF->f01 + pF->f10 + pF->f12 + pF->f21) + 4*pF->f11)*pC->cAx2z2;
 	pA->Ax2z3 = (-pF->f00 + pF->f03 - pF->f20 + pF->f23 + 3*(pF->f01 - pF->f02 + pF->f21 - pF->f22) + 2*(pF->f10 - pF->f13) + 6*(pF->f12 - pF->f11))*pC->cAx2z3;
 	pA->Ax3z0 = (pF->f31 - pF->f01 + 3*(pF->f11 - pF->f21))*pC->cAx3z0;
@@ -596,13 +648,25 @@ inline void srTGenOptElem::SetupInterpolAux02_LowOrder1D(srTInterpolAuxF_1D* pF,
 
 inline void srTGenOptElem::InterpolF(srTInterpolAux02* A, double x, double z, float* F, int Offset)
 {
-	double xE2 = x*x, xz = x*z, zE2 = z*z;
-	double xE3 = xE2*x, xE2z = xE2*z, xzE2 = x*zE2, zE3 = zE2*z, xE2zE2 = xE2*zE2;
-	double xE3z = xE3*z, xE3zE2 = xE3*zE2, xE3zE3 = xE3*zE3, xE2zE3 = xE2*zE3, xzE3 = x*zE3;
-	srTInterpolAux02* tA = A + Offset;
+//	double xE2 = x*x, xz = x*z, zE2 = z*z;
+//	double xE3 = xE2*x, xE2z = xE2*z, xzE2 = x*zE2, zE3 = zE2*z, xE2zE2 = xE2*zE2;
+//	double xE3z = xE3*z, xE3zE2 = xE3*zE2, xE3zE3 = xE3*zE3, xE2zE3 = xE2*zE3, xzE3 = x*zE3;
+//	srTInterpolAux02* tA = A + Offset;
+//	for(int i=0; i<4-Offset; i++)
+//	{
+//		F[i + Offset] = (float)(tA->Ax3z3*xE3zE3 + tA->Ax3z2*xE3zE2 + tA->Ax3z1*xE3z + tA->Ax3z0*xE3 + tA->Ax2z3*xE2zE3 + tA->Ax2z2*xE2zE2 + tA->Ax2z1*xE2z + tA->Ax2z0*xE2 + tA->Ax1z3*xzE3 + tA->Ax1z2*xzE2 + tA->Ax1z1*xz + tA->Ax1z0*x + tA->Ax0z3*zE3 + tA->Ax0z2*zE2 + tA->Ax0z1*z + tA->Ax0z0);
+//		tA++;
+//	}
+	
+	srTInterpolAux02* tA = A + Offset; //HG29092025 Redesign to improve consistency and allow for FMA optimizations
 	for(int i=0; i<4-Offset; i++)
 	{
-		F[i + Offset] = (float)(tA->Ax3z3*xE3zE3 + tA->Ax3z2*xE3zE2 + tA->Ax3z1*xE3z + tA->Ax3z0*xE3 + tA->Ax2z3*xE2zE3 + tA->Ax2z2*xE2zE2 + tA->Ax2z1*xE2z + tA->Ax2z0*xE2 + tA->Ax1z3*xzE3 + tA->Ax1z2*xzE2 + tA->Ax1z1*xz + tA->Ax1z0*x + tA->Ax0z3*zE3 + tA->Ax0z2*zE2 + tA->Ax0z1*z + tA->Ax0z0);
+		double x3 = (z*(z*(tA->Ax3z3*z + tA->Ax3z2) + tA->Ax3z1) + tA->Ax3z0);
+		double x2 = (z*(z*(tA->Ax2z3*z + tA->Ax2z2) + tA->Ax2z1) + tA->Ax2z0);
+		double x1 = (z*(z*(tA->Ax1z3*z + tA->Ax1z2) + tA->Ax1z1) + tA->Ax1z0);
+		double x0 = (z*(z*(tA->Ax0z3*z + tA->Ax0z2) + tA->Ax0z1) + tA->Ax0z0);
+
+		F[i + Offset] = (float)(x*(x*(x*x3 + x2) + x1) + x0);
 		tA++;
 	}
 }
@@ -853,6 +917,58 @@ inline void srTGenOptElem::MultSquareMatrByVect(double** b, double* c, int n, do
 
 //*************************************************************************
 
+inline void srTGenOptElem::CosAndSinPi(double x, float& Cos, float& Sin) //HG29092025 Optimized high precision cos(Pi * x), sin(Pi * x), can improve precision (and maybe performance) by avoiding extra multiplications/divisions by Pi
+{
+	bool flipSign = false;
+	x *= 0.5;
+	double x_int = 0;
+	x = modf(x, &x_int);
+	if(x > 0.5) x -=1.0;
+	else if(x < -0.5) x += 1.0;
+	if(x < -0.25 || x > 0.25) flipSign = true;
+	x = fmax(fmin(x, 0.5 - x), -0.5 - x);
+
+	double cos_coeffs[] = {
+		//Order 10 - Min. Rel. Err.
+		 0.99999999901810067632218592152414676,
+		 -19.7392080320548995682599111266827624,
+		 64.9392878245787538584194003810854251,
+		 -85.4511616308164044967465654262107341,
+		 60.1029288012462159679724965251436792,
+		 -24.7337944595523781372950725036124394,
+	};
+
+	double sin_coeffs[] = {
+		//Order 11 - Min. Rel. Err
+		6.28318530704669073655382220589738758,
+	   -41.3417020969260358562295154399161189,
+		81.6052236901305879070487996745527555,
+	   -76.7041702522234536443141173678808329,
+		42.0077971361087965477414621069542974,
+	   -14.3813907433071852719484446678883883,
+	};
+
+	const int N = 5;
+
+	double x2 = x*x;
+	double res0 = cos_coeffs[N];
+	double res1 = sin_coeffs[N];
+	for(int i = N-1; i >= 0; i--)
+	{
+		res0 = cos_coeffs[i] + res0 * x2;
+		res1 = sin_coeffs[i] + res1 * x2;
+	}
+	res1 = x * res1;
+	if(flipSign) res0 = -res0;
+
+	Cos = (float)res0; //Consider changing to double at ouput, cast at calling point if needed
+	Sin = (float)res1;
+	//Cos = res0;
+	//Sin = res1;
+}
+
+//*************************************************************************
+
 inline void srTGenOptElem::CosAndSin(double x, float& Cos, float& Sin)
 {
 	if((x < -1.E+08) || (x > 1.E+08)) { Cos = (float)cos(x); Sin = (float)sin(x); return;} //OC13112011
@@ -869,6 +985,24 @@ inline void srTGenOptElem::CosAndSin(double x, float& Cos, float& Sin)
 	Cos = float(1. + xe2*(a2c + xe2*(a4c + xe2*(a6c + xe2*(a8c + xe2*a10c)))));
 	Sin = float(x*(1. + xe2*(a3s + xe2*(a5s + xe2*(a7s + xe2*(a9s + xe2*a11s))))));
 	if(ChangeSign) { Cos = -Cos; Sin = -Sin;}
+}
+
+inline void srTGenOptElem::CosAndSin(double x, double& Cos, double& Sin) //OC28122025
+{
+	if((x < -1.E+08) || (x > 1.E+08)) { Cos = cos(x); Sin = sin(x); return;}
+
+	//x -= TwoPI*((long)(x*One_dTwoPI));
+	x -= TwoPI*((long long)(x*One_dTwoPI));
+	if(x < 0.) x += TwoPI;
+
+	char ChangeSign=0;
+	if(x > ThreePIdTwo) x -= TwoPI;
+	else if(x > HalfPI) { x -= PI; ChangeSign = 1; }
+
+	double xe2 = x*x;
+	Cos = 1. + xe2*(a2c + xe2*(a4c + xe2*(a6c + xe2*(a8c + xe2*a10c))));
+	Sin = x*(1. + xe2*(a3s + xe2*(a5s + xe2*(a7s + xe2*(a9s + xe2*a11s)))));
+	if(ChangeSign) { Cos = -Cos; Sin = -Sin; }
 }
 
 //*************************************************************************
@@ -948,8 +1082,16 @@ inline void srTGenOptElem::SetupExpCorrArray(float* pCmpData, long long AmOfPt, 
 
 //*************************************************************************
 
-inline void srTGenOptElem::SetupRadXorZSectFromSliceConstE(float* pInEx, float* pInEz, long nx, long nz, char vsX_or_vsZ, long iSect, float* pOutEx, float* pOutEz)
+inline void srTGenOptElem::SetupRadXorZSectFromSliceConstE(float* pInEx, float* pInEz, long nx, long nz, char vsX_or_vsZ, long iSect, float* pOutEx, float* pOutEz, void* pvGPU) //HG27072024
+//inline void srTGenOptElem::SetupRadXorZSectFromSliceConstE(float* pInEx, float* pInEz, long nx, long nz, char vsX_or_vsZ, long iSect, float* pOutEx, float* pOutEz)
 {
+#ifdef _OFFLOAD_GPU //HG26072024
+	TGPUUsageArg parGPU(pvGPU);
+	if(CAuxGPU::GPUEnabled(&parGPU))
+	{
+		return SetupRadXorZSectFromSliceConstE_GPU(pInEx, pInEz, nx, nz, vsX_or_vsZ, iSect, pOutEx, pOutEz, &parGPU); //If GPU version is successful, return, otherwise continue with CPU
+	}
+#endif
 	//long Per = (vsX_or_vsZ == 'x')? 2 : (nx << 1);
 	long long Per = (vsX_or_vsZ == 'x')? 2 : (nx << 1);
 	float *tOutEx = pOutEx, *tOutEz = pOutEz;

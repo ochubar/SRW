@@ -176,6 +176,8 @@ srTGenTransmission::srTGenTransmission(const SRWLOptT& tr)
 	GenTransNumData.DimSteps[1] = (tr.mesh.nx > 1)? (tr.mesh.xFin - tr.mesh.xStart)/(tr.mesh.nx - 1) : 0;
 	GenTransNumData.DimSteps[2] = (tr.mesh.ny > 1)? (tr.mesh.yFin - tr.mesh.yStart)/(tr.mesh.ny - 1) : 0;
 
+	m_PolBase = tr.polBase; //OC07022025
+
 	//GenTransNumData.DimUnits[10][255];
 	//GenTransNumData.DataUnits[255];
 	//GenTransNumData.DataName[255];

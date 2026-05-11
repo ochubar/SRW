@@ -20,15 +20,15 @@ srwpy.srwl\_bl module
    :undoc-members:
    :show-inheritance:
 
-srwpy.srwl\_uti\_brightness module
-----------------------------------
+.. srwpy.srwl\_uti\_brightness module
+.. ----------------------------------
 
-.. automodule:: srwpy.srwl_uti_brightness
-   :members:
-   :undoc-members:
-   :show-inheritance:
+.. .. automodule:: srwpy.srwl_uti_brightness
+..    :members:
+..    :undoc-members:
+..    :show-inheritance:
 
-srwpy.srwl\_uti\_cryst module
+.. srwpy.srwl\_uti\_cryst module
 -----------------------------
 
 .. automodule:: srwpy.srwl_uti_cryst

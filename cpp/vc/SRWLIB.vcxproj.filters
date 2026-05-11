@@ -90,9 +90,6 @@
     <ClCompile Include="..\src\core\sroptgtr.cpp">
       <Filter>core</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\core\sropthck.cpp">
-      <Filter>core</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\core\sroptmat.cpp">
       <Filter>core</Filter>
     </ClCompile>
@@ -396,6 +393,9 @@
     <ClCompile Include="..\src\ext\auxgpu\auxgpu.cpp">
       <Filter>core</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\core\sropthck.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\ext\auxparse\auxparse.h">
@@ -638,6 +638,18 @@
       <Filter>core</Filter>
     </CudaCompile>
     <CudaCompile Include="..\src\core\sroptgtr_gpu.cu">
+      <Filter>core</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\src\core\srmatsta_gpu.cu">
+      <Filter>core</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\src\core\sroptapt_gpu.cu">
+      <Filter>core</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\src\core\sroptfoc_gpu.cu">
+      <Filter>core</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\src\core\sroptzp_gpu.cu">
       <Filter>core</Filter>
     </CudaCompile>
   </ItemGroup>

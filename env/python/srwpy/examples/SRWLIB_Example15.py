@@ -2,11 +2,11 @@
 
 """
 The example was created by Timur Shaftan (BNL) for RadTrack project (https://github.com/radiasoft/radtrack).
-Adapted by Maksim Rakitin (BNL).
+Adapted by Maksim Rakitin, updated by Himanshu Goel (BNL).
 The purpose of the example is to demonstrate good agreement of the SRW simulation
 of propagation of a gaussian beam through a drift with an analytical estimation.
 """
-# v. 0.04
+# v. 0.05
 
 from __future__ import print_function
 
@@ -26,6 +26,11 @@ except:
 
 print('SRWLIB Python Example # 15:')
 print('Calculating propagation of a gaussian beam through a drift and comparison with the analytical calculation.')
+print('This example can use GPU for accelerating calculations; to try, set tryUsingGPU = 1 in the code below.')
+
+#************************************* Execution Instructions
+tryUsingGPU = 0 #Set to 1 if GPU should be used, 0 otherwise
+if(tryUsingGPU): print('   ... Trying to use GPU ... \n', end='')
 
 #************************************* Create examples directory if it does not exist
 example_folder = 'data_example_15'
@@ -142,11 +147,13 @@ data_to_print = []
 header = '{:3s} {:8s} {:8s} {:2s} {:2s} {:13s} {:13s}'.format('z', 'xFWHM', 'yFWHM', 'nx', 'ny', 'xStart', 'yStart') #OC18112017
 data_to_print.append(header)
 print(header)
+
 for j in range(NumSteps):
     #********************************* Calculating Initial Wavefront and extracting Intensity:
     srwl.CalcElecFieldGaussian(wfr, GsnBm, arPrecPar)
     arI0 = array('f', [0] * wfr.mesh.nx * wfr.mesh.ny)  # "flat" array to take 2D intensity data
-    srwl.CalcIntFromElecField(arI0, wfr, 6, 0, 3, wfr.mesh.eStart, 0, 0)  # extracts intensity
+    srwl.CalcIntFromElecField(arI0, wfr, 6, 0, 3, wfr.mesh.eStart, 0, 0, None, None, tryUsingGPU)  # extracts intensity
+    #srwl.CalcIntFromElecField(arI0, wfr, 6, 0, 3, wfr.mesh.eStart, 0, 0)  # extracts intensity #HG10122025
     wfrP = deepcopy(wfr)
 
     #********************************* Selecting radiation properties
@@ -164,7 +171,8 @@ for j in range(NumSteps):
 
     InitialDist = InitialDist + StepSize
     (opBL, LensMatrX, LensMatrY, DriftMatr) = Container(InitialDist, f_x, f_y)
-    srwl.PropagElecField(wfrP, opBL)  # Propagate E-field
+    srwl.PropagElecField(wfrP, opBL, None, tryUsingGPU)  # propagates E-field
+    #srwl.PropagElecField(wfrP, opBL)  # propagates E-field #HG10122025
 
     # plotMeshx = [plotNum * wfrP.mesh.xStart, plotNum * wfrP.mesh.xFin, wfrP.mesh.nx]
     # plotMeshy = [plotNum * wfrP.mesh.yStart, plotNum * wfrP.mesh.yFin, wfrP.mesh.ny]
@@ -174,11 +182,14 @@ for j in range(NumSteps):
     #********************************* Extracting output wavefront
     arII = array('f', [0] * wfrP.mesh.nx * wfrP.mesh.ny)  # "flat" array to take 2D intensity data
     arIE = array('f', [0] * wfrP.mesh.nx * wfrP.mesh.ny)
-    srwl.CalcIntFromElecField(arII, wfrP, Polar, Intens, DependArg, wfrP.mesh.eStart, 0, 0)
+    srwl.CalcIntFromElecField(arII, wfrP, Polar, Intens, DependArg, wfrP.mesh.eStart, 0, 0, None, None, tryUsingGPU)
+#    srwl.CalcIntFromElecField(arII, wfrP, Polar, Intens, DependArg, wfrP.mesh.eStart, 0, 0) #HG10122025
     arIx = array('f', [0] * wfrP.mesh.nx)
-    srwl.CalcIntFromElecField(arIx, wfrP, 6, Intens, 1, wfrP.mesh.eStart, 0, 0)
+    srwl.CalcIntFromElecField(arIx, wfrP, 6, Intens, 1, wfrP.mesh.eStart, 0, 0, None, None, tryUsingGPU)
+#    srwl.CalcIntFromElecField(arIx, wfrP, 6, Intens, 1, wfrP.mesh.eStart, 0, 0) #HG10122025
     arIy = array('f', [0] * wfrP.mesh.ny)
-    srwl.CalcIntFromElecField(arIy, wfrP, 6, Intens, 2, wfrP.mesh.eStart, 0, 0)
+    srwl.CalcIntFromElecField(arIy, wfrP, 6, Intens, 2, wfrP.mesh.eStart, 0, 0, None, None, tryUsingGPU)
+#    srwl.CalcIntFromElecField(arIy, wfrP, 6, Intens, 2, wfrP.mesh.eStart, 0, 0) #HG10122025
 
     if abs(InitialDist - 3.0) < 1e-10 or abs(InitialDist - 3.9) < 1e-10:  # plot at these distances
         intensitiesToPlot['intensity'].append(deepcopy(arII))

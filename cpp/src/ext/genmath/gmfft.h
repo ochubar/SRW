@@ -210,7 +210,8 @@ public:
 	//int Make2DFFT(CGenMathFFT2DInfo&, fftwf_plan* pPrecreatedPlan2DFFT=0, fftw_plan* pdPrecreatedPlan2DFFT=0, gpuUsageArg *pGpuUsage = 0); //OC02022019
 	//int Make2DFFT(CGenMathFFT2DInfo&, fftwf_plan* pPrecreatedPlan2DFFT=0);
 #else
-	int Make2DFFT(CGenMathFFT2DInfo&, fftwnd_plan* pPrecreatedPlan2DFFT=0); //OC27102018
+	int Make2DFFT(CGenMathFFT2DInfo&, fftwnd_plan* pPrecreatedPlan2DFFT=0, void* pvGPU=0); //OC23022025
+	//int Make2DFFT(CGenMathFFT2DInfo&, fftwnd_plan* pPrecreatedPlan2DFFT=0); //OC27102018
 #endif
 
 #ifdef _OFFLOAD_GPU //HG04122023
@@ -413,6 +414,113 @@ public:
 		{
 			t->re *= (FFTW_REAL)Mult; (t++)->im *= (FFTW_REAL)Mult;
 		}
+	}
+#endif
+
+#ifdef _FFTW3
+	template <class T> void RepairSignAndRotateDataAfter2DFFT(T* pAfterFFT, long Nx, long Ny, double Mult) //HG04092025
+	{
+		long HalfNx = Nx / 2;
+		long HalfNy = Ny / 2;
+
+		for(int iy = 0; iy < HalfNy; iy++)
+			for(int ix = 0; ix < HalfNx; ix++)
+			{
+				T sx0 = (T)(1. - 2. * (ix % 2)); //HG09122025
+				T sy0 = (T)(1. - 2. * (iy % 2));
+				T sx1 = (T)(1. - 2. * ((HalfNx + ix) % 2));
+				T sy1 = (T)(1. - 2. * ((HalfNy + iy) % 2));
+				//float sx0 = 1.f - 2.f * (ix % 2);
+				//float sy0 = 1.f - 2.f * (iy % 2);
+				//float sx1 = 1.f - 2.f * ((HalfNx + ix) % 2);
+				//float sy1 = 1.f - 2.f * ((HalfNy + iy) % 2);
+
+				T s1 = (T)(sx0 * sy0 * Mult); //HG09122025
+				T s2 = (T)(sx1 * sy1 * Mult);
+				T s3 = (T)(sx1 * sy0 * Mult);
+				T s4 = (T)(sx0 * sy1 * Mult);
+				//float s1 = sx0 * sy0 * Mult;
+				//float s2 = sx1 * sy1 * Mult;
+				//float s3 = sx1 * sy0 * Mult;
+				//float s4 = sx0 * sy1 * Mult;
+
+				long long idx = ((long long)ix + (long long)iy * Nx) * 2;
+
+				long long HalfNyNx = ((long long)HalfNy) * ((long long)Nx);
+				T* t1 = pAfterFFT, *t2 = pAfterFFT + (HalfNyNx + HalfNx) * 2;
+				T* t3 = pAfterFFT + HalfNx * 2, *t4 = pAfterFFT + HalfNyNx * 2;
+
+				T buf1[2], buf2[2];
+
+				buf1[0] = t1[idx]; buf1[1] = t1[idx+1];
+				buf1[0] *= s1;
+				buf1[1] *= s1;
+
+				buf2[0] = t2[idx]; buf2[1] = t2[idx+1];
+				buf2[0] *= s2;
+				buf2[1] *= s2;
+
+				t1[idx] = buf2[0]; t1[idx+1] = buf2[1];
+				t2[idx] = buf1[0]; t2[idx+1] = buf1[1];
+
+				buf1[0] = t3[idx]; buf1[1] = t3[idx+1];
+				buf1[0] *= s3;
+				buf1[1] *= s3;
+
+				buf2[0] = t4[idx]; buf2[1] = t4[idx+1];
+				buf2[0] *= s4;
+				buf2[1] *= s4;
+
+				t3[idx] = buf2[0]; t3[idx+1] = buf2[1];
+				t4[idx] = buf1[0]; t4[idx+1] = buf1[1];
+			}
+	}
+#else
+	void RepairSignAndRotateDataAfter2DFFT(FFTW_COMPLEX* pAfterFFT, long Nx, long Ny, double Mult) //HG09122025
+	{
+		long HalfNx = Nx / 2;
+		long HalfNy = Ny / 2;
+
+		for(int iy = 0; iy < HalfNy; iy++)
+			for(int ix = 0; ix < HalfNx; ix++)
+			{
+				float sx0 = 1.f - 2.f * (ix % 2);
+				float sy0 = 1.f - 2.f * (iy % 2);
+				float sx1 = 1.f - 2.f * ((HalfNx + ix) % 2);
+				float sy1 = 1.f - 2.f * ((HalfNy + iy) % 2);
+
+				float s1 = sx0 * sy0 * (float)Mult; //HG09122025
+				float s2 = sx1 * sy1 * (float)Mult;
+				float s3 = sx1 * sy0 * (float)Mult;
+				float s4 = sx0 * sy1 * (float)Mult;
+
+				long long idx = ((long long)ix + (long long)iy * Nx);
+
+				long long HalfNyNx = ((long long)HalfNy) * ((long long)Nx);
+				FFTW_COMPLEX* t1 = pAfterFFT, *t2 = pAfterFFT + (HalfNyNx + HalfNx);
+				FFTW_COMPLEX* t3 = pAfterFFT + HalfNx, *t4 = pAfterFFT + HalfNyNx;
+
+				FFTW_COMPLEX buf1, buf2;
+
+				buf1.re = t1[idx].re; buf1.im = t1[idx].im;
+				buf1.re *= s1;
+				buf1.im *= s1;
+
+				buf2.re = t2[idx].re; buf2.im = t2[idx].im;
+				buf2.re *= s2;
+				buf2.im *= s2;
+
+				t1[idx] = buf2; t2[idx] = buf1;
+				buf1.re = t3[idx].re; buf1.im = t3[idx].im;
+				buf1.re *= s3;
+				buf1.im *= s3;
+
+				buf2.re = t4[idx].re; buf2.im = t4[idx].im;
+				buf2.re *= s4;
+				buf2.im *= s4;
+
+				t3[idx] = buf2; t4[idx] = buf1;
+			}
 	}
 #endif
 

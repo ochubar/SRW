@@ -36,6 +36,8 @@ protected: //OC29012021
 	double eMid;
 	double DxContin, DzContin; // Minimal intervals between discontinuties
 
+	char m_PolBase; //0- no polarization to use (i.e.use same transmission for hor. and vert.electric field), 1- linear hor. / vert., 2- linear 45 deg. / 135 deg., 3- circular left / right) //OC07022025
+
 public:
 
 	srTGenTransmission(srTStringVect* pElemInfo, srTDataMD* pExtraData);
@@ -64,9 +66,11 @@ public:
 	void EstimateEffPointsRange(char x_or_z, long icOtherCoord, long& iFirst, long& iLast, double& ArgFirst, double& ArgLast);
 	int EstimateMinimalContinuousIntervals();
 
-	int PropagateRadMoments(srTSRWRadStructAccessData* pRadAccessData, srTMomentsRatios* MomRatArray)
+	int PropagateRadMoments(srTSRWRadStructAccessData* pRadAccessData, srTMomentsRatios* MomRatArray, void* pvGPU=0) //HG27072024
+	//int PropagateRadMoments(srTSRWRadStructAccessData* pRadAccessData, srTMomentsRatios* MomRatArray)
 	{
-		return srTFocusingElem::PropagateRadMoments(pRadAccessData, MomRatArray);
+		//return srTFocusingElem::PropagateRadMoments(pRadAccessData, MomRatArray);
+		return srTFocusingElem::PropagateRadMoments(pRadAccessData, MomRatArray, pvGPU); //HG27072024
 	}
 	int PropagateWaveFrontRadius(srTSRWRadStructAccessData* pRadAccessData)
 	{
@@ -85,11 +89,11 @@ public:
 	//int PropagateRadiation(srTSRWRadStructAccessData* pRadAccessData, srTParPrecWfrPropag& ParPrecWfrPropag, srTRadResizeVect& ResBeforeAndAfterArr)
 	int PropagateRadiation(srTSRWRadStructAccessData* pRadAccessData, srTParPrecWfrPropag& ParPrecWfrPropag, srTRadResizeVect& ResBeforeAndAfterArr, void* pvGPU=0) //HG01122023
 	{
-		//if(ParPrecWfrPropag.AnalTreatment == 1)
-		//{// Treating linear terms analytically
+		if(ParPrecWfrPropag.AnalTreatment == 1) //OC08112024 (restored condition to avoid error at propagation of ~parallel beams; note it is never used for mirrors)
+		{// Treating linear terms analytically
 			//pRadAccessData->CheckAndSubtractPhaseTermsLin(TransvCenPoint.x, TransvCenPoint.y);
-		pRadAccessData->CheckAndSubtractPhaseTermsLin(TransvCenPoint.x, TransvCenPoint.y, pvGPU); //HG12012024
-		//}
+			pRadAccessData->CheckAndSubtractPhaseTermsLin(TransvCenPoint.x, TransvCenPoint.y, pvGPU); //HG12012024
+		}
 
 		char &MethNo = ParPrecWfrPropag.MethNo;
 		
@@ -99,11 +103,11 @@ public:
 		if(MethNo == 0) result = PropagateRadiationMeth_0(pRadAccessData, pvGPU); //HG01122023
 		else result = PropagateRadiationMeth_2(pRadAccessData, ParPrecWfrPropag, ResBeforeAndAfterArr);
 		
-		//if(ParPrecWfrPropag.AnalTreatment == 1)
-		//{// Treating linear terms analytically
+		if(ParPrecWfrPropag.AnalTreatment == 1) //OC08112024 (restored condition to avoid error at propagation of ~parallel beams; note it is never used for mirrors)
+		{// Treating linear terms analytically
 			//if(!ParPrecWfrPropag.DoNotResetAnalTreatTermsAfterProp) pRadAccessData->CheckAndResetPhaseTermsLin();
-		if(!ParPrecWfrPropag.DoNotResetAnalTreatTermsAfterProp) pRadAccessData->CheckAndResetPhaseTermsLin(pvGPU); //HG12012024
-		//}
+			if(!ParPrecWfrPropag.DoNotResetAnalTreatTermsAfterProp) pRadAccessData->CheckAndResetPhaseTermsLin(pvGPU); //HG12012024
+		}
 
 		return result;
 	}
@@ -115,7 +119,8 @@ public:
 	int PropagateRadiationSingleE_Meth_0(srTSRWRadStructAccessData* pRadAccessData, srTSRWRadStructAccessData* pPrevRadDataSingleE, void* pvGPU) //HG01122023
 	{
 		int result;
-		if(result = PropagateRadMoments(pRadAccessData, 0)) return result;
+		if(result = PropagateRadMoments(pRadAccessData, 0, pvGPU)) return result; //HG27072024
+		//if(result = PropagateRadMoments(pRadAccessData, 0)) return result;
 		if(result = PropagateWaveFrontRadius(pRadAccessData)) return result;
 		//if(result = PropagateRadiationSimple(pRadAccessData, pBuf)) return result; //OC06092019
 		//OC01102019 (restored)
@@ -161,10 +166,12 @@ public:
 #ifdef _OFFLOAD_GPU //HG01122023 Brought from sroptgtr.cpp, to reduce code duplication for GPU port
 	//int RadPointModifierParallel(srTSRWRadStructAccessData* pRadAccessData, void* pBufVars=0, long pBufVarsSz=0, TGPUUsageArg* pGPU=0) override;
 	//int RadPointModifierParallel(srTSRWRadStructAccessData* pRadAccessData, void* pBufVars=0, long pBufVarsSz=0, double* pGPU=0) override; //HG07022024
-	int RadPointModifierParallel(srTSRWRadStructAccessData* pRadAccessData, void* pBufVars=0, long pBufVarsSz=0, TGPUUsageArg* pGPU=0) override; //OC18022024
+	//int RadPointModifierParallel(srTSRWRadStructAccessData* pRadAccessData, void* pBufVars=0, long pBufVarsSz=0, TGPUUsageArg* pGPU=0) override; //OC18022024
+	int TraverseRadZXEParallel(srTSRWRadStructAccessData* pRadAccessData, void* pBufVars=0, long pBufVarsSz=0, TGPUUsageArg* pGPU=0) override; //HG14042026
 #endif
 
-#ifdef __CUDACC__ // Automatically defined by nvcc when compiling CUDA code.
+//#ifdef __CUDACC__ // Automatically defined by nvcc when compiling CUDA code. //HG30072024 Commented out
+#ifdef __CUDA_ARCH__ // Automatically defined by nvcc when compiling CUDA code.
 	GPU_PORTABLE void RadPointModifierPortable(srTEXZ& EXZ, srTEFieldPtrs& EPtrs, void* pBufVars) //HG06022024
 #else
 	void RadPointModifier(srTEXZ& EXZ, srTEFieldPtrs& EPtrs, void* pBuf=0) //OC29082019
@@ -208,8 +215,11 @@ public:
 		}
 
 		double xr = 0., zr = 0.;
-		double T = 1., Ph = 0.;
+		double T = 1., Ph = 0., T2 = 1., Ph2 = 0.; //OC07022025 (treating different polarizations)
+		//double T = 1., Ph = 0.;
 		//char NotExactRightEdgeX = 1, NotExactRightEdgeZ = 1;
+
+		long long ofstDifPol = 0; //OC07022025
 
 		long ix = long((xRel - xStart)/xStep);
 		if(::fabs(xRel - ((ix + 1)*xStep + xStart)) < 1.E-05*xStep) ix++;
@@ -264,6 +274,22 @@ public:
 			T = Axz*xrzr + Ax*xr + Az*zr + *p00;
 			Ph = Bxz*xrzr + Bx*xr + Bz*zr + *p00p1;
 
+			if(m_PolBase > 0) //OC07022025
+			{
+				ofstDifPol = ((long long)Nx)*((long long)Nz) << 1;
+				p00 = (double*)(GenTransNumData.pData) + ((iz*zPer + (ix << 1)) + ofstDifPol);
+				p10 = p00 + 2; p01 = p00 + zPer;
+				p11 = p01 + 2;
+				p00p1 = p00+1; p10p1 = p10+1; p01p1 = p01+1; p11p1 = p11+1;
+
+				Axz = *p00 - *p01 - *p10 + *p11; Bxz = *p00p1 - *p01p1 - *p10p1 + *p11p1;
+				Ax = (*p10 - *p00); Bx = (*p10p1 - *p00p1);
+				Az = (*p01 - *p00); Bz = (*p01p1 - *p00p1);
+
+				T2 = Axz*xrzr + Ax*xr + Az*zr + *p00;
+				Ph2 = Bxz*xrzr + Bx*xr + Bz*zr + *p00p1;
+			}
+
 			//OCTEST 04032019
 			//T = *p00 + Ax*xr + Az*zr;
 			//Ph = *p00p1 + Bx*xr + Bz*zr;
@@ -316,21 +342,120 @@ public:
 				//	+ inArFunc[5]*xt*one_mi_yt*zt
 				//	+ inArFunc[6]*one_mi_xt*yt*zt
 				//	+ inArFunc[7]*xt*yt*zt;
+
+			if(m_PolBase > 0) //OC07022025
+			{
+				ofstDifPol = ((long long)Nx)*((long long)Nz)*((long long)Ne) << 1;
+				p000 = (double*)(GenTransNumData.pData) + ((iz*zPer + ix*xPer + (ie << 1)) + ofstDifPol);
+				p100 = p000 + 2; p010 = p000 + xPer; p001 = p000 + zPer;
+				p110 = p100 + xPer; p101 = p100 + zPer; p011 = p010 + zPer;
+				p111 = p110 + zPer;
+
+				T2 = ((*p000)*one_mi_er_one_mi_xr + (*p100)*er_one_mi_xr + (*p010)*one_mi_er_xr + (*p110)*er_xr)*one_mi_zr
+				   + ((*p001)*one_mi_er_one_mi_xr + (*p101)*er_one_mi_xr + (*p011)*one_mi_er_xr + (*p111)*er_xr)*zr;
+				Ph2 = ((*(p000+1))*one_mi_er_one_mi_xr + (*(p100+1))*er_one_mi_xr + (*(p010+1))*one_mi_er_xr + (*(p110+1))*er_xr)*one_mi_zr
+				    + ((*(p001+1))*one_mi_er_one_mi_xr + (*(p101+1))*er_one_mi_xr + (*(p011+1))*one_mi_er_xr + (*(p111+1))*er_xr)*zr;
+			}
 		}
 
 		if(OptPathOrPhase == 1) Ph *= EXZ.e*5.0676816042E+06; // TwoPi_d_Lambda_m
 		float CosPh, SinPh; CosAndSin(Ph, CosPh, SinPh);
-		if(EPtrs.pExRe != 0)
+		if(m_PolBase <= 0) //OC07022025 (added condition)
 		{
-			float NewExRe = (float)(T*((*(EPtrs.pExRe))*CosPh - (*(EPtrs.pExIm))*SinPh));
-			float NewExIm = (float)(T*((*(EPtrs.pExRe))*SinPh + (*(EPtrs.pExIm))*CosPh));
-			*(EPtrs.pExRe) = NewExRe; *(EPtrs.pExIm) = NewExIm;
+			if(EPtrs.pExRe != 0)
+			{
+				float NewExRe = (float)(T*((*(EPtrs.pExRe))*CosPh - (*(EPtrs.pExIm))*SinPh));
+				float NewExIm = (float)(T*((*(EPtrs.pExRe))*SinPh + (*(EPtrs.pExIm))*CosPh));
+				*(EPtrs.pExRe) = NewExRe; *(EPtrs.pExIm) = NewExIm;
+			}
+			if(EPtrs.pEzRe != 0)
+			{
+				float NewEzRe = (float)(T*((*(EPtrs.pEzRe))*CosPh - (*(EPtrs.pEzIm))*SinPh));
+				float NewEzIm = (float)(T*((*(EPtrs.pEzRe))*SinPh + (*(EPtrs.pEzIm))*CosPh));
+				*(EPtrs.pEzRe) = NewEzRe; *(EPtrs.pEzIm) = NewEzIm;
+			}
 		}
-		if(EPtrs.pEzRe != 0)
+		else //OC07022025
 		{
-			float NewEzRe = (float)(T*((*(EPtrs.pEzRe))*CosPh - (*(EPtrs.pEzIm))*SinPh));
-			float NewEzIm = (float)(T*((*(EPtrs.pEzRe))*SinPh + (*(EPtrs.pEzIm))*CosPh));
-			*(EPtrs.pEzRe) = NewEzRe; *(EPtrs.pEzIm) = NewEzIm;
+			if(OptPathOrPhase == 1) Ph2 *= EXZ.e*5.0676816042E+06; // TwoPi_d_Lambda_m
+			float CosPh2, SinPh2; CosAndSin(Ph2, CosPh2, SinPh2);
+			if(m_PolBase == 1) //Linear hor. / vert.
+			{
+				if(EPtrs.pExRe != 0)
+				{
+					float NewExRe = (float)(T*((*(EPtrs.pExRe))*CosPh - (*(EPtrs.pExIm))*SinPh));
+					float NewExIm = (float)(T*((*(EPtrs.pExRe))*SinPh + (*(EPtrs.pExIm))*CosPh));
+					*(EPtrs.pExRe) = NewExRe; *(EPtrs.pExIm) = NewExIm;
+				}
+				if(EPtrs.pEzRe != 0)
+				{
+					float NewEzRe = (float)(T2*((*(EPtrs.pEzRe))*CosPh2 - (*(EPtrs.pEzIm))*SinPh2));
+					float NewEzIm = (float)(T2*((*(EPtrs.pEzRe))*SinPh2 + (*(EPtrs.pEzIm))*CosPh2));
+					*(EPtrs.pEzRe) = NewEzRe; *(EPtrs.pEzIm) = NewEzIm;
+				}
+			}
+			else if(m_PolBase == 2) //Linear 45 deg. / 135 deg.
+			{
+				float ExRe = 0, ExIm = 0, EzRe = 0, EzIm = 0;
+				if(EPtrs.pExRe != 0)
+				{
+					ExRe = *(EPtrs.pExRe); ExIm = *(EPtrs.pExIm);
+				}
+				if(EPtrs.pEzRe != 0)
+				{
+					EzRe = *(EPtrs.pEzRe); EzIm = *(EPtrs.pEzIm);
+				}
+				double E1Re = 0.70710678*(ExRe + EzRe);
+				double E1Im = 0.70710678*(ExIm + EzIm);
+				double E2Re = 0.70710678*(ExRe - EzRe);
+				double E2Im = 0.70710678*(ExIm - EzIm);
+				double NewE1Re = T*(E1Re*CosPh - E1Im*SinPh);
+				double NewE1Im = T*(E1Re*SinPh + E1Im*CosPh);
+				double NewE2Re = T2*(E2Re*CosPh2 - E2Im*SinPh2);
+				double NewE2Im = T2*(E2Re*SinPh2 + E2Im*CosPh2);
+
+				if(EPtrs.pExRe != 0)
+				{
+					*(EPtrs.pExRe) = (float)(0.70710678*(NewE1Re + NewE2Re));
+					*(EPtrs.pExIm) = (float)(0.70710678*(NewE1Im + NewE2Im));
+				}
+				if(EPtrs.pEzRe != 0)
+				{
+					*(EPtrs.pEzRe) = (float)(0.70710678*(NewE1Re - NewE2Re));
+					*(EPtrs.pEzIm) = (float)(0.70710678*(NewE1Im - NewE2Im));
+				}
+			}
+			else if(m_PolBase == 3) //Circular Right / Left
+			{
+				float ExRe = 0, ExIm = 0, EzRe = 0, EzIm = 0;
+				if(EPtrs.pExRe != 0)
+				{
+					ExRe = *(EPtrs.pExRe); ExIm = *(EPtrs.pExIm);
+				}
+				if(EPtrs.pEzRe != 0)
+				{
+					EzRe = *(EPtrs.pEzRe); EzIm = *(EPtrs.pEzIm);
+				}
+				double E1Re = 0.70710678*(ExRe - EzIm);
+				double E1Im = 0.70710678*(ExIm + EzRe);
+				double E2Re = 0.70710678*(ExRe + EzIm);
+				double E2Im = 0.70710678*(ExIm - EzRe);
+				double NewE1Re = T*(E1Re*CosPh - E1Im*SinPh);
+				double NewE1Im = T*(E1Re*SinPh + E1Im*CosPh);
+				double NewE2Re = T2*(E2Re*CosPh2 - E2Im*SinPh2);
+				double NewE2Im = T2*(E2Re*SinPh2 + E2Im*CosPh2);
+
+				if(EPtrs.pExRe != 0)
+				{
+					*(EPtrs.pExRe) = (float)(0.70710678*(NewE1Re + NewE2Re));
+					*(EPtrs.pExIm) = (float)(0.70710678*(NewE1Im + NewE2Im));
+				}
+				if(EPtrs.pEzRe != 0)
+				{
+					*(EPtrs.pEzRe) = (float)(0.70710678*(NewE1Im - NewE2Im));
+					*(EPtrs.pEzIm) = (float)(0.70710678*(NewE2Re - NewE1Re));
+				}
+			}
 		}
 	}
 

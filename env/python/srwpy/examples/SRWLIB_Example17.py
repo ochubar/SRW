@@ -1,9 +1,9 @@
 #############################################################################
 # SRWLIB Example#17: Simulating Coherent X-ray (Gaussian beam) Scattering
 # on Experimental Samples defined using different methods
-# Authors: O.C., M. Rakitin, R. Coles (BNL, NSLS-II)
+# Authors: O.C., M. Rakitin, R. Coles, H. Goel (BNL, NSLS-II)
 # SEM images of nano-fabricated samples from J. Lhermitte, K. Yager (BNL, CFN)
-# v 0.02
+# v 0.03
 #############################################################################
 
 from __future__ import print_function #Python 2.7 compatibility
@@ -26,7 +26,8 @@ import os
 import time
 
 print('SRWLIB Python Example # 17:')
-print('Simulating Coherent X-ray (Gaussian beam) Scattering on Experimental Sample modelled by 2D (nano-)objects')
+print('Simulating Coherent X-ray (Gaussian beam) Scattering on an Experimental Sample modelled by 2D (nano-)objects.')
+print('This example can use GPU for accelerating calculations; to try, set tryUsingGPU = 1 in the code below.')
 
 #**********************Input Parameters and Structures
 #***********Folder and Data File Names
@@ -39,6 +40,9 @@ strSampImgOutFileName01 = 'ex17_samp_img_proc.tif' #Processes (output) sample fi
 strSampOptPathDifOutFileName01 = 'ex17_samp_opt_path_dif.dat' #Optical path difference corresponding to selected sample
 strIntInitOutFileName01 = 'ex17_res_int_in.dat' #initial wavefront intensity distribution output file name
 strIntPropOutFileName01 = 'ex17_res_int_prop.dat' #propagated wavefront intensity distribution output file name
+
+#***********Execution Instructions
+tryUsingGPU = 0 #Set to 1 if GPU should be used, 0 otherwise
 
 #***********Gaussian Beam Source
 GsnBm = SRWLGsnBm() #Gaussian Beam structure (just parameters)
@@ -184,15 +188,17 @@ opBL = SRWLOptC([opSmp, opSmp_Det],
 srwl.CalcElecFieldGaussian(wfr, GsnBm, arPrecPar)
 mesh0 = deepcopy(wfr.mesh)
 arI0 = array('f', [0]*mesh0.nx*mesh0.ny) #"flat" array to take 2D intensity data
-srwl.CalcIntFromElecField(arI0, wfr, 6, 0, 3, mesh0.eStart, 0, 0) #extracts intensity
+
+if(tryUsingGPU): print('   ... Trying to use GPU ... \n', end='')
+
+srwl.CalcIntFromElecField(arI0, wfr, 6, 0, 3, mesh0.eStart, 0, 0, None, None, tryUsingGPU) #extracts intensity
+#srwl.CalcIntFromElecField(arI0, wfr, 6, 0, 3, mesh0.eStart, 0, 0) #extracts intensity #HG10122025
 srwl_uti_save_intens_ascii(
     arI0, mesh0, os.path.join(os.getcwd(), strDataFolderName, strIntInitOutFileName01), 0,
     ['Photon Energy', 'Horizontal Position', 'Vertical Position', 'Intensity'], _arUnits=['eV', 'm', 'm', 'ph/s/.1%bw/mm^2'])
 
 #***********Wavefront Propagation
 print('   Propagating wavefront ... ', end='')
-tryUsingGPU = 1 #0 #Set to 1 if GPU should be used, 0 otherwise #OC21032024
-if(tryUsingGPU): print('trying to use GPU ... ', end='')
 t = time.time()
 srwl.PropagElecField(wfr, opBL, None, tryUsingGPU)
 #srwl.PropagElecField(wfr, opBL)

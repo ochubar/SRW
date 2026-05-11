@@ -665,6 +665,7 @@ def srwl_uti_und_gen_file_names_for_conv(_ifln, _ofn_core=None, _pref_gap=None, 
     numGapPref = len(prefGap[0]); numGapPost = len(prefGap[1])
     numModePref = len(prefMode[0]); numModePost = len(prefMode[1])
     numPhasePref = len(prefPhase[0]); numPhasePost = len(prefPhase[1])
+    
     print(prefGap[0], prefGap[1])
     
     lstRes = []
@@ -672,13 +673,17 @@ def srwl_uti_und_gen_file_names_for_conv(_ifln, _ofn_core=None, _pref_gap=None, 
         for fnOrig in files:
 
             #print(fnOrig)
+            #input()
+            
             lenFnOrigMi1 = len(fnOrig) - 1
             
             iGapStart = -1
             for j in range(numGapPref):
                 iGapStart0 = fnOrig.find(prefGap[0][j])
                 if(iGapStart0 >= 0): iGapStart = iGapStart0 + len(prefGap[0][j])
+                
                 #print(iGapStart0)
+                
                 if(iGapStart >= 0): break
             if((iGapStart < 0) or (iGapStart > lenFnOrigMi1)): raise Exception(strErrNoGapFound)
 
@@ -793,14 +798,17 @@ def srwl_uti_und_gen_file_names_for_conv(_ifln, _ofn_core=None, _pref_gap=None, 
     return lstRes
 
 #****************************************************************************
-def srwl_uti_und_conv_meas_fld(_ifn):
+def srwl_uti_und_conv_meas_fld(_ifn, _n_line_skip=0): #OC03122025
+#def srwl_uti_und_conv_meas_fld(_ifn):
     """
     Convert magnetic measurement ASCII data file to SRW ASCII format
     :param _ifn: name of input magnetic measurements data file
+    :param _n_line_skip: number of lines to skip at the beginning of the file
     :returns: SRWL magnetic field container with one 3D converted field
     """
 
-    fldDataCols = srwl_uti_read_data_cols(_ifn, '\t')
+    fldDataCols = srwl_uti_read_data_cols(_ifn, '\t', _n_line_skip=_n_line_skip) #OC03122025
+    #fldDataCols = srwl_uti_read_data_cols(_ifn, '\t')
 
     nCols = len(fldDataCols) #OC11012023
     if(nCols < 3): raise Exception("Number of columns in magnetic measurements / simulations data file can't be smaller than 3, with [0] being longitudinal position in [mm], [1] Bx, [2] By, [3] Bz, all in [T], with Bz (longitudinal component) being optional.")
@@ -842,7 +850,8 @@ def srwl_uti_und_proc_one_fld(_opt):
     fldCnt = None
     
     if(_opt.do_conv_fld):
-        fldCnt = srwl_uti_und_conv_meas_fld(_opt.ifn)
+        fldCnt = srwl_uti_und_conv_meas_fld(_opt.ifn, _n_line_skip=_opt.n_line_skip) #OC03122025
+        #fldCnt = srwl_uti_und_conv_meas_fld(_opt.ifn)
 
     if(fldCnt is None): fldCnt = srwl_uti_read_mag_fld_3d(_opt.ifn)
     
@@ -1143,6 +1152,8 @@ if __name__=="__main__":
     p.add_option('--ipm', dest='in_phase_mode', type='string', default='', help="string of coma-separated Phase Mode values in the input magn. meas. data file names (it overrides the default definitions)")
     p.add_option('--opm', dest='out_phase_mode', type='string', default='', help="string of coma-separated Phase Mode values for output data file names (it overrides the default definitions)")
  
+    p.add_option('--nls', dest='n_line_skip', type='int', default=0, metavar="NUMBER", help="number of lines to skip at the beginning of the magnetic measurements data file") #OC03122025
+    
     opt, args = p.parse_args()
 
     #if(opt.do_ext_fld_grd): #Extrapolate 3D magnetic measurement data out of horizontal mid-plane using gradient
@@ -1178,10 +1189,25 @@ if __name__=="__main__":
     # opt.pref_gap = 'CDI_1EPU_hor_in-phase_g'
     # opt.postf_gap = '.dat'
     # opt.ord_gmp_inp = 'g'
+    
+    # opt.do_conv_many_files = True
+    # opt.ifn = "C:\\SR_Magnets\\InsertionDevices\\MagneticMeasurements\\CDI_IVU18_no_taper"
+    # opt.ofn="C:\\SoftwareDevelopments\\SRW_Dev\\env_old\\work\\srw_python\\data_CDI\\magn_meas_ivu18_no_taper"
+    # opt.out_file_name_core = 'ivu18_cdi_no_tap'
+    # opt.do_cor_fld_int = True
+    # opt.ozc = 0.
+    # opt.zk = 0. 
+    # opt.dbwk = 2.2234
+    # opt.pref_gap = 'HP_CDI_IVU18_ID9_X0Y0_Gap_'
+    # opt.postf_gap = '.txt.txt'
+    # opt.ord_gmp_inp = 'g'
+
     #END DEBUG
 
     if(opt.do_conv_many_files):
-    #Example of this processing:
+    #Examples of this processing:
+    #python srwl_uti_und.py --cnvm --ifn="C:\\SR_Magnets\\InsertionDevices\\MagneticMeasurements\\CDI_IVU18_no_taper" --ofn="C:\\SoftwareDevelopments\\SRW_Dev\\env_old\\work\\srw_python\\data_CDI\\magn_meas_ivu18_no_taper" --prfg="HP_CDI_IVU18_ID9_X0Y0_Gap_" --psfg=".txt.txt" --nls=0 --igmp=g --ofnc="ivu18_cdi_no_tap" --cor --ozc=0. --zk=0. --dbwk=2.2234
+    #python srwl_uti_und.py --cnvm --ifn="C:\SR_Magnets\InsertionDevices\MagneticMeasurements\ARI_EPU70\magn_meas_id_lab_ari_epu70_qp_lh" --ofn="C:\SoftwareDevelopments\SRW_Dev\env_old\work\srw_python\data_ARI\magn_meas_ari_epu70_qp_lh" --prfg="HP_ARI_EPU70_ID29_AP_TIBO_g" --psfg="_ph0.0.txt" --nls=2 --igmp=g --ofnc="epu70_ari_qp" --cor --ozc=0.00125 --zk=0. --dbwk=1.753
     #python srwl_uti_und.py --cnvm --ifn="Y:\Processed Data to share\EPU105 ESM\HP\Processed Data" --ofn="C:\SoftwareDevelopments\SRW_Dev\env\work\srw_python\data_ESM\magn_meas_epu105" --ofnc="epu105_esm" --cor --ozc=-0.036 --zk=0. --dbwk=2.7
     #or, for planar undulators:
     #python srwl_uti_und.py --cnvm --ifn="data_ISR\FieldC" --ofn="data_ISR\magn_meas" --ofnc="ivu23_isr" --cor --ozc=0 --zk=0 --dbwk=2.7 --prfg=X0_Y0_gap --psfg=.txt --igmp=g

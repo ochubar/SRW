@@ -774,7 +774,8 @@ int srTRadGenManip::ExtractSingleElecIntensity2DvsXZ(srTRadExtract& RadExtract, 
 	if(CAuxGPU::GPUEnabled(&parGPU)) //OC19022024
 	//if(CAuxGPU::GPUEnabled((TGPUUsageArg*)pvGPU))
 	{
-		ExtractSingleElecIntensity2DvsXZ_GPU(RadExtract, arAuxInt, ie0, ie1, InvStepRelArg, &parGPU); //OC19022024
+		ExtractSingleElecIntensity2DvsXZ_GPU(RadExtract, ie0, ie1, InvStepRelArg, &parGPU); //HG31072024
+		//ExtractSingleElecIntensity2DvsXZ_GPU(RadExtract, arAuxInt, ie0, ie1, InvStepRelArg, &parGPU); //OC19022024
 		//ExtractSingleElecIntensity2DvsXZ_GPU(RadExtract, arAuxInt, ie0, ie1, InvStepRelArg, (TGPUUsageArg*)pvGPU);
 	}
 	else

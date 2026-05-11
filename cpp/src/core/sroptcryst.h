@@ -1462,7 +1462,8 @@ public:
 		**/
 	}
 
-	int PropagateRadMoments(srTSRWRadStructAccessData* pRadAccessData, srTMomentsRatios* MomRatArray)
+	//int PropagateRadMoments(srTSRWRadStructAccessData* pRadAccessData, srTMomentsRatios* MomRatArray)
+	int PropagateRadMoments(srTSRWRadStructAccessData* pRadAccessData, srTMomentsRatios* MomRatArray, void* pvGPU=0) //HG27072024
 	{//Do nothing for Crystal(?), or recalculate, because angular divergence may be changed by Crystal
 		//double aStr0[] = { 1., Length };
 		//double aStr1[] = { 0., 1. };

@@ -29,6 +29,10 @@ protected:
 	char m_apertShape; //1- rectangular, 2- elliptical
 	double m_halfDim1, m_halfDim2; //dimensions
 
+	//OC23062025 (to be taken into account at calculation of mirror limits in its local frame)
+	double m_cenOfstDim1, m_cenOfstDim2; //offsets of the "optical" center in the first (tangential) and second (sagital) directions [m]
+	//double m_cenOfstTang, m_cenOfstSag; //offsets of the "optical" center of the mirror in the tangential and sagital directions [m]
+
 	srTransHndl TransHndl; //(auxiliary) space transformation of optical element in the frame of (or with respect to) the incident wavefront
 	//TVector3d m_arOutFrame[3]; //center point, "horizontal" and "vertical" vectors of the output wavefront in the frame of the incident wavefront
 
@@ -62,6 +66,9 @@ public:
 		tr.SetupIdent();
 	}
 
+#ifdef __CUDA_ARCH__ //HG01082025
+	GPU_PORTABLE
+#endif
 	void FromLabToLocFrame_Point(TVector3d& P)
 	{
 		if(TransHndl.rep != 0) P = TransHndl.rep->TrPoint_inv(P);
@@ -81,11 +88,17 @@ public:
 
 	bool CheckIfPointIsWithinOptElem(double xLoc, double yLoc)
 	{//assumes local frame of the optical element
-		if((xLoc < -m_halfDim1) || (xLoc > m_halfDim1) || (yLoc < -m_halfDim2) || (yLoc > m_halfDim2)) return false; 
+		//if((xLoc < -m_halfDim1) || (xLoc > m_halfDim1) || (yLoc < -m_halfDim2) || (yLoc > m_halfDim2)) return false; 
+		//OC23062025
+		if((xLoc < -m_halfDim1+m_cenOfstDim1) || (xLoc > m_halfDim1+m_cenOfstDim1) || (yLoc < -m_halfDim2+m_cenOfstDim2) || (yLoc > m_halfDim2+m_cenOfstDim2)) return false;
+		//if((xLoc < -m_halfDim1+m_cenOfstTang) || (xLoc > m_halfDim1+m_cenOfstTang) || (yLoc < -m_halfDim2+m_cenOfstSag) || (yLoc > m_halfDim2+m_cenOfstSag)) return false;
 		
 		if(m_apertShape == 2) //elliptical
 		{//check if it is inside ellipse
-			double xr = xLoc/m_halfDim1, yr = yLoc/m_halfDim2;
+			//double xr = xLoc/m_halfDim1, yr = yLoc/m_halfDim2;
+			//OC23062025 (to check)
+			double xr = xLoc/(m_halfDim1+m_cenOfstDim1), yr = yLoc/(m_halfDim2+m_cenOfstDim2); //?
+			//double xr = xLoc/(m_halfDim1+m_cenOfstTang), yr = yLoc/(m_halfDim2+m_cenOfstSag); //?
 			if((xr*xr + yr*yr) > 1) return false;
 		}
 		return true;

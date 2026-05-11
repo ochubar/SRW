@@ -230,8 +230,13 @@ BEGIN
 	"Incorrect paraboloidal mirror parameters: focal length, grazing angle and sagital radius should be positive, and use case should be \'f\' for focusing and \'c\' for collimating.\0", //#192
 	"Wavefront resizing can not be performed for these parameters (however, it may be possible to perform such resizing sequentially).\0", //#193
 	"Wavefront processing can not be performed with these parameters.\0", //#194
+	"Inconsistent parameters were supplied to (mutual) intensity processing function.\0", //#195
 
-	"Inconsistent parameters were supplied to (mutual) intensity processing function.\0" //#195
+	"Incorrect hyperboloidal mirror parameters: p, q, grazing angle and sagital radius should be positive.\0", //#196
+
+	"Summing up wavefronts on different photon energy meshes is not implemented.\0" //#197
+	"For wavefront propagation to work, number of points should be larger than 1 either in horizontal or in vertical or in both directions.\0" //#198
+	"Inconsistent (2D?) resize parameters were submitted for 1D wavefront.\0" //#199
 
 	0,						// NOTE: 0 required to terminate the resource.
 END
@@ -263,6 +268,8 @@ BEGIN
 	"Electron beam is not ultra-relativistic. The resulting accuracy may be poor.\0",
 	"To calculate emission at harmonics (HGHG), this version of GENESIS requires Electron Distribution data.\0",
 	"Zero wavefront radius of curvature was submitted; the corresponding quadratic phase term was not treated.\0", //#25
+	"GPU usage is requested, but GPU offloading failed. Computation will be performed on CPU.\0", //#26
+	"Wavefront propagation is simulated in 1D, because 1D initial wavefront was submitted.\0", //#27
 
 	0,
 END

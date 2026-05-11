@@ -76,7 +76,8 @@ public:
 		*(EPtrs.pEzRe) = (float)NewEzRe; *(EPtrs.pEzIm) = (float)NewEzIm; 
 	}
 
-	int PropagateRadMoments(srTSRWRadStructAccessData* pRad, srTMomentsRatios*) 
+	//int PropagateRadMoments(srTSRWRadStructAccessData* pRad, srTMomentsRatios*) 
+	int PropagateRadMoments(srTSRWRadStructAccessData* pRad, srTMomentsRatios*, void* =0) //HG27072024
 	{
 		int Offset = 0;
 		for(long ie=0; ie<pRad->ne; ie++)

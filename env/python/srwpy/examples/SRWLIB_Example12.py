@@ -2,7 +2,8 @@
 #############################################################################
 # SRWLIB Example # 12: Simulating Wavefront Propagation through initial part of a Soft X-Ray Undulator Radiation Beamline containing Variable Line Spacing (VLS) Grating
 # Based on input and comtributions of N. Canestrari, E. Vescovo, V. Bisogni (BNL)
-# v 0.04
+# Updated by H. Goel (BNL)
+# v 0.05
 #############################################################################
 
 from __future__ import print_function #Python 2.7 compatibility
@@ -36,6 +37,7 @@ For more information on parallel calculations under "mpi4py" please see document
 Note that the long-lasting partially-coherent UR calculation saves from time to time instant average intensity to an ASCII file, 
 so the execution of the long loop over "macro-electrons" can be aborted after some time without the danger that all results will be lost.
 be sure that a folder data_esm is present in the current working directory.
+This example can use GPU for accelerating single-electron calculations; to try, set tryUsingGPU = 1 in the code below.
 '''
 
 #*********************************File Names
@@ -43,6 +45,9 @@ strExDataFolderName = 'data_example_12' #example data sub-folder name
 strIntSE_OutFilePath = os.path.join(os.getcwd(), strExDataFolderName, 'ex12_res_int_se') #file name for output initial single-electron SR intensity data
 strIntPropSE_OutFilePath = os.path.join(os.getcwd(), strExDataFolderName, 'ex12_res_int_prop_se') #file name for output propagated single-electron SR intensity data
 strIntPropME_OutFilePath = os.path.join(os.getcwd(), strExDataFolderName, 'ex12_res_int_prop_me') #file name for output propagated multi-electron SR intensity data
+
+#*********************************Execution Instructions
+tryUsingGPU = 0 #Set to 1 if GPU should be used, 0 otherwise
 
 #*********************************Undulator	
 def setUndulator(_en, _bd=0):
@@ -258,10 +263,13 @@ def setBeamline(_en, _n_opt_el):
   pSA_M4 = [ 0,    0,  1.0,    3,    0,  1.0,  1.0,  1.0,  1.0,    0,    0,    0 ]
   pM4A   = [ 0,    0,  1.0,    0,    0,  1.0,  1.0,  1.0,  1.0,    0,    0,    0 ]
   pM4    = [ 0,    0,  1.0,    1,    0,  1.0,  1.0,  1.0,  1.0,    0,    0,    0 ]
+  
+  #pM4_S  = [ 0,    0,  1.0,    0,    0,  2.0,  1.0,  1.0,  1.0,    0,    0,    0 ]
   pM4_S  = [ 0,    0,  1.0,    4,    0,  2.0,  1.0,  1.0,  1.0,    0,    0,    0 ]
+
   pSfin  = [ 0,    0,  1.0,    1,    1,  1.0,  1.5,  0.3,  2.0,    0,    0,    0 ]
 
-  OE  = [  M1_M2,          M2A,  M2_G,  GA,  G,  G_M3,  M3A,  M3,  M3_SA,          SA,          SA_M4,  M4A,  M4,  M4_S]           
+  OE  = [  M1_M2,          M2A,  M2_G,  GA,  G,  G_M3,  M3A,  M3,  M3_SA,          SA,          SA_M4,  M4A,  M4,  M4_S]
   pOE = [ pM1_M2_db[_en], pM2A, pM2_G, pGA, pG, pG_M3, pM3A, pM3, pM3_SA_db[_en], pSA_db[_en], pSA_M4, pM4A, pM4, pM4_S, pSfin]
 
   #Creating BL "container" (possibly with reduced number of optical elements)
@@ -296,13 +304,20 @@ def calcSE(_e_beam, _mag, _mesh, _bl, _sr_meth=1, _sr_prec=0.01, _sr_samp_fact=1
   srwl.CalcElecFieldSR(wfr, 0, _mag, arPrecPar)
   sys.stdout.write('done\n')
   mesh0 = deepcopy(wfr.mesh)  
+  
+  if(tryUsingGPU): print('   ... Trying to use GPU ... ', end='\n'); sys.stdout.flush()
+  
   sys.stdout.write('   Extracting Intensity from the Calculated Initial Electric Field ... '); sys.stdout.flush()
   arI = array('f', [0]*mesh0.nx*mesh0.ny) #"flat" array to take 2D intensity data
-  srwl.CalcIntFromElecField(arI, wfr, 6, 0, 3, mesh0.eStart, 0, 0)
+  
+  srwl.CalcIntFromElecField(arI, wfr, 6, 0, 3, mesh0.eStart, 0, 0, None, None, tryUsingGPU)
+  #srwl.CalcIntFromElecField(arI, wfr, 6, 0, 3, mesh0.eStart, 0, 0) #HG10122025
   arIx = array('f', [0]*mesh0.nx) #"flat" array to take 1D intensity data
-  srwl.CalcIntFromElecField(arIx, wfr, 6, 0, 1, mesh0.eStart, 0, 0)
+  srwl.CalcIntFromElecField(arIx, wfr, 6, 0, 1, mesh0.eStart, 0, 0, None, None, tryUsingGPU)
+  #srwl.CalcIntFromElecField(arIx, wfr, 6, 0, 1, mesh0.eStart, 0, 0) #HG10122025
   arIy = array('f', [0]*mesh0.ny) #"flat" array to take 1D intensity data
-  srwl.CalcIntFromElecField(arIy, wfr, 6, 0, 2, mesh0.eStart, 0, 0)
+  srwl.CalcIntFromElecField(arIy, wfr, 6, 0, 2, mesh0.eStart, 0, 0, None, None, tryUsingGPU)
+  #srwl.CalcIntFromElecField(arIy, wfr, 6, 0, 2, mesh0.eStart, 0, 0) #HG10122025
   sys.stdout.write('done\n')
   sys.stdout.write('   Saving the Initial Wavefront Intensity into a file ... '); sys.stdout.flush()
   srwl_uti_save_intens_ascii(arI, mesh0, strIntSE_OutFilePath+_fnsuf)
@@ -310,20 +325,26 @@ def calcSE(_e_beam, _mag, _mesh, _bl, _sr_meth=1, _sr_prec=0.01, _sr_samp_fact=1
 
   sys.stdout.write('   Simulating Electric Field Wavefront Propagation ... '); sys.stdout.flush()
   t0 = time.time()
-  srwl.PropagElecField(wfr, _bl)
+  srwl.PropagElecField(wfr, _bl, None, tryUsingGPU)
+  #srwl.PropagElecField(wfr, _bl) #HG10122025
+  
   sys.stdout.write('done\n   lasted '+repr(round(time.time() - t0))+' s\n')
   mesh1 = deepcopy(wfr.mesh)  
   sys.stdout.write('   Extracting Intensity from the Propagated Electric Field  ... '); sys.stdout.flush()
   arI1 = array('f', [0]*mesh1.nx*mesh1.ny) #"flat" 2D array to take intensity data
-  srwl.CalcIntFromElecField(arI1, wfr, 6, 0, 3, mesh1.eStart, 0, 0)
+  srwl.CalcIntFromElecField(arI1, wfr, 6, 0, 3, mesh1.eStart, 0, 0, None, None, tryUsingGPU)
+  #srwl.CalcIntFromElecField(arI1, wfr, 6, 0, 3, mesh1.eStart, 0, 0) #HG10122025
   #srwl.CalcIntFromElecField(arI1, wfr, 0, 5, 3, mesh1.eStart, 0, 0) #ReEx
   #srwl.CalcIntFromElecField(arI1, wfr, 0, 6, 3, mesh1.eStart, 0, 0) #ImEx
   arI1x = array('f', [0]*mesh1.nx) #"flat" array to take 1D intensity data
-  srwl.CalcIntFromElecField(arI1x, wfr, 6, 0, 1, mesh1.eStart, 0, 0)
+  srwl.CalcIntFromElecField(arI1x, wfr, 6, 0, 1, mesh1.eStart, 0, 0, None, None, tryUsingGPU)
+  #srwl.CalcIntFromElecField(arI1x, wfr, 6, 0, 1, mesh1.eStart, 0, 0) #HG10122025
   arI1y = array('f', [0]*mesh1.ny) #"flat" array to take 1D intensity data
-  srwl.CalcIntFromElecField(arI1y, wfr, 6, 0, 2, mesh1.eStart, 0, 0)
+  srwl.CalcIntFromElecField(arI1y, wfr, 6, 0, 2, mesh1.eStart, 0, 0, None, None, tryUsingGPU)
+  #srwl.CalcIntFromElecField(arI1y, wfr, 6, 0, 2, mesh1.eStart, 0, 0) #HG10122025
   sys.stdout.write('done\n')
   sys.stdout.write('   Saving the Propagated Wavefront Intensity data to a file ... '); sys.stdout.flush()
+  
   srwl_uti_save_intens_ascii(arI1, mesh1, strIntPropSE_OutFilePath+_fnsuf)
   sys.stdout.write('done\n')
 

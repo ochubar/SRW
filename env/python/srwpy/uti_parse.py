@@ -43,3 +43,21 @@ def str_to_pair_of_lists(_str1, _str2, _sep=','):
     lstTok2 = _str2.split(_sep)
 
     return [lstTok1, lstTok2]
+
+#**********************Flatten a structured (nested) list to a simple list
+def list_flatten(_lst): #OC17022026 (from copilot)
+    """
+    Flattens a nested list into a single list.
+    :param _lst: input nested list
+    :returns: flattened list
+    """
+    if _lst is None:
+        return None
+
+    lstRes = []
+    for item in _lst:
+        if isinstance(item, list):
+            lstRes.extend(list_flatten(item))
+        else:
+            lstRes.append(item)
+    return lstRes

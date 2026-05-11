@@ -17,6 +17,7 @@ try: #OC15112022
     from .uti_plot import *
     from . import uti_math
     from . import uti_io
+    from . import uti_parse
 except:
     from srwlib import *
     from srwl_uti_mag import *
@@ -24,6 +25,7 @@ except:
     from uti_plot import *
     import uti_math
     import uti_io
+    import uti_parse
 #from srwlib import *
 #from srwl_uti_mag import *
 #from srwl_uti_und import *
@@ -1933,7 +1935,8 @@ class SRWLBeamline(object):
     #------------------------------------------------------------------------
     #def calc_wfr_prop(self, _wfr, _pres_ang=0, _pol=6, _int_type=0, _dep_type=3, _fname=''):
     #def calc_wfr_prop(self, _wfr, _pres_ang=0, _pol=6, _int_type=0, _dep_type=3, _fname='', _det=None): #OC06122016
-    def calc_wfr_prop(self, _wfr, _pres_ang=0, _pol=6, _int_type=0, _dep_type=3, _fname='', _det=None, _rad_view=None): #OC08022021
+    #def calc_wfr_prop(self, _wfr, _pres_ang=0, _pol=6, _int_type=0, _dep_type=3, _fname='', _det=None, _rad_view=None): #OC08022021
+    def calc_wfr_prop(self, _wfr, _pres_ang=0, _pol=6, _int_type=0, _dep_type=3, _fname='', _det=None, _rad_view=None, _try_gpu=False): #OC23122025
         """Calculates single-electron (/ fully coherent) wavefront propagation
         :param _wfr: wavefront (instance of SRWLWfr) to be propagated (and modified in place!)
         :param _pres_ang: switch specifying whether the result of the propagation should be shown in angular presentation (1) or not (0)
@@ -1991,7 +1994,8 @@ class SRWLBeamline(object):
                     intType = 0 if(_int_type < 0) else _int_type
                     radView.append([_rad_view[i], _pol, intType, _dep_type, 0, SRWLRadMesh()])
             
-        srwl.PropagElecField(_wfr, self.optics, radView) #OC08022021
+        srwl.PropagElecField(_wfr, self.optics, radView, 1 if _try_gpu else 0) #OC23122025
+        #srwl.PropagElecField(_wfr, self.optics, radView) #OC08022021
         #srwl.PropagElecField(_wfr, self.optics)
 
         #dt = datetime.now() #OCTEST
@@ -2026,7 +2030,8 @@ class SRWLBeamline(object):
                 for i in range(nInd):
                     curRadData = radView[i]
                     if((len(curRadData) > 6) and (curRadData[6] is not None)):
-                        curIntFileName = intNameCore + '_intermed_' + repr(curRadData[0]) + '.' + sExt
+                        curIntFileName = intNameCore + '_intermed_' + str(curRadData[0]) + '.' + sExt #RN10122025
+                        #curIntFileName = intNameCore + '_intermed_' + repr(curRadData[0]) + '.' + sExt
                         #DEBUG
                         #print(curIntFileName)
                         #END DEBUG
@@ -2070,7 +2075,8 @@ class SRWLBeamline(object):
     #def calc_wfr_emit_prop_me(self, _mesh, _sr_samp_fact=1, _sr_meth=2, _sr_rel_prec=0.01, _in_wr=0., _in_wre=0., _mag_type=1, _n_part_tot=100000, _n_part_avg_proc=10, _n_save_per=50, _pres_ang=0, _char=0, _x0=0, _y0=0, _e_ph_integ=0, _rand_meth=1, _fname=None, _det=None, _me_approx=0): #OC05042017
     #def calc_wfr_emit_prop_me(self, _mesh, _sr_samp_fact=1, _sr_meth=2, _sr_rel_prec=0.01, _in_wr=0., _in_wre=0., _mag_type=1, _n_part_tot=100000, _n_part_avg_proc=10, _n_save_per=50, _pres_ang=0, _char=0, _x0=0, _y0=0, _e_ph_integ=0, _rand_meth=1, _fname=None, _det=None, _me_approx=0, _fbk=False): #OC14082018
     def calc_wfr_emit_prop_me(self, _mesh, _sr_samp_fact=1, _sr_meth=2, _sr_rel_prec=0.01, _in_wr=0., _in_wre=0., _mag_type=1, _n_part_tot=100000, _n_part_avg_proc=10, _n_save_per=50,
-                              _pres_ang=0, _char=0, _x0=0, _y0=0, _e_ph_integ=0, _rand_meth=1, _fname=None, _det=None, _me_approx=0, _fbk=False, _op_rnd=False, _fform='ascii', _no_opt=False, _nmm=1, _ncm=100, _cm_wfr=None, _ms=0, _pol=None): #OC27122023
+                              _pres_ang=0, _char=0, _x0=0, _y0=0, _e_ph_integ=0, _rand_meth=1, _fname=None, _det=None, _me_approx=0, _fbk=False, _op_rnd=False, _fform='ascii', _no_opt=False, _nmm=1, _ncm=100, _cm_wfr=None, _ms=0, _pol=None, _gpu_f=0): #OC09042026
+                              #_pres_ang=0, _char=0, _x0=0, _y0=0, _e_ph_integ=0, _rand_meth=1, _fname=None, _det=None, _me_approx=0, _fbk=False, _op_rnd=False, _fform='ascii', _no_opt=False, _nmm=1, _ncm=100, _cm_wfr=None, _ms=0, _pol=None): #OC27122023
                               #_pres_ang=0, _char=0, _x0=0, _y0=0, _e_ph_integ=0, _rand_meth=1, _fname=None, _det=None, _me_approx=0, _fbk=False, _op_rnd=False, _fform='ascii', _no_opt=False, _nmm=1, _ncm=100, _cm_wfr=None, _ms=0): #OC22112022
                               #_pres_ang=0, _char=0, _x0=0, _y0=0, _e_ph_integ=0, _rand_meth=1, _fname=None, _det=None, _me_approx=0, _fbk=False, _op_rnd=False, _fform='ascii', _no_opt=False, _nmm=1, _ncm=100, _cm_wfr=None): #OC02072021
                               #_pres_ang=0, _char=0, _x0=0, _y0=0, _e_ph_integ=0, _rand_meth=1, _fname=None, _det=None, _me_approx=0, _fbk=False, _op_rnd=False, _fform='ascii', _nmm=1, _ncm=1000): #OC27062021
@@ -2123,6 +2129,7 @@ class SRWLBeamline(object):
             5- Circular Left; 
             6- Total
             7- All Polarization Components (0-5)
+        :param _gpu_f: fraction of wavefronts to be propagated on GPU, 0<=_gpu_f<=1 (to be implemented: if _gpu_f<0 then try to deduce this optimal fraction "experimentally", using different methods)
         :return: data structure(s) of resulting intensity
         """
 
@@ -2192,7 +2199,8 @@ class SRWLBeamline(object):
             #_file_bkp = _fbk, _rand_opt = _op_rnd, _file_form = _fform) #OC25022021
             #_file_bkp = _fbk, _rand_opt = _op_rnd, _file_form = _fform, _n_mpi=_nmm) #OC16042021
             #_file_bkp = _fbk, _rand_opt = _op_rnd, _file_form = _fform, _n_mpi=_nmm, _n_cm=_ncm) #OC27062021
-            _file_bkp = _fbk, _rand_opt = _op_rnd, _file_form = _fform, _n_mpi = _nmm, _n_cm = _ncm, _ms = _ms) #OC22112022
+            #_file_bkp = _fbk, _rand_opt = _op_rnd, _file_form = _fform, _n_mpi = _nmm, _n_cm = _ncm, _ms = _ms) #OC22112022
+            _file_bkp = _fbk, _rand_opt = _op_rnd, _file_form = _fform, _n_mpi = _nmm, _n_cm = _ncm, _ms = _ms, _gpu_f = _gpu_f) #OC09042026
         
         if(_pol is not None):
             if(res is not None):
@@ -2330,12 +2338,19 @@ class SRWLBeamline(object):
 
         infIsReq = v.om_pr or v.om_fl #OC28092022
         s2pr = '  ' #OC28092022
-        frm = '{:04.6g}' #OC28092022
+        frm = '{:4.6g}' #OC16022026
+        #frm = '{:04.6g}' #OC28092022
+
         def critInf(_parDescr, _parName, _subCost): #OC28092022
             return (' '+_parDescr+'='+frm).format(_parName) + (' (sub-cost:'+frm+')').format(_subCost)
 
         cost = 0
         
+        curScanRes = None #OC17022026
+        if('scansv' in v.om_mp): #OC17022026
+            if(len(v.om_mp['scansv']) > 0):
+                curScanRes = []
+                     
         #Calculate cost based of weights, target and nominal values of radiation characteristics
         if(v.si or v.ws or v.wg): #fully-coherent / single-electron calculations
 
@@ -2404,6 +2419,28 @@ class SRWLBeamline(object):
                     #if(infIsReq): s2pr += (' iM='+frm).format(maxI) + (' (sub-cost:'+frm+')').format(dCost)
                     if(infIsReq): s2pr += critInf('iM', maxI, dCost)
                     cost += dCost
+
+                if('xFWHM' in v.om_mp['scansv']): #OC18022026
+                    curScanRes.append(infI[4])
+
+                if('yFWHM' in v.om_mp['scansv']): #OC18022026
+                    curScanRes.append(infI[5])
+
+                if((('xFWFM' in v.om_mp['scansv']) and (cw['xFWFM'] > 0) and (cn['xFWFM'] > 0))): #OC18022026
+                    curScanRes.append(infI[7])
+
+                if(('yFWFM' in v.om_mp['scansv']) and (cw['yFWFM'] > 0) and (cn['yFWFM'] > 0)): #OC18022026
+                    curScanRes.append(infI[8])
+
+                if('iM' in v.om_mp['scansv']): #OC18022026
+                    curScanRes.append(infI[0])
+                        
+                if('f' in v.om_mp['scansv']): #OC18022026
+                #if((v.om_mt == 0) and ('f' in v.om_mp['scansv'])):
+                    if flux is None:
+                        flux = uti_math.integ_ar_2d(arI, _ar_align=1, _x_grid=[meshI.xStart, meshI.xFin, meshI.nx], _y_grid=[meshI.yStart, meshI.yFin, meshI.ny])*1.e+06
+                    curScanRes.append(flux) #OC17022026
+                    #curScanRes.append(('f', flux)) #OC17022026
 
             if((cw['xpFWHM'] > 0) or (cw['ypFWHM'] > 0)): #horizontal and vertical angular divergences
                 srwl.SetRepresElecField(wfr, 'a')
@@ -2535,9 +2572,10 @@ class SRWLBeamline(object):
 
             if(self.comMPI is not None): self.comMPI.Barrier() #synchronizing all processes in case if MPI is used (e.g. for partially-coherent calculations)
 
-            if(len(v.wm_fni) > 0): #load Intensity / Degree of Coherence from files and analyze the data
+            if(procIsMaster and (len(v.wm_fni) > 0)): #OC17022026 #load Intensity / Degree of Coherence from files and analyze the data
 
-                if(((cw['xFWHM'] > 0) or (cw['yFWHM'] > 0) or (cw['iM'] > 0)) and ((v.wm_ap == 0) or (v.wm_ap == 2))): #horizontal, vertical sizes and peak intensity
+                if(((cw['xFWHM'] > 0) or (cw['yFWHM'] > 0) or (cw['iM'] > 0) or (cw['f'] > 0) or ((v.om_mt == 0) and ('f' in v.om_mp['scansv']))) and ((v.wm_ap == 0) or (v.wm_ap == 2))): #OC16022026 #horizontal, vertical sizes, peak intensity, flux
+                #if(((cw['xFWHM'] > 0) or (cw['yFWHM'] > 0) or (cw['iM'] > 0)) and ((v.wm_ap == 0) or (v.wm_ap == 2))): #horizontal, vertical sizes and peak intensity
                     if((v.wm_ch == 0) or (v.wm_ch == 40)):
                         arI, meshI = srwl_uti_read_intens_ascii(os.path.join(os.getcwd(), v.fdir, v.wm_fni), 'f')
 
@@ -2583,6 +2621,35 @@ class SRWLBeamline(object):
                             dCost = cw['iM']*rI*rI
                             if(infIsReq): s2pr += critInf('iM', maxI, dCost)
                             cost += dCost
+                            
+                        if((cw['f'] > 0) and (cn['f'] > 0)): #flux
+                            flux = uti_math.integ_ar_2d(arI, _ar_align=1, _x_grid=[meshI.xStart, meshI.xFin, meshI.nx], _y_grid=[meshI.yStart, meshI.yFin, meshI.ny])*1.e+06
+                            rF = (flux - ct['f'])/cn['f']
+                            dCost = cw['f']*rF*rF
+                            if(infIsReq): s2pr += critInf('f', flux, dCost)
+                            cost += dCost
+
+                        if('xFWHM' in v.om_mp['scansv']): #OC18022026
+                            curScanRes.append(infI[4])
+
+                        if('yFWHM' in v.om_mp['scansv']): #OC18022026
+                            curScanRes.append(infI[5])
+
+                        if((('xFWFM' in v.om_mp['scansv']) and (cw['xFWFM'] > 0) and (cn['xFWFM'] > 0))): #OC18022026
+                            curScanRes.append(infI[7])
+
+                        if(('yFWFM' in v.om_mp['scansv']) and (cw['yFWFM'] > 0) and (cn['yFWFM'] > 0)): #OC18022026
+                            curScanRes.append(infI[8])
+
+                        if('iM' in v.om_mp['scansv']): #OC18022026
+                            curScanRes.append(infI[0])
+                        
+                        if('f' in v.om_mp['scansv']): #OC18022026
+                        #if((v.om_mt == 0) and ('f' in v.om_mp['scansv'])):
+                            if flux is None:
+                                flux = uti_math.integ_ar_2d(arI, _ar_align=1, _x_grid=[meshI.xStart, meshI.xFin, meshI.nx], _y_grid=[meshI.yStart, meshI.yFin, meshI.ny])*1.e+06
+                            curScanRes.append(flux) #OC17022026
+                            #curScanRes.append(('f', flux)) #OC17022026
             
                 if(((cw['xpFWHM'] > 0) or (cw['ypFWHM'] > 0)) and ((v.wm_ap == 1) or (v.wm_ap == 2))): #horizontal and vertical angular divergences
                     #if((v.wm_ch == 0) or (v.wm_ch == 40)):
@@ -2649,15 +2716,23 @@ class SRWLBeamline(object):
                         cost += dCost
 
             #if(cw['iD'] > 0): #arbitrary intensity distribution, to implement!
-
-        if(v.om_res is not None): #OC08122022
-            nPar_p_2 = nVars + 2
-            lenStat = len(v.om_res)
-            if(lenStat < nPar_p_2):
-                extStat = [0]*(nPar_p_2 - lenStat)
-                v.om_res.extend(extStat)
-
+        
         if procIsMaster:
+            
+            if(v.om_res is not None): #OC08122022
+                nPar_p_2 = nVars + 2
+                lenStat = len(v.om_res)
+                if(lenStat < nPar_p_2):
+                    extStat = [0]*(nPar_p_2 - lenStat)
+                    v.om_res.extend(extStat)
+
+            v.om_res = self.uti_math_opt.status_update(v.om_res, _x, cost) #OC16022026 (to print updated summary cost)
+            
+            if(curScanRes is not None): #OC17022026
+                if(len(curScanRes) > 0):
+                    curRecordToScanRes = [_x, curScanRes]
+                    self.listScanRes.append(curRecordToScanRes)
+
             if(v.om_pr or v.om_fl):
 
                 statStr = self.uti_math_opt.status_str(v.om_pn, _x, cost, frm, v.om_res)
@@ -2666,7 +2741,7 @@ class SRWLBeamline(object):
                     sys.stdout.flush()
                 if(v.om_fl): self.uti_math_opt.log_update(v.om_fnl, statStr)
             
-        v.om_res = self.uti_math_opt.status_update(v.om_res, _x, cost)
+        #v.om_res = self.uti_math_opt.status_update(v.om_res, _x, cost)
         return cost
 
     #------------------------------------------------------------------------
@@ -2717,32 +2792,48 @@ class SRWLBeamline(object):
                 self.comMPI = None
 
             _v.om = False #to avoid infinite nested loop
+            
+            self.listScanRes = [] #To store results of parameter scan as requested in v.om_mp['scansv'])
 
             #_v.om_cw = uti_math_opt.norm_weights(_v.om_cw)
             #Updating weight values in the hashtable (is there a simpler war to do the above manipulation?):
-            om_cw_vals = uti_math_opt.norm_weights([_v.om_cw[k] for k in _v.om_cw.keys()])
-            ik = 0
-            for k in _v.om_cw.keys():
-                _v.om_cw[k] = om_cw_vals[ik]
-                ik += 1
-            #print(_v.om_cw)
+            if(_v.om_mt > 0): #OC15022026 (don't normalize weights for the "param. scan" method)
+                om_cw_vals = uti_math_opt.norm_weights([_v.om_cw[k] for k in _v.om_cw.keys()])
+                ik = 0
+                for k in _v.om_cw.keys():
+                    _v.om_cw[k] = om_cw_vals[ik]
+                    ik += 1
+                #print(_v.om_cw)
 
-            if(_v.om_pr): 
-                print('Optimization started ...')
-                sys.stdout.flush()
+            if(srwl_uti_proc_is_master()): #OC16022026
+                if(_v.om_pr): 
+                    print('Optimization started ...')
+                    sys.stdout.flush()
 
             if(_v.om_fl): _v.om_fnl = self.uti_math_opt.log_init('__srwl_logs__')
 
             _v.om_res = [0]*(len(_v.om_iv) + 2) #array for storing instant optimization results in the process of the optimization
             for ip in range(len(_v.om_iv)): _v.om_res[ip] = _v.om_iv[ip]
 
-            if(_v.om_cw['iD'] > 0):
-                if((_v.om_fn is not None) and (len(_v.om_fn) > 0)):
-                    fPathOptIntDistr = os.path.join(os.getcwd(), _v.fdir, _v.om_fn)
-                    #print(self.meshIntFit)
-                    self.arIntFit, self.meshIntFit = srwl_uti_read_intens_ascii(fPathOptIntDistr)
+            if('iD' in _v.om_cw): #OC16022026 #Check if 'iD' key exist first
+                if(_v.om_cw['iD'] > 0):
+                    if((_v.om_fn is not None) and (len(_v.om_fn) > 0)):
+                        fPathOptIntDistr = os.path.join(os.getcwd(), _v.fdir, _v.om_fn)
+                        #print(self.meshIntFit)
+                        self.arIntFit, self.meshIntFit = srwl_uti_read_intens_ascii(fPathOptIntDistr)
             
             uti_math_opt.minimize(self.cost_func, _v.om_iv, _x_lim=_v.om_lm, _meth=_v.om_mt, _opt=_v.om_mp, _aux=_v)
+            
+            if(srwl_uti_proc_is_master()): #OC17022026
+                listFlatRecScanRes = []
+                for rec in self.listScanRes:
+                    listFlatRecScanRes.append(uti_parse.list_flatten(rec))
+                    
+                if(len(listFlatRecScanRes) > 0):
+                    fnScanRes = copy(_v.om_fn).replace('.dat', '_scan.dat')
+                    fPath = os.path.join(os.getcwd(), _v.fdir, fnScanRes)
+                    uti_io.write_ascii_data_rows(fPath, listFlatRecScanRes, _str_sep='\t') #, _str_head=None, _i_col_start=0, _i_col_end=-1, _i_row_start=0, _i_row_end=-1)
+            
             _v = self.cancel_calc_req(_v)
 
         #---main folder
@@ -3548,7 +3639,10 @@ class SRWLBeamline(object):
                         _dep_type=3, #consider adding other cases (e.g. for TD FEL calculations)
                         _fname = os.path.join(_v.fdir, _v.ws_fni) if(len(_v.ws_fni) > 0) else '',
                         _det = detector,
-                        _rad_view = None if(not hasattr(_v, 'op_rv')) else _v.op_rv) #OC08022021
+                        _rad_view = None if(not hasattr(_v, 'op_rv')) else _v.op_rv, #OC23122025
+                        #rad_view = None if(not hasattr(_v, 'op_rv')) else _v.op_rv,
+                        _try_gpu = _v.ws_gpu) #OC23122025
+                        #_rad_view = None if(not hasattr(_v, 'op_rv')) else _v.op_rv) #OC08022021
                         #_det = detector)
                     #mesh_ws = wfr.mesh #OC06122016 (commented-out)
                     #if(len(_v.ws_fn) > 0): to implement saving single-e (/ fully coherent) wavefront data (wfr) to a file
@@ -3631,6 +3725,7 @@ class SRWLBeamline(object):
 
                     #DEBUG
                     #print('_v.wm_nop=', _v.wm_nop)
+                    #print(os.path.join(_v.fdir, _v.wm_fni))
                     #sys.stdout.flush()
                     #END DEBUG
 
@@ -3664,7 +3759,8 @@ class SRWLBeamline(object):
                         _ncm = _v.wm_ncm, #) #OC27062021
                         _cm_wfr = lstWfrCM, #) #OC02072021
                         _ms = _v.wm_ms, #) #OC22112022
-                        _pol = _v.wm_pol) #OC28122023
+                        _pol = _v.wm_pol, #) #OC28122023
+                        _gpu_f = _v.wm_gpu) #OC09042026
 
         if(not srwl_uti_proc_is_master()): return #OC26122023 
         #ATTENTION: only plot by Master process after this point!
@@ -3895,8 +3991,8 @@ class SRWLBeamline(object):
                     _v.si_res, #OC16102017
                     [mesh_si.xStart, mesh_si.xFin, mesh_si.nx],
                     [mesh_si.yStart, mesh_si.yFin, mesh_si.ny],
-                    0, #0.5*(mesh_si.xStart + mesh_si.xFin),
-                    0, #0.5*(mesh_si.yStart + mesh_si.yFin),
+                    0.5*(mesh_si.xStart + mesh_si.xFin), #0, #0.5*(mesh_si.xStart + mesh_si.xFin), #OC10012025
+                    0.5*(mesh_si.yStart + mesh_si.yFin), #0, #0.5*(mesh_si.yStart + mesh_si.yFin), #OC10012025
                     ['Horizontal Position', 'Vertical Position', sValLabel + ' Before Propagation'],
                     ['m', 'm', sValUnit],
                     True)
@@ -3905,8 +4001,8 @@ class SRWLBeamline(object):
                     _v.ws_res, #OC16102017
                     [mesh_ws.xStart, mesh_ws.xFin, mesh_ws.nx],
                     [mesh_ws.yStart, mesh_ws.yFin, mesh_ws.ny],
-                    0, #0.5*(mesh_ws.xStart + mesh_ws.xFin),
-                    0, #0.5*(mesh_ws.yStart + mesh_ws.yFin),
+                    0.5*(mesh_ws.xStart + mesh_ws.xFin), #0, #0.5*(mesh_ws.xStart + mesh_ws.xFin), #OC10012025
+                    0.5*(mesh_ws.yStart + mesh_ws.yFin), #0, #0.5*(mesh_ws.yStart + mesh_ws.yFin), #OC10012025
                     ['Horizontal Position', 'Vertical Position', sValLabel + ' After Propagation'],
                     ['m', 'm', sValUnit],
                     True)
@@ -3922,7 +4018,7 @@ class SRWLBeamline(object):
                                 [curMesh.yStart, curMesh.yFin, curMesh.ny],
                                 0, #0.5*(curMesh.xStart + curMesh.xFin),
                                 0, #0.5*(curMesh.yStart + curMesh.yFin),
-                                ['Horizontal Position', 'Vertical Position', sValLabel + ' After Elem. #' + repr(curIntData[0])],
+                                ['Horizontal Position', 'Vertical Position', sValLabel + ' After Elem. #' + str(curIntData[0])], #RN10122025
                                 ['m', 'm', sValUnit],
                                 True)
                             
@@ -4003,6 +4099,7 @@ def srwl_uti_std_options():
         ['ebm_xp', 'f', 0., 'electron beam initial average horizontal angle [rad]'],
         ['ebm_yp', 'f', 0., 'electron beam initial average vertical angle [rad]'],
         #['ebm_z', 'f', 0., 'electron beam initial average longitudinal position [m]'], #it is always assumed to be 0.
+        ['ebm_z', 'f', 0., 'electron beam initial average longitudinal position [m]'], #OC28112024 (uncommented, to be consistent with update made for the case with quads)
         ['ebm_dr', 'f', 0., 'electron beam longitudinal drift [m] to be performed before a required calculation'],
         ['ebm_ens', 'f', -1, 'electron beam relative energy spread'],
         ['ebm_emx', 'f', -1, 'electron beam horizontal emittance [m]'],
@@ -4280,7 +4377,8 @@ def srwl_uti_std_options():
         ['w_u', 'i', '1', 'electric field units: 0- arbitrary, 1- sqrt(Phot/s/0.1%bw/mm^2), 2- sqrt(J/eV/mm^2) or sqrt(W/mm^2), depending on representation (freq. or time)'],
         ['w_wr', 'f', 0., 'wavefront radius to set (is taken into account if != 0) [m]; this parameter may be important for subsequent wavefront propagation simulations; by default, it is set by a function calculating the initial wavefront; however, it can also be set manually using this variable'],
         ['w_wre', 'f', 0., 'wavefront radius error (is taken into account if != 0) [m]; this parameter may be important for subsequent wavefront propagation simulations; by default, it is set by a function calculating the initial wavefront; however, it can also be set manually using this variable'],
-        
+        #['w_gpu', '', '', 'try to use GPU acceleration of single-electron and multi-electron calculations', 'store_true'], #OC23122025
+
         ['si_pol', 'i', 6, 'polarization component to extract after calculation of intensity distribution: 0- Linear Horizontal, 1- Linear Vertical, 2- Linear 45 degrees, 3- Linear 135 degrees, 4- Circular Right, 5- Circular Left, 6- Total'],
         ['si_type', 'i', 0, 'type of a characteristic to be extracted after calculation of intensity distribution: 0- Single-Electron Intensity, 1- Multi-Electron Intensity, 2- Single-Electron Flux, 3- Multi-Electron Flux, 4- Single-Electron Radiation Phase, 5- Re(E): Real part of Single-Electron Electric Field, 6- Im(E): Imaginary part of Single-Electron Electric Field, 7- Single-Electron Intensity, integrated over Time or Photon Energy'],
         ['si_fn', 's', 'res_int_se.dat', 'file name for saving calculated single-e intensity distribution (without wavefront propagation through a beamline) vs horizontal and vertical position'],
@@ -4295,6 +4393,8 @@ def srwl_uti_std_options():
 
         ['ws_pl', 's', 'xy', 'plot the propagated radiaiton intensity distributions in graph(s): ""- dont plot, "x"- vs horizontal position, "y"- vs vertical position, "xy"- vs horizontal and vertical position'],
         ['ws_ap', 'i', 0, 'switch specifying representation of the resulting Stokes parameters (/ Intensity distribution): coordinate (0) or angular (1)'],
+        ['ws_gpu', '', '', 'try to use GPU acceleration of single-electron calculations', 'store_true'], #OC09042026
+
         ['si_pl', 's', 'xy', 'plot the input intensity distributions in graph(s): ""- dont plot, "x"- vs horizontal position, "y"- vs vertical position, "xy"- vs horizontal and vertical position'],
 
         ['wm_nm', 'i', 100000, 'number of macro-electrons (coherent wavefronts) for calculation of multi-electron wavefront propagation'],
@@ -4328,6 +4428,8 @@ def srwl_uti_std_options():
         ['wm_fbk', '', '', 'create backup file(s) with propagated multi-e intensity distribution vs horizontal and vertical position and other radiation characteristics', 'store_true'],
         ['wm_pl', 's', '', 'plot the propagated radiaiton intensity distributions in graph(s): ""- dont plot, "x"- vs horizontal position, "y"- vs vertical position, "xy"- vs horizontal and vertical position'], #OC25072024
         #['wm_pl', 's', 'xy', 'plot the propagated radiaiton intensity distributions in graph(s): ""- dont plot, "x"- vs horizontal position, "y"- vs vertical position, "xy"- vs horizontal and vertical position'],
+        
+        ['wm_gpu', 'f', 0., 'fraction of wavefronts to be propagated on GPU, 0<=wm_gpu<=1 (to be implemented: if wm_gpu<0 then try to deduce this optimal fraction "experimentally", using different methods)'],
 
         #['ws_fn', 's', '', 'file name for saving single-e (/ fully coherent) wavefront data'],
         #['wm_fn', 's', '', 'file name for saving multi-e (/ partially coherent) wavefront data'],
@@ -4356,11 +4458,12 @@ def srwl_uti_std_options():
         ['om_pn', '', ['op_VFM_r', 'op_HFM_r', 'op_S0_Dy', 'op_S0H_Dx'], 'names of parameters to be optimized'],
         ['om_iv', 'f', [20000., 20000., 1e-05, 1e-05], 'initial values of parameters to be optimized'],
         ['om_lm', 'f', [[10000.,30000.], [10000.,30000.], [1.e-06,0.001], [1.e-06,0.001]], 'limiting (i.e. min. amd max. possible) values of parameters to be optimized'],
-        #['om_ls', 'f', [[10000.,10000.,1.e-06,0.001], [20000.,10000.,1.e-06,0.001]], 'explicit list of parameter values to try / use (for basic parameter scan method)'],
+        #['om_ls', 'f', [[10000.,10000.,1.e-06,0.001], [20000.,10000.,1.e-06,0.001]], 'explicit list of parameter values to try / use (for basic parameter scan method)'], #not used(?)
 
-        ['om_cw', 'f', {'xFWHM':1, 'yFWHM':1, 'xpFWHM':0, 'ypFWHM':0, 'xCL':0, 'yCL':0, 'iM':0, 'iD':0, 'xFWFM':1.5, 'yFWFM':3., 'xpFWFM':0, 'ypFWFM':0}, 'weights of different criterions the optimization should be performed for: "xFWHM"- horizontal FWHM spot size, "yFWHM"- vertical FWHM spot size, "xpFWHM"- horizontal FWHM angular divergence, "ypFWHM"- vertical FWHM angular divergence, "xCL"- horizontal coherence length, "yCL"- vertical coherence length, "iM"- peak intensity, "iD"- given intensity distribution, "xFWFM"- full horizontal width at fraction of maximum, "yFWFM"- full vertical width at fraction of maximum, "xpFWFM"- full horizontal angular divergence at fraction of maximum, , "vpFWFM"- full vertical angular divergence at fraction of maximum'],
-        ['om_ct', 'f', {'xFWHM':0.7e-06, 'yFWHM':0.7e-06, 'xpFWHM':0, 'ypFWHM':0, 'xCL':0, 'yCL':0, 'iM':1.e+17, 'iD':0, 'xFWFM':(0.7e-06*1.52379), 'yFWFM':(0.7e-06*1.52379), 'xpFWFM':0, 'ypFWFM':0}, 'target values of different criterions / figures of merit for the optimization, in the same order as defined by om_cw'],
-        ['om_cn', 'f', {'xFWHM':0.7e-06, 'yFWHM':0.7e-06, 'xpFWHM':0, 'ypFWHM':0, 'xCL':0, 'yCL':0, 'iM':1.e+17, 'iD':0, 'xFWFM':(0.7e-06*1.52379), 'yFWFM':(0.7e-06*1.52379), 'xpFWFM':0, 'ypFWFM':0}, 'nominal values of different criterions / figures of merit for the optimization, in the same order as defined by om_cw'],
+        ['om_cw', 'f', {'xFWHM':0, 'yFWHM':0, 'xpFWHM':0, 'ypFWHM':0, 'xCL':0, 'yCL':0, 'iM':0, 'iD':0, 'xFWFM':0, 'yFWFM':0, 'xpFWFM':0, 'ypFWFM':0, 'f':0}, 'weights of different criterions the optimization should be performed for: "xFWHM"- horizontal FWHM spot size, "yFWHM"- vertical FWHM spot size, "xpFWHM"- horizontal FWHM angular divergence, "ypFWHM"- vertical FWHM angular divergence, "xCL"- horizontal coherence length, "yCL"- vertical coherence length, "iM"- peak intensity, "iD"- given intensity distribution, "xFWFM"- full horizontal width at fraction of maximum, "yFWFM"- full vertical width at fraction of maximum, "xpFWFM"- full horizontal angular divergence at fraction of maximum, , "vpFWFM"- full vertical angular divergence at fraction of maximum'],
+        #['om_cw', 'f', {'xFWHM':1, 'yFWHM':1, 'xpFWHM':0, 'ypFWHM':0, 'xCL':0, 'yCL':0, 'iM':0, 'iD':0, 'xFWFM':1.5, 'yFWFM':3., 'xpFWFM':0, 'ypFWFM':0, 'f':0}, 'weights of different criterions the optimization should be performed for: "xFWHM"- horizontal FWHM spot size, "yFWHM"- vertical FWHM spot size, "xpFWHM"- horizontal FWHM angular divergence, "ypFWHM"- vertical FWHM angular divergence, "xCL"- horizontal coherence length, "yCL"- vertical coherence length, "iM"- peak intensity, "iD"- given intensity distribution, "xFWFM"- full horizontal width at fraction of maximum, "yFWFM"- full vertical width at fraction of maximum, "xpFWFM"- full horizontal angular divergence at fraction of maximum, , "vpFWFM"- full vertical angular divergence at fraction of maximum'],
+        ['om_ct', 'f', {'xFWHM':0.7e-06, 'yFWHM':0.7e-06, 'xpFWHM':0, 'ypFWHM':0, 'xCL':0, 'yCL':0, 'iM':1.e+17, 'iD':0, 'xFWFM':(0.7e-06*1.52379), 'yFWFM':(0.7e-06*1.52379), 'xpFWFM':0, 'ypFWFM':0, 'f':0}, 'target values of different criterions / figures of merit for the optimization, in the same order as defined by om_cw'],
+        ['om_cn', 'f', {'xFWHM':0.7e-06, 'yFWHM':0.7e-06, 'xpFWHM':0, 'ypFWHM':0, 'xCL':0, 'yCL':0, 'iM':1.e+17, 'iD':0, 'xFWFM':(0.7e-06*1.52379), 'yFWFM':(0.7e-06*1.52379), 'xpFWFM':0, 'ypFWFM':0, 'f':1.e+12}, 'nominal values of different criterions / figures of merit for the optimization, in the same order as defined by om_cw'],
         ['om_ce', 'f', {'xFWFM':0.2, 'yFWFM':0.2, 'xpFWFM':0.2, 'ypFWFM':0.2}, 'extra data related to some optimization criterions, e.g. for *FWFM this is the fraction of maximum at which full width of intensity distribution should be considered'],
 
         ['om_fn', 's', '', 'input intensity distribution file name'], #?
@@ -4369,7 +4472,8 @@ def srwl_uti_std_options():
         ['om_mt', 'i', 1, 'optimization method to use: 0- basic scan on parameter values, 1- ..., 2- ...'],
 
         ['om_mp', 'f', {'xtol': 1e-3, 'ftol': 1e-3, 'maxiter': 1000}, 'method-dependent optimization parameters (dictionary)'],
-        #['om_mp', 'i', {'xtol': 1e-3, 'ftol': 1e-3, 'maxiter': 1000}, 'method-dependent optimization parameters (dictionary)'],
+        #['om_mp', 'i', {'xtol': 1e-3, 'ftol': 1e-3, 'maxiter': 1000, 'scanls': [[9993.],[9999.],[10000.],[10001.],[10007.]], 'scansv': ['f']}, 'method-dependent optimization parameters (dictionary)'],
+        #...'scansv': ['f'] means calculating flux for each of params from 'scanls' list and saving these data to a file (same to be implemented for oter values, like 'xFWHM', 'yFWHM', etc.)
 
         ['om_pr', '', '1', 'print-out auxiliary information in the course of the optimization procedure', 'store_true'],
         ['om_fl', '', '1', 'save auxiliary information during the optimization procedure to a listing file', 'store_true'],

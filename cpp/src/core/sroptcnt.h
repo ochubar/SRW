@@ -82,7 +82,33 @@ public:
 			((srTGenOptElem*)((*iter).rep))->AddPtrOfActualOptElem(ActOptElemsList);
 		}
 	}
+};
 
+//*************************************************************************
+
+class srTOptInterferometer : public srTGenOptElem { //OC01102025
+
+	//int m_irec; //index of the container (from arOptC) from which the propagated wavefront mesh parameters will be taken at the wavefront recombination (if <0, no wavefront recombination is assumed)
+	//OC12102025
+	double m_arPar[3]; //array precision parameters: 
+	//m_arPar[0] is index of the container (from arOptC) from which the propagated wavefront mesh parameters will be taken at the wavefront recombination (if <0, no wavefront recombination is assumed), 
+	//m_arPar[1] means allow or not treatment of quadratic phase terms (0- don't allow, 1- allow),
+	//m_arPar[2] means allow or not correction of Re and Im parts of the E-field based on intensity ratio (0- don't allow, 1- allow)
+
+public:
+	srTGenOptElemHndlList GenOptCntList;
+
+	srTOptInterferometer(const SRWLOptI& opt);
+	srTOptInterferometer() 
+	{
+		m_arPar[0] = 0;
+		m_arPar[1] = 1;
+		m_arPar[2] = 1;
+	}
+	//Is adding a destructor necessary (to avoid memory meak)?
+
+	int PropagateRadiation(srTSRWRadStructAccessData* pRadAccessData, srTParPrecWfrPropag& ParPrecWfrPropag, srTRadResizeVect& ResizeBeforeAndAfterVect, void* pvGPU=0); //OC08102025
+	
 };
 
 //*************************************************************************

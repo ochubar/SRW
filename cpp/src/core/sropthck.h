@@ -62,6 +62,10 @@ protected:
 	TVector3d m_vPtOutLoc; //Used only in Test PropagateRadiationSimple_FourierByParts
 	bool m_isConvex; //OC06032024 (moved here from Hyperboloid)
 
+	//OC19062025 (to be taken into account at calculation of mirror limits in its local frame)
+	//double m_cenOfstTang, m_cenOfstSag; //offsets of the "optical" center of the mirror in the tangential and sagital directions [m]
+	//OC23062025 (moved to srTShapedOptElem, because test function CheckIfPointIsWithinOptElem(double xLoc, double yLoc) is implemented there - consider changing?)
+
 	double m_longPosStartPropPart, m_longPosEndPropPart;
 	double m_inWfrRh, m_inWfrRv, m_inWfrCh, m_inWfrCv;
 
@@ -460,7 +464,13 @@ public:
 		m_ayE2 = m_ay*m_ay;
 
 		//Coordinates of mirror edges in the Local frame:
-		double x1Loc = m_halfDim1, x2Loc = -m_halfDim1;
+		//double x1Loc = m_halfDim1, x2Loc = -m_halfDim1;
+
+		double x1Loc = m_halfDim1 + m_cenOfstDim1; //OC23062025 (to check sign) 
+		double x2Loc = -m_halfDim1 + m_cenOfstDim1;
+		//double x1Loc = m_halfDim1 + m_cenOfstTang; //OC23062025 (to check sign) 
+		//double x2Loc = -m_halfDim1 + m_cenOfstTang;
+
 		double z1Loc = 0., z2Loc = 0.; //to correct?
 
 		const double Pi = 3.141592653589793;
@@ -730,49 +740,84 @@ private:
 public:
 	srTMirrorHyperboloid(const SRWLOptMirHyp&);
 
-	//void DetermineHyperboloidParamsInLocFrame(); //TW19012024 //OC06032024 (moved to .h from .cpp)
+	/// \brief Determine the hyperboloid parameters, including 1) the rotation angle \c m_angRot from the Local frame to the Local Normal frame using the right-hand rule and 2) the center coordinates \c m_xcLocNorm and \c m_zcLocNorm in the Local Normal frame.
+	///
+	/// The Local frame is defined as follows:
+	/// - Tangential direction is X
+	/// - Sagittal direction is Y
+	/// - Normal direction is Z
+	///
+	/// The rotation angle depends on the relationship between \c p and \c q, and the sign of \c m_vCenTang.z:
+	///
+	/// The transformation matrix is:
+	/// \code
+	/// |cos(angRot)  -sin(angRot)   tx|
+	/// |sin(angRot)   cos(angRot)   tz|
+	/// |     0              0        1|
+	/// \endcode
+	///
+	/// - If p > q:
+	///   - If m_vCenTang.z < 0: angRot = -acuteAngRot
+	///   - If m_vCenTang.z > 0: angRot = -(π - acuteAngRot)
+	/// - If p < q:
+	///   - If m_vCenTang.z < 0: angRot = acuteAngRot
+	///   - If m_vCenTang.z > 0: angRot = π - acuteAngRot
+	///
+	/// \note Reference: Yashchuk et al., 2019.
 	void DetermineHyperboloidParamsInLocFrame() 
 	{
-		// determine convex & concave and which part of the hyperboloid
-		m_isConvex = m_p > m_q ? true : false; // p>q, convex; p<q, concave; optical system sense
-		double z0_sign = m_vCenTang.z > 0 ? -1.0 : 1.0;  // t.z<0, z0>0; t.z>0, z0<0;
-
-		// determine the rotation angle from the Local to Local Normal frame
+		// Determine the rotation angle from the Local frame to the Local Normal frame
 		double acuteAngRot = atan((m_p + m_q) * tan(m_angGraz) / fabs(m_p - m_q));
-		if(m_isConvex && z0_sign > 0 || !m_isConvex && z0_sign < 0) {
-			m_angRot = acuteAngRot;
+		if(m_p > m_q) {
+			m_angRot = m_vCenTang.z < 0 ? acuteAngRot : PI - acuteAngRot;
+
+			//OCDEBUG02052025: ATTENTION: this change may be required!
+			//m_angRot = 2*PI - acuteAngRot;
 		}
 		else {
-			m_angRot = PI - acuteAngRot;
+			m_angRot = m_vCenTang.z < 0 ? -acuteAngRot : -(PI - acuteAngRot);
 		}
 		m_sinAngRotNormLoc = sin(m_angRot);
 		m_cosAngRotNormLoc = cos(m_angRot);
 
-		// determine the coordinate of the mirror center in the Local Normal frame
+		// Determine the sign (+-) of the x0, z0 based on convexity, p, q, and m_vCenTang.z
+		double z0_sign = 0, x0_sign = 0;
+		if(m_isConvex) {
+			z0_sign = m_vCenTang.z < 0 ? 1 : -1;
+			x0_sign = m_p > m_q ? -1 : 1;
+
+			//OCDEBUG02052025 ATTENTION: this change may be required!
+			//z0_sign *= -1;
+			//x0_sign *= -1;
+		}
+		else {
+			z0_sign = m_vCenTang.z < 0 ? -1 : 1;
+			x0_sign = m_p > m_q ? 1 : -1;
+		}
+
+		// calculate the mirror center coordinate (x0, z0) in the local normal frame
 		double c = 0.5 * sqrt(m_q * m_q + m_p * m_p - 2 * m_q * m_p * cos(2 * m_angGraz));
-		double x0 = (m_q * m_q - m_p * m_p) / (4 * c);
+		double x0 = x0_sign * abs(m_q * m_q - m_p * m_p) / (4 * c);
 		double z0 = z0_sign * (m_q * m_p * sin(2 * m_angGraz)) / (2 * c);
 		m_xcLocNorm = x0;
 		m_zcLocNorm = z0;
 	}
 
-
-	//returns coordinates of the intersection point in the Local frame (resP), and, optionally, components of the surface normal at the intersection point (always in the Local frame)
-	//bool FindRayIntersectWithSurfInLocFrame(TVector3d& inP, TVector3d& inV, TVector3d& resP, TVector3d* pResN=0); //virtual in srTMirror
-	bool FindRayIntersectWithSurfInLocFrame(TVector3d &inP, TVector3d &inV, TVector3d &resP, TVector3d *pResN=0) //TW19012024 //OC04022024 (moved here from .cpp) //virtual in srTMirror
+	/// \brief Find the intersection of a ray with the surface of the hyperboloid in the local frame.
+	///
+	/// \param inP Input point of the ray in the Local frame.
+	/// \param inV Input direction vector of the ray in the Local frame (should be normalized).
+	/// \param resP Output point of intersection in the Local frame.
+	/// \param pResN Optional output normal vector at the intersection point in the Local frame (if not null).
+	/// \return True if the intersection is found, false otherwise.
+	bool FindRayIntersectWithSurfInLocFrame(TVector3d &inP, TVector3d &inV, TVector3d &resP, TVector3d *pResN = 0)
 	{
-		// make sure the direction vector inV is normalized
+		// Make sure the direction vector inV is normalized
 		inV.Normalize();
-		return FindRayIntersectSol1(inP, inV, resP, pResN);
-	}
 
-private:
-
-	/* Solution 1: resolve in the local normal frame then transform to the local frame*/
-	//bool FindRayIntersectSol1(TVector3d& inP, TVector3d& inV, TVector3d& resP, TVector3d* pResN=0); //OC06032024 (moved to .h from .cpp)
-	bool FindRayIntersectSol1(TVector3d& inP, TVector3d& inV, TVector3d& resP, TVector3d* pResN=0) //TW19012024 //OC06032024 (moved to .h from .cpp)
-	{
-		// Coordinates of all points and vectors in the frame where the elipse is described by x^2/m_ax^2 - y^2/m_ay^2 - z^2/m_az^2 = 1:
+		/* Resolve in the local normal frame then transform to the local frame.
+		 */
+		// 1. Transform the coordinates of all points and vectors to the local normal frame where the hyperbola is described by x^2/m_ax^2 - y^2/m_ay^2 - z^2/m_az^2 = 1
 		// Transform inP to the Local Normal frame
 		double x0 = m_xcLocNorm + inP.x * m_cosAngRotNormLoc + inP.z * m_sinAngRotNormLoc;
 		double y0 = inP.y;
@@ -783,46 +828,58 @@ private:
 		double vy = inV.y;
 		double vz = -inV.x * m_sinAngRotNormLoc + inV.z * m_cosAngRotNormLoc;
 
-		// calculate t
+		// 2. Determine the intersection (xi, yi) of the line and the hyperbola in the local normal frame line: xi = xp + t*vx, yi = yp + t*vy, zi = zp + t*vz
+		// 2.1 Determine if there is an intersection
 		double A = m_ayE2 * m_azE2 * vx * vx - m_axE2 * m_azE2 * vy * vy - m_axE2 * m_ayE2 * vz * vz;
 		double B = 2 * (m_ayE2 * m_azE2 * x0 * vx - m_axE2 * m_azE2 * y0 * vy - m_axE2 * m_ayE2 * vz * z0);
 		double C = m_ayE2 * m_azE2 * x0 * x0 - m_axE2 * m_azE2 * y0 * y0 - m_axE2 * m_ayE2 * z0 * z0 - m_axE2 * m_ayE2 * m_azE2;
 		double Delta = B * B - 4 * A * C;
-
-		// no intersection at all
 		if(Delta < 0) {
 			return false;
 		}
 
-		//OC06032024
-		double twoA = 2*A;
+		// 2.2 Calculate the two possible solutions for t
+		// OC02052025
 		double sqrtDelta = sqrt(Delta);
-		double t1 = (-B + sqrtDelta) / twoA; //Consider using expansion if necessary, not to lose precision
-		double t2 = (-B - sqrtDelta) / twoA;
-		double t0 = 0;
+		double twoA = 2 * A;
+		double t1 = (-B + sqrtDelta) / twoA; // solution 1
+		double t2 = (-B - sqrtDelta) / twoA; // solution 2
 
-		//OC06032024 (commented-out)
-		//// determine which t is correct
-		//double t1 = (-B + sqrt(B * B - 4 * A * C)) / (2 * A);
-		//double t2 = (-B - sqrt(B * B - 4 * A * C)) / (2 * A);
-		//double t0 = 0;
+		// OC15042025 (test trying to avoid loss of accuracy - seems to be OK, could be used)
+		// double Delta_d_Be2_mi_1 = Delta/(B*B) - 1.;
+		// double t1, t2;
+		// if(B >= 0.)
+		//{
+		//	t1 = fabs(B)*CGenMathMeth::radicalOnePlusSmallMinusOne(Delta_d_Be2_mi_1);
+		//	t2 = -fabs(B)*(1. + CGenMathMeth::radicalOnePlusSmall(Delta_d_Be2_mi_1));
+		// }
+		// else
+		//{
+		//	t1 = fabs(B)*(1. + CGenMathMeth::radicalOnePlusSmall(Delta_d_Be2_mi_1));
+		//	t2 = -fabs(B)*CGenMathMeth::radicalOnePlusSmallMinusOne(Delta_d_Be2_mi_1);
+		// }
+		// t1 /= twoA;
+		// t2 /= twoA;
 
-		if(!Which_t(inP, inV, t1, t2, t0)) {
+		// 2.3 Determine which t is correct
+		bool is_t1_valid = Validate_t(inP, inV, t1);
+		bool is_t2_valid = Validate_t(inP, inV, t2); 
+		if(!is_t1_valid && !is_t2_valid) {
 			return false;
 		}
+		double t = is_t1_valid ? t1 : t2;		
+		double xi = x0 + t * vx;
+		double yi = y0 + t * vy;
+		double zi = z0 + t * vz;
 
-		double xi = x0 + t0 * vx;
-		double yi = y0 + t0 * vy;
-		double zi = z0 + t0 * vz;
-
-		//Transforming coordinates back to the Local frame
+		// 3. Transforming coordinates back to the Local frame
 		double xi_mi_m_xcLocNorm = xi - m_xcLocNorm;
 		double zi_mi_m_zcLocNorm = zi - m_zcLocNorm;
 		resP.x = xi_mi_m_xcLocNorm * m_cosAngRotNormLoc - zi_mi_m_zcLocNorm * m_sinAngRotNormLoc;
 		resP.y = yi;
 		resP.z = xi_mi_m_xcLocNorm * m_sinAngRotNormLoc + zi_mi_m_zcLocNorm * m_cosAngRotNormLoc;
 
-		//Components of the normal vector in the frame where the elipse is described by x^2/m_ax^2 + y^2/m_ay^2 + z^2/m_az^2 = 1:
+		// 4. Components of the normal vector in the frame where the elipse is described by x^2/m_ax^2 + y^2/m_ay^2 + z^2/m_az^2 = 1:
 		if(pResN != 0)
 		{
 			double xnLocNorm = xi / m_axE2, ynLocNorm = -yi / m_ayE2, znLocNorm = -zi / m_azE2;
@@ -830,6 +887,9 @@ private:
 
 			if(m_isConvex) {
 				xnLocNorm *= invNorm; ynLocNorm *= invNorm; znLocNorm *= invNorm;
+
+				//OCDEBUG02052025 (commented-out above, testing reversing of N)
+				//xnLocNorm *= -invNorm; ynLocNorm *= -invNorm; znLocNorm *= -invNorm;
 			}
 			else {
 				xnLocNorm *= -invNorm; ynLocNorm *= -invNorm; znLocNorm *= -invNorm;
@@ -844,162 +904,99 @@ private:
 		return true;
 	}
 
-	/* Solution 2: directly resolving from in the local frame*/
-	//bool FindRayIntersectSol2(TVector3d& inP, TVector3d& inV, TVector3d& resP, TVector3d* pResN=0);
-	bool FindRayIntersectSol2(TVector3d &inP, TVector3d &inV, TVector3d &resP, TVector3d *pResN=0) //TW19012024 //OC06032024 (moved to .h from .cpp)
-	{
-		double t = 0;
-		if(!Calculate_t(inP, inV, t)) {
-			return false;
-		}
-
-		resP.x = inP.x + t * inV.x;
-		resP.y = inP.y + t * inV.y;
-		resP.z = inP.z + t * inV.z;
-
-		if(pResN != 0) {
-			// TODO
-			;
-		}
-		return true;
-	}
-
-	// this is the function for generating the z of an hyperboloid in local frame
-	//double HyperboloidHeight(double x, double y = 0);
+private:
+	/// @brief Calculate the height of the hyperboloid at a given point (x, y).
+	/// @param x 	The x-coordinate of the point.
+	/// @param y 	The y-coordinate of the point.
+	/// @return 	The height of the hyperboloid at the given point.
 	double HyperboloidHeight(double x, double y=0) //TW19012024 //OC06032024 (moved to .h from .cpp)
 	{
 		// deal with cylindrical hyperbola
 		y = m_isCylinder ? 0 : y;
-	
-		// deal with convex or concave
-		double root_sign = -1;
-		if(m_p > m_q) // convex case
-		{
-			root_sign = 1;
-			//if (m_vCenTang.z < 0) // bottom
-			//{
-			//	x = -x;
-			//}
+
+		//TW06112024
+		if(m_isConvex) {
+			if(m_p > m_q) {
+				if(m_vCenTang.z < 0) {
+					return -HyperboloidHeightZ1(-x, y);
+				}
+				else {
+					return -HyperboloidHeightZ1(x, y);
+				}
+			}
+			else {
+				if(m_vCenTang.z < 0) {
+					return HyperboloidHeightZ1(x, y);
+				}
+				else {
+					return HyperboloidHeightZ1(-x, y);
+				}
+			}
 		}
-		else // concave case 
-		{
-			root_sign = -1;
-			//if (m_vCenTang.z < 0) // top
-			//{
-			//	x = -x;
-			//}
+		else {
+			if(m_p > m_q) {
+				if(m_vCenTang.z < 0) {
+					return HyperboloidHeightZ1(x, y);
+				}
+				else {
+					return HyperboloidHeightZ1(-x, y);
+				}
+			}
+			else {
+				if(m_vCenTang.z < 0) {
+					return -HyperboloidHeightZ1(-x, y);
+				}
+				else {
+					return -HyperboloidHeightZ1(x, y);
+				}
+			}
 		}
-	
-		// z(x,y) = Az^2 + Bz + C
-		double cosAngGraz = cos(m_angGraz), sinAngGraz = sin(m_angGraz); //OC06032024
-		
-		double A = cosAngGraz*cosAngGraz - (4 * m_p * m_q * sinAngGraz*sinAngGraz) / ((m_q - m_p) * (m_q - m_p)); //OC06032024
-		//double A = cos(m_angGraz) * cos(m_angGraz) - (4 * m_p * m_q * sin(m_angGraz) * sin(m_angGraz)) / ((m_q - m_p) * (m_q - m_p));
-		double B = -(2 * sinAngGraz) / (m_q - m_p) * (2 * m_p * m_q + (m_p + m_q) * cosAngGraz * x); //OC06032024
-		//double B = -(2 * sin(m_angGraz)) / (m_q - m_p) * (2 * m_p * m_q + (m_p + m_q) * cos(m_angGraz) * x);
-		double C = y * y + sinAngGraz*sinAngGraz * x * x; //OC06032024
-		//double C = y * y + sin(m_angGraz) * sin(m_angGraz) * x * x;
-	
-		return (-B + root_sign * sqrt(B * B - 4 * A * C)) / (2 * A);
 	}
 
-	// calculates the t for the intersection (px+t*vx, py+t*vy, pz+t*vz)
-	//bool Calculate_t(const TVector3d &inP, const TVector3d &inV, double &t);
-	bool Calculate_t(const TVector3d &inP, const TVector3d &inV, double &t) //TW19012024 //OC06032024 (moved to .h from .cpp)
+	/// @brief Calculate the height of the hyperboloid at a given point (x, y) for the first kind. All the rest 3 kinds are similar, just with different x and z signs.
+	/// @param x 	The x-coordinate of the point.
+	/// @param y 	The y-coordinate of the point.
+	/// @return 	The height of the hyperboloid at the given point.
+	double HyperboloidHeightZ1(double x, double y = 0)
 	{
-		// just for less typing
-		double vx = inV.x, vy = inV.y, vz = inV.z;
-		double px = inP.x, py = inP.y, pz = inP.z;
-
-		double cosAngGraz = cos(m_angGraz), sinAngGraz = sin(m_angGraz); //OC06032024
-
-		// just for less typing
+		// z(x,y) = Az^2 + Bz + C
+		double cosAngGraz = cos(m_angGraz), sinAngGraz = sin(m_angGraz); //OC06032024		
 		double A = cosAngGraz * cosAngGraz - (4 * m_p * m_q * sinAngGraz * sinAngGraz) / ((m_q - m_p) * (m_q - m_p)); //OC06032024
-		//double A = cos(m_angGraz) * cos(m_angGraz) - (4 * m_p * m_q * sin(m_angGraz) * sin(m_angGraz)) / ((m_q - m_p) * (m_q - m_p));
-		double D = sinAngGraz / (m_q - m_p) * (m_p + m_q) * cosAngGraz; //OC06032024
-		//double D = sin(m_angGraz) / (m_q - m_p) * (m_p + m_q) * cos(m_angGraz);
-		double E = sinAngGraz / (m_q - m_p) * m_p * m_q; //OC06032024
-		//double E = sin(m_angGraz) / (m_q - m_p) * m_p * m_q;
+		double B = -(2 * sinAngGraz) / (m_p - m_q) * (2 * m_p * m_q + (m_p + m_q) * cosAngGraz * x); //TW06112024
+		double C = y * y + sinAngGraz * sinAngGraz * x * x; //OC06032024
 
-		// Dt^2 + Et + F = 0
-		double F = A * vz * vz - 2 * D * vx * vz + sinAngGraz * sinAngGraz * vx * vx + vy * vy; //OC06032024
-		//double F = A * vz * vz - 2 * D * vx * vz + sin(m_angGraz) * sin(m_angGraz) * vx * vx + vy * vy;
-		double G = 2 * (A * pz * vz - D * (pz * vx + px * vz) - 2 * E * vz + sinAngGraz * sinAngGraz * px * vx + py * vy); //OC06032024
-		//double G = 2 * (A * pz * vz - D * (pz * vx + px * vz) - 2 * E * vz + sin(m_angGraz) * sin(m_angGraz) * px * vx + py * vy);
-		double H = A * pz * pz - 2 * D * px * pz - 4 * E * pz + sinAngGraz * sinAngGraz * px * px + py * py; //OC06032024
-		//double H = A * pz * pz - 2 * D * px * pz - 4 * E * pz + sin(m_angGraz) * sin(m_angGraz) * px * px + py * py;
-
-		// determinant
-		double Delta = G * G - 4 * F * H;
-		if(Delta < 0) {
-			t = 0;
-			return false;
+		if(m_p < m_q) {
+			return (-B + sqrt(B * B - 4 * A * C)) / (2 * A);
 		}
-
-		// solve the equation and select the correct t
-		double sqrtDelta = sqrt(Delta); //OC06032024
-		double t1 = (-G + sqrtDelta) / (2 * F); //OC06032024
-		//double t1 = (-G + sqrt(Delta)) / (2 * F);
-		double t2 = (-G - sqrtDelta) / (2 * F); //OC06032024
-		//double t2 = (-G - sqrt(Delta)) / (2 * F);
-
-		// validate & select the correct t solution
-		if(!Which_t(inP, inV, t1, t2, t)) {
-			return false;
+		else {
+			return (-B - sqrt(B * B - 4 * A * C)) / (2 * A);
 		}
-		return true;
 	}
 
-	// validate t
-	//bool Validate_t(const TVector3d& inP, const TVector3d& inV, const double& t);
+	/// @brief Validate the intersection point (xi, yi, zi) with the hyperboloid surface.
+	/// @param inP 	The input point of the ray in the Local frame.
+	/// @param inV 	The input direction vector of the ray in the Local frame (should be normalized).
+	/// @param t 	The parameter t for the ray equation.
+	/// @return 	True if the point (xi, yi, zi) is on the hyperboloid surface, false otherwise.
+	/// \note The function checks if the point (xi, yi, zi) lies within the hyperboloid limits and if the height calculated from the hyperboloid equation matches the input z-coordinate.
+	/// \note The function assumes that the hyperboloid is centered at the origin in the Local Normal frame and that the hyperboloid is described by the equation x^2/a^2 - y^2/b^2 - z^2/c^2 = 1.
 	bool Validate_t(const TVector3d& inP, const TVector3d& inV, const double& t) //TW19012024 //OC06032024 (moved to .h from .cpp)
 	{
-		//OC06032024 (commented-out, otherwise hals of wavefront was not "reflected")
-		//if(t < 0)
-		//{
-		//	return false;
-		//}
-
+		// Calculate the intersection point (xi, yi, zi) using the ray equation
 		double xi = inP.x + t * inV.x;
 		double yi = inP.y + t * inV.y;
 		double zi = inP.z + t * inV.z;
 
-		// calculate the zi on the hyperboloid using xi and yi
-		double zi_calc = 0;
-		if(!m_isConvex && m_vCenTang.z >= 0) {
-			zi_calc = HyperboloidHeight(xi, yi);
-		}
-		else if(!m_isConvex && m_vCenTang.z < 0) {
-			zi_calc = HyperboloidHeight(-xi, yi);
-		}
-		else if(m_isConvex && m_vCenTang.z >= 0) {
-			zi_calc = -HyperboloidHeight(xi, yi);
-		}
-		else {
-			zi_calc = -HyperboloidHeight(-xi, yi);
-		}
+		// Check if the point (xi, yi) is within the hyperboloid limits
+		bool is_xiyi = ((-m_halfDim1 + m_cenOfstDim1) <= xi && xi <= (m_halfDim1 + m_cenOfstDim1) && (-m_halfDim2 + m_cenOfstDim2) <= yi && yi <= (m_halfDim2 + m_cenOfstDim2));
 
-		bool is_xiyi = (-m_halfDim1 <= xi && xi <= m_halfDim1 && -m_halfDim2 <= yi && yi <= m_halfDim2);
-		bool is_zi = (zi - zi_calc) < 1e-12;
+		// Calculate the height of the hyperboloid at the point (xi, yi)
+		double zi_calc = HyperboloidHeight(xi, yi);
+
+		// Check if the calculated height is close to the input z-coordinate
+		bool is_zi = fabs(zi - zi_calc) < 1.e-10;
 
 		return (is_xiyi && is_zi);
-	}
-
-	// determine which t is the valid solution
-	//bool Which_t(const TVector3d& inP, const TVector3d& inV, const double& t1, const double& t2, double &t);
-	bool Which_t(const TVector3d& inP, const TVector3d& inV, const double& t1, const double& t2, double& t) //TW19012024 //OC06032024 (moved to .h from .cpp)
-	{
-		bool is_t1_valid = Validate_t(inP, inV, t1);
-		bool is_t2_valid = Validate_t(inP, inV, t2);
-
-		if(!is_t1_valid && !is_t2_valid) {
-			t = 0;
-			return false;
-		}
-		else {
-			t = is_t1_valid ? t1 : t2;
-			return true;
-		}
 	}
 };
 
@@ -1074,15 +1071,21 @@ public:
 		if(npTang < nimNp) npTang = nimNp;
 		double supTangLen = 2.*m_halfDim1;
 		double absTangStep = supTangLen/(npTang - 1);
-		xMin = CGenMathMeth::FindCoordValForCurveLength(this, &srTMirrorParaboloid::dZdTgCrd, m_halfDim1, xc, -absTangStep, npTang);
-		xMax = CGenMathMeth::FindCoordValForCurveLength(this, &srTMirrorParaboloid::dZdTgCrd, m_halfDim1, xc, absTangStep, npTang);
+		//xMin = CGenMathMeth::FindCoordValForCurveLength(this, &srTMirrorParaboloid::dZdTgCrd, m_halfDim1, xc, -absTangStep, npTang);
+		//xMax = CGenMathMeth::FindCoordValForCurveLength(this, &srTMirrorParaboloid::dZdTgCrd, m_halfDim1, xc, absTangStep, npTang);
+		//OC24062025
+		xMin = CGenMathMeth::FindCoordValForCurveLength(this, &srTMirrorParaboloid::dZdTgCrd, -m_halfDim1+m_cenOfstDim1, xc, absTangStep, npTang);
+		xMax = CGenMathMeth::FindCoordValForCurveLength(this, &srTMirrorParaboloid::dZdTgCrd, m_halfDim1+m_cenOfstDim1, xc, absTangStep, npTang);
 
 		int npSag = m_nps;
 		if(npSag < nimNp) npSag = nimNp;
 		double supSagLen = 2.*m_halfDim2;
 		double absSagStep = supSagLen/(npSag - 1);
-		yMin = CGenMathMeth::FindCoordValForCurveLength(this, &srTMirrorParaboloid::dZdSgCrd, m_halfDim2, yc, -absSagStep, npSag);
-		yMax = CGenMathMeth::FindCoordValForCurveLength(this, &srTMirrorParaboloid::dZdSgCrd, m_halfDim2, yc, absSagStep, npSag);
+		//yMin = CGenMathMeth::FindCoordValForCurveLength(this, &srTMirrorParaboloid::dZdSgCrd, m_halfDim2, yc, -absSagStep, npSag);
+		//yMax = CGenMathMeth::FindCoordValForCurveLength(this, &srTMirrorParaboloid::dZdSgCrd, m_halfDim2, yc, absSagStep, npSag);
+		//OC24062025
+		yMin = CGenMathMeth::FindCoordValForCurveLength(this, &srTMirrorParaboloid::dZdSgCrd, -m_halfDim2+m_cenOfstDim2, yc, absSagStep, npSag);
+		yMax = CGenMathMeth::FindCoordValForCurveLength(this, &srTMirrorParaboloid::dZdSgCrd, m_halfDim2+m_cenOfstDim2, yc, absSagStep, npSag);
 	}
 
 	bool FindRayIntersectWithSurfInLocFrame(TVector3d& inP, TVector3d& inV, TVector3d& resP, TVector3d* pResN=0) //virtual in srTMirror

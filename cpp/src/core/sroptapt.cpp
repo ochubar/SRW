@@ -245,7 +245,8 @@ int srTAperture::TuneRadAfterPropMeth_1(srTSRWRadStructAccessData* pRadAccessDat
 
 //*************************************************************************
 
-int srTAperture::PropagateRadMoments(srTSRWRadStructAccessData* pRadAccessData, srTMomentsRatios* MomRatArray)
+//int srTAperture::PropagateRadMoments(srTSRWRadStructAccessData* pRadAccessData, srTMomentsRatios* MomRatArray)
+int srTAperture::PropagateRadMoments(srTSRWRadStructAccessData* pRadAccessData, srTMomentsRatios* MomRatArray, void* pvGPU) //HG27072024
 {
 	char FillMomRatios = (MomRatArray != 0);
 	srTMomentsRatios* tMomRatArray = MomRatArray;
@@ -313,7 +314,8 @@ int srTAperture::PropagateRadMoments(srTSRWRadStructAccessData* pRadAccessData, 
 		if(CheckIfMomentsShouldBeRecomputed(MomX_X, MomX_Z, MomZ_X, MomZ_Z, MomX_SqrtMxx_Mult, MomX_SqrtMzz_Mult, MomZ_SqrtMxx_Mult, MomZ_SqrtMzz_Mult))
 		{
 			int result;
-			if(result = ComputeRadMoments(pRadAccessData)) return result;
+			//if(result = ComputeRadMoments(pRadAccessData)) return result;
+			if(result = ComputeRadMoments(pRadAccessData, pvGPU)) return result; //HG27072024
 			break;
 		}
 
