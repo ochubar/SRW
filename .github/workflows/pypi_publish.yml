@@ -15,43 +15,40 @@ jobs:
     name: ${{ matrix.host-os }} / Python ${{ matrix.python-version }} / OpenMP ${{ matrix.openmp }}
     runs-on: ${{ matrix.host-os }}
     strategy:
-      matrix:
-        host-os: ["ubuntu-latest", "macos-latest", "windows-latest"]
-        #python-version: ["3.8", "3.9", "3.10", "3.11"] #HG16062025
-        python-version: ["3.10", "3.11", "3.12", "3.13"]
-        openmp: ["off"]
       fail-fast: false
+      matrix:
+        host-os: ["ubuntu-24.04", "macos-14", "windows-2022"]
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+        openmp: ["off"]
 
     defaults:
       run:
         shell: bash -l {0}
 
     steps:
-      #- uses: actions/checkout@v3 #HG16062025
       - uses: actions/checkout@v4
 
       - name: Set OpenMP mode
         if: matrix.openmp == 'on'
         run: |
           export MODE="omp"
-          echo "MODE=${MODE}" >> $GITHUB_ENV
+          echo "MODE=${MODE}" >> "$GITHUB_ENV"
 
       - name: Set MacOS Deployment Target
         if: runner.os == 'macOS'
         run: |
           export MACOSX_DEPLOYMENT_TARGET="10.15"
-          echo "MACOSX_DEPLOYMENT_TARGET=${MACOSX_DEPLOYMENT_TARGET}" >> $GITHUB_ENV
+          echo "MACOSX_DEPLOYMENT_TARGET=${MACOSX_DEPLOYMENT_TARGET}" >> "$GITHUB_ENV"
 
-      #- uses: conda-incubator/setup-miniconda@v2 #HG16062025
       - uses: conda-incubator/setup-miniconda@v3
         with:
           activate-environment: testenv
+          add-pip-as-python-dependency: true
           allow-softlinks: true
           auto-activate-base: false
-          auto-update-conda: true
+          auto-update-conda: false
           channel-priority: flexible
           channels: conda-forge
-          miniconda-version: "latest"
           python-version: ${{ matrix.python-version }}
           show-channel-urls: true
           use-only-tar-bz2: false
@@ -61,6 +58,21 @@ jobs:
         uses: egor-tensin/vs-shell@v2
         with:
           arch: x64
+
+      - name: Ensure pip is available in conda env
+        run: |
+          set -vxeuo pipefail
+          python -m pip --version || python -m ensurepip --default-pip || conda install -y -n testenv pip
+          python -m pip --version
+
+      - name: Verify environment
+        run: |
+          set -vxeuo pipefail
+          which python
+          python -V
+          conda --version
+          conda info
+          python -m pip --version
 
       - name: Install build requirements with conda
         if: runner.os != 'Linux'
@@ -74,26 +86,23 @@ jobs:
           set -vxeuo pipefail
           conda install -y -c conda-forge llvm-openmp
 
-      # NOTE: This step is not needed for fast tests.
-      # - name: Install mpi4py for Unix with conda
-      #   if: runner.os != 'Windows'
-      #   run: |
-      #     set -vxeuo pipefail
-      #     conda install -y -c conda-forge mpi4py openmpi
-
-      - name: Install cibuildwheel on Linux
-        #HG16062025
+      - name: Install Python build tooling on Linux
         if: runner.os == 'Linux'
         run: |
           set -vxeuo pipefail
-          python -m pip install --upgrade pip
-          python -m pip install cibuildwheel
-          python -m pip install packaging
-          python -m pip install setuptools
-          echo "CIBW_BEFORE_ALL=pip install cmake" >> $GITHUB_ENV
+          python -m pip install --upgrade "pip<25"
+          python -m pip install "cibuildwheel>=2.23,<4" "packaging==24.2" "setuptools<76"
+          echo "CIBW_BEFORE_ALL=pip install cmake" >> "$GITHUB_ENV"
           PYTH_VER=${{ matrix.python-version }}
           PYTH_VER=${PYTH_VER//.}
-          echo "CIBW_BUILD="cp$PYTH_VER-manylinux*"" >> $GITHUB_ENV
+          echo "CIBW_BUILD=cp${PYTH_VER}-*" >> "$GITHUB_ENV"
+
+      - name: Install Python build tooling on Windows/Mac
+        if: runner.os != 'Linux'
+        run: |
+          set -vxeuo pipefail
+          python -m pip install --upgrade "pip<25"
+          python -m pip install "packaging==24.2" "setuptools<76"
 
       - name: Build wheel on Linux
         if: runner.os == 'Linux'
@@ -109,32 +118,23 @@ jobs:
           set -vxeuo pipefail
           cd env/python
           python -VV
-          python -m pip install packaging
-          python -m pip install setuptools
           python setup.py bdist_wheel
           ls -la dist/*
           mkdir -p ../../dist
           cp dist/*.whl ../../dist/
 
       - name: Publish wheels to GitHub artifacts
-        #uses: actions/upload-artifact@v3 #HG16062025
         uses: actions/upload-artifact@v4
         with:
-          #name: wheels #HG16062025
           name: srwpy-${{ matrix.host-os }}-Py_${{ matrix.python-version }}-OpenMP_${{ matrix.openmp }}
           path: dist/*
 
       - name: Install the package and test requirements
         run: |
           set -vxeuo pipefail
-          pip install -v dist/*64.whl
-
-          # Smoke import test:
+          python -m pip install -v --find-links dist/ srwpy
           python -c "import srwpy; import srwpy.srwlpy"
-
-          # Check CLI tools:
           srw-viewer --help
-
           python -m pip install -r env/python/requirements-dev.txt
           python -m pip list
 
@@ -145,25 +145,19 @@ jobs:
           pytest -k fast
 
   publish-to-pypi:
-    # Hints from:
-    #   - https://github.com/pypa/gh-action-pypi-publish/discussions/28
-    #   - https://github.com/Lightning-AI/lightning/blob/master/.github/workflows/release-pypi.yml
     if: github.event_name == 'release'
     name: Publish to PyPI
     needs: build-n-publish
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       id-token: write
 
     steps:
-      #- uses: actions/checkout@v3 #HG16062025
       - uses: actions/checkout@v4
 
       - name: Download wheels from GitHub artifacts
-        #uses: actions/download-artifact@v3 #HG16062025
         uses: actions/download-artifact@v4
         with:
-          #name: wheels
           path: dist/
           merge-multiple: true
 
