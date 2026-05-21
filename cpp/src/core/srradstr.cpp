@@ -4703,7 +4703,7 @@ void srTSRWRadStructAccessData::ResizeCoreXZ(SRWLRadMesh& oldMesh, float* pOldRa
 
 	//long long PerX_New = neNew << 1;
 	//long long PerX_New = newMesh.ne << 1;
-	long long PerX = newMesh.ne << 1;
+	long long PerX = ((long long)newMesh.ne << 1);
 	//long long PerZ_New = PerX_New*nxNew;
 	long long PerZ_New = PerX*nxNew;
 	long long izPerZ_New, ixPerX_New_p_Two_ie;
@@ -4712,8 +4712,11 @@ void srTSRWRadStructAccessData::ResizeCoreXZ(SRWLRadMesh& oldMesh, float* pOldRa
 	//long long PerZ_Old = PerX_Old*oldMesh.nx;
 	long long PerZ_Old = PerX*oldMesh.nx;
 
-	bool UseLowOrderInterp_PolCompX, UseLowOrderInterp_PolCompZ;
-	bool FieldShouldBeZeroedDueToX, FieldShouldBeZeroedDueToZ; //, FieldShouldBeZeroed;
+	//bool UseLowOrderInterp_PolCompX, UseLowOrderInterp_PolCompZ;
+	//bool FieldShouldBeZeroedDueToX, FieldShouldBeZeroedDueToZ; //, FieldShouldBeZeroed;
+	//OC19052026: added formal initialization
+	bool UseLowOrderInterp_PolCompX=false, UseLowOrderInterp_PolCompZ=false;
+	bool FieldShouldBeZeroedDueToX=false, FieldShouldBeZeroedDueToZ=false;
 
 	float *pEX0_New = 0, *pEZ0_New = 0;
 	if(TreatPolCompX) pEX0_New = pNewRadX;
@@ -4778,7 +4781,7 @@ void srTSRWRadStructAccessData::ResizeCoreXZ(SRWLRadMesh& oldMesh, float* pOldRa
 				xAbs = xStartNew + ix*xStepNew;
 
 				FieldShouldBeZeroedDueToX = false;
-				//OC17102021: removed if(WfrEdgeCorrShouldBeDone) because interpolation shoudl not be performed outside of the old function definition range
+				//OC17102021: removed if(WfrEdgeCorrShouldBeDone) because interpolation should not be performed outside of the old function definition range
 				//if(WfrEdgeCorrShouldBeDone)
 				//{
 				if((xAbs < xWfrMin - xTol) || (xAbs > xWfrMax + xTol)) FieldShouldBeZeroedDueToX = true;
@@ -4810,10 +4813,12 @@ void srTSRWRadStructAccessData::ResizeCoreXZ(SRWLRadMesh& oldMesh, float* pOldRa
 
 				ixcOld_mi_ixStOld = ixcOld - ixStOld;
 
-				UseLowOrderInterp_PolCompX = false; UseLowOrderInterp_PolCompZ = false; //OC14102025 (to avoid warning)
+				//UseLowOrderInterp_PolCompX = false; UseLowOrderInterp_PolCompZ = false; //OC14102025 (to avoid warning)
+				//OC19052026: commented-out the above and rolled-back to previous version, following bug report by HG (manifested on linux)
 				if((izStOld != izStOldPrev) || (ixStOld != ixStOldPrev))
 				{
-					//UseLowOrderInterp_PolCompX = false; UseLowOrderInterp_PolCompZ = false;
+					UseLowOrderInterp_PolCompX = false; UseLowOrderInterp_PolCompZ = false;
+					//OC19052026: uncommented the above and rolled-back to previous version, following bug report by HG (manifested on linux)
 
 					long long TotOffsetOld = izStOld*PerZ_Old + ixStOld*PerX + two_ie;
 					//long long TotOffsetOld = izStOld*PerZ_Old + ixStOld*PerX_Old + two_ie;
@@ -5330,7 +5335,9 @@ void srTSRWRadStructAccessData::AddElFieldDataWithInterpXZ(srTSRWRadStructAccess
 	long long PerZ_Add = PerX*nxAdd;
 	long long two_ie;
 
-	bool UseLowOrderInterp_PolCompX, UseLowOrderInterp_PolCompZ;
+	//bool UseLowOrderInterp_PolCompX, UseLowOrderInterp_PolCompZ;
+	//OC19052026: added formal initialization
+	bool UseLowOrderInterp_PolCompX=false, UseLowOrderInterp_PolCompZ=false;
 	//bool FieldShouldBeZeroedDueToX, FieldShouldBeZeroedDueToZ;
 
 	float *pEX0 = 0, *pEZ0 = 0;
@@ -5454,10 +5461,13 @@ void srTSRWRadStructAccessData::AddElFieldDataWithInterpXZ(srTSRWRadStructAccess
 					phase += constRxE*x_mi_xc*x_mi_xc;
 				}
 
-				UseLowOrderInterp_PolCompX = false; UseLowOrderInterp_PolCompZ = false;
+				//UseLowOrderInterp_PolCompX = false; UseLowOrderInterp_PolCompZ = false;
+				//OC19052026: commented-out the above and rolled-back to previous version, following bug report by HG (manifested on linux)
 				if((izStAdd != izStAddPrev) || (ixStAdd != ixStAddPrev))
 				{
-					//UseLowOrderInterp_PolCompX = false; UseLowOrderInterp_PolCompZ = false;
+					UseLowOrderInterp_PolCompX = false; UseLowOrderInterp_PolCompZ = false;
+					//OC19052026: uncommented the above and rolled-back to previous version, following bug report by HG (manifested on linux)
+
 					long long TotOffsetAdd = izStAdd*PerZ_Add + ixStAdd*PerX + two_ie;
 
 					if(TreatPolCompX)
