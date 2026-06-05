@@ -39,7 +39,10 @@ endif()
 
 # Setup definitions for all targets
 add_definitions(${SRW_DEFINITIONS})
-add_compile_options(-O3 -mfma) #HG01082025
+add_compile_options(-O3)
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|AMD64|i[3-6]86)$")
+    add_compile_options(-mfma) #HG01082025
+endif()
 
 #ext
 #auxgpu
