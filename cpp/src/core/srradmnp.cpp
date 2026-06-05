@@ -1165,7 +1165,7 @@ int srTRadGenManip::ExtractSingleElecIntensity3D(srTRadExtract& RadExtract)
 					*(pI++) = IntensityComponent(pEx, pEz, -1, Int_or_ReE);
 					*(pI1++) = IntensityComponent(pEx, pEz, -2, Int_or_ReE);
 					*(pI2++) = IntensityComponent(pEx, pEz, -3, Int_or_ReE);
-					*(pI3++) = IntensityComponent(pEx, pEz, -3, Int_or_ReE);
+					*(pI3++) = IntensityComponent(pEx, pEz, -4, Int_or_ReE);
 				}
 				iePerE += 2; 
 			}
