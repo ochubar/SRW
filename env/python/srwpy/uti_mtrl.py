@@ -6,6 +6,7 @@ Modules:
     calc_refl_arr
     calc_coated_refl_arr
     calc_multilayer_refl_arr
+    calc_delta_atten_len
     add_mat
 
 
@@ -31,7 +32,7 @@ try:
     xraydb_found = True
     xraydb_version = getattr(xraydb, '__version__', '')
 except Exception as exc:
-    print("Warning: 'xraydb' can not be loaded: {}. Reflectivity is set to 1.".format(exc))
+    print("Warning: 'xraydb' can not be loaded: {}. Reflectivity is set to 1 and refractive optical elements use vacuum properties.".format(exc))
 
 
 def _xraydb_function(_name):
@@ -43,6 +44,7 @@ def _xraydb_function(_name):
 mirror_reflectivity = _xraydb_function('mirror_reflectivity')
 coated_reflectivity = _xraydb_function('coated_reflectivity')
 multilayer_reflectivity = _xraydb_function('multilayer_reflectivity')
+xray_delta_beta = _xraydb_function('xray_delta_beta')
 get_material = _xraydb_function('get_material')
 add_material = _xraydb_function('add_material')
 
@@ -144,6 +146,34 @@ def _check_material(_material, _density, _description='material'):
         "Density of {} '{}' was not found; specify the density or register the "
         "material with add_mat().".format(_description, _material)
     )
+
+
+def _refractive_fallback(_ph_en, _message):
+    print("Warning: {} Refractive index decrement is set to 0 and attenuation is disabled.".format(_message))
+    try:
+        energy = np.asarray(_ph_en, dtype=float)
+    except (TypeError, ValueError):
+        return 0.0, 1.e+23
+    if energy.ndim == 0:
+        return 0.0, 1.e+23
+    return array('d', [0.0]*energy.size), array('d', [1.e+23]*energy.size)
+
+
+def _resolve_material(_material, _density):
+    if _density is not None:
+        try:
+            density = float(_density)
+        except (TypeError, ValueError):
+            return None
+        if (not np.isfinite(density)) or (density <= 0):
+            return None
+        return _material, density
+    if get_material is None:
+        return None
+    try:
+        return get_material(_material)
+    except Exception:
+        return None
 
 
 def _refl_to_srw_array(_refl_s, _refl_p, _n_tot):
@@ -397,6 +427,55 @@ def calc_multilayer_refl_arr(
         )
 
     return _refl_to_srw_array(refl_s, refl_p, n_ph_en*n_ang*n_comp*2)
+
+
+def calc_delta_atten_len(_mat, _ph_en, _dens=None):
+    """Calculate material properties used by SRW refractive optical elements.
+
+    :param _mat: material name or chemical formula
+    :param _ph_en: photon energy [eV], or a sequence of photon energies
+    :param _dens: material density [g/cm^3]; if omitted, use the xraydb material database
+    :return: refractive index decrement and attenuation length [m]
+
+    Scalar photon energy returns two floats. A sequence returns two ``array('d')``
+    objects suitable for spectrally-dependent SRW transmission elements and CRLs.
+    """
+    if (not xraydb_found) or (xray_delta_beta is None):
+        return _refractive_fallback(_ph_en, "'xraydb.xray_delta_beta' is unavailable.")
+
+    try:
+        energy = np.asarray(_ph_en, dtype=float)
+    except (TypeError, ValueError):
+        return _refractive_fallback(_ph_en, "Photon energy must be numeric.")
+    if (energy.size < 1) or (not np.all(np.isfinite(energy))) or np.any(energy <= 0):
+        return _refractive_fallback(_ph_en, "Photon energy values must be finite and positive.")
+
+    material = _resolve_material(_mat, _dens)
+    if material is None:
+        return _refractive_fallback(
+            _ph_en,
+            "Density of material '{}' was not found; specify _dens or register the material with add_mat().".format(_mat)
+        )
+    formula, density = material
+
+    try:
+        energy_arg = float(energy) if energy.ndim == 0 else energy
+        delta, _beta, atten_len_cm = xray_delta_beta(formula, density, energy_arg)
+        delta = np.asarray(delta, dtype=float)
+        atten_len_m = 0.01*np.asarray(atten_len_cm, dtype=float)
+    except Exception as exc:
+        return _refractive_fallback(
+            _ph_en, "xraydb refractive-property calculation for '{}' failed: {}.".format(_mat, exc)
+        )
+
+    if (not np.all(np.isfinite(delta))) or (not np.all(np.isfinite(atten_len_m))) or np.any(atten_len_m <= 0):
+        return _refractive_fallback(
+            _ph_en, "Calculated refractive properties for '{}' contain invalid values.".format(_mat)
+        )
+
+    if energy.ndim == 0:
+        return float(delta), float(atten_len_m)
+    return array('d', delta.ravel()), array('d', atten_len_m.ravel())
 
 
 def add_mat(name, formula, density, categories=None):
