@@ -54,6 +54,9 @@ class srTMirror : public srTFocusingElem {
 
 protected:
 
+	SRWLOptR* m_reflObj; //NW15072025
+	int m_nReflObj;
+	int* m_reflDist;
 	srTDataMD m_reflData;
 	char m_propMeth;
 	int m_numPartsProp;
@@ -244,7 +247,8 @@ public:
 	void GetComplexReflectCoefFromTable(double phEn, double angInc, double& RsigRe, double& RsigIm, double& RpiRe, double& RpiIm)
 	{//to be used only if m_reflData.pData != 0
 	 //Getting complex reflecivity coefficients for Sigma and Pi components of the electric field
-	 //Log scale case yet to implement
+
+		if(m_reflData.pData == 0) return;
 
 		//int ne = m_reflData.DimSizes[0];
 		long ne = (long)(m_reflData.DimSizes[0]); //OC28042019
@@ -256,6 +260,7 @@ public:
 		double angStep = m_reflData.DimSteps[1];
 		//int nComp = m_reflData.DimSizes[2];
 		int nComp = (int)(m_reflData.DimSizes[2]); //OC28042019
+		if((ne <= 0) || (nAng <= 0) || (nComp <= 0)) return;
 
 		const long perPhotEn = 2;
 		//long perAng = perPhotEn*ne;
@@ -263,15 +268,27 @@ public:
 		long long perAng = perPhotEn*ne;
 		long long perSigPi = perAng*nAng;
 
-		int ie = (int)((phEn - eStart)/eStep + 0.00001);
-		if((phEn - (eStart + ie*eStep)) > 0.5*eStep) ie++;
-		if(ie < 0) ie = 0;
-		if(ie >= ne) ie = ne - 1;
+		int ie = 0;
+		if((ne > 1) && (eStep != 0))
+		{
+			double phEnArg = phEn, eStartArg = eStart;
+			if(strcmp(m_reflData.DimScales[0], "log\0") == 0) { phEnArg = log10(phEn); eStartArg = log10(eStart); }
+			ie = (int)((phEnArg - eStartArg)/eStep + 0.00001);
+			if((phEnArg - (eStartArg + ie*eStep)) > 0.5*eStep) ie++;
+			if(ie < 0) ie = 0;
+			if(ie >= ne) ie = ne - 1;
+		}
 
-		int iAng = (int)((angInc - angStart)/angStep + 0.00001);
-		if((angInc - (angStart + iAng*angStep)) > 0.5*angStep) iAng++;
-		if(iAng < 0) iAng = 0;
-		if(iAng >= nAng) iAng = nAng - 1;
+		int iAng = 0;
+		if((nAng > 1) && (angStep != 0))
+		{
+			double angIncArg = angInc, angStartArg = angStart;
+			if(strcmp(m_reflData.DimScales[1], "log\0") == 0) { angIncArg = log10(angInc); angStartArg = log10(angStart); }
+			iAng = (int)((angIncArg - angStartArg)/angStep + 0.00001);
+			if((angIncArg - (angStartArg + iAng*angStep)) > 0.5*angStep) iAng++;
+			if(iAng < 0) iAng = 0;
+			if(iAng >= nAng) iAng = nAng - 1;
+		}
 
 		//long ofstSig = perPhotEn*ie + perAng*iAng;
 		long long ofstSig = perPhotEn*ie + perAng*iAng;
@@ -305,6 +322,89 @@ public:
 				RsigRe = *(pRsig++); RsigIm = *pRsig;
 				RpiRe = RsigRe; RpiIm = RsigIm;
 			}
+		}
+	}
+
+	// NW15082025
+	void GetComplexReflectCoefFromMap(double x, double y, double phEn, double angInc, double& RsigRe, double& RsigIm, double& RpiRe, double& RpiIm)
+	{
+		if((m_reflObj == 0) || (m_reflDist == 0) || (m_nReflObj <= 0)) return;
+		if((m_npt <= 0) || (m_nps <= 0) || (m_halfDim1 <= 0) || (m_halfDim2 <= 0)) return;
+
+		int ix = (int)(m_nps*(y - m_cenOfstDim2 + m_halfDim2)/(2*m_halfDim2));
+		int iy = (int)(m_npt*(x - m_cenOfstDim1 + m_halfDim1)/(2*m_halfDim1));
+		if(ix < 0) ix = 0;
+		else if(ix >= m_nps) ix = m_nps - 1;
+		if(iy < 0) iy = 0;
+		else if(iy >= m_npt) iy = m_npt - 1;
+
+		int iTable = iy*m_nps + ix;
+		int iObj = m_reflDist[iTable];
+		if((iObj < 0) || (iObj >= m_nReflObj)) return;
+		SRWLOptR& reflObj = m_reflObj[iObj];
+		if(reflObj.arRefl == 0) return;
+
+		//Getting complex reflecivity coefficients for Sigma and Pi components of the electric field
+		long ne = (long)(reflObj.reflNumPhEn); //OC28042019
+		double eStart = reflObj.reflPhEnStart;
+		double eStep = 0;
+		if(ne > 1)
+		{
+			if(strcmp(reflObj.reflPhEnScaleType, "log\0") == 0) eStep = (log10(reflObj.reflPhEnFin) - log10(reflObj.reflPhEnStart))/(ne - 1);
+			else eStep = (reflObj.reflPhEnFin - reflObj.reflPhEnStart)/(ne - 1);
+		}
+		long nAng = (long)(reflObj.reflNumAng); //OC28042019
+		double angStart = reflObj.reflAngStart;
+		double angStep = 0;
+		if(nAng > 1)
+		{
+			if(strcmp(reflObj.reflAngScaleType, "log\0") == 0) angStep = (log10(reflObj.reflAngFin) - log10(reflObj.reflAngStart))/(nAng - 1);
+			else angStep = (reflObj.reflAngFin - reflObj.reflAngStart)/(nAng - 1);
+		}
+		int nComp = (int)(reflObj.reflNumComp); //OC28042019
+		if((ne <= 0) || (nAng <= 0) || (nComp <= 0)) return;
+
+		const long perPhotEn = 2;
+		//long perAng = perPhotEn*ne;
+		//const long perSigPi = perAng*nAng;
+		long long perAng = perPhotEn*ne;
+		long long perSigPi = perAng*nAng;
+
+		int ie = 0;
+		if((ne > 1) && (eStep != 0))
+		{
+			double phEnArg = phEn, eStartArg = eStart;
+			if(strcmp(reflObj.reflPhEnScaleType, "log\0") == 0) { phEnArg = log10(phEn); eStartArg = log10(eStart); }
+			ie = (int)((phEnArg - eStartArg)/eStep + 0.00001);
+			if((phEnArg - (eStartArg + ie*eStep)) > 0.5*eStep) ie++;
+			if(ie < 0) ie = 0;
+			if(ie >= ne) ie = ne - 1;
+		}
+
+		int iAng = 0;
+		if((nAng > 1) && (angStep != 0))
+		{
+			double angIncArg = angInc, angStartArg = angStart;
+			if(strcmp(reflObj.reflAngScaleType, "log\0") == 0) { angIncArg = log10(angInc); angStartArg = log10(angStart); }
+			iAng = (int)((angIncArg - angStartArg)/angStep + 0.00001);
+			if((angIncArg - (angStartArg + iAng*angStep)) > 0.5*angStep) iAng++;
+			if(iAng < 0) iAng = 0;
+			if(iAng >= nAng) iAng = nAng - 1;
+		}
+
+		//long ofstSig = perPhotEn*ie + perAng*iAng;
+		long long ofstSig = perPhotEn*ie + perAng*iAng;
+		double *pRsig = reflObj.arRefl + ofstSig;
+		if(nComp > 1)
+		{
+			double *pRpi = pRsig + perSigPi;
+			RsigRe = *(pRsig++); RsigIm = *pRsig;
+			RpiRe = *(pRpi++); RpiIm = *pRpi;
+		}
+		else
+		{
+			RsigRe = *(pRsig++); RsigIm = *pRsig;
+			RpiRe = RsigRe; RpiIm = RsigIm;
 		}
 	}
 
