@@ -451,6 +451,92 @@ def srwl_opt_setup_transm_from_file(
     else: return None
     #return opT
 
+# ********************** Create polarization-sensitive transmission element from the data from 2 image files:
+def srwl_opt_setup_transm_from_2_files( #OC07022025
+        file_path, resolution, thickness, delta, atten_len,
+        arTr=None, extTr=0, fx=1e+23, fy=1e+23,
+        xc=0, yc=0, ne=1, e_start=0, e_fin=0,
+        area=None, rotate_angle=None, rotate_reshape=None,
+        cutoff_background_noise=None, background_color=None,
+        tile=None, shift_x=None, shift_y=None, invert=None,
+        is_save_images=True, prefix='', output_image_format=None,
+        _cutoff_max_fact=None, _max_color=255, 
+        file_path2=None, 
+        thickness2=0, delta2=0, atten_len2=0,
+        rotate_angle2=None, rotate_reshape2=None,
+        cutoff_background_noise2=None, background_color2=None,
+        tile2=None, shift_x2=None, shift_y2=None, invert2=None,
+        is_save_images2=True, prefix2='', output_image_format2=None,
+        _cutoff_max_fact2=None, _max_color2=255, 
+        _pol_base = 1,
+        _ret = 'srw'
+):
+    """Sets up Sample element sensitive to polarization of incident radiation from two "scalar" Sample elements."""
+    
+    res = srwl_opt_setup_transm_from_file(
+        file_path, resolution, thickness, delta, atten_len,
+        arTr, extTr, fx, fy, xc, yc, ne, e_start, e_fin,
+        area, rotate_angle, rotate_reshape,
+        cutoff_background_noise, background_color,
+        tile, shift_x, shift_y, invert,
+        is_save_images, prefix, output_image_format,
+        _cutoff_max_fact, _max_color, _ret)
+    
+    if(res is None): return None
+    img1 = None
+    if(_ret == 'all'): opT, img1 = res
+    elif(_ret == 'srw'): opT = res
+    
+    if(opT is None): return None
+    if((opT.arTr is None) or (opT.mesh is None)): return None
+    
+    arTr2 = None
+    img2 = None
+    if(file_path2 is not None):
+        opT2 = None
+        res = srwl_opt_setup_transm_from_file(
+            file_path2, resolution, thickness2, delta2, atten_len2,
+            arTr, extTr, fx, fy, xc, yc, ne, e_start, e_fin,
+            area, rotate_angle2, rotate_reshape2,
+            cutoff_background_noise2, background_color2,
+            tile2, shift_x2, shift_y2, invert2,
+            is_save_images2, prefix2, output_image_format2,
+            _cutoff_max_fact2, _max_color2, _ret)
+        
+        if(_ret == 'all'): opT2, img2 = res
+        elif(_ret == 'srw'): opT2 = res
+
+        if(opT2 is not None): arTr2 = opT2.arTr
+    
+    arTrOrig = opT.arTr
+    nTotOrig = len(arTrOrig)
+    
+    useNumPy = False
+    try:
+        import numpy as np
+        useNumPy = True
+    except:
+        print('NumPy can not be loaded, native Python arrays / lists will be used instead, impacting performance')
+
+    arTrNew = None
+    if(useNumPy):
+        arTrNew = np.empty(nTotOrig*2, dtype=float)
+        arTrNew[0:nTotOrig:] = arTrOrig
+        if(arTr2 is not None): arTrNew[nTotOrig::] = arTr2
+        else: arTrNew[nTotOrig::] = 0
+    else:
+        arTrNew = array('d', [0]*nTotOrig*2)
+        for i in range(nTotOrig): arTrNew[i] = arTrOrig[i]
+        if(arTr2 is not None):
+            for i in range(nTotOrig): arTrNew[i + nTotOrig] = arTr2[i]
+            
+    opT.arTr = arTrNew
+    opT.polBase = _pol_base
+    
+    if(_ret == 'all'): return opT, img1, img2
+    elif(_ret == 'srw'): return opT
+    else: return None
+
 # ********************** Create transmission element from the data from a generated random 2D disk
 def srwl_opt_setup_smp_rnd_obj2d( #RAC06052020
         _thickness, _delta, _atten_len, _rx = 10.e-06, _ry = 10.e-06, _xc = 0, _yc = 0, _nx = 1001, _ny = 1001,
@@ -875,3 +961,173 @@ def srwl_opt_setup_transm_from_obj3d( #OC28012021
     #END DEBUG
 
     return opT
+# ********************** Create "reflection" type optical element from an image file:
+def srwl_opt_setup_refl_from_file( #OC13052025
+    file_path, resolution,
+    refl_data, #E.g. r, or [r1,r2,...] or [r,n_ph_en,n_ang,n_comp,ph_en_start,ph_en_fin,ang_start,ang_fin] or [[r1,r2,...],n_ph_en,n_ang,n_comp,ph_en_start,ph_en_fin,ang_start,ang_fin]
+    refl_rel_sep=None, #array of length of [r1,r2,...], e.g. [0.1,0.5,0.8,1.] 
+    #fx=1e+23, fy=1e+23, 
+    xc=0, yc=0,
+    area=None, rotate_angle=None, rotate_reshape=None,
+    cutoff_background_noise=None, background_color=None,
+    tile=None, shift_x=None, shift_y=None, invert=None,
+    is_save_images=True, prefix='', output_image_format=None,
+    _cutoff_max_fact=None, _max_color=255, _ret='srw',
+):
+    """Setup Sample element, i.e. experimental specimen, to be used in reflection geometry; return object of SRWLOptMir type.
+    
+    :param file_path: path to the input file (image or .npy)
+    :param resolution: resolution of the image [m/pixel]
+    :param refl_data: reflectivity data, e.g. r, or [r1,r2,...] or [r,n_ph_en,n_ang,n_comp,ph_en_start,ph_en_fin,ang_start,ang_fin] or [[r1,r2,...],n_ph_en,n_ang,n_comp,ph_en_start,ph_en_fin,ang_start,ang_fin]
+    :param refl_rel_sep: array of length of [r1,r2,...], defining how relfectivity data is applied based on image brightness levels, e.g. [0.1,0.5,0.8,1.] 
+    #:param fx: estimated focal length in the horizontal plane [m]
+    #:param fy: estimated focal length in the vertical plane [m]
+    :param xc: horizontal coordinate of center [m]
+    :param yc: vertical coordinate of center [m]
+    :param area: the coordinates of the rectangle area listed in the following order: x_start, x_end, y_start, y_end
+    :param rotate_angle: the angle [deg] to rotate the read image counterclockwise. See scipy.ndimage.interpolation.rotate() for details
+    :param rotate_reshape: if reshape is true, the output shape is adapted so that the input array is contained completely in the output
+    :param cutoff_background_noise: the ratio for cutoff the background noise (between 0 and 1)
+    :param background_color: the background color code to use instead of the background noise (0=black, 255=white)
+    :param tile: the list/tuple (rows, columns) to tile the cut area of the image. See numpy.tile() for details
+    :param shift_x: shift the whole image horizontally; positive value shifts the image to the right, negative - to the left. See numpy.pad() for details
+    :param shift_y: shift the whole image vertically; positive value shifts the image to the top, negative - to the bottom. See numpy.pad() for details
+    :param invert: invert the image. See numpy.invert() for details
+    :param is_save_images: a flag to save the initial and processed images
+    :param prefix: the prefix to add to the names of the saved image files
+    :param output_image_format: the format of the output file. If not specified, the input format is used
+    :param _cutoff_max_fact: the ratio/factor for maximum signal cutoff (between 0 and 1)
+    :param _max_color: the maximum color code to use for signal level above the cutoff_max_fact (0=black, 255=white)
+    :param _ret: type of return: 'srw' returns SRWLOptMirPl type transmission object which simulates the Sample (default), 'refl' returns reflectivity data and C-aligned refl_dist array, 'img' returns processed PIL image object, 'all' returns both SRWLOptMirPl object and PIL image
+    :return: by default, mirror (SRWLOptMirPl) type optical element which simulates the Sample; other options are defined by _ret variable
+    """
+    reflIsOneCoef = False
+    reflIsListOfCoef = False
+    reflIsOneSpecData = False
+    reflIsListOfSpecData = False
+    reflIsOK = False
+    
+    nReflCoefSep = 0
+    import numpy as np
+
+
+    
+    if isinstance(refl_data, (int, float, complex)):
+        reflIsOneCoef = True #r
+        nReflCoefSep = 1
+        #refl_data = [refl_data]
+    elif isinstance(refl_data, (list, array, np.ndarray)):
+        if isinstance(refl_data[0], (int, float, complex)):
+            reflIsListOfCoef = True #[r1,r2,...]
+            nReflCoefSep = len(refl_data)
+        elif isinstance(refl_data[0], (list, array, np.ndarray)):
+            if isinstance(refl_data[0][0], (int, float)):
+                if len(refl_data) > 1:
+                    if isinstance(refl_data[1], (int, float)): 
+                        reflIsOneSpecData = True #[ar_r,n_ph_en,n_ang,n_comp,ph_en_start,ph_en_fin,ang_start,ang_fin]
+                        nReflCoefSep = 1
+                        #refl_data = [refl_data]
+            elif isinstance(refl_data[0][0], (list, array, np.ndarray)):
+                if isinstance(refl_data[0][0][0], (int, float)):
+                    if len(refl_data[0]) > 1:
+                        if isinstance(refl_data[0][1], (list, array, np.ndarray)):
+                            reflIsListOfSpecData = True #[[ar_r1,ar_r2,...],n_ph_en,n_ang,n_comp,ph_en_start,ph_en_fin,ang_start,ang_fin]
+                            nReflCoefSep = len(refl_data[0])
+    reflIsOK = reflIsOneCoef or reflIsListOfCoef or reflIsOneSpecData or reflIsListOfSpecData
+    if not reflIsOK:
+        raise Exception('Invalid reflectivity data format.')
+
+    #To revise the following (!):
+    if refl_rel_sep is None:
+        if reflIsListOfCoef or reflIsListOfSpecData:
+            raise Exception('Reflectivity relative separation is not defined.')
+        refl_rel_sep = [1.] #I.e. apply same reflectivity to all area where image brightness is not zero
+    elif isinstance(refl_rel_sep, float):
+        if nReflCoefSep >= 2:
+            raise Exception('Inconsistent reflectivity relative separation (too few intervals).')
+        refl_rel_sep = [refl_rel_sep] #I.e. apply same reflectivity to all area where rel. image brightness is less than refl_rel_sep value
+    elif isinstance(refl_rel_sep, (list, array, np.ndarray)):
+        if len(refl_rel_sep) != nReflCoefSep:
+            raise Exception('Inconsistent reflectivity relative separation (number of different reflectivity datasets is different from number of intervals).')
+        
+    #Define one SRWLOptR or array of SRWLOptR object(s)
+    listRefl = []
+    if reflIsOneCoef: #r
+        if isinstance(refl_data, complex):
+            arRefl = array('d', [refl_data.real, refl_data.imag])
+        else:
+            arRefl = array('d', [float(refl_data), 0.])
+        listRefl.append(SRWLOptR(_refl=arRefl))
+    elif reflIsOneSpecData: #[r,n_ph_en,n_ang,n_comp,ph_en_start,ph_en_fin,ang_start,ang_fin]
+        listRefl.append(SRWLOptR(_refl=refl_data[0], _n_ph_en=refl_data[1], _n_ang=refl_data[2], _n_comp=refl_data[3], _ph_en_start=refl_data[4], _ph_en_fin=refl_data[5], _ang_start=refl_data[6], _ang_fin=refl_data[7]))
+    elif reflIsListOfCoef: #[r1,r2,...]
+        for iRefl in range(nReflCoefSep):
+            r = refl_data[iRefl]
+            if isinstance(r, complex):
+                arRefl = array('d', [r.real, r.imag])
+            else:
+                arRefl = array('d', [float(r), 0.])
+            listRefl.append(SRWLOptR(_refl=arRefl))
+    else:
+        for iRefl in range(nReflCoefSep):
+            listRefl.append(SRWLOptR(_refl=refl_data[0][iRefl], _n_ph_en=refl_data[1], _n_ang=refl_data[2], _n_comp=refl_data[3], _ph_en_start=refl_data[4], _ph_en_fin=refl_data[5], _ang_start=refl_data[6], _ang_fin=refl_data[7]))
+    #Load and process the image
+    s = SRWLUtiSmp(
+        file_path=file_path,
+        area=area,
+        rotate_angle=rotate_angle,
+        rotate_reshape=rotate_reshape,
+        cutoff_background_noise=cutoff_background_noise,
+        background_color=background_color,
+        tile=tile,
+        shift_x=shift_x,
+        shift_y=shift_y,
+        invert=invert,
+        is_show_images=False,
+        is_save_images=is_save_images,
+        prefix=prefix,
+        output_image_format=output_image_format,
+        cutoff_max_fact=_cutoff_max_fact,
+        max_color=_max_color,
+    )
+    
+    if(_ret == 'img'): return s.processed_image
+
+    useNumPy = False
+    try:
+        import numpy as np
+        useNumPy = True
+    except:
+        print('NumPy can not be loaded, native Python arrays / lists will be used instead, impacting performance')
+
+    #Define distribution of the reflectivity objects over the mirror surface mesh
+    
+    nps = s.nx #Saggital direction of the mirror is assumed to be horizontal direction in the image
+    npt = s.ny #Tangential direction of the mirror is assumed to be vertical direction in the image
+    _size_sag = nps * resolution
+    _size_tang = npt * resolution
+
+    nps_npt = nps * npt #Total number of pixels in the image
+    if useNumPy:
+        #Generate code doing same thing for ar_refl_dist as for not useNumPy case but using vectorized operations
+        #curRelIntImg = s.data[npt - np.arange(npt)[:, None], np.arange(nps)]/s.max_color
+        iRefl = np.searchsorted(refl_rel_sep, s.data/s.max_color - 0.00001, side='right')
+        ar_refl_dist = iRefl.ravel(order='C')                     # ^^ make bins exclusive
+        ar_refl_dist = np.array(ar_refl_dist, dtype=np.int32)
+    else:
+        ar_refl_dist = array('i', [0]*nps_npt)
+        iTot = 0
+        for iy in range(npt):
+            for ix in range(nps):
+                curRelIntImg = s.data[npt - iy - 1, ix]/s.max_color #Check if s.max_color is correct normalization
+                iRefl = 0
+                while iRefl < nReflCoefSep and curRelIntImg > refl_rel_sep[iRefl]:
+                    iRefl += 1
+                ar_refl_dist[iTot] = iRefl
+                iTot += 1
+
+    MirPl = SRWLOptMirPl(_size_sag=_size_sag, _size_tang=_size_tang, _nps=nps, _npt=npt, _ar_refl_dist=ar_refl_dist, _ar_refl_obj=listRefl, _x=xc, _y=yc) 
+    if _ret == 'srw': return MirPl
+    elif _ret == 'refl': return listRefl, ar_refl_dist
+    elif _ret == 'img': return s.processed_image
+    elif _ret == 'all': return MirPl, listRefl, ar_refl_dist, s.processed_image
