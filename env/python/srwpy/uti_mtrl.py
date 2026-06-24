@@ -7,6 +7,7 @@ Modules:
     calc_coated_refl_arr
     calc_multilayer_refl_arr
     calc_delta_atten_len
+    srwl_opt_setup_transm_from_material
     add_mat
 
 
@@ -21,6 +22,11 @@ import inspect
 from array import array
 
 import numpy as np
+
+try:
+    from srwlib import SRWLOptT
+except Exception:
+    from .srwlib import SRWLOptT
 
 
 xraydb = None
@@ -477,6 +483,98 @@ def calc_delta_atten_len(_mat, _ph_en, _dens=None):
         return float(delta), float(atten_len_m)
     return array('d', delta.ravel()), array('d', atten_len_m.ravel())
 
+
+def srwl_opt_setup_transm_from_material(
+    _mat,
+    _thick,
+    _ph_en,
+    _dens=None,
+    _rx=1.e-03,
+    _ry=1.e-03,
+    _nx=2,
+    _ny=2,
+    _x=0,
+    _y=0,
+    _ext_tr=1,
+    _fx=1.e+23,
+    _fy=1.e+23
+):
+    """Set up a uniform transmission element from material data.
+
+    :param _mat: material name or chemical formula
+    :param _thick: material thickness [m]
+    :param _ph_en: photon energy [eV], or a sequence of photon energies
+    :param _dens: material density [g/cm^3]; if omitted, use the xraydb material database
+    :param _rx: horizontal coordinate range [m]
+    :param _ry: vertical coordinate range [m]
+    :param _nx: number of points vs horizontal position
+    :param _ny: number of points vs vertical position
+    :param _x: horizontal transverse coordinate of center [m]
+    :param _y: vertical transverse coordinate of center [m]
+    :param _ext_tr: transmission outside the grid/mesh is zero (0), or same as boundary (1)
+    :param _fx: estimated focal length in the horizontal plane [m]
+    :param _fy: estimated focal length in the vertical plane [m]
+    :return: SRWLOptT by default
+    """
+    delta, atten_len = calc_delta_atten_len(_mat, _ph_en, _dens)
+
+    try:
+        thick = float(_thick)
+        if (not np.isfinite(thick)) or (thick < 0):
+            raise ValueError
+    except (TypeError, ValueError):
+        print("Warning: material thickness is invalid. Transmission element is set to vacuum.")
+        thick = 0.0
+
+    try:
+        energy = np.asarray(_ph_en, dtype=float).ravel()
+        if energy.size < 1:
+            raise ValueError
+    except (TypeError, ValueError):
+        print("Warning: photon energy is invalid. Transmission element mesh energy is set to 0.")
+        energy = np.asarray([0.0])
+
+    ne = int(energy.size)
+    try:
+        nx = int(_nx)
+        ny = int(_ny)
+        if (nx <= 0) or (ny <= 0):
+            raise ValueError
+    except (TypeError, ValueError):
+        print("Warning: transmission mesh dimensions are invalid. A 2 x 2 mesh is used.")
+        nx = 2
+        ny = 2
+
+    delta_arr = np.asarray(delta, dtype=float).ravel()
+    atten_len_arr = np.asarray(atten_len, dtype=float).ravel()
+    if (delta_arr.size != ne) or (atten_len_arr.size != ne):
+        if (delta_arr.size == 1) and (atten_len_arr.size == 1):
+            delta_arr = np.full(ne, delta_arr[0])
+            atten_len_arr = np.full(ne, atten_len_arr[0])
+        else:
+            print("Warning: material data size is inconsistent with photon energy mesh. Transmission element is set to vacuum.")
+            delta_arr = np.zeros(ne)
+            atten_len_arr = np.full(ne, 1.e+23)
+
+    if (not np.all(np.isfinite(delta_arr))) or (not np.all(np.isfinite(atten_len_arr))) or np.any(atten_len_arr <= 0):
+        print("Warning: material data contain invalid values. Transmission element is set to vacuum.")
+        delta_arr = np.zeros(ne)
+        atten_len_arr = np.full(ne, 1.e+23)
+
+    amp = np.exp(-0.5*thick/atten_len_arr)
+    opd = -delta_arr*thick
+    ar_tr_one_point = np.empty(2*ne, dtype=float)
+    ar_tr_one_point[0::2] = amp
+    ar_tr_one_point[1::2] = opd
+    ar_tr = array('d', np.tile(ar_tr_one_point, nx*ny))
+
+    op_t = SRWLOptT(
+        _nx=nx, _ny=ny, _rx=_rx, _ry=_ry, _arTr=ar_tr, _extTr=_ext_tr,
+        _Fx=_fx, _Fy=_fy, _x=_x, _y=_y, _ne=ne,
+        _eStart=float(energy[0]), _eFin=float(energy[-1])
+    )
+
+    return op_t
 
 def add_mat(name, formula, density, categories=None):
     """Add a material to the user-local xraydb material database."""

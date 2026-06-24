@@ -18,7 +18,6 @@ except:
     from srwpy.uti_plot import *
     from srwpy.uti_mtrl import *
 
-import math
 import os
 from copy import deepcopy
 
@@ -42,6 +41,10 @@ ang_graz = 0.003
 # Aluminum filter
 filter_thick = 50.e-06 # [m]
 al_delta, al_atten_len = calc_delta_atten_len('Al', photon_energy)
+opFilter = srwl_opt_setup_transm_from_material(
+    'Al', filter_thick, photon_energy,
+    _rx=2.e-03, _ry=2.e-03, _nx=2, _ny=2, _ext_tr=1
+)
 
 # B4C mirror; B4C is a formula not registered with a default xraydb density
 b4c_density = 2.5 # [g/cm^3]
@@ -128,14 +131,8 @@ srwl_uti_save_intens_ascii(
 
 
 #********************** Optical Elements
-# Uniform Aluminum filter. Amplitude transmission is exp(-thickness/(2*L)).
-filter_amp = math.exp(-0.5*filter_thick/al_atten_len)
-filter_opd = -al_delta*filter_thick
-filter_ar_tr = array('d', [filter_amp, filter_opd]*4)
-opFilter = SRWLOptT(
-    _nx=2, _ny=2, _rx=2.e-03, _ry=2.e-03,
-    _arTr=filter_ar_tr, _extTr=1
-)
+# Uniform Aluminum filter.
+filter_amp = opFilter.arTr[0]
 
 mirror_len = 0.2
 mirror_width = 5.e-03
