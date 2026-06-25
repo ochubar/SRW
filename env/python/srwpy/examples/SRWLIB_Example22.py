@@ -1,7 +1,7 @@
 #############################################################################
 # SRWLIB Example # 22: Material-dependent reflective and refractive optics
 # Simulating a Gaussian X-ray beam passing through an Aluminum filter,
-# a B4C mirror, a 200 nm Pt-coated Si mirror, and an array of diamond CRLs
+# a B4C mirror, a 20 nm Pt-coated Si mirror, and an array of diamond CRLs
 # v 0.01
 #############################################################################
 
@@ -55,8 +55,8 @@ b4c_refl = calc_refl_arr(
     _ang_start=ang_start, _ang_fin=ang_fin,
 )
 
-# 200 nm Pt coating on a Si substrate; xraydb expects thickness in Angstroms
-pt_coating_thick = 2000. # [Angstrom]
+# 20 nm Pt coating on a Si substrate; xraydb expects thickness in Angstroms
+pt_coating_thick = 200. # [Angstrom]
 pt_si_refl = calc_coated_refl_arr(
     'Pt', pt_coating_thick, 'Si',
     _n_ph_en=n_ph_en, _n_ang=n_ang, _n_comp=n_comp,
