@@ -4,3 +4,4 @@ primme
 pykern
 mpld3
 scikit-image
+xraydb
