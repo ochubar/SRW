@@ -3,9 +3,9 @@
 
 Modules:
 
-    calc_refl_arr
-    calc_coated_refl_arr
-    calc_multilayer_refl_arr
+    calc_refl
+    calc_refl_coated
+    calc_refl_multilayer
     calc_delta_atten_len
     srwl_opt_setup_transm_from_material
     add_mat
@@ -202,7 +202,7 @@ def _refl_to_srw_array(_refl_s, _refl_p, _n_tot):
     return array('d', refl)
 
 
-def calc_refl_arr(
+def calc_refl(
     _mat,
     _n_ph_en=1,
     _n_ang=1,
@@ -260,7 +260,7 @@ def calc_refl_arr(
     return _refl_to_srw_array(refl_s, refl_p, n_ph_en*n_ang*n_comp*2)
 
 
-def calc_coated_refl_arr(
+def calc_refl_coated(
     _coating,
     _coating_thick,
     _substr,
@@ -339,7 +339,7 @@ def calc_coated_refl_arr(
     return _refl_to_srw_array(refl_s, refl_p, n_ph_en*n_ang*n_comp*2)
 
 
-def calc_multilayer_refl_arr(
+def calc_refl_multilayer(
     _stackup,
     _thickness,
     _substr,

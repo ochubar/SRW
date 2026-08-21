@@ -48,7 +48,7 @@ opFilter = srwl_opt_setup_transm_from_material(
 
 # B4C mirror; B4C is a formula not registered with a default xraydb density
 b4c_density = 2.5 # [g/cm^3]
-b4c_refl = calc_refl_arr(
+b4c_refl = calc_refl(
     'B4C', _dens=b4c_density,
     _n_ph_en=n_ph_en, _n_ang=n_ang, _n_comp=n_comp,
     _ph_en_start=ph_en_start, _ph_en_fin=ph_en_fin,
@@ -57,7 +57,7 @@ b4c_refl = calc_refl_arr(
 
 # 20 nm Pt coating on a Si substrate; xraydb expects thickness in Angstroms
 pt_coating_thick = 200. # [Angstrom]
-pt_si_refl = calc_coated_refl_arr(
+pt_si_refl = calc_refl_coated(
     'Pt', pt_coating_thick, 'Si',
     _n_ph_en=n_ph_en, _n_ang=n_ang, _n_comp=n_comp,
     _ph_en_start=ph_en_start, _ph_en_fin=ph_en_fin,
