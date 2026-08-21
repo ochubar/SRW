@@ -21,6 +21,10 @@
 srTMirror::srTMirror(srTStringVect* pMirInf, srTDataMD* pExtraData) 
 {
 	if((pMirInf == 0) || (pMirInf->size() < 30)) { ErrorCode = IMPROPER_OPTICAL_COMPONENT_STRUCTURE; return;}
+	m_reflData.pData = 0;
+	m_reflObj = 0;
+	m_nReflObj = 0;
+	m_reflDist = 0;
 	if(pExtraData != 0) m_reflData = *pExtraData;
 
 	m_isConvex = false; //OC06032024 (to re-define below, if necessary!)
@@ -147,6 +151,19 @@ srTMirror::srTMirror(const SRWLOptMir& srwlMir)
 		m_reflData.DataName[0] = '\0';
 		m_reflData.hState = 1;
 	}
+
+
+	//NW15072025 ************
+	m_reflObj = 0;
+	m_nReflObj = 0;
+	m_reflDist = 0;
+	if((srwlMir.nReflObj > 0) && (srwlMir.arReflObj != 0) && (srwlMir.arReflDist != 0))
+	{
+		m_reflObj = srwlMir.arReflObj;
+		m_nReflObj = srwlMir.nReflObj;
+		m_reflDist = srwlMir.arReflDist;
+	}
+	// *************************
 
 	m_vCenNorm.x = srwlMir.nvx; //central normal in the frame of incident beam
 	m_vCenNorm.y = srwlMir.nvy;
@@ -2025,7 +2042,7 @@ void srTMirror::RadPointModifier_ThinElem(srTEXZ& EXZ, srTEFieldPtrs& EPtrs)
 	float cosPh, sinPh;
 	CosAndSin(phShift, cosPh, sinPh);
 
-	if(m_reflData.pData == 0) //no reflectivity defined
+	if((m_reflData.pData == 0) && (m_nReflObj <= 0)) //no reflectivity defined
 	{
 		float NewExRe = (*(EPtrs.pExRe))*cosPh - (*(EPtrs.pExIm))*sinPh;
 		float NewExIm = (*(EPtrs.pExRe))*sinPh + (*(EPtrs.pExIm))*cosPh;
@@ -2068,7 +2085,8 @@ void srTMirror::RadPointModifier_ThinElem(srTEXZ& EXZ, srTEFieldPtrs& EPtrs)
 	double sinAngInc = ::fabs(vNormAtP.z);
 	double angInc = asin(sinAngInc);
 	double RsigRe=1, RsigIm=0, RpiRe=1, RpiIm=0;
-	GetComplexReflectCoefFromTable(EXZ.e, angInc, RsigRe, RsigIm, RpiRe, RpiIm);
+	if(m_nReflObj > 0) GetComplexReflectCoefFromMap(intersP.x, intersP.y, EXZ.e, angInc, RsigRe, RsigIm, RpiRe, RpiIm);
+	else GetComplexReflectCoefFromTable(EXZ.e, angInc, RsigRe, RsigIm, RpiRe, RpiIm);
 
 	double newEsigRe = -cosPh*(EsigIm*RsigIm - EsigRe*RsigRe) - sinPh*(EsigRe*RsigIm + EsigIm*RsigRe);
 	double newEsigIm = cosPh*(EsigRe*RsigIm + EsigIm*RsigRe) - sinPh*(EsigIm*RsigIm - EsigRe*RsigRe);
@@ -2672,7 +2690,7 @@ int srTMirror::PropagateRadiationSimple_LocRayTracing(srTSRWRadStructAccessData*
 								//CosAndSin(phShift, cosPh, sinPh);
 								cosPh = cos(phShift); sinPh = sin(phShift); //OC260114
 
-								if(m_reflData.pData == 0) //no reflectivity defined
+								if((m_reflData.pData == 0) && (m_nReflObj <= 0)) //no reflectivity defined
 								//if(true) //no reflectivity defined
 								{
 									if(pEX0 != 0)
@@ -2759,7 +2777,8 @@ int srTMirror::PropagateRadiationSimple_LocRayTracing(srTSRWRadStructAccessData*
 									//double EpiIm = (*pExIm)*vPi.x + (*pEzIm)*vPi.y;
 
 									double RsigRe = 1, RsigIm = 0, RpiRe = 1, RpiIm = 0;
-									GetComplexReflectCoefFromTable(ePh, grazAng, RsigRe, RsigIm, RpiRe, RpiIm);
+									if(m_nReflObj > 0) GetComplexReflectCoefFromMap(vIntersPtLocFr.x, vIntersPtLocFr.y, ePh, grazAng, RsigRe, RsigIm, RpiRe, RpiIm);
+									else GetComplexReflectCoefFromTable(ePh, grazAng, RsigRe, RsigIm, RpiRe, RpiIm);
 
 									double newEsigRe = -cosPh*(EsigIm*RsigIm - EsigRe*RsigRe) - sinPh*(EsigRe*RsigIm + EsigIm*RsigRe);
 									double newEsigIm = cosPh*(EsigRe*RsigIm + EsigIm*RsigRe) - sinPh*(EsigIm*RsigIm - EsigRe*RsigRe);
