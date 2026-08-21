@@ -24,6 +24,7 @@
 #include "pyparse.h" //OC09032019
 #include <vector>
 #include <map>
+#include <limits>
 #include <sstream> //OCTEST_161214
 
 //OC18022024 (commented-out)
@@ -82,6 +83,7 @@ static const char strEr_BadOptZP[] = "Incorrect Optical Zone Plate structure";
 static const char strEr_BadOptWG[] = "Incorrect Optical Waveguide structure";
 static const char strEr_BadOptG[] = "Incorrect Optical Grating structure";
 static const char strEr_BadOptT[] = "Incorrect Optical Generic Transmission structure";
+static const char strEr_BadOptR[] = "Incorrect Reflectivity Object structure";
 static const char strEr_BadOptMir[] = "Incorrect Optical Mirror structure";
 static const char strEr_BadOptCryst[] = "Incorrect Optical Crystal structure";
 static const char strEr_BadListIntProp[] = "Incorrect list structure defining intensity distributions to be plotted after propagation";
@@ -2019,12 +2021,106 @@ void ParseSructSRWLOptT(SRWLOptT* pOpt, PyObject* oOpt, vector<Py_buffer>* pvBuf
 	}
 }
 
+// NW11072025
+/**************************************************************************
+ * Parses PyObject* to SRWLOptR*
+ * **************************************************************************/
+void ParseSructSRWLOptR(SRWLOptR* pOpt, PyObject* oOpt, vector<Py_buffer>* pvBuf) //throw(...)
+{
+	if((pOpt == 0) || (oOpt == 0)) throw strEr_NoObj;
+
+	PyObject *o_tmp = 0;
+	Py_ssize_t sizeRefl = 0;
+	o_tmp = PyObject_GetAttrString(oOpt, "arRefl");
+	if(o_tmp == 0) throw strEr_BadOptR;
+	pOpt->arRefl = (double*)GetPyArrayBuf(o_tmp, pvBuf, &sizeRefl);
+	if(pOpt->arRefl == 0) { Py_DECREF(o_tmp); throw strEr_BadOptR; }
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "reflNumPhEn");
+	if(o_tmp == 0) throw strEr_BadOptR;
+	if(!PyNumber_Check(o_tmp)) { Py_DECREF(o_tmp); throw strEr_BadOptR; }
+	pOpt->reflNumPhEn = PyLong_AsLong(o_tmp);
+	if(PyErr_Occurred()) { Py_DECREF(o_tmp); throw strEr_BadOptR; }
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "reflNumAng");
+	if(o_tmp == 0) throw strEr_BadOptR;
+	if(!PyNumber_Check(o_tmp)) { Py_DECREF(o_tmp); throw strEr_BadOptR; }
+	pOpt->reflNumAng = PyLong_AsLong(o_tmp);
+	if(PyErr_Occurred()) { Py_DECREF(o_tmp); throw strEr_BadOptR; }
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "reflNumComp");
+	if(o_tmp == 0) throw strEr_BadOptR;
+	if(!PyNumber_Check(o_tmp)) { Py_DECREF(o_tmp); throw strEr_BadOptR; }
+	pOpt->reflNumComp = PyLong_AsLong(o_tmp);
+	if(PyErr_Occurred()) { Py_DECREF(o_tmp); throw strEr_BadOptR; }
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "reflPhEnScaleType");
+	if(o_tmp == 0) throw strEr_BadOptR;
+	if(!PyUnicode_Check(o_tmp) && !PyBytes_Check(o_tmp)) { Py_DECREF(o_tmp); throw strEr_BadOptR; }
+	CopyPyStringToC(o_tmp, pOpt->reflPhEnScaleType, 3);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "reflAngScaleType");
+	if(o_tmp == 0) throw strEr_BadOptR;
+	if(!PyUnicode_Check(o_tmp) && !PyBytes_Check(o_tmp)) { Py_DECREF(o_tmp); throw strEr_BadOptR; }
+	CopyPyStringToC(o_tmp, pOpt->reflAngScaleType, 3);
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "reflPhEnStart");
+	if(o_tmp == 0) throw strEr_BadOptR;
+	if(!PyNumber_Check(o_tmp)) { Py_DECREF(o_tmp); throw strEr_BadOptR; }
+	pOpt->reflPhEnStart = PyFloat_AsDouble(o_tmp);
+	if(PyErr_Occurred()) { Py_DECREF(o_tmp); throw strEr_BadOptR; }
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "reflPhEnFin");
+	if(o_tmp == 0) throw strEr_BadOptR;
+	if(!PyNumber_Check(o_tmp)) { Py_DECREF(o_tmp); throw strEr_BadOptR; }
+	pOpt->reflPhEnFin = PyFloat_AsDouble(o_tmp);
+	if(PyErr_Occurred()) { Py_DECREF(o_tmp); throw strEr_BadOptR; }
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "reflAngStart");
+	if(o_tmp == 0) throw strEr_BadOptR;
+	if(!PyNumber_Check(o_tmp)) { Py_DECREF(o_tmp); throw strEr_BadOptR; }
+	pOpt->reflAngStart = PyFloat_AsDouble(o_tmp);
+	if(PyErr_Occurred()) { Py_DECREF(o_tmp); throw strEr_BadOptR; }
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "reflAngFin");
+	if(o_tmp == 0) throw strEr_BadOptR;
+	if(!PyNumber_Check(o_tmp)) { Py_DECREF(o_tmp); throw strEr_BadOptR; }
+	pOpt->reflAngFin = PyFloat_AsDouble(o_tmp);
+	if(PyErr_Occurred()) { Py_DECREF(o_tmp); throw strEr_BadOptR; }
+	Py_DECREF(o_tmp);
+
+	if((pOpt->reflNumPhEn <= 0) || (pOpt->reflNumAng <= 0) ||
+	   (pOpt->reflNumComp < 1) || (pOpt->reflNumComp > 2)) throw strEr_BadOptR;
+
+	size_t nVal = (size_t)pOpt->reflNumPhEn;
+	size_t nAng = (size_t)pOpt->reflNumAng;
+	size_t nComp = (size_t)pOpt->reflNumComp;
+	size_t maxSize = numeric_limits<size_t>::max();
+	if((nVal > maxSize/nAng) || ((nVal *= nAng) > maxSize/nComp) ||
+	   ((nVal *= nComp) > maxSize/2) || ((nVal *= 2) > maxSize/sizeof(double))) throw strEr_BadOptR;
+	size_t sizeReflExp = nVal*sizeof(double);
+	if((sizeRefl < 0) || ((size_t)sizeRefl != sizeReflExp)) throw strEr_BadOptR;
+}
+
 /************************************************************************//**
  * Parses PyObject* to SRWLOptMir*
  ***************************************************************************/
 void ParseSructSRWLOptMir(SRWLOptMir* pOpt, PyObject* oOpt, vector<Py_buffer>* pvBuf) //throw(...) 
 {
 	if((pOpt == 0) || (oOpt == 0)) throw strEr_NoObj;
+
+	pOpt->arReflObj = 0;
+	pOpt->nReflObj = 0;
+	pOpt->arReflDist = 0;
 
 	//PyObject *o_tmp = PyObject_GetAttrString(oOpt, "arRefl");
 	//pOpt->arRefl = (double*)GetPyArrayBuf(o_tmp, pvBuf, 0);
@@ -2228,6 +2324,55 @@ void ParseSructSRWLOptMir(SRWLOptMir* pOpt, PyObject* oOpt, vector<Py_buffer>* p
 		pOpt->isConvex = (char)PyLong_AsLong(o_tmp);
 		Py_DECREF(o_tmp);
 	}
+
+	//NW11072025 ------------------------------
+	o_tmp = PyObject_GetAttrString(oOpt, "arReflObj");
+	if(o_tmp == 0)
+	{
+		PyErr_Clear();
+		return;
+	}
+	if(o_tmp == Py_None)
+	{
+		Py_DECREF(o_tmp);
+		return;
+	}
+	if(!PyList_Check(o_tmp)) { Py_DECREF(o_tmp); throw strEr_BadOptMir; }
+
+	int nReflObj = (int)PyList_Size(o_tmp);
+	if(nReflObj <= 0) { Py_DECREF(o_tmp); throw strEr_BadOptMir; }
+	vector<SRWLOptR> vReflObj(nReflObj);
+	for(int i=0; i<nReflObj; i++)
+	{
+		PyObject *o = PyList_GetItem(o_tmp, (Py_ssize_t)i);
+		if(o == 0) { Py_DECREF(o_tmp); throw strEr_BadOptMir; }
+		ParseSructSRWLOptR(&(vReflObj[i]), o, pvBuf);
+	}
+	Py_DECREF(o_tmp);
+
+	o_tmp = PyObject_GetAttrString(oOpt, "arReflDist");
+	if(o_tmp == 0) throw strEr_BadOptMir;
+	Py_ssize_t sizeReflDist = 0;
+	int *pReflDist = (int*)GetPyArrayBuf(o_tmp, pvBuf, &sizeReflDist);
+	if((pReflDist == 0) || (pOpt->npt <= 0) || (pOpt->nps <= 0)) { Py_DECREF(o_tmp); throw strEr_BadOptMir; }
+
+	size_t nMap = (size_t)pOpt->npt;
+	size_t nps = (size_t)pOpt->nps;
+	size_t maxSize = numeric_limits<size_t>::max();
+	if((nMap > maxSize/nps) || ((nMap *= nps) > maxSize/sizeof(int))) { Py_DECREF(o_tmp); throw strEr_BadOptMir; }
+	size_t sizeReflDistExp = nMap*sizeof(int);
+	if((sizeReflDist < 0) || ((size_t)sizeReflDist != sizeReflDistExp)) { Py_DECREF(o_tmp); throw strEr_BadOptMir; }
+	for(size_t i=0; i<nMap; i++)
+	{
+		if((pReflDist[i] < 0) || (pReflDist[i] >= nReflObj)) { Py_DECREF(o_tmp); throw strEr_BadOptMir; }
+	}
+	Py_DECREF(o_tmp);
+
+	pOpt->arReflObj = new SRWLOptR[nReflObj];
+	for(int i=0; i<nReflObj; i++) pOpt->arReflObj[i] = vReflObj[i];
+	pOpt->nReflObj = nReflObj;
+	pOpt->arReflDist = pReflDist;
+	//NW11072025 ------------------------------
 }
 
 /************************************************************************//**
@@ -2382,6 +2527,32 @@ void ParseSructSRWLOptMirExtHyp(SRWLOptMirHyp* pOpt, PyObject* oOpt) //throw(...
 }
 
 /************************************************************************//**
+ * Deallocates a parsed mirror of a specific type.
+ ***************************************************************************/
+template<class T> void DeallocSRWLOptMirType(void* pMir)
+{
+	T *pMirTyped = (T*)pMir;
+	if(pMirTyped->baseMir.arReflObj != 0) delete[] pMirTyped->baseMir.arReflObj;
+	delete pMirTyped;
+}
+
+/************************************************************************//**
+ * Deallocates a parsed mirror and its reflectivity object array.
+ ***************************************************************************/
+void DeallocSRWLOptMir(void* pMir, const char* sType)
+{
+	if((pMir == 0) || (sType == 0)) return;
+
+	if(strcmp(sType, "mirror: plane") == 0) DeallocSRWLOptMirType<SRWLOptMirPl>(pMir);
+	else if(strcmp(sType, "mirror: ellipsoid") == 0) DeallocSRWLOptMirType<SRWLOptMirEl>(pMir);
+	else if(strcmp(sType, "mirror: paraboloid") == 0) DeallocSRWLOptMirType<SRWLOptMirPar>(pMir);
+	else if(strcmp(sType, "mirror: toroid") == 0) DeallocSRWLOptMirType<SRWLOptMirTor>(pMir);
+	else if(strcmp(sType, "mirror: sphere") == 0) DeallocSRWLOptMirType<SRWLOptMirSph>(pMir);
+	else if(strcmp(sType, "mirror: hyperboloid") == 0) DeallocSRWLOptMirType<SRWLOptMirHyp>(pMir);
+}
+
+
+/************************************************************************//**
  * Parses PyObject* to a SRWLOptMir*
  ***************************************************************************/
 void* ParseSructSRWLOptMirAll(PyObject* oOpt, char* sPyTypeName, vector<Py_buffer>* pvBuf, char* srwOptTypeName)
@@ -2401,46 +2572,54 @@ void* ParseSructSRWLOptMirAll(PyObject* oOpt, char* sPyTypeName, vector<Py_buffe
 
 	void *pMir = 0;
 	strcpy(srwOptTypeName, "mirror: ");
-	if(strcmp(sPyTypeName, "SRWLOptMirPl") == 0)
+	try
 	{
-		pMir = new SRWLOptMirPl();
-		strcat(srwOptTypeName, "plane\0");
-		ParseSructSRWLOptMir(&(((SRWLOptMirPl*)pMir)->baseMir), oOpt, pvBuf);
+		if(strcmp(sPyTypeName, "SRWLOptMirPl") == 0)
+		{
+			pMir = new SRWLOptMirPl();
+			strcat(srwOptTypeName, "plane\0");
+			ParseSructSRWLOptMir(&(((SRWLOptMirPl*)pMir)->baseMir), oOpt, pvBuf);
+		}
+		else if(strcmp(sPyTypeName, "SRWLOptMirEl") == 0)
+		{
+			pMir = new SRWLOptMirEl();
+			strcat(srwOptTypeName, "ellipsoid\0");
+			ParseSructSRWLOptMir(&(((SRWLOptMirEl*)pMir)->baseMir), oOpt, pvBuf);
+			ParseSructSRWLOptMirExtEl((SRWLOptMirEl*)pMir, oOpt);
+		}
+		else if(strcmp(sPyTypeName, "SRWLOptMirPar") == 0)
+		{
+			pMir = new SRWLOptMirPar();
+			strcat(srwOptTypeName, "paraboloid\0");
+			ParseSructSRWLOptMir(&(((SRWLOptMirPar*)pMir)->baseMir), oOpt, pvBuf);
+			ParseSructSRWLOptMirExtPar((SRWLOptMirPar*)pMir, oOpt);
+		}
+		else if(strcmp(sPyTypeName, "SRWLOptMirTor") == 0)
+		{
+			pMir = new SRWLOptMirTor();
+			strcat(srwOptTypeName, "toroid\0");
+			ParseSructSRWLOptMir(&(((SRWLOptMirTor*)pMir)->baseMir), oOpt, pvBuf);
+			ParseSructSRWLOptMirExtTor((SRWLOptMirTor*)pMir, oOpt);
+		}
+		else if (strcmp(sPyTypeName, "SRWLOptMirSph") == 0)
+		{
+			pMir = new SRWLOptMirSph();
+			strcat(srwOptTypeName, "sphere\0");
+			ParseSructSRWLOptMir(&(((SRWLOptMirSph*)pMir)->baseMir), oOpt, pvBuf);
+			ParseSructSRWLOptMirExtSph((SRWLOptMirSph*)pMir, oOpt);
+		}
+		else if(strcmp(sPyTypeName, "SRWLOptMirHyp") == 0) //TW24012024
+		{
+			pMir = new SRWLOptMirHyp();
+			strcat(srwOptTypeName, "hyperboloid\0");
+			ParseSructSRWLOptMir(&(((SRWLOptMirHyp*)pMir)->baseMir), oOpt, pvBuf);
+			ParseSructSRWLOptMirExtHyp((SRWLOptMirHyp*)pMir, oOpt);
+		}
 	}
-	else if(strcmp(sPyTypeName, "SRWLOptMirEl") == 0)
+	catch(...)
 	{
-		pMir = new SRWLOptMirEl();
-		strcat(srwOptTypeName, "ellipsoid\0");
-		ParseSructSRWLOptMir(&(((SRWLOptMirEl*)pMir)->baseMir), oOpt, pvBuf);
-		ParseSructSRWLOptMirExtEl((SRWLOptMirEl*)pMir, oOpt);
-	}
-	else if(strcmp(sPyTypeName, "SRWLOptMirPar") == 0)
-	{
-		pMir = new SRWLOptMirPar();
-		strcat(srwOptTypeName, "paraboloid\0");
-		ParseSructSRWLOptMir(&(((SRWLOptMirPar*)pMir)->baseMir), oOpt, pvBuf);
-		ParseSructSRWLOptMirExtPar((SRWLOptMirPar*)pMir, oOpt);
-	}
-	else if(strcmp(sPyTypeName, "SRWLOptMirTor") == 0)
-	{
-		pMir = new SRWLOptMirTor();
-		strcat(srwOptTypeName, "toroid\0");
-		ParseSructSRWLOptMir(&(((SRWLOptMirTor*)pMir)->baseMir), oOpt, pvBuf);
-		ParseSructSRWLOptMirExtTor((SRWLOptMirTor*)pMir, oOpt);
-	}
-	else if (strcmp(sPyTypeName, "SRWLOptMirSph") == 0)
-	{
-		pMir = new SRWLOptMirSph();
-		strcat(srwOptTypeName, "sphere\0");
-		ParseSructSRWLOptMir(&(((SRWLOptMirSph*)pMir)->baseMir), oOpt, pvBuf);
-		ParseSructSRWLOptMirExtSph((SRWLOptMirSph*)pMir, oOpt);
-	}
-	else if(strcmp(sPyTypeName, "SRWLOptMirHyp") == 0) //TW24012024
-	{
-		pMir = new SRWLOptMirHyp();
-		strcat(srwOptTypeName, "hyperboloid\0");
-		ParseSructSRWLOptMir(&(((SRWLOptMirHyp*)pMir)->baseMir), oOpt, pvBuf);
-		ParseSructSRWLOptMirExtHyp((SRWLOptMirHyp*)pMir, oOpt);
+		DeallocSRWLOptMir(pMir, srwOptTypeName);
+		throw;
 	}
 
 	return pMir;
@@ -2452,12 +2631,9 @@ void* ParseSructSRWLOptMirAll(PyObject* oOpt, char* sPyTypeName, vector<Py_buffe
 void ParseSructSRWLOptG(SRWLOptG* pOpt, PyObject* oOpt, vector<Py_buffer>* pvBuf) //throw(...) 
 {
 	if((pOpt == 0) || (oOpt == 0)) throw strEr_NoObj;
+	pOpt->mirSub = 0;
+	pOpt->mirSubType[0] = '\0';
 	PyObject *o_tmp = 0;
-
-	o_tmp = PyObject_GetAttrString(oOpt, "mirSub");
-	if(o_tmp == 0) throw strEr_BadOptG;
-	pOpt->mirSub = ParseSructSRWLOptMirAll(o_tmp, 0, pvBuf, pOpt->mirSubType);
-	Py_DECREF(o_tmp);
 
 	o_tmp = PyObject_GetAttrString(oOpt, "m");
 	if(o_tmp == 0) throw strEr_BadOptG;
@@ -2525,6 +2701,11 @@ void ParseSructSRWLOptG(SRWLOptG* pOpt, PyObject* oOpt, vector<Py_buffer>* pvBuf
 			Py_DECREF(o_tmp);
 		}
 	}
+
+	o_tmp = PyObject_GetAttrString(oOpt, "mirSub");
+	if(o_tmp == 0) throw strEr_BadOptG;
+	pOpt->mirSub = ParseSructSRWLOptMirAll(o_tmp, 0, pvBuf, pOpt->mirSubType);
+	Py_DECREF(o_tmp);
 }
 
 /************************************************************************//**
@@ -4204,7 +4385,13 @@ void DeallocOptCntArrays(SRWLOptC* pOptCnt)
 						else if(strcmp(sType, "lens") == 0) delete (SRWLOptL*)(pOptCnt->arOpt[i]);
 						else if(strcmp(sType, "zp") == 0) delete (SRWLOptZP*)(pOptCnt->arOpt[i]);
 						else if(strcmp(sType, "waveguide") == 0) delete (SRWLOptWG*)(pOptCnt->arOpt[i]);
-						else if(strcmp(sType, "grating") == 0) delete (SRWLOptG*)(pOptCnt->arOpt[i]);
+						else if(strcmp(sType, "grating") == 0)
+						{
+							SRWLOptG *pG = (SRWLOptG*)(pOptCnt->arOpt[i]);
+							DeallocSRWLOptMir(pG->mirSub, pG->mirSubType);
+							delete pG;
+						}
+						else if(strncmp(sType, "mirror: ", 8) == 0) DeallocSRWLOptMir(pOptCnt->arOpt[i], sType);
 						else if(strcmp(sType, "transmission") == 0) delete (SRWLOptT*)(pOptCnt->arOpt[i]);
 						//{
 						//	SRWLOptT *pT = (SRWLOptT*)(pOptCnt->arOpt[i]);
