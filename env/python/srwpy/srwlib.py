@@ -7028,10 +7028,14 @@ def srwl_uti_proc_is_master():
     except:
         return True
 
+#**********************Auxiliary function returning the name of the temporary file a result is written to before it is renamed to _file_path
+def _srwl_uti_tmp_path(_file_path):
+    return _file_path + '.tmp'
+
 #**********************Auxiliary function to write tabulated resulting Intensity data to an ASCII file:
 def srwl_uti_save_intens_ascii(_ar_intens, _mesh, _file_path, _n_stokes=1, _arLabels=['Photon Energy', 'Horizontal Position', 'Vertical Position', 'Intensity'], _arUnits=['eV', 'm', 'm', 'ph/s/.1%bw/mm^2'], _mutual=0, _cmplx=0): #OC06052018
 #def srwl_uti_save_intens_ascii(_ar_intens, _mesh, _file_path, _n_stokes=1, _arLabels=['Photon Energy', 'Horizontal Position', 'Vertical Position', 'Intensity'], _arUnits=['eV', 'm', 'm', 'ph/s/.1%bw/mm^2'], _mutual=0):
-    f = open(_file_path, 'w')
+    f = open(_srwl_uti_tmp_path(_file_path), 'w') #Written to temporary file, renamed below when complete
     arLabelUnit = [_arLabels[i] + ' [' + _arUnits[i] + ']' for i in range(4)]
 
     sUnitEnt = arLabelUnit[3]
@@ -7107,6 +7111,7 @@ def srwl_uti_save_intens_ascii(_ar_intens, _mesh, _file_path, _n_stokes=1, _arLa
     #f = open(_file_path, 'w')
     #f.write(strOut)
     f.close()
+    os.replace(_srwl_uti_tmp_path(_file_path), _file_path) #Atomic, so readers never see a partially written file
 
 #**********************Auxiliary function to read-in tabulated  Intensity data from an ASCII file (format is defined in srwl_uti_save_intens_ascii)
 def srwl_uti_read_intens_ascii(_file_path, _num_type='f'):
@@ -7202,7 +7207,7 @@ def srwl_uti_save_intens_hdf5(_ar_intens, _mesh, _file_path, _n_stokes=1,
     else: intensity_data = _ar_intens
 
     #Write file header and data set (compound datatype) as hdf5
-    with h5.File(_file_path, 'w') as hf:
+    with h5.File(_srwl_uti_tmp_path(_file_path), 'w') as hf:
         #intensity
         hf.create_dataset('intensity', data=intensity_data) #Change this name?
 
@@ -7252,6 +7257,7 @@ def srwl_uti_save_intens_hdf5(_ar_intens, _mesh, _file_path, _n_stokes=1,
     #END DEBUG
     
     hf.close()
+    os.replace(_srwl_uti_tmp_path(_file_path), _file_path) #Atomic, so readers never see a partially written file
     #Print competed time
     #print('HDF5 completed (lasted', round(time.time() - t0, 6), 's)')
 
@@ -8795,7 +8801,7 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
     :param _wre: initial wavefront radius error [m] to assume at wavefront propagation (is taken into account if != 0)
     :param _det: detector object for post-processing of final intensity (instance of SRWLDet)
     :param _me_approx: approximation to be used at multi-electron integration: 0- none (i.e. do standard M-C integration over 5D phase space volume of e-beam), 1- integrate numerically only over e-beam energy spread and use convolution to treat transverse emittance
-    :param _file_bkp: create or not backup files with resulting multi-electron radiation characteristics
+    :param _file_bkp: deprecated and ignored: output files are now always written atomically (to a temporary file that is then renamed), so backup files are not needed
     :param _rand_opt: randomize parameters of optical elements at each fully-coherent wavefront propagation (e.g. to simulate impact of vibrations) or not
     :param _file_form: format of output files ('ascii' / 'asc' and 'hdf5' supported)
     :param _n_mpi: number of independent "groups" of MPI processes (for 4D CSD calculation)
@@ -9536,7 +9542,6 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
 
     if(_opt_bl is None): arPrecParSR[6] = 0 #Ensure non-automatic choice of numbers of points if there is no beamline
 
-    bkpFileToBeSaved = False #OC14082018
     RxAvg = 0; RyAvg = 0; xcAvg = 0; ycAvg = 0 #OC21052020
 
     #resLabelsToSaveMutualHorCut = [resLabelsToSave[0], resLabelsToSave[1], 'Conj. ' + resLabelsToSave[1], 'Mutual ' + resLabelsToSave[3]] #OC03052018
@@ -11120,18 +11125,6 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
                         
                     fp = _file_path; fp1 = file_path1; fp2 = file_path2; fpdc1 = file_path_deg_coh1; fpdc2 = file_path_deg_coh2 #OC14082018
                     fpA = file_pathA #OC24122018
-                    if(_file_bkp): 
-                        if(bkpFileToBeSaved):
-                            if(fp is not None): fp = copy(fp) + '.bkp'
-                            if(fp1 is not None): fp1 = copy(fp1) + '.bkp'
-                            if(fp2 is not None): fp2 = copy(fp2) + '.bkp'
-                            if(fpdc1 is not None): fpdc1 = copy(fpdc1) + '.bkp'
-                            if(fpdc2 is not None): fpdc2 = copy(fpdc2) + '.bkp'
-                            if(fpA is not None): fpA = copy(fpA) + '.bkp' #OC24122018
-                            
-                            bkpFileToBeSaved = False
-                        else: bkpFileToBeSaved = True
-
                     if(((_char == 6) or (_char == 61) or (_char == 7)) and (_n_mpi <= 1)): #OC20062021 (copy / update CSD only if total distribution is required)
                     #if((_char == 6) and (_n_mpi <= 1)): #OC03032021 (copy / update CSD only if total distribution is required)
                     #if(_char == 6):
@@ -11677,18 +11670,6 @@ def srwl_wfr_emit_prop_multi_e(_e_beam, _mag, _mesh, _sr_meth, _sr_rel_prec, _n_
 
                 fp = _file_path; fp1 = file_path1; fp2 = file_path2; fpdc1 = file_path_deg_coh1; fpdc2 = file_path_deg_coh2 #OC14082018
                 fpA = file_pathA #OC24122018
-                if(_file_bkp): 
-                    if(bkpFileToBeSaved):
-                        if(fp is not None): fp = copy(fp) + '.bkp'
-                        if(fp1 is not None): fp1 = copy(fp1) + '.bkp'
-                        if(fp2 is not None): fp2 = copy(fp2) + '.bkp'
-                        if(fpdc1 is not None): fpdc1 = copy(fpdc1) + '.bkp'
-                        if(fpdc2 is not None): fpdc2 = copy(fpdc2) + '.bkp'
-                        if(fpA is not None): fpA = copy(fpA) + '.bkp'
-                        
-                        bkpFileToBeSaved = False
-                    else: bkpFileToBeSaved = True
-                    
                 if(((_char == 6) or (_char == 61) or (_char == 7)) and (_n_mpi <= 1)): #OC20062021 (copy / update CSD only if total distribution is required)
                 #if((_char == 6) and (_n_mpi <= 1)): #OC03032021 (copy / update CSD only if total distribution is required)
                 #if(_char == 6): #OC18022021

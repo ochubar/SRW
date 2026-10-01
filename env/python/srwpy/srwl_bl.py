@@ -2113,7 +2113,7 @@ class SRWLBeamline(object):
         :param _fname: name of file to save the resulting data to
         :param _det: detector structure ensuring a given final mesh on which the calculated intensity (or other characteristic) will be interpolated
         :param _me_approx: multi-electron integration approximation method: 0- no approximation (use the standard 5D integration method), 1- integrate numerically only over e-beam energy spread and use convolution to treat transverse emittance
-        :param _fbk: switch specifying if backup intermadiate intensity files should be produced in the course of calculation or not
+        :param _fbk: deprecated and ignored (backup files are no longer produced; intermediate files are now written atomically)
         :param _op_rnd: switch specifying whether some optical element parameters, as specified in elements self.optics, should be randomized in the course of the calculation or not
         :param _fform: switch specifying file format of some input/output data files (not fully supported yet)
         :param _nmm: number of MPI "masters" to be used at 4D cross-spectral density (CSD) calculation
@@ -4320,7 +4320,7 @@ def srwl_uti_std_options():
         ['sm_am', 'i', 0, 'multi-electron integration approximation method: 0- no approximation (use the standard 5D integration method), 1- integrate numerically only over e-beam energy spread and use convolution to treat transverse emittance'],
         ['sm_fn', 's', 'res_spec_me.dat', 'file name for saving calculated milti-e spectrum vs photon energy'],
         ['sm_pl', 's', 'e', 'plot the resulting spectrum-e spectrum in a graph: ""- dont plot, "e"- show plot vs photon energy'],
-        ['sm_fbk', '', '', 'create backup file(s) with multi-e spectrum (only is it is calculated using the macro-particle method)', 'store_true'],
+        ['sm_fbk', '', '', 'deprecated and ignored: backup files are no longer produced (output files are written atomically)', 'store_true'],
 
     #Power Density Distribution vs horizontal and vertical position
         ['pw', '', '', 'calculate SR power density distribution', 'store_true'],
@@ -4425,7 +4425,7 @@ def srwl_uti_std_options():
 
         ['wm_fncm', 's', '', 'file name of input coherent modes; if this file name is supplied, the eventual partially-coherent radiation propagation simulation will be done based on propagation of the coherent modes from that file.'], #OC02072021
 
-        ['wm_fbk', '', '', 'create backup file(s) with propagated multi-e intensity distribution vs horizontal and vertical position and other radiation characteristics', 'store_true'],
+        ['wm_fbk', '', '', 'deprecated and ignored: backup files are no longer produced (output files are written atomically)', 'store_true'],
         ['wm_pl', 's', '', 'plot the propagated radiaiton intensity distributions in graph(s): ""- dont plot, "x"- vs horizontal position, "y"- vs vertical position, "xy"- vs horizontal and vertical position'], #OC25072024
         #['wm_pl', 's', 'xy', 'plot the propagated radiaiton intensity distributions in graph(s): ""- dont plot, "x"- vs horizontal position, "y"- vs vertical position, "xy"- vs horizontal and vertical position'],
         
